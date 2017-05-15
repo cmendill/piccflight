@@ -1,0 +1,74 @@
+#****************************************************************#
+#   This is the flight code for the PICTURE-C flight computer.   #
+#  More detailed documentation can be found in the doc/ folder.  #
+#****************************************************************#
+
+OVERVIEW
+ - The PICTURE-C computer serves as the only uplink/downlink console to the flight electronics.  
+
+TELEMETRY INTERFACES
+ - RS232 @ 1200 baud uplink and downlink
+ - 4Mbps 16bit parallel data written out by the RTD DM7820 FPGA and encoded by the WFF93 encoder. 
+
+HARDWARE CONTROL
+ - Science and wavefront sensor cameras (via CTU commands).
+ - Nuller PZTs (3xs316)
+ - Nuller DM (1024 ch)
+
+DEFINITIONS
+ - SCI: Flight 1 Science camera
+ - LYT: Lyot LOWFS camera
+ - SHK: Shack-Hartmann LOWFS camera
+ - ACQ: Acquisition camera
+ - 
+
+PC104 STACK
+ - CPU: Versalogic Baycat
+ - TLM: RTD DM7820 FPGA
+ - CL1: Camera link 1 --> SH LOWFS
+ - CL2: Camera link 2 --> Lyot LOWFS
+ - AD1: Analog to digital converter 1
+ - AD2: Analog to digital converter 1
+ - AD3: Analog to digital converter 1
+ - RB1: Relay board 1
+ - RB2: Relay board 2
+ 
+LIST OF PROCESSES
+ - watchdog
+    - watchdog: launch and monitor all other processes and to start the cameras
+      provides a console to receive terminal commands
+
+ - tlm_proc
+    - telemetry: sends image packets down thru the paralell interface
+    - all packets share a common header, which contains information to indentify the image
+
+ - hsk_proc
+    - poll the CTU for housekeeping data
+
+
+LIST OF DRIVERS
+ - RTD DM7820
+    - uses the stock DM7820 driver
+    - writes data to the FPGA FIFO using DMA
+
+OTHER CODE
+ - src/lib/
+    - functions used by many processes
+    - src/lib/common_functions.c
+    - code for shared mem, circular buffer, sockets, image deinterlacing, changing camera modes
+ - src/scripts/
+    - shell scripts
+
+SETTINGS
+ - Most settings are held in the global header file: ./src/lib/controller.h
+    - this is where you turn hardware on and off
+ - Operational settings are held in ./src/wat/watchdog.h
+    - this is where you turn processes on and off
+
+BUILD INSTRUCTIONS
+ - type: make all
+ - binaries are written into the bin folder
+
+RUN INSTRUCTIONS
+ - cd bin/
+ - ./watchdog
