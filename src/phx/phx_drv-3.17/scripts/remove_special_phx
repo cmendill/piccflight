@@ -1,0 +1,7 @@
+#!/bin/bash
+for ((node=0; node<128; node++)) ; do
+   rm -f /dev/phx$node
+   if [ -d /etc/udev/devices/ ]; then
+      rm -f /etc/udev/devices/phx$node
+   fi
+done
