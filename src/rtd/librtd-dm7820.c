@@ -31,10 +31,10 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include <dm7820_globals.h>
-#include <dm7820_ioctl.h>
-#include <dm7820_library.h>
-#include <dm7820_registers.h>
+#include "dm7820_globals.h"
+#include "dm7820_ioctl.h"
+#include "dm7820_library.h"
+#include "dm7820_registers.h"
 
 /**
  * @defgroup DM7820_Library_Source DM7820 user library source code

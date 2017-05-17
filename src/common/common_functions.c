@@ -152,79 +152,55 @@ void checkin(sm_t *sm_p,int id){
 
 
 /******************************************************************************
-        CHECK THE SCIENCE CIRCULAR BUFFER FOR DATA
+        CHECK THE SCI CIRCULAR BUFFER FOR DATA
 ******************************************************************************/
-int check_science_buffer(sm_t *sm_p, int id){
-  return(sm_p->science_write_offset - sm_p->science_read_offsets[id]);
+int check_sci_buffer(sm_t *sm_p, int id){
+  return(sm_p->sci_write_offset - sm_p->sci_read_offsets[id]);
 }
 
 /******************************************************************************
-        READ FROM THE SCIENCE CIRCULAR BUFFER
+        READ FROM THE SCI CIRCULAR BUFFER
 ******************************************************************************/
-int read_from_science_buffer(sm_t *sm_p, science_t *science_p, int id){
+int read_from_sci_buffer(sm_t *sm_p, scievent_t *sci_p, int id){
   //check for new data
-  if(!check_science_buffer(sm_p,id))
+  if(!check_sci_buffer(sm_p,id))
     return  0;
-  memcpy((void *)science_p, (const void *)&(sm_p->science_cirbuf[sm_p->science_read_offsets[id] % CIRCBUFSIZE]), sizeof(science_t));
-  sm_p->science_read_offsets[id]++;
+  memcpy((void *)sci_p, (const void *)&(sm_p->sci_cirbuf[sm_p->sci_read_offsets[id] % CIRCBUFSIZE]), sizeof(scievent_t));
+  sm_p->sci_read_offsets[id]++;
   return 1;
 }
 
 /******************************************************************************
-        WRITE TO THE SCIENCE IMAGE CIRCULAR BUFFER
+        WRITE TO THE SCI IMAGE CIRCULAR BUFFER
 ******************************************************************************/
-int write_to_science_buffer(sm_t *sm_p, science_t *science_p){
+int write_to_sci_buffer(sm_t *sm_p, scievent_t *sci_p){
   int i;
   for (i=0;i<NCLIENTS;i++)                                  // For each read pointer
     {
-      if (((sm_p->science_write_offset+1) % CIRCBUFSIZE)      // If we are
-	  == ((sm_p->science_read_offsets[i]) % CIRCBUFSIZE)) // out of buffer space
-	sm_p->science_read_offsets[i]++;                      // remove trailing entry
+      if (((sm_p->sci_write_offset+1) % CIRCBUFSIZE)      // If we are
+	  == ((sm_p->sci_read_offsets[i]) % CIRCBUFSIZE)) // out of buffer space
+	sm_p->sci_read_offsets[i]++;                      // remove trailing entry
     }
-  memcpy((void *)&(sm_p->science_cirbuf[sm_p->science_write_offset % CIRCBUFSIZE]), (const void *)science_p, sizeof(science_t));
-  sm_p->science_write_offset++;
+  memcpy((void *)&(sm_p->sci_cirbuf[sm_p->sci_write_offset % CIRCBUFSIZE]), (const void *)sci_p, sizeof(scievent_t));
+  sm_p->sci_write_offset++;
   return 0;
 }
 
 /******************************************************************************
-        READ NEWEST FROM THE SCIENCE CIRCULAR BUFFER
+        READ NEWEST FROM THE SCI CIRCULAR BUFFER
 ******************************************************************************/
-int read_newest_science_buffer(sm_t *sm_p, science_t *science_p, int id){
+int read_newest_sci_buffer(sm_t *sm_p, scievent_t *sci_p, int id){
   //check for new data
-  if(!check_science_buffer(sm_p,id))
+  if(!check_sci_buffer(sm_p,id))
     return  0;
   
   //move read pointer to one before write pointer
-  while(check_science_buffer(sm_p,id) > 1)
-    sm_p->science_read_offsets[id]++;
+  while(check_sci_buffer(sm_p,id) > 1)
+    sm_p->sci_read_offsets[id]++;
   
-  memcpy((void *)science_p, (const void *)&(sm_p->science_cirbuf[sm_p->science_read_offsets[id] % CIRCBUFSIZE]), sizeof(science_t));
+  memcpy((void *)sci_p, (const void *)&(sm_p->sci_cirbuf[sm_p->sci_read_offsets[id] % CIRCBUFSIZE]), sizeof(scievent_t));
   sm_p->frame_read_offsets[id]++;
   return 1;
-}
-
-/******************************************************************************
-        OPEN SCIENCE IMAGE CIRCULAR BUFFER FOR WRITING
-******************************************************************************/
-void open_science_buffer(sm_t *sm_p, science_t **science_p){
-  int i;
-  for (i=0;i<NCLIENTS;i++)                                  // For each read pointer
-
-    {
-      if (((sm_p->science_write_offset+1) % CIRCBUFSIZE)      // If we are
-	  == ((sm_p->science_read_offsets[i]) % CIRCBUFSIZE)) // out of buffer space
-	sm_p->science_read_offsets[i]++;                      // remove trailing entry
-    }
-  *science_p = (science_t *)&(sm_p->science_cirbuf[sm_p->science_write_offset % CIRCBUFSIZE]);
-  
-  return;
-}
-/******************************************************************************
-        CLOSE SCIENCE IMAGE CIRCULAR BUFFER AFTER WRITING
-******************************************************************************/
-void close_science_buffer(sm_t *sm_p){
-  sm_p->science_write_offset++;
-  return;
 }
 
 

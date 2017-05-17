@@ -12,8 +12,8 @@
 #include <sys/ioctl.h>
 #include <pthread.h>
 
-
-#include <dm7820_library.h>
+/* piccflight headers */
+#include "dm7820_library.h"
 #include "../common/controller.h"
 
 //EXTERNAL GLOBALS

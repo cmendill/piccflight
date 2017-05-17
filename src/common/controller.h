@@ -69,7 +69,7 @@ typedef int boolean;
 /*************************************************
 * Software Switches
 *************************************************/
-#define PUT_SOMETHING_HERE
+#define PUT_SOMETHING_HERE 4
 
 /*************************************************
  * Fake Mode Bits
@@ -107,6 +107,7 @@ typedef int boolean;
 #define DATAPATH        "data/flight_data/folder_%5.5lu/"
 #define DATANAME        "data/flight_data/folder_%5.5lu/picture.%s.%8.8lu.dat"
 #define MAX_FILENAME    128
+
 
 /*************************************************
  * Network Addresses & Ports
@@ -152,6 +153,8 @@ typedef int boolean;
 #define SHKYS           1024
 #define LYTXS           16
 #define LYTYS           16
+#define ACQXS           512
+#define ACQYS           512
 
 /*************************************************
  * Messaging
@@ -162,6 +165,7 @@ typedef int boolean;
 #define SHK_DEBUG       0 // print shk messages
 #define SCI_DEBUG       0 // print sci messages
 #define WAT_DEBUG       0 // print wat messages
+
 
 /*************************************************
  * Limits
@@ -180,33 +184,27 @@ typedef int boolean;
  *************************************************/
 #define DM_CHANNELS 1024
 #define DM_STROKE   0.5
-#define DM_PHASE    0.0324278
 #define DMXS        32
 #define DMYS        32
 #define DM_DMAX     ((1<<14) - 1)
 #define DM_DMIN     0                   
 #define DM_DMID     ((DM_DMIN+DM_DMAX)/2)  
-#define DM_RMAX     (1./DM_PHASE)
-#define DM_RMIN     0
-#define DM_RMID     ((DM_RMIN+DM_RMAX)/2)  
-
-#define DM_I_CEIL    0.5   
-#define DM_I_FLOOR  -0.5
-#define DM_MWAVE     0.633 //microns
-#define DM_DWAVE     ((DM_MWAVE/2)*(DM_DMAX/1.6)) //this is correct
-#define DM_RWAVE     TWOPI
-#define DM_R2D       (DM_DWAVE/DM_RWAVE)  
 
 /*************************************************
- * States
+ * IWC Parameters
  *************************************************/
-enum states {STATE_LOST,STATE_SENSE,N_STATES};
-    
-  
+#define IWC_CHANNELS 79
+#define IWC_STROKE   0.5
+#define IWCXS        10
+#define IWCYS        10
+#define IWC_DMAX     ((1<<14) - 1)
+#define IWC_DMIN     0                   
+#define IWC_DMID     ((IWC_DMIN+IWC_DMAX)/2)  
+
 /*************************************************
  * Process ID Numbers
  *************************************************/
-enum procids {WATID, SCIID, SHKID, LYTID, TLMID, ACQID, MOTID, THMID, SRVID, TMPID, HSKID};
+enum procids {WATID, SCIID, SHKID, LYTID, TLMID, ACQID, MOTID, THMID, SRVID, TMPID, HSKID,NCLIENTS};
 
 
 /*************************************************
@@ -240,7 +238,6 @@ typedef struct procinfo_struct{
   uint8 cnt;
   uint8 tmo;
   uint8 ask;
-  uint8 rtl;
   uint8 per;
   uint8 pri;
   char  *name;
@@ -260,11 +257,14 @@ typedef struct shk_struct{
 typedef struct lyt_struct{
   uint16 data[LYTXS][LYTYS];
 } lyt_t;
+typedef struct acq_struct{
+  uint16 data[ACQXS][ACQYS];
+} acq_t;
 
 /*************************************************
  * Event Structures
  *************************************************/
-typedef struct science_struct{
+typedef struct scievent_struct{
   uint32  frame_number;
   float   exptime;
   float   ontime;
@@ -274,8 +274,47 @@ typedef struct science_struct{
   uint16  imysize;
   uint32  state;
   uint32  mode;
-  sci_t   S; //SCI
-} science_t;
+  sci_t   image; 
+} scievent_t;
+
+typedef struct shkevent_struct{
+  uint32  frame_number;
+  float   exptime;
+  float   ontime;
+  float   temp;
+  int32   timestamp;
+  uint16  imxsize;
+  uint16  imysize;
+  uint32  state;
+  uint32  mode;
+  shk_t   image; 
+} shkevent_t;
+
+typedef struct lytevent_struct{
+  uint32  frame_number;
+  float   exptime;
+  float   ontime;
+  float   temp;
+  int32   timestamp;
+  uint16  imxsize;
+  uint16  imysize;
+  uint32  state;
+  uint32  mode;
+  lyt_t   image; 
+} lytevent_t;
+
+typedef struct acqevent_struct{
+  uint32  frame_number;
+  float   exptime;
+  float   ontime;
+  float   temp;
+  int32   timestamp;
+  uint16  imxsize;
+  uint16  imysize;
+  uint32  state;
+  uint32  mode;
+  acq_t   image; 
+} acqevent_t;
 
 /*************************************************
  * Shared Memory Layout
@@ -285,25 +324,40 @@ typedef volatile struct {
   //Runtime switches
   boolean memlock;        //Shared memory locking bit
   boolean die;            //Kill all processes
-  
-  //Fake mode
-  uint16  fake_mode;      //Fake data mode
 
   //Process information
   procinfo_t w[NCLIENTS];
-
+  
+  //Fake mode
+  uint16  fake_mode;      //Fake data mode
+  
   //Camera modes
-  uint32 sci_mode;
-  double sci_exptime;  
-  struct timespec sci_ts;
- 
+  uint32 sci_mode;        //Science camera mode
+  uint32 lyt_mode;        //Lyot LOWFS camera mode
+  uint32 shk_mode;        //Shack-Hartmann camera mode
+  uint32 acq_mode;        //Acquisition camera mode
+  
   //DM positions
-  int16    dm[DMXS][DMYS];
+  int16   dm[DMXS][DMYS];
+  int16   iwc[IWCXS][IWCYS];
+  
+  //SCI circular buffer
+  scievent_t sci_cirbuf[CIRCBUFSIZE];
+  uint32  sci_write_offset;	      //last entry written
+  uint32  sci_read_offsets[NCLIENTS]; //last entry read
+  //SHK circular buffer
+  shkevent_t shk_cirbuf[CIRCBUFSIZE];
+  uint32  shk_write_offset;	      //last entry written
+  uint32  shk_read_offsets[NCLIENTS]; //last entry read
+  //LYT circular buffer
+  lytevent_t lyt_cirbuf[CIRCBUFSIZE];
+  uint32  lyt_write_offset;	      //last entry written
+  uint32  lyt_read_offsets[NCLIENTS]; //last entry read
+  //ACQ circular buffer
+  acqevent_t acq_cirbuf[CIRCBUFSIZE];
+  uint32  acq_write_offset;	      //last entry written
+  uint32  acq_read_offsets[NCLIENTS]; //last entry read
 
-  //Science circular buffer
-  science_t science_cirbuf[CIRCBUFSIZE];
-  uint32  science_write_offset;	          //last entry written
-  uint32  science_read_offsets[NCLIENTS]; //last entry read
 } sm_t;
 
 

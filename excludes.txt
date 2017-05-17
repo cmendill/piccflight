@@ -5,23 +5,8 @@ sync.sh
 *~
 *.o
 *.ko
+#executables
 bin/watchdog
-bin/mpuf
-bin/mpu
-bin/startup.sh
-dia/ppztset
-dia/npztset
-dia/npztscan
-dia/dmset_image
-dia/dmset_flat
-dia/dmset_driver
-dia/dmset_all
-dia/dmraster_image
-dia/dmraster_driver
-dia/dmramp_all
-dia/cpztset
-dia/timing
-dia/timing_sync
 
 
 

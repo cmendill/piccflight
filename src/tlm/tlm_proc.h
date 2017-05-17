@@ -11,10 +11,18 @@
 #define TLM_PRESYNC   0x12345678
 #define TLM_POSTSYNC  0xDEADBEEF
 
-//SWITCHES
-#define DATA_SEND   1
+//SEND SWITCHES
 #define SCI_SEND    1
-#define DM_SEND     1
+#define SHK_SEND    1
+#define LYT_SEND    1
+#define ACQ_SEND    1
+#define  DM_SEND    1
 #define IWC_SEND    1
-#define LYOT_SEND   1
-#define SH_SEND     1
+
+//SAVE SWITCHES
+#define SCI_SAVE    1
+#define SHK_SAVE    1
+#define LYT_SAVE    1
+#define ACQ_SAVE    1
+#define  DM_SAVE    1
+#define IWC_SAVE    1

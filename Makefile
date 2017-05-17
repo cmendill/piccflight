@@ -8,31 +8,25 @@ SOURCE  = $(wildcard ./src/*/*.c)
 OBJECT  = $(patsubst %.c,%.o,$(SOURCE))
 DIASRC  = $(wildcard ./dia/*.c)
 DIABIN  = $(patsubst %.c,%,$(DIASRC))
-HEADER  = $(wildcard ./src/*/*.h)
-WATSRC  = ./src/
-SCRIPTS = $(wildcard ./src/scripts/*.sh)
-
-#INCLUDE
-INCLUDE = -I$(wildcard ./src/*)
 
 #DEPENDANCIES
-COMDEP  = Makefile $(HEADER)
+COMDEP  = Makefile $(wildcard ./src/common/*.h)
 
 #ALL
-MAKEALL = $(TARGET)watchdog $(DIABIN) scripts
+MAKEALL = $(TARGET)watchdog $(DIABIN)
 all: $(MAKEALL)
 
 #WATCHDOG
 $(TARGET)watchdog: $(OBJECT) 
-	$(CC) $(USER_CFLAGS) $(INCLUDE) -o $(TARGET)watchdog $(OBJECT) -lm -lpthread
+	$(CC) $(USER_CFLAGS) -o $(TARGET)watchdog $(OBJECT) -lm -lpthread
 
 #USERSPACE OBJECTS
 %.o: %.c  $(COMDEP)
-	$(CC) $(USER_CFLAGS) ${INCLUDE} -o $@ -c $< 
+	$(CC) $(USER_CFLAGS) -o $@ -c $< 
 
 #USERSPACE EXECUTABLES
 %: %.c  $(COMDEP)
-	$(CC) $(USER_CFLAGS) ${INCLUDE} -o $@ $< 
+	$(CC) $(USER_CFLAGS) -o $@ $< 
 
 #SCRIPTS
 scripts:

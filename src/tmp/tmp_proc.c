@@ -1,6 +1,18 @@
-#include user_header.h
-#include controller.h
-#include common_functions.h
+#include <stdio.h>
+#include <termios.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <errno.h>
+#include <string.h>
+#include <signal.h>
+#include <fcntl.h>
+#include <ctype.h>
+
+/* piccflight headers */
+#include "../common/controller.h"
+#include "../common/common_functions.h"
+
+
 int tmp_shmfd;
 
 

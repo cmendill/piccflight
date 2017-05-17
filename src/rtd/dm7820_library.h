@@ -24,7 +24,7 @@
 
 #include <stdint.h>
 
-#include <dm7820_types.h>
+#include "dm7820_types.h"
 #include <pthread.h>
 #include <sys/wait.h>
 

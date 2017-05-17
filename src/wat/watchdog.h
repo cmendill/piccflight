@@ -20,4 +20,7 @@
 #define FAKE_MODE_DEFAULT  0 // Fake data in various ways
 
 //camera modes
-#define SCI_MODE_DEFAULT 1
+#define SCI_MODE_DEFAULT 0 
+#define SHK_MODE_DEFAULT 0 
+#define LYT_MODE_DEFAULT 0 
+#define ACQ_MODE_DEFAULT 0 
