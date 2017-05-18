@@ -1,7 +1,7 @@
-#include <phoenix_bobcat.h>
-#include <phx_api.h>
-#include <phoenix.h>
-#include <bobcat.h>
+#include "include/phx_api.h"
+#include "phoenix_bobcat.h"
+#include "phoenix.h"
+#include "bobcat.h"
 
 /* function to handle parameters that require simultaneous configuration of both the bobcat and the phoenix
   PHX_BOBCAT_BIT_DEPTH = PHX_BOBCAT_8BIT | PHX_BOBCAT_10BIT | PHX_BOBCAT_12BIT

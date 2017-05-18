@@ -26,7 +26,7 @@
 #include <linux/ioctl.h>
 #include <linux/types.h>
 
-#include <dm7820_types.h>
+#include "dm7820_types.h"
 
 /**
  * @defgroup DM7820_Ioctl_Header DM7820 ioctl header file

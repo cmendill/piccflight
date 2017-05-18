@@ -1,6 +1,7 @@
 #COMPILER OPTIONS
 CC = gcc
-USER_CFLAGS = -Wall -Wno-unused -O2
+USER_CFLAGS = -Wall -Wno-unused -O6 -D_PHX_LINUX
+LINK = -Lsrc/phx/lib -lphx -lpfw -lpbu -lm -lpthread
 
 #FILES
 TARGET  = ./bin/
@@ -18,7 +19,7 @@ all: $(MAKEALL)
 
 #WATCHDOG
 $(TARGET)watchdog: $(OBJECT) 
-	$(CC) $(USER_CFLAGS) -o $(TARGET)watchdog $(OBJECT) -lm -lpthread
+	$(CC) $(USER_CFLAGS) -o $(TARGET)watchdog $(OBJECT) $(LINK)
 
 #USERSPACE OBJECTS
 %.o: %.c  $(COMDEP)
@@ -34,7 +35,7 @@ scripts:
 
 #CLEAN
 clean:
-	rm -f ./src/*/*.o $(MAKEALL) ./rtl/*/*.o
+	rm -f ./src/*/*.o $(MAKEALL) 
 
 #REMOVE *~ files
 remove_backups:

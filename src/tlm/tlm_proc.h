@@ -1,28 +1,31 @@
 /*************************************************
  * TLM Parameters
  *************************************************/
-//RTD Board
-#define RTD_DMA 1 //Use DMA for RTD data transfers
 
 //DATA ID
-#define TLM_SCIENCE 0xAAAA0000
-   
+#define TLM_SCI 0x11110000
+#define TLM_SHK 0x22220000
+#define TLM_LYT 0x33330000
+#define TLM_ACQ 0x44440000
+#define TLM_DM  0x55550000
+#define TLM_IWC 0x66660000
+
 //SYNCWORDS
 #define TLM_PRESYNC   0x12345678
 #define TLM_POSTSYNC  0xDEADBEEF
 
 //SEND SWITCHES
-#define SCI_SEND    1
-#define SHK_SEND    1
-#define LYT_SEND    1
-#define ACQ_SEND    1
-#define  DM_SEND    1
-#define IWC_SEND    1
+#define SEND_SCI    0
+#define SEND_SHK    0
+#define SEND_LYT    0
+#define SEND_ACQ    0
+#define SEND_DM     0
+#define SEND_IWC    0
 
 //SAVE SWITCHES
-#define SCI_SAVE    1
-#define SHK_SAVE    1
-#define LYT_SAVE    1
-#define ACQ_SAVE    1
-#define  DM_SAVE    1
-#define IWC_SAVE    1
+#define SAVE_SCI    0
+#define SAVE_SHK    0
+#define SAVE_LYT    0
+#define SAVE_ACQ    0
+#define SAVE_DM     0
+#define SAVE_IWC    0

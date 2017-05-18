@@ -28,9 +28,9 @@
 #include <linux/spinlock.h>
 #include <linux/types.h>
 
-#include <dm7820_ioctl.h>
-#include <dm7820_kernel.h>
-#include <dm7820_types.h>
+#include "dm7820_ioctl.h"
+#include "dm7820_kernel.h"
+#include "dm7820_types.h"
 
 /**
  * @defgroup DM7820_Driver_Header DM7820 driver header file

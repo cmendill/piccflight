@@ -15,6 +15,7 @@
 /* piccflight headers */
 #include "dm7820_library.h"
 #include "../common/controller.h"
+#include "rtd.h"
 
 //EXTERNAL GLOBALS
 //--RTD DM7820 device descriptor

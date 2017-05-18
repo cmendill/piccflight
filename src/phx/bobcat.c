@@ -1,5 +1,5 @@
-#include <phx_api.h>    /* Main Phoenix library */
-#include <bobcat.h>
+#include "include/phx_api.h"    /* Main Phoenix library */
+#include "bobcat.h"
 
 /*#define _VERBOSE*/
 

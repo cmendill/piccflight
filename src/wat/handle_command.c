@@ -10,7 +10,7 @@
 
 /* piccflight headers */
 #include "handle_command.h"
-#include "controller.h"
+#include "../common/controller.h"
 
 /* Report Fake Modes */
 void report_fake_modes(void){
@@ -34,9 +34,14 @@ int handle_command(char *line, sm_t *sm_p){
    ***************************************/
   //exit: exit watchdog
   if(!strncasecmp(line,"exit",4)){
-    return(PICC_EXIT_WATCHDOG);
+    return(CMD_EXIT_WATCHDOG);
   }
 
+
+
+
   
+  //return with command not found
+  return(CMD_NOT_FOUND);
 }
 

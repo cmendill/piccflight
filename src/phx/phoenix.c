@@ -1,4 +1,4 @@
-#include <phoenix.h>
+#include "phoenix.h"
 
 int PHX_str_to_etParam(char** str, etParam* ppParam) {
   if (strcmp(*str, "PHX_PARAM_MASK")==0) {

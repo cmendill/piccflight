@@ -15,8 +15,8 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 
-#include <controller.h>
-#include <common_functions.h>
+#include "../common/controller.h"
+#include "../common/common_functions.h"
 
 /* Globals */
 extern volatile int ethfd;
@@ -51,7 +51,7 @@ void *tlm_listener(void *t) {
   hints.ai_family   = AF_UNSPEC;
   hints.ai_socktype = SOCK_STREAM;
   hints.ai_flags    = AI_PASSIVE;
-  if ((rv = getaddrinfo(NULL, JPL2GSE_PORT, &hints, &ai)) != 0) {
+  if ((rv = getaddrinfo(NULL, GSE_PORT, &hints, &ai)) != 0) {
     fprintf(stderr, "selectserver: %s\n", gai_strerror(rv));
     exit(2);
   }

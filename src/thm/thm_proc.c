@@ -13,43 +13,43 @@
 #include "../common/common_functions.h"
 
 /* Process File Descriptor */
-int tmp_shmfd;
+int thm_shmfd;
 
 /* CTRL-C Function */
-void tmpctrlC(int sig)
+void thmctrlC(int sig)
 {
 #if MSG_CTRLC
-  printf("TMP: ctrlC! exiting.\n");
+  printf("THM: ctrlC! exiting.\n");
 #endif
-  close(tmp_shmfd);
+  close(thm_shmfd);
   exit(sig);
 }
 
 /* Main Process */
-void tmp_proc(void){
+void thm_proc(void){
   uint32 count = 0;
   /* Open Shared Memory */
   sm_t *sm_p;
-  if((sm_p = openshm(&tmp_shmfd)) == NULL){
-    printf("openshm fail: tmp_proc\n");
-    tmpctrlC(0);
+  if((sm_p = openshm(&thm_shmfd)) == NULL){
+    printf("openshm fail: thm_proc\n");
+    thmctrlC(0);
   }
 
   /* Set soft interrupt handler */
-  sigset(SIGINT, tmpctrlC);	/* usually ^C */
+  sigset(SIGINT, thmctrlC);	/* usually ^C */
 
   while(1){
     /* Check if we've been asked to exit */
-    if(sm_p->w[TMPID].die)
-      tmpctrlC(0);
+    if(sm_p->w[THMID].die)
+      thmctrlC(0);
     
     /* Check in with the watchdog */
-    checkin(sm_p,TMPID);
+    checkin(sm_p,THMID);
     
     /* Sleep */
-    sleep(sm_p->w[TMPID].per);
+    sleep(sm_p->w[THMID].per);
   }
   
-  tmpctrlC(0);
+  thmctrlC(0);
   return;
 }

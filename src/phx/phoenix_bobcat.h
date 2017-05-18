@@ -1,7 +1,7 @@
 #ifndef _ADDONS
   #define _ADDONS
 
-  #include <phx_api.h>    /* Main Phoenix library */
+  #include "include/phx_api.h"    /* Main Phoenix library */
 
   typedef enum{
     PHX_BOBCAT_BIT_DEPTH,

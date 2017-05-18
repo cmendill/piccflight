@@ -1,8 +1,9 @@
 #include <string.h>
-#include <config.h>
-#include <phoenix.h>
-#include <bobcat.h>
-#include <phoenix_bobcat.h>
+
+#include "config.h"
+#include "phoenix.h"
+#include "bobcat.h"
+#include "phoenix_bobcat.h"
 
 /* #define _VERBOSE */
 

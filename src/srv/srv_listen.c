@@ -15,7 +15,9 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
+/* piccflight headers */
 #include "../common/controller.h"
+#include "../common/common_functions.h"
 
 #define LISTEN_PORT "14000"
 #define CMD_SENDDATA  0x0ABACABB
@@ -25,12 +27,7 @@ int listener;     // listening socket descriptor
 int fdmax;        // maximum file descriptor number
 extern volatile int clientfd;
 
-/* Prototypes */
-int eth_send(char *addr,char *port,void *data,int nbytes);
-void *get_in_addr(struct sockaddr *sa);
-int write_to_socket(int s,void *buf,int num);
-int read_from_socket(int s,void *buf,int num);
-
+/* Main Listener Loop */
 void *listener_loop(void *t) {
   /* Start Networking Code */
   fd_set master;    // master file descriptor list

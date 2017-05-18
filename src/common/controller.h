@@ -113,6 +113,7 @@ typedef int boolean;
  * Network Addresses & Ports
  *************************************************/
 #define GSE_ADDR  "192.168.0.6"
+#define GSE_PORT  "1337"
 
 /*************************************************
  * System Settings & Messages
@@ -129,7 +130,11 @@ typedef int boolean;
 /*************************************************
  * Circular Buffer Info
  *************************************************/
-#define CIRCBUFSIZE     3
+enum bufids {SCIBUF, SHKBUF, LYTBUF, ACQBUF, NCIRCBUF};
+#define SCIBUFSIZE     3
+#define SHKBUFSIZE     3
+#define LYTBUFSIZE     3
+#define ACQBUFSIZE     3
 
 /*************************************************
  * Define Errors
@@ -157,7 +162,7 @@ typedef int boolean;
 #define ACQYS           512
 
 /*************************************************
- * Messaging
+ * Debug Messaging
  *************************************************/
 #define TLM_DEBUG       0 // print tlm messages
 #define HSK_DEBUG       0 // print hsk messages
@@ -166,6 +171,11 @@ typedef int boolean;
 #define SCI_DEBUG       0 // print sci messages
 #define WAT_DEBUG       0 // print wat messages
 
+/*************************************************
+ * Other Messaging
+ *************************************************/
+#define MSG_SAVEDATA    0 // print data saving messages
+#define MSG_CTRLC       0 // print SIGINT messages
 
 /*************************************************
  * Limits
@@ -205,7 +215,6 @@ typedef int boolean;
  * Process ID Numbers
  *************************************************/
 enum procids {WATID, SCIID, SHKID, LYTID, TLMID, ACQID, MOTID, THMID, SRVID, TMPID, HSKID,NCLIENTS};
-
 
 /*************************************************
  * Packets
@@ -342,19 +351,19 @@ typedef volatile struct {
   int16   iwc[IWCXS][IWCYS];
   
   //SCI circular buffer
-  scievent_t sci_cirbuf[CIRCBUFSIZE];
+  scievent_t sci_cirbuf[SCIBUFSIZE];
   uint32  sci_write_offset;	      //last entry written
   uint32  sci_read_offsets[NCLIENTS]; //last entry read
   //SHK circular buffer
-  shkevent_t shk_cirbuf[CIRCBUFSIZE];
+  shkevent_t shk_cirbuf[SHKBUFSIZE];
   uint32  shk_write_offset;	      //last entry written
   uint32  shk_read_offsets[NCLIENTS]; //last entry read
   //LYT circular buffer
-  lytevent_t lyt_cirbuf[CIRCBUFSIZE];
+  lytevent_t lyt_cirbuf[LYTBUFSIZE];
   uint32  lyt_write_offset;	      //last entry written
   uint32  lyt_read_offsets[NCLIENTS]; //last entry read
   //ACQ circular buffer
-  acqevent_t acq_cirbuf[CIRCBUFSIZE];
+  acqevent_t acq_cirbuf[ACQBUFSIZE];
   uint32  acq_write_offset;	      //last entry written
   uint32  acq_read_offsets[NCLIENTS]; //last entry read
 

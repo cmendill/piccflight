@@ -25,8 +25,8 @@
 #ifndef __dm7820_globals_h__
 #define __dm7820_globals_h__
 
-#include <dm7820_registers.h>
-#include <dm7820_types.h>
+#include "dm7820_registers.h"
+#include "dm7820_types.h"
 
 /**
  * @defgroup DM7820_Globals_Header DM7820 global variable header file

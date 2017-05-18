@@ -24,7 +24,7 @@
 #import <ASLphoenix/phx_os.h>
 
 #else
-#include <phx_os.h>
+#include "phx_os.h"
 
 #endif
 

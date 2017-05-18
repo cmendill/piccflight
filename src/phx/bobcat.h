@@ -4,7 +4,7 @@
 #ifndef _BOBCAT
   #define _BOBCAT
 
-  #include <phx_api.h>    /* Main Phoenix library */
+  #include "include/phx_api.h"    /* Main Phoenix library */
 
   typedef enum{
     BOBCAT_INVALID_PARAM								= (ui16) 0,

@@ -9,10 +9,11 @@
 #include <ctype.h>
 
 /* piccflight headers */
-#include "tlm_proc.h"
 #include "../common/controller.h"
 #include "../common/common_functions.h"
 #include "../rtd/dm7820_library.h"
+#include "../rtd/rtd.h"
+#include "tlm_proc.h"
 
 #define SLEEP_TIME 10000
 #define NFAKE 100000
@@ -53,10 +54,10 @@ int checkdata(sm_t *sm_p){
   static int s,k,l,a;
   /*Check in with watchdog*/
   checkin(sm_p,TLMID);
-  s = check_sci_buffer(sm_p, TLMID);
-  k = check_shk_buffer(sm_p, TLMID);
-  l = check_lyt_buffer(sm_p, TLMID);
-  a = check_acq_buffer(sm_p, TLMID);
+  s = check_buffer(sm_p, SCIBUF, TLMID);
+  k = check_buffer(sm_p, SHKBUF, TLMID);
+  l = check_buffer(sm_p, LYTBUF, TLMID);
+  a = check_buffer(sm_p, ACQBUF, TLMID);
   
   return(s || k || l || a);
 }
@@ -64,22 +65,22 @@ int checkdata(sm_t *sm_p){
 int checksci(sm_t *sm_p){
   /*Check in with watchdog*/
   checkin(sm_p,TLMID);
-  return(check_sci_buffer(sm_p, TLMID));
+  return(check_buffer(sm_p, SCIBUF, TLMID));
 }
 int checkshk(sm_t *sm_p){
   /*Check in with watchdog*/
   checkin(sm_p,TLMID);
-  return(check_shk_buffer(sm_p, TLMID));
+  return(check_buffer(sm_p, SHKBUF, TLMID));
 }
 int checklyt(sm_t *sm_p){
   /*Check in with watchdog*/
   checkin(sm_p,TLMID);
-  return(check_lyt_buffer(sm_p, TLMID));
+  return(check_buffer(sm_p, LYTBUF, TLMID));
 }
 int checkacq(sm_t *sm_p){
   /*Check in with watchdog*/
   checkin(sm_p,TLMID);
-  return(check_acq_buffer(sm_p, TLMID));
+  return(check_buffer(sm_p, ACQBUF, TLMID));
 }
 
 
@@ -178,10 +179,14 @@ void tlm_proc(void){
   unsigned long count=0;
   unsigned long message;
   char tag[3];
-  static sci_t sci;
-  static shk_t shk;
-  static lyt_t lyt;
-  static acq_t acq;
+  uint32 folderindex=0;
+  char datpath[200];
+  char pathcmd[200];
+  struct stat st;
+  static scievent_t sci;
+  static shkevent_t shk;
+  static lytevent_t lyt;
+  static acqevent_t acq;
   static tlmheader_t tlmHED;
   
   
@@ -223,24 +228,18 @@ void tlm_proc(void){
 
   
   /* Create folder for saved data */
-#if (SAVE_SCI || SAVE_SHK || SAVE_LYT || SAVE_ACQ)
-  uint32 folderindex=0;
-  char datpath[200];
-  char pathcmd[200];
-  struct stat st;
-  while(1){
-    sprintf(datpath,DATAPATH,folderindex);
-    if(stat(datpath,&st))
-      break;
-    folderindex++;
+  if(SAVE_SCI || SAVE_SHK || SAVE_LYT || SAVE_ACQ){
+    while(1){
+      sprintf(datpath,DATAPATH,folderindex);
+      if(stat(datpath,&st))
+	break;
+      folderindex++;
+    }
+    sprintf(pathcmd,"mkdir %s",datpath);
+    system(pathcmd);
+    if(MSG_SAVEDATA)
+      printf("TLM: Saving data in: %s\n",datpath);
   }
-  sprintf(pathcmd,"mkdir %s",datpath);
-#if MSG_SAVEDATA 
-  printf("TLM: Saving data in: %s\n",datpath);
-#endif
-  system(pathcmd);
-#endif
-  
   while(1){
     
     //check if we want to fake the TM data
@@ -299,7 +298,7 @@ void tlm_proc(void){
       else{
 
 	/*Get SCI data*/
-	if(read_from_sci_buffer(sm_p, &sci, TLMID)){
+	if(read_from_buffer(sm_p, &sci, SCIBUF, TLMID)){
 	  /*Check in with watchdog*/
 	  checkin(sm_p,TLMID);
 	  //save science data 
@@ -318,11 +317,11 @@ void tlm_proc(void){
 	  tlmHED.timestamp    = sci.timestamp;
 	  tlmHED.imxsize      = sci.imxsize;
 	  tlmHED.imysize      = sci.imysize;
-	  if(SCI_SEND){
+	  if(SEND_SCI){
 	    //write data
 	    write_block((char *)&tlmHED, (char *)&sci.image, sizeof(sci.image),0);
 	    if(TLM_DEBUG)
-	      printf("TLM: Frame %d - SCI\n",tlmHED.frame_number);
+	      printf("TLM: Frame %lu - SCI\n",tlmHED.frame_number);
 	  }
 	}
 

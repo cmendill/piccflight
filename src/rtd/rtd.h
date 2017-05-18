@@ -1,3 +1,5 @@
+//RTD Board
+#define RTD_DMA          1                                 //Use DMA to write TM out parallel board
 #define RTD_BUF_SIZE     0x8000                            //Individual segment size
 #define RTD_BUF_NUM      16                                //Number of segments for each DMA channel
 #define RTD_FRAME_NUM    16                                //Number of segments per frame

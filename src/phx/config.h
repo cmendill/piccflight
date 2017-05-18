@@ -1,8 +1,8 @@
 #ifndef _CONFIG
   #define _CONFIG
 
-  #include <phx_api.h>
-  #include <bobcat.h>
+  #include "include/phx_api.h"
+  #include "bobcat.h"
 
   #define PHX_MAX_FILE_LENGTH 128
   typedef struct {
