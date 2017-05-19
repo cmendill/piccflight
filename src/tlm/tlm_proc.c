@@ -1,12 +1,14 @@
+#define _XOPEN_SOURCE 500
+#include <signal.h>
 #include <stdio.h>
 #include <termios.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <errno.h>
 #include <string.h>
-#include <signal.h>
 #include <fcntl.h>
 #include <ctype.h>
+#include <sys/stat.h>
 
 /* piccflight headers */
 #include "../common/controller.h"
@@ -165,8 +167,10 @@ void save_data(void *buf, uint32 num, char *tag, uint32 framenumber, uint32 fold
     close(fd);
     return;
   }
-  /*Write buffer to fifo */
-  write(fd,buf,num);
+  /*Write buffer to file */
+  if(write(fd,buf,num))
+    printf("TLM: save_data failed to write data!\n");
+  
   /*Close file*/
   close(fd);
 #if MSG_SAVEDATA
@@ -236,7 +240,10 @@ void tlm_proc(void){
       folderindex++;
     }
     sprintf(pathcmd,"mkdir %s",datpath);
-    system(pathcmd);
+    if(system(pathcmd)){
+      printf("TLM: Failed to create save data folder (%d)\n",errno);
+      tlmctrlC(0);
+    }
     if(MSG_SAVEDATA)
       printf("TLM: Saving data in: %s\n",datpath);
   }

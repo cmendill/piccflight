@@ -1,12 +1,17 @@
-#include <time.h>
 #include <stdio.h>
-#include <stdint.h>
+#include <termios.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <errno.h>
+#include <string.h>
+#include <fcntl.h>
+#include <ctype.h>
+#include <time.h>
 #include <sys/socket.h>
 #include <sys/ipc.h>
 #include <sys/sem.h>
 
 sm_t *openshm(int *mainfd);
-int  timeval_subtract(struct timeval *result,struct timeval *x,struct timeval *y);
 int  timespec_subtract(struct timespec *result,struct timespec *x,struct timespec *y);
 void ts2double(volatile struct timespec *ts,volatile double *db);
 void double2ts(volatile double *db,volatile struct timespec *ts);

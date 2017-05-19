@@ -354,7 +354,7 @@ int main(int argc,char **argv){
     printf("WAT: Shutting down CPU NOW!\n");
     fflush(stdout); 
     if(system("shutdown -h now"))
-      printf("WAT: shutdown command failed!\n");
+      printf("WAT: shutdown command failed! (%d)\n",errno);
     
     //Go to sleep
     sleep(60);

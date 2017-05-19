@@ -11,7 +11,7 @@ DIASRC  = $(wildcard ./dia/*.c)
 DIABIN  = $(patsubst %.c,%,$(DIASRC))
 
 #DEPENDANCIES
-COMDEP  = Makefile $(wildcard ./src/common/*.h)
+COMDEP  = Makefile $(wildcard ./src/*/*.h) $(wildcard ./src/*/*/*.h)
 
 #ALL
 MAKEALL = $(TARGET)watchdog $(DIABIN)

@@ -1,3 +1,5 @@
+#define _XOPEN_SOURCE 500
+#include <signal.h>
 #include <stdio.h>
 #include <termios.h>
 #include <stdlib.h>
