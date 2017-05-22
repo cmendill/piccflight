@@ -202,8 +202,7 @@ etStat CONFIG_RunFile(tHandle handle, char** pszConfigFileName) {
   etStat eStat = PHX_OK;
 
   FILE* fp;
-  #define N 255
-  char strLine[N];
+  char strLine[PHX_CONFIG_MAX_LINE];
 
   char delimit[] = "= \t\r\n\v\f";
   char fphx=0, fbobcat=0, fsystem=0;
@@ -213,10 +212,12 @@ etStat CONFIG_RunFile(tHandle handle, char** pszConfigFileName) {
   char *token, *strParam, *strParamValue;
 
   eStat = BOBCAT_LoadFromFactory(handle);
-
+  
   fp = fopen(*pszConfigFileName, "r");
-
-  while(fgets(strLine, N, (FILE*) fp)) {
+  if(fp==NULL)
+    perror("fopen()");
+  
+  while(fgets(strLine, PHX_CONFIG_MAX_LINE, (FILE*) fp)) {
     if(strstr(strLine, strPhoenix) != NULL) {
       #ifdef _VERBOSE
         printf("phoenix block found\n");
@@ -239,7 +240,7 @@ etStat CONFIG_RunFile(tHandle handle, char** pszConfigFileName) {
         eStat = PHX_ParameterSet( handle, (etParam)( PHX_DUMMY_PARAM | PHX_CACHE_FLUSH | PHX_FORCE_REWRITE ), NULL );
       #endif
     } else {
-
+      
       token = strtok(strLine, delimit);
       strParam = malloc(sizeof(char)*strlen(token)+1);
       strcpy(strParam, token);

@@ -169,13 +169,13 @@ enum bufids {SCIBUF, SHKBUF, LYTBUF, ACQBUF, NCIRCBUF};
 #define LYT_DEBUG       0 // print bin messages
 #define SHK_DEBUG       0 // print shk messages
 #define SCI_DEBUG       0 // print sci messages
-#define WAT_DEBUG       0 // print wat messages
+#define WAT_DEBUG       1 // print wat messages
 
 /*************************************************
  * Other Messaging
  *************************************************/
 #define MSG_SAVEDATA    0 // print data saving messages
-#define MSG_CTRLC       0 // print SIGINT messages
+#define MSG_CTRLC       1 // print SIGINT messages
 
 /*************************************************
  * Limits

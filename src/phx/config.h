@@ -5,6 +5,7 @@
   #include "bobcat.h"
 
   #define PHX_MAX_FILE_LENGTH 128
+  #define PHX_CONFIG_MAX_LINE 255
   typedef struct {
     ui32 dwBoardNumber;
     etParamValue eBoardNumber;

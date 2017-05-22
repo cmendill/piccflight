@@ -32,46 +32,27 @@
 ******************************************************************************/
 sm_t *openshm(int *mainfd){
   sm_t *sm_p=NULL;
-  int count = 0;
-  while((sm_p == NULL) && (count < SHMEM_RETRY)){
-    if ((*mainfd = open("/dev/mem",O_RDWR)) < 0){
-      printf("shared mem open failed on: /dev/mem (%d)\n",errno);
-      switch (errno) {
-      case EACCES:  printf ("Permission denied.\n"); break;
-      case EMFILE:  printf ("No file handle available.\n"); break;
-      case ENOENT:  printf ("File or path not found.\n"); break;
-      default:      printf ("Unknown error %d\n",errno); break;
-      }
-      printf("Will retry shared mem open...\n");
-      sleep(SHMEM_SLEEP);
-      count++;
-    }
-    else if ((sm_p = (sm_t *)mmap(0,sizeof(sm_t)
-				  , PROT_READ | PROT_WRITE, MAP_SHARED, 
-				  *mainfd, SHARED_BASE)) == MAP_FAILED){
-      //perror("mmap()");
-      switch (errno) {
-      case EACCES:    printf("EACCES\n"); break;
-      case EAGAIN:    printf("EAGAIN\n"); break;
-      case EBADF:     printf("EBADF\n"); break;
-      case EINVAL:    printf("EINVAL\n"); break;
-      case EMFILE:    printf("EMFILE\n"); break;
-      case ENODEV:    printf("ENODEV\n"); break;
-      case ENOMEM:    printf("ENOMEM\n"); break;
-      case ENOTSUP:   printf("ENOTSUP\n"); break;
-      case ENXIO:     printf("ENXIO\n"); break;
-      case EOVERFLOW: printf("EOVERFLOW\n"); break;
-      default:      printf ("Unknown error %d\n",errno); break;
-      }
-	
-      printf("Will retry shared mem open...\n");
-      close(*mainfd);
-      sm_p = NULL;
-      sleep(SHMEM_SLEEP);
-      count++;
-    }
-    
+  
+  /* open the shared memory segment */
+  if ((*mainfd = shm_open("piccshm",O_RDWR | O_CREAT,0666)) < 0){
+    perror("shm_open()");
+    return NULL;
   }
+
+  /* set the size of the shared memory segment */
+  if(ftruncate(*mainfd,sizeof(sm_t)) < 0){
+    perror("ftruncate()");
+    return NULL;
+  }
+  
+  /* mmap the shared memory segment */
+  sm_p = (sm_t *) mmap(NULL,sizeof(sm_t), PROT_READ | PROT_WRITE, MAP_SHARED, *mainfd,0);
+  if(sm_p == MAP_FAILED){
+    perror("mmap()");
+    return NULL;
+  }
+
+  /* on success, return the shared memory pointer */
   return sm_p;
   
 }    

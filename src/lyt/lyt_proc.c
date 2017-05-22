@@ -25,12 +25,14 @@ int lyt_shmfd;
 /* Global Variables */
 tHandle lytCamera = 0; /* Camera Handle   */
 tPHX lytBuffer1, lytBuffer2;
+uint32 lyt_frame_count=0;
 
 /* CTRL-C Function */
 void lytctrlC(int sig)
 {
 #if MSG_CTRLC
   printf("LYT: ctrlC! exiting.\n");
+  printf("LYT: Got %lu frames.\n",lyt_frame_count);
 #endif
   close(lyt_shmfd);
   if ( lytCamera ) PHX_StreamRead( lytCamera, PHX_ABORT, NULL ); /* Now cease all captures */
@@ -56,7 +58,8 @@ static void phxlyotwfs_callback( tHandle lytCamera, ui32 dwInterruptMask, void *
     stImageBuff stBuffer;
     etStat eStat = PHX_StreamRead( lytCamera, PHX_BUFFER_GET, &stBuffer );
     if ( PHX_OK == eStat ) {
-      //Do something
+      //Increment frame counter
+      lyt_frame_count++;
     }
     PHX_StreamRead( lytCamera, PHX_BUFFER_RELEASE, NULL );
   }
@@ -94,28 +97,57 @@ int lyt_proc(void){
 
   aContext.nCurrentEventCount = 0;
 
+  /* Check in with the watchdog */
+  checkin(sm_p,LYTID);
+
   eStat = PHX_Create( &lytCamera, PHX_ErrHandlerDefault ); /* Create a Phoenix handle */
-  if ( PHX_OK != eStat ) lytctrlC(0);
+  if ( PHX_OK != eStat ){
+    printf("LYT: Error PHX_Create\n");
+    lytctrlC(0);
+  }
 
   eStat = PHX_ParameterSet( lytCamera, PHX_BOARD_NUMBER, &eBoardNumber ); /* Set the board number */
-  if ( PHX_OK != eStat ) lytctrlC(0);
+  if ( PHX_OK != eStat ){
+    printf("LYT: Error PHX_ParameterSet\n");
+    lytctrlC(0);
+  }
 
   eStat = PHX_Open( lytCamera ); /* Open the Phoenix board using the above configuration file */
-  if ( PHX_OK != eStat ) lytctrlC(0);
-
+  if ( PHX_OK != eStat ){
+    printf("LYT: Error PHX_Open\n");
+    lytctrlC(0);
+  }
+  
   eStat = CONFIG_RunFile( lytCamera, &configFileName );  /* set the settings from the compound (BOBCAT and PHX) configuration file */
-  if ( eStat != PHX_OK ) lytctrlC(0);
+  if ( PHX_OK != eStat ){
+    printf("LYT: Error CONFIG_RunFile\n");
+    lytctrlC(0);
+  }
+
+  /* Check in with the watchdog */
+  checkin(sm_p,LYTID);
 
   PBL_BufferCreate( &lytBuffer1, PBL_BUFF_SYSTEM_MEM_DIRECT, 0, lytCamera, PHX_ErrHandlerDefault );
   PBL_BufferCreate( &lytBuffer2, PBL_BUFF_SYSTEM_MEM_DIRECT, 0, lytCamera, PHX_ErrHandlerDefault );
 
+  /* Check in with the watchdog */
+  checkin(sm_p,LYTID);
+
   eStat = PHX_ParameterGet( lytCamera, PHX_BUF_DST_XLENGTH, &dwBufferWidth );
-  if ( PHX_OK != eStat ) lytctrlC(0);
+  if ( PHX_OK != eStat ){
+    printf("LYT: Error PHX_ParameterGet --> PHX_BUF_DST_XLENGTH\n");
+    lytctrlC(0);
+  }
+  
 
   eStat = PHX_ParameterGet( lytCamera, PHX_BUF_DST_YLENGTH, &dwBufferHeight );
-  if ( PHX_OK != eStat ) lytctrlC(0);
+  if ( PHX_OK != eStat ){
+    printf("LYT: Error PHX_ParameterGet --> PHX_BUF_DST_YLENGTH\n");
+    lytctrlC(0);
+  }
+  
 
-  printf("PHX_BUF_DST_XLENGTH : %d\nPHX_BUF_DST_yLENGTH : %d\n", dwBufferWidth, dwBufferHeight);
+  if(LYT_DEBUG) printf("PHX_BUF_DST_XLENGTH : %d\nPHX_BUF_DST_yLENGTH : %d\n", dwBufferWidth, dwBufferHeight);
 
   dwBufferStride = dwBufferWidth; /* Convert width (in pixels) to stride (in bytes).*/
   
@@ -125,6 +157,9 @@ int lyt_proc(void){
   PBL_BufferParameterSet( lytBuffer2, PBL_BUFF_HEIGHT, &dwBufferHeight );
   PBL_BufferParameterSet( lytBuffer2, PBL_BUFF_STRIDE, &dwBufferStride );
 
+  /* Check in with the watchdog */
+  checkin(sm_p,LYTID);
+  
   PBL_BufferInit( lytBuffer1 ); /* Initialise each buffer. This creates the buffers in system memory. */
   PBL_BufferInit( lytBuffer2 );
 
@@ -141,38 +176,63 @@ int lyt_proc(void){
 
   dwAcqNumImages = 2;
   eStat = PHX_ParameterSet( lytCamera, PHX_ACQ_NUM_IMAGES, &dwAcqNumImages );
-  if ( PHX_OK != eStat ) lytctrlC(0);
+  if ( PHX_OK != eStat ){
+    printf("LYT: Error PHX_ParameterSet --> PHX_ACQ_NUM_IMAGES\n");
+    lytctrlC(0);
+  }
+
 
   dwAcqBufferStart = 1;
   eStat = PHX_ParameterSet( lytCamera, PHX_ACQ_BUFFER_START, &dwAcqBufferStart );
-  if ( PHX_OK != eStat ) lytctrlC(0);
+  if ( PHX_OK != eStat ){
+    printf("LYT: Error PHX_ParameterSet --> PHX_ACQ_BUFFER_START\n");
+    lytctrlC(0);
+  }
+
 
 
   eStat = PHX_ParameterSet( lytCamera, PHX_DST_PTRS_VIRT, (void *) pasImageBuffs ); /* Instruct Phoenix to use the user supplied Virtual Buffers */
-  if ( PHX_OK != eStat ) lytctrlC(0);
+  if ( PHX_OK != eStat ){
+    printf("LYT: Error PHX_ParameterSet --> PHX_DST_PTRS_VIRT\n");
+    lytctrlC(0);
+  }
+ 
 
   eParamValue = PHX_DST_PTR_USER_VIRT;
   eStat = PHX_ParameterSet( lytCamera, (etParam)( PHX_DST_PTR_TYPE | PHX_CACHE_FLUSH | PHX_FORCE_REWRITE ), (void *) &eParamValue );
-  if ( PHX_OK != eStat ) lytctrlC(0);
+  if ( PHX_OK != eStat ){
+    printf("LYT: Error PHX_ParameterSet --> PHX_DST_PTR_TYPE | PHX_CACHE_FLUSH | PHX_FORCE_REWRITE\n");
+    lytctrlC(0);
+  }
+ 
 
   eStat = PHX_ParameterSet( lytCamera, PHX_EVENT_CONTEXT, (void *) &aContext ); /* Setup our own event context */
-  if ( PHX_OK != eStat ) lytctrlC(0);
+  if ( PHX_OK != eStat ){
+    printf("LYT: Error PHX_ParameterSet --> PHX_EVENT_CONTEXT\n");
+    lytctrlC(0);
+  }
+ 
+  /* Check in with the watchdog */
+  checkin(sm_p,LYTID);
 
-  printf("capturing for xx s\n");
 
   /* -------------------- Now start our capture -------------------- */
   eStat = PHX_StreamRead( lytCamera, PHX_START, (void*)phxlyotwfs_callback );
-  if ( PHX_OK != eStat ) lytctrlC(0);
+  if ( PHX_OK != eStat ){
+    printf("LYT: PHX_StreamRead --> PHX_START\n");
+    lytctrlC(0);
+  }
+
 
   /* -------------------- Enter Waiting Loop -------------------- */
   while(1){
     /* Check if we've been asked to exit */
     if(sm_p->w[LYTID].die)
       lytctrlC(0);
-    
+
     /* Check in with the watchdog */
     checkin(sm_p,LYTID);
-
+    
     /* Sleep */
     sleep(sm_p->w[LYTID].per);
   }

@@ -312,12 +312,17 @@ int main(int argc,char **argv){
   while(1){
     /* The foreground will now wait for an input from the console */
     retval=CMD_NORMAL;
+    printf("picc> ");
     if(fgets(line,CMD_MAX_LENGTH,stdin) != NULL)
       retval = handle_command(line,sm_p);
 
     /* Check return value */
     if(retval == CMD_NORMAL){
       //Normal command -- do nothing
+    }
+    if(retval == CMD_NOT_FOUND){
+      //Bad command
+      printf("Command not found: %s\n",line);
     }
     if(retval == CMD_EXIT_WATCHDOG){
       //Exit watchdog, no shutdown
