@@ -27,6 +27,9 @@ tHandle lytCamera = 0; /* Camera Handle   */
 tPHX lytBuffer1, lytBuffer2;
 uint32 lyt_frame_count=0;
 
+/* Prototypes */
+void lyt_process_image(stImageBuff *buffer,sm_t *sm_p);
+
 /* CTRL-C Function */
 void lytctrlC(int sig)
 {
@@ -48,16 +51,24 @@ void lytctrlC(int sig)
 }
 
 typedef struct { /* Define an application specific structure to hold user information */
-  volatile int nCurrentEventCount; /* Event counter   */
+  volatile ui32 nCurrentEventCount; /* Event counter   */
   volatile double coefficients[15]; /* Event counter   */
+  sm_t *sm_p; /* Shared memory pointer */
 } tContext;
 
 /* Callback Function */
 static void phxlyotwfs_callback( tHandle lytCamera, ui32 dwInterruptMask, void *pvParams ) {
   if ( dwInterruptMask & PHX_INTRPT_BUFFER_READY ) {
     stImageBuff stBuffer;
+    tContext *aContext = (tContext *)pvParams;
+    
     etStat eStat = PHX_StreamRead( lytCamera, PHX_BUFFER_GET, &stBuffer );
     if ( PHX_OK == eStat ) {
+      //Process image
+      lyt_process_image(&stBuffer,aContext->sm_p);
+
+      //Check in with watchdog
+      
       //Increment frame counter
       lyt_frame_count++;
     }
@@ -81,7 +92,7 @@ int lyt_proc(void){
   ui32 dwLoop;
 
   stImageBuff pasImageBuffs[3];
-  ui32 dwParamValue;
+  ui64 dwParamValue;
 
   /* Open Shared Memory */
   sm_t *sm_p;
@@ -93,10 +104,11 @@ int lyt_proc(void){
   /* Set soft interrupt handler */
   sigset(SIGINT, lytctrlC);	/* usually ^C */
 
+  /* Set up context for callback */
   memset( &aContext, 0, sizeof( tContext ) ); /* Initialise the user defined Event context structure */
-
   aContext.nCurrentEventCount = 0;
-
+  aContext.sm_p = sm_p;
+  
   /* Check in with the watchdog */
   checkin(sm_p,LYTID);
 
@@ -164,11 +176,11 @@ int lyt_proc(void){
   PBL_BufferInit( lytBuffer2 );
 
   PBL_BufferParameterGet( lytBuffer1, PBL_BUFF_ADDRESS, &dwParamValue );   /* Build our array of image buffers. PBL_BUFF_ADDRESS returns the address of the first pixel of image data. */
-  pasImageBuffs[ 0 ].pvAddress = (void*)&dwParamValue;
+  pasImageBuffs[ 0 ].pvAddress = (void*)dwParamValue;
   pasImageBuffs[ 0 ].pvContext = (void*)lytBuffer1;
 
   PBL_BufferParameterGet( lytBuffer2, PBL_BUFF_ADDRESS, &dwParamValue );
-  pasImageBuffs[ 1 ].pvAddress = (void*)&dwParamValue;
+  pasImageBuffs[ 1 ].pvAddress = (void*)dwParamValue;
   pasImageBuffs[ 1 ].pvContext = (void*)lytBuffer2;
 
   pasImageBuffs[ 2 ].pvAddress = NULL;
@@ -235,6 +247,7 @@ int lyt_proc(void){
     
     /* Sleep */
     sleep(sm_p->w[LYTID].per);
+
   }
 
   lytctrlC(0);

@@ -23,16 +23,16 @@
 #define CMD_SENDDATA  0x0ABACABB
 
 /* Globals */
-int listener;     // listening socket descriptor
-int fdmax;        // maximum file descriptor number
 extern volatile int clientfd;
+extern volatile int srv_send[NCIRCBUF];
 
-/* Main Listener Loop */
-void *listener_loop(void *t) {
+/* Main Listener */
+void *srv_listener(void *t) {
   /* Start Networking Code */
   fd_set master;    // master file descriptor list
   fd_set read_fds;  // temp file descriptor list for select()
   int nbytes;
+  int fdmax;        // maximum file descriptor
   int listener;     // listening socket descriptor
   int newfd;        // newly accept()ed socket descriptor
   struct sockaddr_storage remoteaddr; // client address
@@ -145,7 +145,11 @@ void *listener_loop(void *t) {
 	  else {
 	    // we got some data from a client
 	    if(recvcmd == CMD_SENDDATA){
-	      printf("Listener got CMD: Send Data\n");
+	      printf("SRV: Listener got CMD: Send Data\n");
+	      //select buffers to send
+	      memset((void *)srv_send,0,sizeof srv_send);
+	      //**need to build this into the command**
+	      srv_send[SHKFULL]=1;
 	      clientfd = i;
 	    }
 	  }

@@ -142,62 +142,25 @@ void checkin(sm_t *sm_p,int id){
 
 
 /******************************************************************************
-        CHECK THE CIRCULAR BUFFER FOR DATA
+        CHECK A CIRCULAR BUFFER FOR DATA
 ******************************************************************************/
 int check_buffer(sm_t *sm_p, int buf, int id){
-  uint32 write_offset,read_offset;
-  switch (buf) {
-  case SCIBUF: write_offset = sm_p->sci_write_offset; read_offset = sm_p->sci_read_offsets[id]; break;
-  case SHKBUF: write_offset = sm_p->shk_write_offset; read_offset = sm_p->shk_read_offsets[id]; break;
-  case LYTBUF: write_offset = sm_p->lyt_write_offset; read_offset = sm_p->lyt_read_offsets[id]; break;
-  case ACQBUF: write_offset = sm_p->acq_write_offset; read_offset = sm_p->acq_read_offsets[id]; break;
-  default: return 0;
-  }
-  return(write_offset - read_offset);
+  return(sm_p->circbuf[buf].write_offset - sm_p->circbuf[buf].read_offsets[id]);
 }
 
 /******************************************************************************
         READ FROM A CIRCULAR BUFFER
 ******************************************************************************/
 int read_from_buffer(sm_t *sm_p, void *output, int buf, int id){
-  uint32 nbytes;
-  void *buffer;
-  volatile uint32 *read_offsets;
-
   //check for new data
   if(!check_buffer(sm_p,buf,id))
     return  0;
-
-  //setup for read
-  switch (buf) {
-  case SCIBUF:
-    nbytes = sizeof(scievent_t);
-    buffer= (void *)&(sm_p->sci_cirbuf[sm_p->sci_read_offsets[id] % SCIBUFSIZE]);
-    read_offsets = sm_p->sci_read_offsets;
-    break;
-  case SHKBUF:
-    nbytes = sizeof(shkevent_t);
-    buffer= (void *)&(sm_p->shk_cirbuf[sm_p->shk_read_offsets[id] % SHKBUFSIZE]);
-    read_offsets = sm_p->shk_read_offsets;
-    break;
-  case LYTBUF:
-    nbytes = sizeof(lytevent_t);
-    buffer= (void *)&(sm_p->lyt_cirbuf[sm_p->lyt_read_offsets[id] % LYTBUFSIZE]);
-    read_offsets = sm_p->lyt_read_offsets;
-    break;
-  case ACQBUF:
-    nbytes = sizeof(acqevent_t);
-    buffer= (void *)&(sm_p->acq_cirbuf[sm_p->acq_read_offsets[id] % ACQBUFSIZE]);
-    read_offsets = sm_p->acq_read_offsets;
-    break;
-  default: return 0;
-  }
-
+  
   //read data
-  memcpy(output, buffer, nbytes);
+  memcpy(output, (void *)sm_p->circbuf[buf].buffer, sm_p->circbuf[buf].nbytes);
 
   //increment read offset
-  read_offsets[id]++;
+  sm_p->circbuf[buf].read_offsets[id]++;
   
   return 1;
 }
@@ -207,53 +170,16 @@ int read_from_buffer(sm_t *sm_p, void *output, int buf, int id){
 ******************************************************************************/
 int write_to_buffer(sm_t *sm_p, void *input, int buf){
   int i;
-  uint32 nbytes;
-  void *buffer;
-  volatile uint32 *write_offset;
-  volatile uint32 *read_offsets;
-  uint32 bufsize;
-  
-  //setup for write
-  switch (buf) {
-  case SCIBUF:
-    bufsize = SCIBUFSIZE;
-    nbytes  = sizeof(scievent_t);
-    buffer  = (void *)&(sm_p->sci_cirbuf[sm_p->sci_write_offset % bufsize]);
-    write_offset = &sm_p->sci_write_offset;
-    read_offsets = sm_p->sci_read_offsets;
-    break;
-  case SHKBUF:
-    bufsize = SHKBUFSIZE;
-    nbytes  = sizeof(shkevent_t);
-    buffer  = (void *)&(sm_p->shk_cirbuf[sm_p->shk_write_offset % bufsize]);
-    write_offset = &sm_p->shk_write_offset;
-    read_offsets = sm_p->shk_read_offsets;
-    break;
-  case LYTBUF:
-    bufsize = LYTBUFSIZE;
-    nbytes  = sizeof(lytevent_t);
-    buffer  = (void *)&(sm_p->lyt_cirbuf[sm_p->lyt_write_offset % bufsize]);
-    write_offset = &sm_p->lyt_write_offset;
-    read_offsets = sm_p->lyt_read_offsets;
-    break;
-  case ACQBUF:
-    bufsize = ACQBUFSIZE;
-    nbytes  = sizeof(acqevent_t);
-    buffer  = (void *)&(sm_p->acq_cirbuf[sm_p->acq_write_offset % bufsize]);
-    write_offset = &sm_p->acq_write_offset;
-    read_offsets = sm_p->acq_read_offsets;
-    break;
-  default: return 0;
-  }
-
   //for each client, if we are out of buffer space, remove trailing entry
   for (i=0;i<NCLIENTS;i++)
-    if (((*write_offset+1) % bufsize) == ((read_offsets[i]) % bufsize))
-      read_offsets[i]++;                      
-
+    if ( ((sm_p->circbuf[buf].write_offset+1)  % sm_p->circbuf[buf].bufsize) ==
+	 ((sm_p->circbuf[buf].read_offsets[i]) % sm_p->circbuf[buf].bufsize) ){
+      sm_p->circbuf[buf].read_offsets[i]++;                      
+    }
+  
   //write data
-  memcpy(buffer,input,nbytes);
-  *write_offset++;
+  memcpy((void *)sm_p->circbuf[buf].buffer,input,sm_p->circbuf[buf].nbytes);
+  sm_p->circbuf[buf].write_offset++;
   return 0;
 }
 
@@ -261,52 +187,19 @@ int write_to_buffer(sm_t *sm_p, void *input, int buf){
         READ NEWEST FROM A CIRCULAR BUFFER
 ******************************************************************************/
 int read_newest_buffer(sm_t *sm_p, void *output, int buf, int id){
-  uint32 nbytes;
-  void *buffer;
-  volatile uint32 *read_offsets;
-
   //check for new data
   if(!check_buffer(sm_p,buf,id))
     return  0;
 
-  //setup for read
-  switch (buf) {
-  case SCIBUF:
-    while(check_buffer(sm_p,buf,id) > 1)
-      sm_p->sci_read_offsets[id]++;
-    nbytes = sizeof(scievent_t);
-    buffer= (void *)&(sm_p->sci_cirbuf[sm_p->sci_read_offsets[id] % SCIBUFSIZE]);
-    read_offsets = sm_p->sci_read_offsets;
-    break;
-  case SHKBUF:
-    while(check_buffer(sm_p,buf,id) > 1)
-      sm_p->shk_read_offsets[id]++;
-    nbytes = sizeof(shkevent_t);
-    buffer= (void *)&(sm_p->shk_cirbuf[sm_p->shk_read_offsets[id] % SHKBUFSIZE]);
-    read_offsets = sm_p->shk_read_offsets;
-    break;
-  case LYTBUF:
-    while(check_buffer(sm_p,buf,id) > 1)
-      sm_p->lyt_read_offsets[id]++;
-    nbytes = sizeof(lytevent_t);
-    buffer= (void *)&(sm_p->lyt_cirbuf[sm_p->lyt_read_offsets[id] % LYTBUFSIZE]);
-    read_offsets = sm_p->lyt_read_offsets;
-    break;
-  case ACQBUF:
-    while(check_buffer(sm_p,buf,id) > 1)
-      sm_p->acq_read_offsets[id]++;
-    nbytes = sizeof(acqevent_t);
-    buffer= (void *)&(sm_p->acq_cirbuf[sm_p->acq_read_offsets[id] % ACQBUFSIZE]);
-    read_offsets = sm_p->acq_read_offsets;
-    break;
-  default: return 0;
-  }
-
+  //push read offset ahead to last buffer
+  while(check_buffer(sm_p,buf,id) > 1)
+    sm_p->circbuf[buf].read_offsets[id]++;
+  
   //read data
-  memcpy(output, buffer, nbytes);
+  memcpy(output, (void *)sm_p->circbuf[buf].buffer,  sm_p->circbuf[buf].nbytes);
 
   //increment read offset
-  read_offsets[id]++;
+  sm_p->circbuf[buf].read_offsets[id]++;
   
   return 1;
 }

@@ -300,6 +300,34 @@ int main(int argc,char **argv){
   sm_p->lyt_mode   = LYT_MODE_DEFAULT;  
   sm_p->acq_mode   = ACQ_MODE_DEFAULT;  
 
+  /* Configure Circular Buffers */
+  //-- Event buffers
+  sm_p->circbuf[SCIEVENT].buffer  = sm_p->scievent;
+  sm_p->circbuf[SCIEVENT].nbytes  = sizeof(scievent_t);
+  sm_p->circbuf[SCIEVENT].bufsize = SCIEVENTSIZE;
+  sm_p->circbuf[SHKEVENT].buffer  = sm_p->shkevent;
+  sm_p->circbuf[SHKEVENT].nbytes  = sizeof(shkevent_t);
+  sm_p->circbuf[SHKEVENT].bufsize = SHKEVENTSIZE;
+  sm_p->circbuf[LYTEVENT].buffer  = sm_p->lytevent;
+  sm_p->circbuf[LYTEVENT].nbytes  = sizeof(lytevent_t);
+  sm_p->circbuf[LYTEVENT].bufsize = LYTEVENTSIZE;
+  sm_p->circbuf[ACQEVENT].buffer  = sm_p->acqevent;
+  sm_p->circbuf[ACQEVENT].nbytes  = sizeof(acqevent_t);
+  sm_p->circbuf[ACQEVENT].bufsize = ACQEVENTSIZE;
+  //-- Full frame buffers
+  sm_p->circbuf[SCIFULL].buffer  = sm_p->scifull;
+  sm_p->circbuf[SCIFULL].nbytes  = sizeof(scifull_t);
+  sm_p->circbuf[SCIFULL].bufsize = SCIFULLSIZE;
+  sm_p->circbuf[SHKFULL].buffer  = sm_p->shkfull;
+  sm_p->circbuf[SHKFULL].nbytes  = sizeof(shkfull_t);
+  sm_p->circbuf[SHKFULL].bufsize = SHKFULLSIZE;
+  sm_p->circbuf[LYTFULL].buffer  = sm_p->lytfull;
+  sm_p->circbuf[LYTFULL].nbytes  = sizeof(lytfull_t);
+  sm_p->circbuf[LYTFULL].bufsize = LYTFULLSIZE;
+  sm_p->circbuf[ACQFULL].buffer  = sm_p->acqfull;
+  sm_p->circbuf[ACQFULL].nbytes  = sizeof(acqfull_t);
+  sm_p->circbuf[ACQFULL].bufsize = ACQFULLSIZE;
+  
   /* Launch Watchdog */
   if(sm_p->w[WATID].run){
     if(sm_p->w[WATID].pid == -1){

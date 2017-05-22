@@ -92,12 +92,6 @@ typedef int boolean;
 /*************************************************
  * Base Addresses & Files
  *************************************************/
-#define SHARED_BASE    0x0D200000 
-#define DIO1_ADDRESS   0x110
-#define DIO2_ADDRESS   0x100
-#define SEMA_FILE       "semaphore.txt"
-#define SEMA_ID         5
-#define SEMA_RETRY      10
 #define DARKFILE_SCI    "data/darkframe.sci.%3.3d.%3.3lu.%2.2dC.dat"
 #define FLATFILE_SCI    "data/flatframe.sci.%3.3d.dat" 
 #define FAKEFILE_SCI    "data/fakeframe.sci.%3.3d.%s.dat"
@@ -120,8 +114,6 @@ typedef int boolean;
  *************************************************/
 #define WARNING   "WARNING...WARNING...WARNING...WARNING\nWARNING...WARNING...WARNING...WARNING\nWARNING...WARNING...WARNING...WARNING\nWARNING...WARNING...WARNING...WARNING\n"
 #define REBOOT   "REBOOT...REBOOT...REBOOT...REBOOT\nREBOOT...REBOOT...REBOOT...REBOOT\nREBOOT...REBOOT...REBOOT...REBOOT\nREBOOT...REBOOT...REBOOT...REBOOT\n"
-#define SHMEM_SLEEP          1  //Shared memory retry rate
-#define SHMEM_RETRY          5  //Shared memory timeout
 #define PROC_WAITTIME        5  //Timeout for procwait
 #define EXIT_WAITTIME       10  //Timeout for exit
 #define ERASE_TIMEOUT       25  //Time to wait for TLM to exit on command: erase flight data
@@ -130,24 +122,21 @@ typedef int boolean;
 /*************************************************
  * Circular Buffer Info
  *************************************************/
-enum bufids {SCIBUF, SHKBUF, LYTBUF, ACQBUF, NCIRCBUF};
-#define SCIBUFSIZE     3
-#define SHKBUFSIZE     3
-#define LYTBUFSIZE     3
-#define ACQBUFSIZE     3
+enum bufids {SCIEVENT, SCIFULL, SHKEVENT, SHKFULL, LYTEVENT, LYTFULL, ACQEVENT, ACQFULL, NCIRCBUF};
+#define SCIEVENTSIZE     3
+#define SHKEVENTSIZE     3
+#define LYTEVENTSIZE     3
+#define ACQEVENTSIZE     3
+#define SCIFULLSIZE      3
+#define SHKFULLSIZE      3
+#define LYTFULLSIZE      3
+#define ACQFULLSIZE      3
 
 /*************************************************
  * Define Errors
  *************************************************/
 #define _ERROR	       -1
 #define _NO_ERROR	0
-
-/*************************************************
- * Interrupts
- *************************************************/
-#define SCI_IRQ	        7      //IRQ for camera interrupts
-#define SHK_IRQ	        8      //IRQ for camera interrupts
-#define LYT_IRQ	        9      //IRQ for camera interrupts
 
 /*************************************************
  * Camera Settings
@@ -326,6 +315,72 @@ typedef struct acqevent_struct{
 } acqevent_t;
 
 /*************************************************
+ * Full Frame Structures
+ *************************************************/
+typedef struct scifull_struct{
+  uint32  frame_number;
+  float   exptime;
+  float   ontime;
+  float   temp;
+  int32   timestamp;
+  uint16  imxsize;
+  uint16  imysize;
+  uint32  state;
+  uint32  mode;
+  sci_t   image; 
+} scifull_t;
+
+typedef struct shkfull_struct{
+  uint32  frame_number;
+  float   exptime;
+  float   ontime;
+  float   temp;
+  int32   timestamp;
+  uint16  imxsize;
+  uint16  imysize;
+  uint32  state;
+  uint32  mode;
+  shk_t   image; 
+} shkfull_t;
+
+typedef struct lytfull_struct{
+  uint32  frame_number;
+  float   exptime;
+  float   ontime;
+  float   temp;
+  int32   timestamp;
+  uint16  imxsize;
+  uint16  imysize;
+  uint32  state;
+  uint32  mode;
+  lyt_t   image; 
+} lytfull_t;
+
+typedef struct acqfull_struct{
+  uint32  frame_number;
+  float   exptime;
+  float   ontime;
+  float   temp;
+  int32   timestamp;
+  uint16  imxsize;
+  uint16  imysize;
+  uint32  state;
+  uint32  mode;
+  acq_t   image; 
+} acqfull_t;
+
+/*************************************************
+ * Circular Buffer Structure
+ *************************************************/
+typedef struct circbuf_struct{
+  volatile void *buffer;
+  uint32 read_offsets[NCLIENTS]; //last entry read
+  uint32 write_offset; //last entry written
+  uint32 nbytes;   //number of bytes in structure
+  uint32 bufsize;  //number of structures in circular buffer
+} circbuf_t;
+
+/*************************************************
  * Shared Memory Layout
  *************************************************/
 typedef volatile struct {
@@ -349,24 +404,25 @@ typedef volatile struct {
   //DM positions
   int16   dm[DMXS][DMYS];
   int16   iwc[IWCXS][IWCYS];
-  
-  //SCI circular buffer
-  scievent_t sci_cirbuf[SCIBUFSIZE];
-  uint32  sci_write_offset;	      //last entry written
-  uint32  sci_read_offsets[NCLIENTS]; //last entry read
-  //SHK circular buffer
-  shkevent_t shk_cirbuf[SHKBUFSIZE];
-  uint32  shk_write_offset;	      //last entry written
-  uint32  shk_read_offsets[NCLIENTS]; //last entry read
-  //LYT circular buffer
-  lytevent_t lyt_cirbuf[LYTBUFSIZE];
-  uint32  lyt_write_offset;	      //last entry written
-  uint32  lyt_read_offsets[NCLIENTS]; //last entry read
-  //ACQ circular buffer
-  acqevent_t acq_cirbuf[ACQBUFSIZE];
-  uint32  acq_write_offset;	      //last entry written
-  uint32  acq_read_offsets[NCLIENTS]; //last entry read
 
+  //srv_proc switches
+  int16 srv_send[NCIRCBUF]; //which buffers to send
+  
+  //Events circular buffers
+  scievent_t scievent[SCIEVENTSIZE];
+  shkevent_t shkevent[SHKEVENTSIZE];
+  lytevent_t lytevent[LYTEVENTSIZE];
+  acqevent_t acqevent[ACQEVENTSIZE];
+
+  //Full frame circular buffers
+  scifull_t scifull[SCIFULLSIZE];
+  shkfull_t shkfull[SHKFULLSIZE];
+  lytfull_t lytfull[LYTFULLSIZE];
+  acqfull_t acqfull[ACQFULLSIZE];
+
+  //Circular buffer package
+  circbuf_t circbuf[NCIRCBUF];
+ 
 } sm_t;
 
 

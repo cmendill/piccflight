@@ -56,10 +56,10 @@ int checkdata(sm_t *sm_p){
   static int s,k,l,a;
   /*Check in with watchdog*/
   checkin(sm_p,TLMID);
-  s = check_buffer(sm_p, SCIBUF, TLMID);
-  k = check_buffer(sm_p, SHKBUF, TLMID);
-  l = check_buffer(sm_p, LYTBUF, TLMID);
-  a = check_buffer(sm_p, ACQBUF, TLMID);
+  s = check_buffer(sm_p, SCIEVENT, TLMID);
+  k = check_buffer(sm_p, SHKEVENT, TLMID);
+  l = check_buffer(sm_p, LYTEVENT, TLMID);
+  a = check_buffer(sm_p, ACQEVENT, TLMID);
   
   return(s || k || l || a);
 }
@@ -67,22 +67,22 @@ int checkdata(sm_t *sm_p){
 int checksci(sm_t *sm_p){
   /*Check in with watchdog*/
   checkin(sm_p,TLMID);
-  return(check_buffer(sm_p, SCIBUF, TLMID));
+  return(check_buffer(sm_p, SCIEVENT, TLMID));
 }
 int checkshk(sm_t *sm_p){
   /*Check in with watchdog*/
   checkin(sm_p,TLMID);
-  return(check_buffer(sm_p, SHKBUF, TLMID));
+  return(check_buffer(sm_p, SHKEVENT, TLMID));
 }
 int checklyt(sm_t *sm_p){
   /*Check in with watchdog*/
   checkin(sm_p,TLMID);
-  return(check_buffer(sm_p, LYTBUF, TLMID));
+  return(check_buffer(sm_p, LYTEVENT, TLMID));
 }
 int checkacq(sm_t *sm_p){
   /*Check in with watchdog*/
   checkin(sm_p,TLMID);
-  return(check_buffer(sm_p, ACQBUF, TLMID));
+  return(check_buffer(sm_p, ACQEVENT, TLMID));
 }
 
 
@@ -305,7 +305,7 @@ void tlm_proc(void){
       else{
 
 	/*Get SCI data*/
-	if(read_from_buffer(sm_p, &sci, SCIBUF, TLMID)){
+	if(read_from_buffer(sm_p, &sci, SCIEVENT, TLMID)){
 	  /*Check in with watchdog*/
 	  checkin(sm_p,TLMID);
 	  //save science data 

@@ -18,26 +18,27 @@
 
 /* Globals */
 volatile int clientfd=-1;
+volatile int srv_send[NCIRCBUF]; //switches to turn sending on and off
 pthread_t listener_thread;
 int srv_shmfd;    // shared memory file desciptor
 
 /* Prototypes */
-void *listener_loop(void *t);
-
+void *srv_listener(void *t);
 
 void srvctrlC(int sig)
 {
   close(srv_shmfd);
   close(clientfd);
+  memset((void *)srv_send,0,sizeof srv_send);
   exit(sig);
 }
 
 void srv_proc(void) {
-  
-  int nbytes;
-  shkevent_t shk;
+  int nbytes,i;
   volatile uint32 count=0;
-
+  void *buffer;
+  int max_buf_size=0;
+  
   /* Set soft interrupt handler */
   sigset(SIGINT, srvctrlC);	/* usually ^C */
 
@@ -48,8 +49,24 @@ void srv_proc(void) {
     srvctrlC(0);
   }
 
+  /* Zero out srv_send */
+  memset((void *)srv_send,0,sizeof srv_send);
+
+  /* Find maximum buffer size */
+  for(i=0;i<NCIRCBUF;i++){
+    if(sm_p->circbuf[i].nbytes > max_buf_size)
+      max_buf_size = sm_p->circbuf[i].nbytes;
+  }
+
+  /* Allocate buffer */
+  if((buffer = malloc(max_buf_size))==NULL){
+    printf("SRV: Error allocating memory for buffer\n");
+    perror("malloc");
+    srvctrlC(0);
+  }
+  
   /* Start Listener */
-  pthread_create(&listener_thread,NULL,listener_loop,(void *)0);
+  pthread_create(&listener_thread,NULL,srv_listener,(void *)0);
   
   while(1){
     //every 1 sec
@@ -61,14 +78,20 @@ void srv_proc(void) {
       checkin(sm_p,SRVID);
     }
     if(clientfd >= 0){
-      while(read_from_buffer(sm_p, &shk, SHKBUF, SRVID)){
-	nbytes=write_to_socket(clientfd,&shk,sizeof(shk));
-	if(nbytes <=0){
-	  close(clientfd);
-	  clientfd=-1;
+      for(i=0;i<NCIRCBUF;i++){
+	if(srv_send[i]){
+	  while(read_from_buffer(sm_p, &buffer, i, SRVID)){
+	    nbytes=write_to_socket(clientfd,&buffer,sm_p->circbuf[i].nbytes);
+	    if(nbytes <=0){
+	      close(clientfd);
+	      clientfd=-1;
+	      memset((void *)srv_send,0,sizeof srv_send);
+	    }
+	  }
 	}
       }
     }
+    
     usleep(sm_p->w[SRVID].per*1000);
   }
   srvctrlC(0);
