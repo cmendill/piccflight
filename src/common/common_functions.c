@@ -62,6 +62,7 @@ sm_t *openshm(int *mainfd){
         TIMESPEC_SUBTRACT
 ******************************************************************************/
 int timespec_subtract(struct timespec *result,struct timespec *x,struct timespec *y){
+  /* Calculates x-y */
   /* Perform the carry for the later subtraction by updating y. */
   if (x->tv_nsec < y->tv_nsec) {
     int nsec = (y->tv_nsec - x->tv_nsec) / ONE_BILLION + 1;

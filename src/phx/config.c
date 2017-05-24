@@ -5,7 +5,7 @@
 #include "bobcat.h"
 #include "phoenix_bobcat.h"
 
-/* #define _VERBOSE */
+//#define _VERBOSE
 
 /* PhxCommonParseCmd(ForBrief)
  * adapted from active silicons comand parser
@@ -212,6 +212,7 @@ etStat CONFIG_RunFile(tHandle handle, char** pszConfigFileName) {
   char *token, *strParam, *strParamValue;
 
   eStat = BOBCAT_LoadFromFactory(handle);
+  printf("PHX: Opening: %s\n",*pszConfigFileName);
   
   fp = fopen(*pszConfigFileName, "r");
   if(fp==NULL)

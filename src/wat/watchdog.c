@@ -147,7 +147,7 @@ void wat_proc(void){
 	if(sm_p->w[i].pid != -1)
 	  if(waitpid(sm_p->w[i].pid,NULL,WNOHANG) == sm_p->w[i].pid){
 	    sm_p->w[i].pid = -1; 
-	    if(WAT_DEBUG) printf("WAT: %s crashed!\n",sm_p->w[i].name);
+	    printf("WAT: %s crashed!\n",sm_p->w[i].name);
 	  }    
     
     /*(SECTION 1): Kill everything if we've been turned off*/
@@ -340,7 +340,6 @@ int main(int argc,char **argv){
   while(1){
     /* The foreground will now wait for an input from the console */
     retval=CMD_NORMAL;
-    printf("picc> ");
     if(fgets(line,CMD_MAX_LENGTH,stdin) != NULL)
       retval = handle_command(line,sm_p);
 

@@ -156,9 +156,9 @@ enum bufids {SCIEVENT, SCIFULL, SHKEVENT, SHKFULL, LYTEVENT, LYTFULL, ACQEVENT, 
 #define TLM_DEBUG       0 // print tlm messages
 #define HSK_DEBUG       0 // print hsk messages
 #define LYT_DEBUG       0 // print bin messages
-#define SHK_DEBUG       0 // print shk messages
+#define SHK_DEBUG       1 // print shk messages
 #define SCI_DEBUG       0 // print sci messages
-#define WAT_DEBUG       1 // print wat messages
+#define WAT_DEBUG       0 // print wat messages
 
 /*************************************************
  * Other Messaging
@@ -214,11 +214,11 @@ typedef struct tlmheader_struct{
   float   exptime;
   float   ontime;
   float   temp;
-  int32   timestamp;
   uint32  imxsize;
   uint32  imysize;
   uint32  state;
   uint32  mode;
+  struct timespec time;
 } tlmheader_t;
 
 
@@ -267,11 +267,11 @@ typedef struct scievent_struct{
   float   exptime;
   float   ontime;
   float   temp;
-  int32   timestamp;
   uint16  imxsize;
   uint16  imysize;
   uint32  state;
   uint32  mode;
+  struct timespec time;
   sci_t   image; 
 } scievent_t;
 
@@ -280,12 +280,11 @@ typedef struct shkevent_struct{
   float   exptime;
   float   ontime;
   float   temp;
-  int32   timestamp;
   uint16  imxsize;
   uint16  imysize;
   uint32  state;
   uint32  mode;
-  shk_t   image; 
+  struct timespec time;
 } shkevent_t;
 
 typedef struct lytevent_struct{
@@ -293,12 +292,11 @@ typedef struct lytevent_struct{
   float   exptime;
   float   ontime;
   float   temp;
-  int32   timestamp;
   uint16  imxsize;
   uint16  imysize;
   uint32  state;
   uint32  mode;
-  lyt_t   image; 
+  struct timespec time;
 } lytevent_t;
 
 typedef struct acqevent_struct{
@@ -306,11 +304,11 @@ typedef struct acqevent_struct{
   float   exptime;
   float   ontime;
   float   temp;
-  int32   timestamp;
   uint16  imxsize;
   uint16  imysize;
   uint32  state;
   uint32  mode;
+  struct timespec time;
   acq_t   image; 
 } acqevent_t;
 
@@ -322,11 +320,11 @@ typedef struct scifull_struct{
   float   exptime;
   float   ontime;
   float   temp;
-  int32   timestamp;
   uint16  imxsize;
   uint16  imysize;
   uint32  state;
   uint32  mode;
+  struct timespec time;
   sci_t   image; 
 } scifull_t;
 
@@ -335,11 +333,11 @@ typedef struct shkfull_struct{
   float   exptime;
   float   ontime;
   float   temp;
-  int32   timestamp;
   uint16  imxsize;
   uint16  imysize;
   uint32  state;
   uint32  mode;
+  struct timespec time;
   shk_t   image; 
 } shkfull_t;
 
@@ -348,11 +346,11 @@ typedef struct lytfull_struct{
   float   exptime;
   float   ontime;
   float   temp;
-  int32   timestamp;
   uint16  imxsize;
   uint16  imysize;
   uint32  state;
   uint32  mode;
+  struct timespec time;
   lyt_t   image; 
 } lytfull_t;
 
@@ -361,11 +359,11 @@ typedef struct acqfull_struct{
   float   exptime;
   float   ontime;
   float   temp;
-  int32   timestamp;
   uint16  imxsize;
   uint16  imysize;
   uint32  state;
   uint32  mode;
+  struct timespec time;
   acq_t   image; 
 } acqfull_t;
 

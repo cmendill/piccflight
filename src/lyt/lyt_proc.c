@@ -16,7 +16,10 @@
 #include "../phx/include/phx_api.h"
 #include "../phx/include/pbl_api.h"
 #include "../phx/config.h"
-#include "lyt_proc.h"
+
+/* LYT config */
+#define LYT_BOARD_NUMBER PHX_BOARD_NUMBER_1
+#define LYT_CONFIG_FILE "phx_config/lyt.cfg"
 
 /* Process File Descriptor */
 int lyt_shmfd;
@@ -57,7 +60,7 @@ typedef struct { /* Define an application specific structure to hold user inform
 } tContext;
 
 /* Callback Function */
-static void phxlyotwfs_callback( tHandle lytCamera, ui32 dwInterruptMask, void *pvParams ) {
+static void lyt_callback( tHandle lytCamera, ui32 dwInterruptMask, void *pvParams ) {
   if ( dwInterruptMask & PHX_INTRPT_BUFFER_READY ) {
     stImageBuff stBuffer;
     tContext *aContext = (tContext *)pvParams;
@@ -109,9 +112,6 @@ int lyt_proc(void){
   aContext.nCurrentEventCount = 0;
   aContext.sm_p = sm_p;
   
-  /* Check in with the watchdog */
-  checkin(sm_p,LYTID);
-
   eStat = PHX_Create( &lytCamera, PHX_ErrHandlerDefault ); /* Create a Phoenix handle */
   if ( PHX_OK != eStat ){
     printf("LYT: Error PHX_Create\n");
@@ -136,14 +136,8 @@ int lyt_proc(void){
     lytctrlC(0);
   }
 
-  /* Check in with the watchdog */
-  checkin(sm_p,LYTID);
-
   PBL_BufferCreate( &lytBuffer1, PBL_BUFF_SYSTEM_MEM_DIRECT, 0, lytCamera, PHX_ErrHandlerDefault );
   PBL_BufferCreate( &lytBuffer2, PBL_BUFF_SYSTEM_MEM_DIRECT, 0, lytCamera, PHX_ErrHandlerDefault );
-
-  /* Check in with the watchdog */
-  checkin(sm_p,LYTID);
 
   eStat = PHX_ParameterGet( lytCamera, PHX_BUF_DST_XLENGTH, &dwBufferWidth );
   if ( PHX_OK != eStat ){
@@ -168,9 +162,6 @@ int lyt_proc(void){
 
   PBL_BufferParameterSet( lytBuffer2, PBL_BUFF_HEIGHT, &dwBufferHeight );
   PBL_BufferParameterSet( lytBuffer2, PBL_BUFF_STRIDE, &dwBufferStride );
-
-  /* Check in with the watchdog */
-  checkin(sm_p,LYTID);
   
   PBL_BufferInit( lytBuffer1 ); /* Initialise each buffer. This creates the buffers in system memory. */
   PBL_BufferInit( lytBuffer2 );
@@ -224,12 +215,8 @@ int lyt_proc(void){
     lytctrlC(0);
   }
  
-  /* Check in with the watchdog */
-  checkin(sm_p,LYTID);
-
-
   /* -------------------- Now start our capture -------------------- */
-  eStat = PHX_StreamRead( lytCamera, PHX_START, (void*)phxlyotwfs_callback );
+  eStat = PHX_StreamRead( lytCamera, PHX_START, (void*)lyt_callback );
   if ( PHX_OK != eStat ){
     printf("LYT: PHX_StreamRead --> PHX_START\n");
     lytctrlC(0);

@@ -4,7 +4,7 @@
 
 /*!!!!!!!!!! ALL NUMBERS MUST BE < 255 !!!!!!!!!*/
 //      procids {WATID, SCIID, SHKID, LYTID, TLMID, ACQID, MOTID, THMID, SRVID, TMPID, HSKID};
-#define PROCRUN {    1,     0,     0,     1,     0,     0,     0,     0,     0,     0,     0}
+#define PROCRUN {    1,     0,     1,     0,     0,     0,     0,     0,     0,     0,     0}
 #define PROCASK {    0,     0,     0,     0,     0,     0,     0,     0,     0,     0,     0}
 #define PROCTMO {    5,     5,     5,     5,     5,     5,     5,     5,     5,     5,     5}
 #define PROCNAM {"WAT", "SCI", "SHK", "LYT", "TLM", "ACQ", "MOT", "THM", "SRV", "TMP", "HSK"} 

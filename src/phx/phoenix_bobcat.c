@@ -153,7 +153,7 @@ etStat PHX_BOBCAT_Configure(tHandle hpb, phxbobcatParam parameter, void* value) 
     case PHX_BOBCAT_ROI:
 
       proi = value;
-
+     
       eParamValue = 1;
       eStat = PHX_ParameterSet( hpb, PHX_CAM_XBINNING, (etParamValue*) &(eParamValue) );
       if ( eStat != PHX_OK ) goto Error;

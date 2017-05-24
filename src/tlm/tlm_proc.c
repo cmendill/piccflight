@@ -321,9 +321,10 @@ void tlm_proc(void){
 	  tlmHED.temp         = sci.temp;
 	  tlmHED.state        = sci.state;
 	  tlmHED.mode         = sci.mode;
-	  tlmHED.timestamp    = sci.timestamp;
 	  tlmHED.imxsize      = sci.imxsize;
 	  tlmHED.imysize      = sci.imysize;
+	  memcpy(&tlmHED.time,&sci.time,sizeof(struct timespec));
+	  
 	  if(SEND_SCI){
 	    //write data
 	    write_block((char *)&tlmHED, (char *)&sci.image, sizeof(sci.image),0);
