@@ -64,7 +64,7 @@ static void shk_callback( tHandle shkCamera, ui32 dwInterruptMask, void *pvParam
     etStat eStat = PHX_StreamRead( shkCamera, PHX_BUFFER_GET, &stBuffer );
     if ( PHX_OK == eStat ) {
       //Process image
-      //shk_process_image(&stBuffer,aContext->sm_p,shk_frame_count);
+      shk_process_image(&stBuffer,aContext->sm_p,shk_frame_count);
 
       //Check in with watchdog
       
@@ -123,13 +123,6 @@ int shk_proc(void){
     shkctrlC(0);
   }
   
-  /* Flush Settings */
-  eStat = PHX_ParameterSet( shkCamera, (etParam)( PHX_DUMMY_PARAM | PHX_CACHE_FLUSH | PHX_FORCE_REWRITE ), NULL);
-  if ( PHX_OK != eStat ){
-    printf("SHK: Error PHX_ParameterSet --> Flush Settings\n");
-    shkctrlC(0);
-  }
-
   /* Run the config file */
   eStat = CONFIG_RunFile( shkCamera, &configFileName );  
   if ( PHX_OK != eStat ){

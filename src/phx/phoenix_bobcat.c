@@ -1,5 +1,5 @@
-#include "include/phx_api.h"
 #include "phoenix_bobcat.h"
+#include "include/phx_api.h"
 #include "phoenix.h"
 #include "bobcat.h"
 
@@ -153,7 +153,7 @@ etStat PHX_BOBCAT_Configure(tHandle hpb, phxbobcatParam parameter, void* value) 
     case PHX_BOBCAT_ROI:
 
       proi = value;
-     
+
       eParamValue = 1;
       eStat = PHX_ParameterSet( hpb, PHX_CAM_XBINNING, (etParamValue*) &(eParamValue) );
       if ( eStat != PHX_OK ) goto Error;
@@ -163,10 +163,18 @@ etStat PHX_BOBCAT_Configure(tHandle hpb, phxbobcatParam parameter, void* value) 
       if ( eStat != PHX_OK ) goto Error;
       eStat = PHX_ParameterSet( hpb, PHX_CAM_ACTIVE_YLENGTH, (etParamValue*) &(proi->y_length) );
       if ( eStat != PHX_OK ) goto Error;
+      eStat = PHX_ParameterSet( hpb, PHX_ROI_XLENGTH, (etParamValue*) &(proi->x_length) );
+      if ( eStat != PHX_OK ) goto Error;
+      eStat = PHX_ParameterSet( hpb, PHX_ROI_YLENGTH, (etParamValue*) &(proi->y_length) );
+      if ( eStat != PHX_OK ) goto Error;
       eParamValue = 0;
       eStat = PHX_ParameterSet( hpb, PHX_CAM_ACTIVE_XOFFSET, (etParamValue*) &(proi->x_offset) );
       if ( eStat != PHX_OK ) goto Error;
       eStat = PHX_ParameterSet( hpb, PHX_CAM_ACTIVE_YOFFSET, (etParamValue*) &(eParamValue) );
+      if ( eStat != PHX_OK ) goto Error;
+      eStat = PHX_ParameterSet( hpb, PHX_ROI_SRC_XOFFSET, (etParamValue*) &(eParamValue) );
+      if ( eStat != PHX_OK ) goto Error;
+      eStat = PHX_ParameterSet( hpb, PHX_ROI_SRC_YOFFSET, (etParamValue*) &(eParamValue) );
       if ( eStat != PHX_OK ) goto Error;
       eStat = BOBCAT_ParameterSet( hpb, BOBCAT_XBINNING, (bobcatParamValue*) &(proi->x_binning) );
       if ( eStat != PHX_OK ) goto Error;
