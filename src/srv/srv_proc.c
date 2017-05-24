@@ -21,12 +21,17 @@ volatile int clientfd=-1;
 volatile int srv_send[NCIRCBUF]; //switches to turn sending on and off
 pthread_t listener_thread;
 int srv_shmfd;    // shared memory file desciptor
+uint32 srv_packet_count=0;
 
 /* Prototypes */
 void *srv_listener(void *t);
 
 void srvctrlC(int sig)
 {
+#if MSG_CTRLC
+  printf("SRV: ctrlC! exiting.\n");
+  printf("SRV: sent %lu packets.\n",srv_packet_count);
+#endif
   close(srv_shmfd);
   close(clientfd);
   memset((void *)srv_send,0,sizeof srv_send);
@@ -35,7 +40,6 @@ void srvctrlC(int sig)
 
 void srv_proc(void) {
   int nbytes,i;
-  volatile uint32 count=0;
   void *buffer;
   int max_buf_size=0;
   
@@ -56,6 +60,8 @@ void srv_proc(void) {
   for(i=0;i<NCIRCBUF;i++){
     if(sm_p->circbuf[i].nbytes > max_buf_size)
       max_buf_size = sm_p->circbuf[i].nbytes;
+    if(SRV_DEBUG)
+      printf("SRV: %10s Buffer Size: %lu bytes\n",sm_p->circbuf[i].name,sm_p->circbuf[i].nbytes);
   }
 
   /* Allocate buffer */
@@ -69,30 +75,28 @@ void srv_proc(void) {
   pthread_create(&listener_thread,NULL,srv_listener,(void *)0);
   
   while(1){
-    //every 1 sec
-    if((count++ % (1000/sm_p->w[SRVID].per)) == 0){
-      //check if we've been killed
-      if(sm_p->w[SRVID].die)
-	srvctrlC(0);
-      //check in with watchdog
-      checkin(sm_p,SRVID);
-    }
+    //check in with watchdog
+    checkin(sm_p,SRVID);
+    
     if(clientfd >= 0){
       for(i=0;i<NCIRCBUF;i++){
 	if(srv_send[i]){
-	  while(read_from_buffer(sm_p, &buffer, i, SRVID)){
-	    nbytes=write_to_socket(clientfd,&buffer,sm_p->circbuf[i].nbytes);
+	  while(read_from_buffer(sm_p, buffer, i, SRVID)){
+	    //write data to socket
+	    nbytes=write_to_socket(clientfd,buffer,sm_p->circbuf[i].nbytes);
 	    if(nbytes <=0){
 	      close(clientfd);
 	      clientfd=-1;
 	      memset((void *)srv_send,0,sizeof srv_send);
 	    }
+	    //increment packet counter
+	    srv_packet_count++;
+	    //check in with watchdog
+	    checkin(sm_p,SRVID);
 	  }
 	}
       }
     }
-    
-    usleep(sm_p->w[SRVID].per*1000);
   }
   srvctrlC(0);
 }

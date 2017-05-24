@@ -37,7 +37,17 @@ int handle_command(char *line, sm_t *sm_p){
     return(CMD_EXIT_WATCHDOG);
   }
 
-
+  /****************************************
+   * SHARED MEMORY COMMANDS
+   ***************************************/
+  if(!strncasecmp(line,"shk fake",8)){
+    strncpy(stemp,line+8,4);
+    itemp = atoi(stemp);
+    sm_p->shk_fake_mode = itemp;
+    printf("CMD: Changed SHK fake mode to %lu\n",sm_p->shk_fake_mode);
+    return(CMD_NORMAL);
+  }
+ 
 
 
   

@@ -15,14 +15,17 @@
 #include "../phx/config.h"
 
 
-#define SHK_FULL_IMAGE_TIME 100000000 //nsec
+#define SHK_FULL_IMAGE_TIME 0.5 //seconds
 
 /* shk_process_image */
 void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   static shkfull_t shkfull;
   static shkevent_t shkevent;
   static struct timespec start,now,delta;
-
+  double dt;
+  int32 i,j;
+  uint16 fakepx=0;
+  
   //Get time immidiately
   clock_gettime(CLOCK_REALTIME,&now);
   if(frame_number == 0)
@@ -50,21 +53,39 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   //Full image code
   if(timespec_subtract(&delta,&now,&start))
     printf("SHK: shk_process_image --> timespec_subtract error!\n");
-  if(delta.tv_nsec > SHK_FULL_IMAGE_TIME){
+  ts2double(&delta,&dt);
+  if(dt > SHK_FULL_IMAGE_TIME){
     //Fill out full image header
-    shkfull.frame_number = frame_number;
-    shkfull.exptime = 0;
-    shkfull.ontime = 0;
-    shkfull.temp = 0;
-    shkfull.imxsize = SHKXS;
-    shkfull.imysize = SHKYS;
-    shkfull.state = 0;
-    shkfull.mode = 0;
-    memcpy(&shkfull.time,&now,sizeof(struct timespec));
+    //shkfull.frame_number = frame_number;
+    //shkfull.exptime = 0;
+    //shkfull.ontime = 0;
+    //shkfull.temp = 0;
+    //shkfull.imxsize = SHKXS;
+    //shkfull.imysize = SHKYS;
+    //shkfull.state = 0;
+    //shkfull.mode = 0;
+    //memcpy(&shkfull.time,&now,sizeof(struct timespec));
     
     //Copy full image
-    memcpy(buffer->pvAddress,shkfull.image.data[0],sizeof(shkfull.image.data));
-  
+    memcpy(&(shkfull.image.data[0][0]),buffer->pvAddress,sizeof(shkfull.image.data));
+
+    //Fake data
+    if(sm_p->shk_fake_mode == 1){
+      for(i=0;i<SHKXS;i++)
+	for(j=0;j<SHKYS;j++)
+	  shkfull.image.data[i][j]=fakepx++;
+    }
+    if(sm_p->shk_fake_mode == 2){
+      for(i=0;i<SHKXS;i++)
+	for(j=0;j<SHKYS;j++)
+	  shkfull.image.data[i][j]=2*fakepx++;
+    }
+    if(sm_p->shk_fake_mode == 3){
+      for(i=0;i<SHKXS;i++)
+	for(j=0;j<SHKYS;j++)
+	  shkfull.image.data[i][j]=3*fakepx++;
+    }
+    
     //Write full image
     write_to_buffer(sm_p,(void *)&shkfull,SHKFULL);
 

@@ -159,6 +159,7 @@ enum bufids {SCIEVENT, SCIFULL, SHKEVENT, SHKFULL, LYTEVENT, LYTFULL, ACQEVENT, 
 #define SHK_DEBUG       1 // print shk messages
 #define SCI_DEBUG       0 // print sci messages
 #define WAT_DEBUG       0 // print wat messages
+#define SRV_DEBUG       1 // print wat messages
 
 /*************************************************
  * Other Messaging
@@ -316,6 +317,7 @@ typedef struct acqevent_struct{
  * Full Frame Structures
  *************************************************/
 typedef struct scifull_struct{
+  uint32  packet_type;
   uint32  frame_number;
   float   exptime;
   float   ontime;
@@ -329,25 +331,17 @@ typedef struct scifull_struct{
 } scifull_t;
 
 typedef struct shkfull_struct{
-  uint32  frame_number;
-  float   exptime;
-  float   ontime;
-  float   temp;
-  uint16  imxsize;
-  uint16  imysize;
-  uint32  state;
-  uint32  mode;
-  struct timespec time;
   shk_t   image; 
 } shkfull_t;
 
 typedef struct lytfull_struct{
+  uint32  packet_type;
   uint32  frame_number;
   float   exptime;
   float   ontime;
   float   temp;
-  uint16  imxsize;
-  uint16  imysize;
+  uint32  imxsize;
+  uint32  imysize;
   uint32  state;
   uint32  mode;
   struct timespec time;
@@ -355,6 +349,7 @@ typedef struct lytfull_struct{
 } lytfull_t;
 
 typedef struct acqfull_struct{
+  uint32  packet_type;
   uint32  frame_number;
   float   exptime;
   float   ontime;
@@ -376,6 +371,7 @@ typedef struct circbuf_struct{
   uint32 write_offset; //last entry written
   uint32 nbytes;   //number of bytes in structure
   uint32 bufsize;  //number of structures in circular buffer
+  char name[128];  //name of buffer
 } circbuf_t;
 
 /*************************************************
@@ -390,8 +386,12 @@ typedef volatile struct {
   //Process information
   procinfo_t w[NCLIENTS];
   
-  //Fake mode
-  uint16  fake_mode;      //Fake data mode
+  //Fake modes
+  uint32 tlm_fake_mode;        //Telemetry fake mode
+  uint32 sci_fake_mode;        //Science camera fake mode
+  uint32 lyt_fake_mode;        //Lyot LOWFS camera fake mode
+  uint32 shk_fake_mode;        //Shack-Hartmann camera fake mode
+  uint32 acq_fake_mode;        //Acquisition camera fake mode
   
   //Camera modes
   uint32 sci_mode;        //Science camera mode
