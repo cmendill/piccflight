@@ -22,8 +22,12 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   static lytevent_t lytevent;
   static struct timespec start,now,delta;
   double dt;
-  int32 i,j;
+  int32 i,j,k;
   uint16 fakepx=0;
+  double lyt_zernike_matrix_inv[LOWFS_N_ZERNIKE*LYTXS*LYTYS];
+  double lyt_image_arr[LYTXS*LYTYS];
+  const int matrix_m=LYTXS*LYTYS;
+  const int matrix_n=LOWFS_N_ZERNIKE;
   
   //Get time immidiately
   clock_gettime(CLOCK_REALTIME,&now);
@@ -39,15 +43,25 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   lytevent.imysize = LYTYS;
   lytevent.state = 0;
   lytevent.mode = 0;
-  memcpy(&lytevent.time,&now,sizeof(struct timespec));
-  
-  //Process image
-  
-  //Calculate update
+  lytevent.time_sec = now.tv_sec;
+  lytevent.time_nsec = now.tv_nsec;
 
+  //Copy image into event
+  memcpy(&(lytevent.image.data[0][0]),buffer->pvAddress,sizeof(lytevent.image.data));
+  
+  //Transform image into array
+  k=0;
+  for(i=0;i<LYTXS;i++)
+    for(j=0;j<LYTYS;j++)
+      lyt_image_arr[k++]=(double)lytevent.image.data[i][j];
+  
+  //Matrix multiply
+  //NUMERIC_multiply(lyt_zernike_matrix_inv,lyt_image_arr,lytevent.zernikes,matrix_m,matrix_n);
+  
   //Apply update
 
   //Write event
+  write_to_buffer(sm_p,(void *)&lytevent,LYTEVENT);
 
   //Full image code
   if(timespec_subtract(&delta,&now,&start))

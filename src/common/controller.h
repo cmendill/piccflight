@@ -140,6 +140,11 @@ enum bufids {SCIEVENT, SCIFULL, SHKEVENT, SHKFULL, LYTEVENT, LYTFULL, ACQEVENT, 
 #define _NO_ERROR	0
 
 /*************************************************
+ * LOWFS Settings
+ *************************************************/
+#define LOWFS_N_ZERNIKE         24
+
+/*************************************************
  * Camera Settings -- Keep sizes divisible by 4
  *************************************************/
 #define SCIXS           128
@@ -298,7 +303,11 @@ typedef struct lytevent_struct{
   uint16  imysize;
   uint32  state;
   uint32  mode;
-  struct timespec time;
+  int64   time_sec;
+  int64   time_nsec;
+  double  zernikes[LOWFS_N_ZERNIKE];
+  uint16  iwc[IWC_CHANNELS];
+  lyt_t   image; 
 } lytevent_t;
 
 typedef struct acqevent_struct{
@@ -414,8 +423,8 @@ typedef volatile struct {
   int16   dm[DMXS][DMYS];
   int16   iwc[IWCXS][IWCYS];
 
-  //srv_proc switches
-  int16 srv_send[NCIRCBUF]; //which buffers to send
+  //LOWFC Settings
+  uint16 iwc_commander;
   
   //Events circular buffers
   scievent_t scievent[SCIEVENTSIZE];

@@ -1,16 +1,4 @@
-#include <stdio.h>
-#include <termios.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <errno.h>
-#include <string.h>
-#include <fcntl.h>
-#include <ctype.h>
-#include <time.h>
 #include <sys/socket.h>
-#include <sys/ipc.h>
-#include <sys/sem.h>
-
 sm_t *openshm(int *mainfd);
 int  timespec_subtract(struct timespec *result,struct timespec *x,struct timespec *y);
 void ts2double(volatile struct timespec *ts,volatile double *db);
@@ -30,5 +18,5 @@ int  read_from_socket(int s,void *buf,int num);
 void *get_in_addr(struct sockaddr *sa);
 int  eth_send(char *addr,char *port,void *data,int nbytes);
 int send2gse(void *data, int nbytes);
-
+void NUMERIC_multiply(double *A, double *b,double *result,int m, int n);
 
