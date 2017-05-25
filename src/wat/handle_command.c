@@ -44,7 +44,14 @@ int handle_command(char *line, sm_t *sm_p){
     strncpy(stemp,line+8,4);
     itemp = atoi(stemp);
     sm_p->shk_fake_mode = itemp;
-    printf("CMD: Changed SHK fake mode to %lu\n",sm_p->shk_fake_mode);
+    printf("CMD: Changed SHK fake mode to %d\n",sm_p->shk_fake_mode);
+    return(CMD_NORMAL);
+  }
+  if(!strncasecmp(line,"lyt fake",8)){
+    strncpy(stemp,line+8,4);
+    itemp = atoi(stemp);
+    sm_p->lyt_fake_mode = itemp;
+    printf("CMD: Changed LYT fake mode to %d\n",sm_p->lyt_fake_mode);
     return(CMD_NORMAL);
   }
  

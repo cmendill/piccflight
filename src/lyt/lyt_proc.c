@@ -31,14 +31,14 @@ tPHX lytBuffer1, lytBuffer2;
 uint32 lyt_frame_count=0;
 
 /* Prototypes */
-void lyt_process_image(stImageBuff *buffer,sm_t *sm_p);
+void lyt_process_image(stImageBuff *buffer,sm_t *sm_p,uint32 frame_number);
 
 /* CTRL-C Function */
 void lytctrlC(int sig)
 {
 #if MSG_CTRLC
   printf("LYT: ctrlC! exiting.\n");
-  printf("LYT: Got %lu frames.\n",lyt_frame_count);
+  printf("LYT: Got %d frames.\n",lyt_frame_count);
 #endif
   close(lyt_shmfd);
   if ( lytCamera ) PHX_StreamRead( lytCamera, PHX_ABORT, NULL ); /* Now cease all captures */
@@ -68,7 +68,7 @@ static void lyt_callback( tHandle lytCamera, ui32 dwInterruptMask, void *pvParam
     etStat eStat = PHX_StreamRead( lytCamera, PHX_BUFFER_GET, &stBuffer );
     if ( PHX_OK == eStat ) {
       //Process image
-      lyt_process_image(&stBuffer,aContext->sm_p);
+      lyt_process_image(&stBuffer,aContext->sm_p,lyt_frame_count);
 
       //Check in with watchdog
       

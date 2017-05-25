@@ -36,7 +36,7 @@ void shkctrlC(int sig)
 {
 #if MSG_CTRLC
   printf("SHK: ctrlC! exiting.\n");
-  printf("SHK: Got %lu frames.\n",shk_frame_count);
+  printf("SHK: Got %d frames.\n",shk_frame_count);
 #endif
   close(shk_shmfd);
   if ( shkCamera ) PHX_StreamRead( shkCamera, PHX_ABORT, NULL ); /* Now cease all captures */
@@ -85,7 +85,7 @@ int shk_proc(void){
   tContext shkContext;
   ui64 dwParamValue;
   etParamValue roiWidth, roiHeight, bufferWidth, bufferHeight;
-
+  
   /* Open Shared Memory */
   sm_t *sm_p;
   if((sm_p = openshm(&shk_shmfd)) == NULL){

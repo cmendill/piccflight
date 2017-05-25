@@ -30,7 +30,7 @@ void srvctrlC(int sig)
 {
 #if MSG_CTRLC
   printf("SRV: ctrlC! exiting.\n");
-  printf("SRV: sent %lu packets.\n",srv_packet_count);
+  printf("SRV: sent %d packets.\n",srv_packet_count);
 #endif
   close(srv_shmfd);
   close(clientfd);
@@ -61,7 +61,7 @@ void srv_proc(void) {
     if(sm_p->circbuf[i].nbytes > max_buf_size)
       max_buf_size = sm_p->circbuf[i].nbytes;
     if(SRV_DEBUG)
-      printf("SRV: %10s Buffer Size: %lu bytes\n",sm_p->circbuf[i].name,sm_p->circbuf[i].nbytes);
+      printf("SRV: %10s Buffer Size: %d bytes\n",sm_p->circbuf[i].name,sm_p->circbuf[i].nbytes);
   }
 
   /* Allocate buffer */
@@ -81,7 +81,7 @@ void srv_proc(void) {
     if(clientfd >= 0){
       for(i=0;i<NCIRCBUF;i++){
 	if(srv_send[i]){
-	  while(read_from_buffer(sm_p, buffer, i, SRVID)){
+	  if(read_from_buffer(sm_p, buffer, i, SRVID)){
 	    //write data to socket
 	    nbytes=write_to_socket(clientfd,buffer,sm_p->circbuf[i].nbytes);
 	    if(nbytes <=0){
@@ -91,7 +91,7 @@ void srv_proc(void) {
 	    }
 	    //increment packet counter
 	    srv_packet_count++;
-	    //check in with watchdog
+	    //check in with watchdog -- make this slower
 	    checkin(sm_p,SRVID);
 	  }
 	}

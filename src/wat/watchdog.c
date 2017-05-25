@@ -215,7 +215,7 @@ void wat_proc(void){
       printf("\n");
       for(i=0;i<NCLIENTS;i++){
 	if(i != WATID){
-	  printf("WAT: %s chk:rec:cnt:tmo = %lu:%lu:%d:%d\n",sm_p->w[i].name,sm_p->w[i].chk,sm_p->w[i].rec,sm_p->w[i].cnt,sm_p->w[i].tmo);
+	  printf("WAT: %s chk:rec:cnt:tmo = %d:%d:%d:%d\n",sm_p->w[i].name,sm_p->w[i].chk,sm_p->w[i].rec,sm_p->w[i].cnt,sm_p->w[i].tmo);
 	}
       }
       printf("\n");

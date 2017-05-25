@@ -33,13 +33,14 @@
 /*************************************************
  * Number Typdef
  *************************************************/
-typedef unsigned long int uint32;
-typedef signed long int int32;
-typedef unsigned short int uint16;
-typedef signed short int int16;
-typedef unsigned char uint8;
-typedef signed char int8;
-typedef int boolean;
+typedef uint64_t uint64;
+typedef int64_t int64;
+typedef uint32_t uint32;
+typedef int32_t int32;
+typedef uint16_t uint16;
+typedef int16_t int16;
+typedef uint8_t uint8;
+typedef int8_t int8;
 
 /*************************************************
  * Numbers
@@ -92,14 +93,14 @@ typedef int boolean;
 /*************************************************
  * Base Addresses & Files
  *************************************************/
-#define DARKFILE_SCI    "data/darkframe.sci.%3.3d.%3.3lu.%2.2dC.dat"
+#define DARKFILE_SCI    "data/darkframe.sci.%3.3d.%3.3d.%2.2dC.dat"
 #define FLATFILE_SCI    "data/flatframe.sci.%3.3d.dat" 
 #define FAKEFILE_SCI    "data/fakeframe.sci.%3.3d.%s.dat"
 #define FITSHEAD        "com/fits"
 #define FITSNAME        "data/fits/data%c.%05d.fits"
 #define HOSTPORT        "ANY:24924"
-#define DATAPATH        "data/flight_data/folder_%5.5lu/"
-#define DATANAME        "data/flight_data/folder_%5.5lu/picture.%s.%8.8lu.dat"
+#define DATAPATH        "data/flight_data/folder_%5.5d/"
+#define DATANAME        "data/flight_data/folder_%5.5d/picture.%s.%8.8d.dat"
 #define MAX_FILENAME    128
 
 
@@ -139,7 +140,7 @@ enum bufids {SCIEVENT, SCIFULL, SHKEVENT, SHKFULL, LYTEVENT, LYTFULL, ACQEVENT, 
 #define _NO_ERROR	0
 
 /*************************************************
- * Camera Settings
+ * Camera Settings -- Keep sizes divisible by 4
  *************************************************/
 #define SCIXS           128
 #define SCIYS           128
@@ -156,7 +157,7 @@ enum bufids {SCIEVENT, SCIFULL, SHKEVENT, SHKFULL, LYTEVENT, LYTFULL, ACQEVENT, 
 #define TLM_DEBUG       0 // print tlm messages
 #define HSK_DEBUG       0 // print hsk messages
 #define LYT_DEBUG       0 // print bin messages
-#define SHK_DEBUG       1 // print shk messages
+#define SHK_DEBUG       0 // print shk messages
 #define SCI_DEBUG       0 // print sci messages
 #define WAT_DEBUG       0 // print wat messages
 #define SRV_DEBUG       1 // print wat messages
@@ -322,15 +323,25 @@ typedef struct scifull_struct{
   float   exptime;
   float   ontime;
   float   temp;
-  uint16  imxsize;
-  uint16  imysize;
-  uint32  state;
+  uint32  imxsize;
+  uint32  imysize;
   uint32  mode;
-  struct timespec time;
+  int64   time_sec;
+  int64   time_nsec;
   sci_t   image; 
 } scifull_t;
 
 typedef struct shkfull_struct{
+  uint32  packet_type;
+  uint32  frame_number;
+  float   exptime;
+  float   ontime;
+  float   temp;
+  uint32  imxsize;
+  uint32  imysize;
+  uint32  mode;
+  int64   time_sec;
+  int64   time_nsec;
   shk_t   image; 
 } shkfull_t;
 
@@ -342,9 +353,9 @@ typedef struct lytfull_struct{
   float   temp;
   uint32  imxsize;
   uint32  imysize;
-  uint32  state;
   uint32  mode;
-  struct timespec time;
+  int64   time_sec;
+  int64   time_nsec;
   lyt_t   image; 
 } lytfull_t;
 
@@ -354,11 +365,11 @@ typedef struct acqfull_struct{
   float   exptime;
   float   ontime;
   float   temp;
-  uint16  imxsize;
-  uint16  imysize;
-  uint32  state;
+  uint32  imxsize;
+  uint32  imysize;
   uint32  mode;
-  struct timespec time;
+  int64   time_sec;
+  int64   time_nsec;
   acq_t   image; 
 } acqfull_t;
 
@@ -380,8 +391,8 @@ typedef struct circbuf_struct{
 typedef volatile struct {
 
   //Runtime switches
-  boolean memlock;        //Shared memory locking bit
-  boolean die;            //Kill all processes
+  int memlock;        //Shared memory locking bit
+  int die;            //Kill all processes
 
   //Process information
   procinfo_t w[NCLIENTS];

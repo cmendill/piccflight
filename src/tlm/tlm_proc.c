@@ -329,7 +329,7 @@ void tlm_proc(void){
 	    //write data
 	    write_block((char *)&tlmHED, (char *)&sci.image, sizeof(sci.image),0);
 	    if(TLM_DEBUG)
-	      printf("TLM: Frame %lu - SCI\n",tlmHED.frame_number);
+	      printf("TLM: Frame %d - SCI\n",tlmHED.frame_number);
 	  }
 	}
 

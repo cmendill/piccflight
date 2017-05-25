@@ -56,16 +56,17 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   ts2double(&delta,&dt);
   if(dt > SHK_FULL_IMAGE_TIME){
     //Fill out full image header
-    //shkfull.frame_number = frame_number;
-    //shkfull.exptime = 0;
-    //shkfull.ontime = 0;
-    //shkfull.temp = 0;
-    //shkfull.imxsize = SHKXS;
-    //shkfull.imysize = SHKYS;
-    //shkfull.state = 0;
-    //shkfull.mode = 0;
-    //memcpy(&shkfull.time,&now,sizeof(struct timespec));
-    
+    shkfull.packet_type  = SHKFULL;
+    shkfull.frame_number = frame_number;
+    shkfull.exptime = 0;
+    shkfull.ontime = 0;
+    shkfull.temp = 0;
+    shkfull.imxsize = SHKXS;
+    shkfull.imysize = SHKYS;
+    shkfull.mode = 0;
+    shkfull.time_sec = now.tv_sec;
+    shkfull.time_nsec = now.tv_nsec;
+
     //Copy full image
     memcpy(&(shkfull.image.data[0][0]),buffer->pvAddress,sizeof(shkfull.image.data));
 

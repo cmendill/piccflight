@@ -148,8 +148,10 @@ void *srv_listener(void *t) {
 	      printf("SRV: Listener got CMD: Send Data\n");
 	      //select buffers to send
 	      memset((void *)srv_send,0,sizeof srv_send);
-	      //**need to build this into the command**
 	      srv_send[SHKFULL]=1;
+	      srv_send[LYTFULL]=1;
+	      srv_send[ACQFULL]=1;
+	      srv_send[SCIFULL]=1;
 	      clientfd = i;
 	    }
 	  }
