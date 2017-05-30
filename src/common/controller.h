@@ -351,7 +351,8 @@ typedef struct shkfull_struct{
   uint32  mode;
   int64   time_sec;
   int64   time_nsec;
-  shk_t   image; 
+  shk_t   image;
+  float   zernikes[LOWFS_N_ZERNIKE];
 } shkfull_t;
 
 typedef struct lytfull_struct{

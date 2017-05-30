@@ -75,16 +75,23 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
       for(i=0;i<SHKXS;i++)
 	for(j=0;j<SHKYS;j++)
 	  shkfull.image.data[i][j]=fakepx++;
+      for(i=0;i<LOWFS_N_ZERNIKE;i++)
+	shkfull.zernikes[i]=i;
+      
     }
     if(sm_p->shk_fake_mode == 2){
       for(i=0;i<SHKXS;i++)
 	for(j=0;j<SHKYS;j++)
 	  shkfull.image.data[i][j]=2*fakepx++;
+      for(i=0;i<LOWFS_N_ZERNIKE;i++)
+	shkfull.zernikes[i]=i;
     }
     if(sm_p->shk_fake_mode == 3){
       for(i=0;i<SHKXS;i++)
 	for(j=0;j<SHKYS;j++)
 	  shkfull.image.data[i][j]=3*fakepx++;
+      for(i=0;i<LOWFS_N_ZERNIKE;i++)
+	shkfull.zernikes[i]=i;
     }
     
     //Write full image
