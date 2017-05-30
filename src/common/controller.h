@@ -213,6 +213,26 @@ enum bufids {SCIEVENT, SCIFULL, SHKEVENT, SHKFULL, LYTEVENT, LYTFULL, ACQEVENT, 
 enum procids {WATID, SCIID, SHKID, LYTID, TLMID, ACQID, MOTID, THMID, SRVID, TMPID, HSKID,NCLIENTS};
 
 /*************************************************
+ * Shack-Hartmann (SHK) Settings
+ *************************************************/
+#define SHK_CONFIG_FILE       "phx_config/shk.cfg"
+#define SHK_FULL_IMAGE_TIME   0.5    //seconds
+#define SHK_XCELLS            16
+#define SHK_YCELLS            16
+#define SHK_NCELLS            256
+#define SHK_LENSLET_PITCH_UM  300.0  
+#define SHK_FOCAL_LENGTH_UM   18600.0
+#define SHK_PX_PITCH_UM       4.65
+#define SHK_SPOT_UPPER_THRESH 20
+#define SHK_SPOT_LOWER_THRESH 15
+#define SHK_CELL_XOFF         0.0
+#define SHK_CELL_YOFF         0.0
+#define SHK_CELL_ROTATION     0.0
+#define SHK_CELL_XSCALE       1.0
+#define SHK_CELL_YSCALE       1.0
+
+
+/*************************************************
  * Packets
  *************************************************/
 typedef struct tlmheader_struct{
@@ -265,6 +285,15 @@ typedef struct lyt_struct{
 typedef struct acq_struct{
   uint16 data[ACQXS][ACQYS];
 } acq_t;
+typedef struct {
+  uint16_t index;
+  uint16_t beam_select;
+  uint16_t maxpix;
+  uint16_t maxval;
+  double origin[2];
+  double centroid[2];
+  double deviation[2];
+} shkcell_t;
 
 /*************************************************
  * Event Structures
@@ -291,7 +320,9 @@ typedef struct shkevent_struct{
   uint16  imysize;
   uint32  state;
   uint32  mode;
-  struct timespec time;
+  int64   time_sec;
+  int64   time_nsec;
+  shkcell_t cells[SHK_NCELLS];
 } shkevent_t;
 
 typedef struct lytevent_struct{
@@ -426,6 +457,9 @@ typedef volatile struct {
 
   //LOWFC Settings
   uint16 iwc_commander;
+
+  //Shack-Hartmann Settings
+  uint16 shk_boxsize;     //SHK centroid boxsize
   
   //Events circular buffers
   scievent_t scievent[SCIEVENTSIZE];

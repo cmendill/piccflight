@@ -292,13 +292,14 @@ int main(int argc,char **argv){
   
   /* Set Runtime Defaults */
   /* All shmem numbers are ZERO unless defined here */
-  sm_p->memlock    = 0;  
-  sm_p->die        = 0;
-  sm_p->sci_mode   = SCI_MODE_DEFAULT;  
-  sm_p->shk_mode   = SHK_MODE_DEFAULT;  
-  sm_p->lyt_mode   = LYT_MODE_DEFAULT;  
-  sm_p->acq_mode   = ACQ_MODE_DEFAULT;  
-
+  sm_p->memlock     = 0;  
+  sm_p->die         = 0;
+  sm_p->sci_mode    = SCI_MODE_DEFAULT;  
+  sm_p->shk_mode    = SHK_MODE_DEFAULT;  
+  sm_p->lyt_mode    = LYT_MODE_DEFAULT;  
+  sm_p->acq_mode    = ACQ_MODE_DEFAULT;  
+  sm_p->shk_boxsize = SHK_BOXSIZE_DEFAULT;
+  
   /* Configure Circular Buffers */
   //-- Event buffers
   sm_p->circbuf[SCIEVENT].buffer  = sm_p->scievent;

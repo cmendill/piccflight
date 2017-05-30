@@ -23,3 +23,6 @@
 #define SHK_MODE_DEFAULT 0 
 #define LYT_MODE_DEFAULT 0 
 #define ACQ_MODE_DEFAULT 0
+
+//Shack-Hartmann Settings
+#define SHK_BOXSIZE_DEFAULT 15

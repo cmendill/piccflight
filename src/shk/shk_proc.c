@@ -9,7 +9,6 @@
 #include <fcntl.h>
 #include <ctype.h>
 
-
 /* piccflight headers */
 #include "../common/controller.h"
 #include "../common/common_functions.h"
@@ -17,12 +16,8 @@
 #include "../phx/include/pbl_api.h"
 #include "../phx/config.h"
 
-/* SHK config */
-#define SHK_CONFIG_FILE "phx_config/shk.cfg"
-
 /* Process File Descriptor */
 int shk_shmfd;
-
 
 /* Global Variables */
 tHandle shkCamera = 0; /* Camera Handle   */
@@ -50,8 +45,6 @@ void shkctrlC(int sig)
 
 /* Define an application specific structure to hold user information */
 typedef struct { 
-  volatile ui32 nCurrentEventCount; /* Event counter   */
-  volatile double coefficients[15]; /* Event counter   */
   sm_t *sm_p; /* Shared memory pointer */
 } tContext;
 
@@ -98,7 +91,6 @@ int shk_proc(void){
 
   /* Set up context for callback */
   memset( &shkContext, 0, sizeof( tContext ) ); 
-  shkContext.nCurrentEventCount = 0;
   shkContext.sm_p = sm_p;
   
   /* Create a Phoenix handle */
