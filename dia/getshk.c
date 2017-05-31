@@ -66,8 +66,12 @@ int main(int argc,char **argv){
 	     (void *)&sm_p->shkevent[sm_p->circbuf[SHKEVENT].read_offsets[DIAID] % sm_p->circbuf[SHKEVENT].bufsize],sizeof(shkevent_t));
       sm_p->circbuf[SHKEVENT].read_offsets[DIAID]++;
       for(i=0;i<SHK_NCELLS;i++)
-	fprintf(out,"%10d,%10d,%10.4f,%10.4f\n",shkevent.frame_number,shkevent.cells[i].index,
-		shkevent.cells[i].deviation[0],shkevent.cells[i].deviation[1]);
+	fprintf(out,"%10d,%5d,%5d,%5d,%15.8f,%15.8f,%15.8f,%15.8f,%15.8f,%15.8f\n",
+		shkevent.frame_number,shkevent.cells[i].index,shkevent.cells[i].spot_found,shkevent.cells[i].spot_captured,
+		shkevent.cells[i].origin[0],shkevent.cells[i].origin[1],
+		shkevent.cells[i].centroid[0],shkevent.cells[i].centroid[1],
+		shkevent.cells[i].deviation[0],shkevent.cells[i].deviation[1]
+		);
       if(++count == nevents)
 	break;
     }

@@ -21,7 +21,10 @@ void shk_init_cells(shkcell_t *cells){
   float cell_size_px = SHK_LENSLET_PITCH_UM/SHK_PX_PITCH_UM;
   int i,j,c;
   
-  //Initialize cell origins
+  //Zero out cells
+  memset(cells,0,sizeof(shkcell_t));
+  
+  //Initialize cells
   c=0;
   for(i=0;i<SHK_XCELLS;i++){
     for(j=0;j<SHK_YCELLS;j++){
@@ -40,12 +43,28 @@ void shk_centroid_cell(uint16 *image, shkcell_t *cell, sm_t *sm_p){
   double i_sum=0, ix_sum=0, iy_sum=0, val=0, maxval=0;
   int maxpix=0;
   int blx,bly,trx,try;
-  int boxsize;
+  int boxsize,boxsize_new;
   int i,j,px;
-
-  //set boxsize
-  boxsize=sm_p->shk_boxsize;
-
+  
+  //set boxsize & spot_captured flag
+  boxsize     = SHK_MAX_BOXSIZE;
+  boxsize_new = sm_p->shk_boxsize;
+  if(cell->spot_found){
+    if(cell->spot_captured){
+      //if spot was captured, but is now outside the box, unset captured
+      if((abs(cell->deviation[0]) > boxsize_new) && (abs(cell->deviation[1]) > boxsize_new)){
+	cell->spot_captured=0;
+      }
+    }
+    else{
+      //if spot was not captured, check if it is within the capture region
+      if((abs(cell->deviation[0]) < (boxsize_new-SHK_BOX_DEADBAND)) && (abs(cell->deviation[1]) < (boxsize_new-SHK_BOX_DEADBAND))){
+	cell->spot_captured=1;
+	boxsize=sm_p->shk_boxsize;
+      }
+    }
+  }
+  
   //calculate corners of centroid box
   blx = floor(cell->origin[0] - boxsize);
   bly = floor(cell->origin[1] - boxsize);
@@ -61,7 +80,7 @@ void shk_centroid_cell(uint16 *image, shkcell_t *cell, sm_t *sm_p){
   try = try > SHKYS ? SHKYS : try;
   trx = trx < 0 ? 0 : trx;
   try = try < 0 ? 0 : try;
-    
+
   //loop over centroid region
   for(i=blx;i<trx;i++){
     for(j=bly;j<try;j++){
@@ -78,16 +97,6 @@ void shk_centroid_cell(uint16 *image, shkcell_t *cell, sm_t *sm_p){
       iy_sum += val * ((double)j + 0.5);
     }
   }
-
-  //set max pixel
-  cell->maxpix = maxpix;
-  cell->maxval = image[maxpix];
-  
-  //check if cell is in the beam
-  if(cell->beam_select && maxval < SHK_SPOT_LOWER_THRESH)
-    cell->beam_select=0;
-  if(maxval > SHK_SPOT_UPPER_THRESH)
-    cell->beam_select=1;
   
   //calculate centroid
   cell->centroid[0] = ix_sum/i_sum;
@@ -96,6 +105,25 @@ void shk_centroid_cell(uint16 *image, shkcell_t *cell, sm_t *sm_p){
   //calculate deviation
   cell->deviation[0] = cell->origin[0] - cell->centroid[0]; 
   cell->deviation[1] = cell->origin[1] - cell->centroid[1];
+
+  //set max pixel
+  cell->maxpix = maxpix;
+  cell->maxval = image[maxpix];
+  
+  //check if spot is above threshold
+  if(cell->spot_found && maxval < SHK_SPOT_LOWER_THRESH)
+    cell->spot_found=0;
+  if(maxval > SHK_SPOT_UPPER_THRESH)
+    cell->spot_found=1;
+
+  //check spot captured flag
+  if(!cell->spot_found)
+    cell->spot_captured=0;
+  
+  //decide if spot is in the beam
+  cell->beam_select=0;
+  if(cell->spot_found) //could add more tests here
+    cell->beam_select=1;
 }
 
 /**************************************************************/

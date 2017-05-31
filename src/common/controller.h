@@ -176,8 +176,6 @@ enum bufids {SCIEVENT, SCIFULL, SHKEVENT, SHKFULL, LYTEVENT, LYTFULL, ACQEVENT, 
 /*************************************************
  * Limits
  *************************************************/
-#define BOXSIZE_MIN     3        //(npx) Minimum centroid boxsize
-#define BOXSIZE_MAX     35       //(npx) Maximum centroid boxsize
 #define GAIN_P_MIN     -1        //(.)   Minimum P gain
 #define GAIN_P_MAX      0        //(.)   Maximum P gain      
 #define GAIN_I_MIN     -1        //(.)   Minimum I gain   
@@ -216,13 +214,16 @@ enum procids {WATID, SCIID, SHKID, LYTID, TLMID, ACQID, MOTID, THMID, SRVID, TMP
  * Shack-Hartmann (SHK) Settings
  *************************************************/
 #define SHK_CONFIG_FILE       "phx_config/shk.cfg"
-#define SHK_FULL_IMAGE_TIME   0.5    //seconds
+#define SHK_FULL_IMAGE_TIME   0.5    //[seconds] period that full images are written to circbuf
+#define SHK_PX_PITCH_UM       4.65
 #define SHK_XCELLS            16
 #define SHK_YCELLS            16
 #define SHK_NCELLS            256
 #define SHK_LENSLET_PITCH_UM  300.0  
 #define SHK_FOCAL_LENGTH_UM   18600.0
-#define SHK_PX_PITCH_UM       4.65
+#define SHK_BOX_DEADBAND      3      //[pixels] deadband radius for switching to smaller boxsize
+#define SHK_MIN_BOXSIZE       (SHK_BOX_DEADBAND+1)
+#define SHK_MAX_BOXSIZE       27     //[pixels] gives a 5 pixel buffer around edges
 #define SHK_SPOT_UPPER_THRESH 20
 #define SHK_SPOT_LOWER_THRESH 15
 #define SHK_CELL_XOFF         0.0
@@ -230,7 +231,6 @@ enum procids {WATID, SCIID, SHKID, LYTID, TLMID, ACQID, MOTID, THMID, SRVID, TMP
 #define SHK_CELL_ROTATION     0.0
 #define SHK_CELL_XSCALE       1.0
 #define SHK_CELL_YSCALE       1.0
-
 
 /*************************************************
  * Packets
@@ -286,10 +286,12 @@ typedef struct acq_struct{
   uint16 data[ACQXS][ACQYS];
 } acq_t;
 typedef struct {
-  uint16_t index;
-  uint16_t beam_select;
-  uint16_t maxpix;
-  uint16_t maxval;
+  uint16 index;
+  uint16 beam_select;
+  uint16 spot_found;
+  uint16 spot_captured;
+  uint16 maxpix;
+  uint16 maxval;
   double origin[2];
   double centroid[2];
   double deviation[2];
