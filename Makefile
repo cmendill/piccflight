@@ -1,13 +1,13 @@
 #MKL OPTIONS
 MKLROOT = /opt/intel/mkl
 MKL_INCLUDE_DIR = $(MKLROOT)/include
-MKLLINKLINE = -Wl,--start-group $(MKLROOT)/lib/intel64/libmkl_intel_lp64.a $(MKLROOT)/lib/intel64/libmkl_sequential.a $(MKLROOT)/lib/intel64/libmkl_core.a -Wl,--end-group -lpthread -lm -ldl
+MKLLINKLINE = -Wl,--start-group $(MKLROOT)/lib/intel64/libmkl_intel_lp64.a $(MKLROOT)/lib/intel64/libmkl_sequential.a $(MKLROOT)/lib/intel64/libmkl_core.a -Wl,--end-group -ldl
 MKLOPTS = -I$(MKL_INCLUDE_DIR)
 
 #COMPILER OPTIONS
 CC = gcc
 USER_CFLAGS = -Wall -Wno-unused -O6 -m64 -D_PHX_LINUX $(MKLOPTS)
-LINK = -Lsrc/phx/lib -lphx -lpfw -lpbu -lm -lpthread $(MKLLINKLINE)
+LINK = -Lsrc/phx/lib -lphx -lpfw -lpbu -lm -lpthread -lrt $(MKLLINKLINE)
 
 #FILES
 TARGET  = ./bin/
@@ -20,8 +20,8 @@ DIABIN  = $(patsubst %.c,%,$(DIASRC))
 COMDEP  = Makefile $(wildcard ./src/*/*.h) $(wildcard ./src/*/*/*.h)
 
 #ALL
-MAKEALL = $(TARGET)watchdog $(DIABIN)
-all: $(MAKEALL)
+MAKEALL = $(TARGET)watchdog 
+all: $(MAKEALL) getshk
 
 #WATCHDOG
 $(TARGET)watchdog: $(OBJECT) 
@@ -31,9 +31,13 @@ $(TARGET)watchdog: $(OBJECT)
 %.o: %.c  $(COMDEP)
 	$(CC) $(USER_CFLAGS) -o $@ -c $< 
 
+#DIAGNOSTIC EXECUTABLES
+getshk: dia/getshk.c $(COMDEP) 
+	$(CC) $(USER_CFLAGS) -o $(TARGET)getshk dia/getshk.c src/common/common_functions.o $(LINK)
+
 #USERSPACE EXECUTABLES
-%: %.c  $(COMDEP)
-	$(CC) $(USER_CFLAGS) -o $@ $< 
+#%: %.c  $(COMDEP)
+#	$(CC) $(USER_CFLAGS) -o $@ $< src/common/common_functions.c $(LINK)
 
 #SCRIPTS
 scripts:

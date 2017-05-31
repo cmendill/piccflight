@@ -210,7 +210,7 @@ enum bufids {SCIEVENT, SCIFULL, SHKEVENT, SHKFULL, LYTEVENT, LYTFULL, ACQEVENT, 
 /*************************************************
  * Process ID Numbers
  *************************************************/
-enum procids {WATID, SCIID, SHKID, LYTID, TLMID, ACQID, MOTID, THMID, SRVID, TMPID, HSKID,NCLIENTS};
+enum procids {WATID, SCIID, SHKID, LYTID, TLMID, ACQID, MOTID, THMID, SRVID, TMPID, HSKID,DIAID,NCLIENTS};
 
 /*************************************************
  * Shack-Hartmann (SHK) Settings

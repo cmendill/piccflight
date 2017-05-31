@@ -7,6 +7,6 @@ sync.sh
 *.ko
 #executables
 bin/watchdog
-
+bin/getshk
 
 
