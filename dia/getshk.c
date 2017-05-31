@@ -10,12 +10,28 @@
 #include "../src/common/controller.h"
 #include "../src/common/common_functions.h"
 
+#define DEF_NEVENTS     100     //default number of events to record
+#define MAX_NEVENTS     1000000 //maximum number of events to record
+#define MIN_NEVENTS     1       //minimum number of events to record
+
 int main(int argc,char **argv){
-  char outfile[250];
+  char outfile[256];
   FILE *out=NULL;
-  int count,i;
+  unsigned long int count,i,temp,nevents;
   static shkevent_t shkevent;
-  static shkfull_t shkfull;
+  
+  
+  /* Get number of events from command line */
+  nevents=DEF_NEVENTS;
+  if(argc == 2){
+    temp = atol(argv[1]);
+    if(temp >= MIN_NEVENTS && temp <= MAX_NEVENTS)
+      nevents=temp;
+    else{
+      printf("Number of events must be between %d and %d\n",MIN_NEVENTS,MAX_NEVENTS);
+      exit(0);
+    }
+  }
   
   /* Open Shared Memory */
   sm_t *sm_p;
@@ -38,23 +54,25 @@ int main(int argc,char **argv){
   }
   else
     printf("getshk: opened %s\n",outfile);
-
-  //memcpy((void *)&shkevent,(void *)&sm_p->shkevent[0],sizeof(shkevent_t));
-  printf("ID %d\n",DIAID);
-  printf("Read Offset %d\n",sm_p->circbuf[SHKEVENT].read_offsets[DIAID]);
-  printf("Write Offset %d\n",sm_p->circbuf[SHKEVENT].write_offset);
-  usleep(1000);
   
   /* Enter loop to read shack-hartmann events */
+  /* NOTE: IM NOT SURE WHY READ_BUFFER_EVENT DOES NOT WORK HERE. 
+     NEED TO FIGURE THIS OUT. GIVES A SEGFAULT IF USED. 
+  */
   count=0;
   while(1){
-    if(read_from_buffer(sm_p,(void *)&shkevent,SHKEVENT,DIAID)){
-      //for(i=0;i<SHK_NCELLS;i++)
-      //fprintf(out,"%10d,%10.4f,%10.4f\n",shkevent.frame_number,shkevent.cells[i].deviation[0],shkevent.cells[i].deviation[1]);
-      //if(++count == 100)
-      break;
+    if(check_buffer(sm_p,SHKEVENT,DIAID)){
+      memcpy((void *)&shkevent,
+	     (void *)&sm_p->shkevent[sm_p->circbuf[SHKEVENT].read_offsets[DIAID] % sm_p->circbuf[SHKEVENT].bufsize],sizeof(shkevent_t));
+      sm_p->circbuf[SHKEVENT].read_offsets[DIAID]++;
+      for(i=0;i<SHK_NCELLS;i++)
+	fprintf(out,"%10d,%10d,%10.4f,%10.4f\n",shkevent.frame_number,shkevent.cells[i].index,
+		shkevent.cells[i].deviation[0],shkevent.cells[i].deviation[1]);
+      if(++count == nevents)
+	break;
     }
   }
+  printf("getshk: recorded %lu events\n",nevents);
   //clean up
   fclose(out);
   close(shmfd);
