@@ -151,8 +151,13 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   //Apply update
 
   //Write event
-
-  //Full image code
+  write_to_buffer(sm_p,(void *)&shkevent,SHKEVENT);
+  
+  
+  /*******************************************************/
+  /*                   Full image code                   */
+  /*******************************************************/
+  
   if(timespec_subtract(&delta,&now,&start))
     printf("SHK: shk_process_image --> timespec_subtract error!\n");
   ts2double(&delta,&dt);
