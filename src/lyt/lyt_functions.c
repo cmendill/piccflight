@@ -11,6 +11,7 @@
 /* piccflight headers */
 #include "../common/controller.h"
 #include "../common/common_functions.h"
+#include "../common/numeric.h"
 #include "../phx/include/phx_api.h"
 #include "../phx/config.h"
 
