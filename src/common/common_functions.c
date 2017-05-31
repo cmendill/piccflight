@@ -8,7 +8,6 @@
 #include <fcntl.h>
 #include <ctype.h>
 #include <netdb.h>
-#include <mkl.h>
 
 #include <sys/time.h>
 #include <sys/mman.h>
@@ -154,13 +153,18 @@ int check_buffer(sm_t *sm_p, int buf, int id){
         READ FROM A CIRCULAR BUFFER
 ******************************************************************************/
 int read_from_buffer(sm_t *sm_p, void *output, int buf, int id){
+  unsigned long int offset;
+  char *ptr; 
+  
   //check for new data
   if(!check_buffer(sm_p,buf,id))
     return  0;
   
   //read data
-  memcpy(output, (void *)sm_p->circbuf[buf].buffer, sm_p->circbuf[buf].nbytes);
-
+  offset = (sm_p->circbuf[buf].read_offsets[id] % sm_p->circbuf[buf].bufsize) * sm_p->circbuf[buf].nbytes;
+  ptr = (char *)sm_p->circbuf[buf].buffer + offset;
+  memcpy(output, (void *)ptr, sm_p->circbuf[buf].nbytes);
+    
   //increment read offset
   sm_p->circbuf[buf].read_offsets[id]++;
   
@@ -172,15 +176,23 @@ int read_from_buffer(sm_t *sm_p, void *output, int buf, int id){
 ******************************************************************************/
 int write_to_buffer(sm_t *sm_p, void *input, int buf){
   int i;
+  char *ptr;
+  unsigned long int offset;
+
   //for each client, if we are out of buffer space, remove trailing entry
-  for (i=0;i<NCLIENTS;i++)
+  for (i=0;i<NCLIENTS;i++){
     if ( ((sm_p->circbuf[buf].write_offset+1)  % sm_p->circbuf[buf].bufsize) ==
 	 ((sm_p->circbuf[buf].read_offsets[i]) % sm_p->circbuf[buf].bufsize) ){
       sm_p->circbuf[buf].read_offsets[i]++;                      
     }
+  }
   
   //write data
-  memcpy((void *)sm_p->circbuf[buf].buffer,input,sm_p->circbuf[buf].nbytes);
+  offset = (sm_p->circbuf[buf].write_offset % sm_p->circbuf[buf].bufsize) * sm_p->circbuf[buf].nbytes;
+  ptr = (char *)sm_p->circbuf[buf].buffer + offset;
+  memcpy((void *)ptr,input,sm_p->circbuf[buf].nbytes);
+
+  //increment write offset
   sm_p->circbuf[buf].write_offset++;
   return 0;
 }
@@ -198,12 +210,7 @@ int read_newest_buffer(sm_t *sm_p, void *output, int buf, int id){
     sm_p->circbuf[buf].read_offsets[id]++;
   
   //read data
-  memcpy(output, (void *)sm_p->circbuf[buf].buffer,  sm_p->circbuf[buf].nbytes);
-
-  //increment read offset
-  sm_p->circbuf[buf].read_offsets[id]++;
-  
-  return 1;
+  return read_from_buffer(sm_p, output, buf, id);
 }
 
 
@@ -376,18 +383,3 @@ int send2gse(void *data, int nbytes){
   return(eth_send(GSE_ADDR,GSE_PORT,data,nbytes));
 }
 
-/******************************************************************************
-        NUMERIC_multiply
-******************************************************************************/
-/*Function: alpha * A * b + beta = result
-    alpha  --> scalar multiple
-    A      --> vector: size m x n (m columns, n rows) (1-D matrix)
-    b      --> vector: size m
-    beta   --> scalar offset
-    result --> vector: size n
-*/
-void NUMERIC_multiply(double *A, double *b,double *result,int m, int n) {
-  const double alpha = 1.0, beta = 0.0;
-  const int incx=1, incy=1;
-  cblas_dgemv(CblasColMajor, CblasNoTrans, m, n, alpha, A, m, b, incx, beta, result, incy );
-}

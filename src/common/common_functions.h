@@ -18,5 +18,5 @@ int  read_from_socket(int s,void *buf,int num);
 void *get_in_addr(struct sockaddr *sa);
 int  eth_send(char *addr,char *port,void *data,int nbytes);
 int send2gse(void *data, int nbytes);
-void NUMERIC_multiply(double *A, double *b,double *result,int m, int n);
+
 
