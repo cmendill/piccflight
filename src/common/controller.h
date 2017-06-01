@@ -215,10 +215,10 @@ enum procids {WATID, SCIID, SHKID, LYTID, TLMID, ACQID, MOTID, THMID, SRVID, TMP
  *************************************************/
 #define SHK_CONFIG_FILE       "phx_config/shk.cfg"
 #define SHK_FULL_IMAGE_TIME   0.5    //[seconds] period that full images are written to circbuf
-#define SHK_PX_PITCH_UM       4.65
-#define SHK_XCELLS            16
-#define SHK_YCELLS            16
-#define SHK_NCELLS            256
+#define SHK_PX_PITCH_UM       5.5
+#define SHK_XCELLS            18
+#define SHK_YCELLS            18
+#define SHK_NCELLS            324
 #define SHK_LENSLET_PITCH_UM  300.0  
 #define SHK_FOCAL_LENGTH_UM   18600.0
 #define SHK_BOX_DEADBAND      3      //[pixels] deadband radius for switching to smaller boxsize
