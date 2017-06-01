@@ -68,7 +68,7 @@ static void lyt_callback( tHandle lytCamera, ui32 dwInterruptMask, void *pvParam
     etStat eStat = PHX_StreamRead( lytCamera, PHX_BUFFER_GET, &stBuffer );
     if ( PHX_OK == eStat ) {
       //Process image
-      lyt_process_image(&stBuffer,aContext->sm_p,lyt_frame_count);
+      //lyt_process_image(&stBuffer,aContext->sm_p,lyt_frame_count);
 
       //Check in with watchdog
       

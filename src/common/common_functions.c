@@ -198,6 +198,38 @@ int write_to_buffer(sm_t *sm_p, void *input, int buf){
 }
 
 /******************************************************************************
+        OPEN A CIRCULAR BUFFER FOR WRITING
+******************************************************************************/
+void *open_buffer(sm_t *sm_p, int buf){
+  int i;
+  char *ptr;
+  unsigned long int offset;
+
+  //for each client, if we are out of buffer space, remove trailing entry
+  for (i=0;i<NCLIENTS;i++){
+    if ( ((sm_p->circbuf[buf].write_offset+1)  % sm_p->circbuf[buf].bufsize) ==
+	 ((sm_p->circbuf[buf].read_offsets[i]) % sm_p->circbuf[buf].bufsize) ){
+      sm_p->circbuf[buf].read_offsets[i]++;                      
+    }
+  }
+  
+  //get pointer
+  offset = (sm_p->circbuf[buf].write_offset % sm_p->circbuf[buf].bufsize) * sm_p->circbuf[buf].nbytes;
+  ptr = (char *)sm_p->circbuf[buf].buffer + offset;
+
+  //return pointer
+  return (void *)ptr;
+}
+
+/******************************************************************************
+        CLOSE CIRCULAR BUFFER AFTER WRITING
+******************************************************************************/
+void close_buffer(sm_t *sm_p, int buf){
+  //increment write offset
+  sm_p->circbuf[buf].write_offset++;
+}
+
+/******************************************************************************
         READ NEWEST FROM A CIRCULAR BUFFER
 ******************************************************************************/
 int read_newest_buffer(sm_t *sm_p, void *output, int buf, int id){

@@ -315,15 +315,6 @@ void tlm_proc(void){
 	  }
 	  /*Fill out packet header*/
 	  tlmHED.packet_type  = TLM_SCI;
-	  tlmHED.frame_number = sci.frame_number;
-	  tlmHED.exptime      = sci.exptime;
-	  tlmHED.ontime       = sci.ontime;
-	  tlmHED.temp         = sci.temp;
-	  tlmHED.state        = sci.state;
-	  tlmHED.mode         = sci.mode;
-	  tlmHED.imxsize      = sci.imxsize;
-	  tlmHED.imysize      = sci.imysize;
-	  memcpy(&tlmHED.time,&sci.time,sizeof(struct timespec));
 	  
 	  if(SEND_SCI){
 	    //write data

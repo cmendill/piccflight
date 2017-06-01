@@ -10,6 +10,8 @@ void checkin(sm_t *sm_p,int id);
 int check_buffer(sm_t *sm_p, int buf, int id);
 int read_from_buffer(sm_t *sm_p, void *output, int buf, int id);
 int write_to_buffer(sm_t *sm_p, void *input, int buf);
+void *open_buffer(sm_t *sm_p, int buf);
+void close_buffer(sm_t *sm_p, int buf);
 int read_newest_buffer(sm_t *sm_p, void *output, int buf, int id);
 int  opensock_send(char *hostname,char *port);
 int  opensock_recv(char *hostname,char *port);

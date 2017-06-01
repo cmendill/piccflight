@@ -226,8 +226,8 @@ enum procids {WATID, SCIID, SHKID, LYTID, TLMID, ACQID, MOTID, THMID, SRVID, TMP
 #define SHK_MAX_BOXSIZE       27     //[pixels] gives a 5 pixel buffer around edges
 #define SHK_SPOT_UPPER_THRESH 20
 #define SHK_SPOT_LOWER_THRESH 15
-#define SHK_CELL_XOFF         0.0
-#define SHK_CELL_YOFF         0.0
+#define SHK_CELL_XOFF         21.09
+#define SHK_CELL_YOFF         21.09
 #define SHK_CELL_ROTATION     0.0
 #define SHK_CELL_XSCALE       1.0
 #define SHK_CELL_YSCALE       1.0
@@ -286,12 +286,21 @@ typedef struct acq_struct{
   uint16 data[ACQXS][ACQYS];
 } acq_t;
 typedef struct {
+  //keep aligned on 8 byte boundary
   uint16 index;
   uint16 beam_select;
   uint16 spot_found;
   uint16 spot_captured;
+  //-----
   uint16 maxpix;
   uint16 maxval;
+  uint32 dummy;
+  //-----
+  uint16 blx;
+  uint16 bly;
+  uint16 trx;
+  uint16 try;
+  //-----
   double origin[2];
   double centroid[2];
   double deviation[2];
@@ -301,58 +310,70 @@ typedef struct {
  * Event Structures
  *************************************************/
 typedef struct scievent_struct{
+  uint32  packet_type;
   uint32  frame_number;
   float   exptime;
   float   ontime;
   float   temp;
-  uint16  imxsize;
-  uint16  imysize;
-  uint32  state;
+  uint32  imxsize;
+  uint32  imysize;
   uint32  mode;
-  struct timespec time;
+  int64   start_sec;
+  int64   start_nsec;
+  int64   end_sec;
+  int64   end_nsec;
   sci_t   image; 
 } scievent_t;
 
 typedef struct shkevent_struct{
+  uint32  packet_type;
   uint32  frame_number;
   float   exptime;
   float   ontime;
   float   temp;
-  uint16  imxsize;
-  uint16  imysize;
-  uint32  state;
+  uint32  imxsize;
+  uint32  imysize;
   uint32  mode;
-  int64   time_sec;
-  int64   time_nsec;
+  int64   start_sec;
+  int64   start_nsec;
+  int64   end_sec;
+  int64   end_nsec;
+  double  zernikes[LOWFS_N_ZERNIKE];
+  uint16  iwc[IWC_CHANNELS];
   shkcell_t cells[SHK_NCELLS];
 } shkevent_t;
 
 typedef struct lytevent_struct{
+  uint32  packet_type;
   uint32  frame_number;
   float   exptime;
   float   ontime;
   float   temp;
-  uint16  imxsize;
-  uint16  imysize;
-  uint32  state;
+  uint32  imxsize;
+  uint32  imysize;
   uint32  mode;
-  int64   time_sec;
-  int64   time_nsec;
+  int64   start_sec;
+  int64   start_nsec;
+  int64   end_sec;
+  int64   end_nsec;
   double  zernikes[LOWFS_N_ZERNIKE];
   uint16  iwc[IWC_CHANNELS];
   lyt_t   image; 
 } lytevent_t;
 
 typedef struct acqevent_struct{
+  uint32  packet_type;
   uint32  frame_number;
   float   exptime;
   float   ontime;
   float   temp;
-  uint16  imxsize;
-  uint16  imysize;
-  uint32  state;
+  uint32  imxsize;
+  uint32  imysize;
   uint32  mode;
-  struct timespec time;
+  int64   start_sec;
+  int64   start_nsec;
+  int64   end_sec;
+  int64   end_nsec;
   acq_t   image; 
 } acqevent_t;
 
@@ -368,8 +389,10 @@ typedef struct scifull_struct{
   uint32  imxsize;
   uint32  imysize;
   uint32  mode;
-  int64   time_sec;
-  int64   time_nsec;
+  int64   start_sec;
+  int64   start_nsec;
+  int64   end_sec;
+  int64   end_nsec;
   sci_t   image; 
 } scifull_t;
 
@@ -382,10 +405,13 @@ typedef struct shkfull_struct{
   uint32  imxsize;
   uint32  imysize;
   uint32  mode;
-  int64   time_sec;
-  int64   time_nsec;
+  int64   start_sec;
+  int64   start_nsec;
+  int64   end_sec;
+  int64   end_nsec;
   shk_t   image;
-  float   zernikes[LOWFS_N_ZERNIKE];
+  double  zernikes[LOWFS_N_ZERNIKE];
+  shkcell_t cells[SHK_NCELLS];
 } shkfull_t;
 
 typedef struct lytfull_struct{
@@ -397,8 +423,10 @@ typedef struct lytfull_struct{
   uint32  imxsize;
   uint32  imysize;
   uint32  mode;
-  int64   time_sec;
-  int64   time_nsec;
+  int64   start_sec;
+  int64   start_nsec;
+  int64   end_sec;
+  int64   end_nsec;
   lyt_t   image; 
 } lytfull_t;
 
@@ -411,10 +439,13 @@ typedef struct acqfull_struct{
   uint32  imxsize;
   uint32  imysize;
   uint32  mode;
-  int64   time_sec;
-  int64   time_nsec;
+  int64   start_sec;
+  int64   start_nsec;
+  int64   end_sec;
+  int64   end_nsec;
   acq_t   image; 
 } acqfull_t;
+
 
 /*************************************************
  * Circular Buffer Structure

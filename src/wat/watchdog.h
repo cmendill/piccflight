@@ -5,7 +5,7 @@
 /*!!!!!!!!!! ALL NUMBERS MUST BE < 255 !!!!!!!!!*/
 //      NOTE: Keep DIAID at the end. And do not set to run. This ID is only used by diagnostic programs.
 //      procids {WATID, SCIID, SHKID, LYTID, TLMID, ACQID, MOTID, THMID, SRVID, TMPID, HSKID, DIAID}; 
-#define PROCRUN {    1,     0,     1,     1,     0,     0,     0,     0,     1,     0,     0,     0}
+#define PROCRUN {    1,     0,     1,     0,     0,     0,     0,     0,     1,     0,     0,     0}
 #define PROCASK {    0,     0,     0,     0,     0,     0,     0,     0,     0,     0,     0,     0}
 #define PROCTMO {    5,     5,     5,     5,     5,     5,     5,     5,     5,     5,     5,     0}
 #define PROCNAM {"WAT", "SCI", "SHK", "LYT", "TLM", "ACQ", "MOT", "THM", "SRV", "TMP", "HSK", "DIA"} 

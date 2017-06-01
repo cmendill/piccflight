@@ -29,8 +29,8 @@ void shk_init_cells(shkcell_t *cells){
   for(i=0;i<SHK_XCELLS;i++){
     for(j=0;j<SHK_YCELLS;j++){
       cells[c].index = c;
-      cells[c].origin[0] = i*cell_size_px + cell_size_px/2;
-      cells[c].origin[1] = j*cell_size_px + cell_size_px/2;
+      cells[c].origin[0] = i*cell_size_px + cell_size_px/2 + SHK_CELL_XOFF;
+      cells[c].origin[1] = j*cell_size_px + cell_size_px/2 + SHK_CELL_YOFF;
       c++;
     }
   }
@@ -81,49 +81,57 @@ void shk_centroid_cell(uint16 *image, shkcell_t *cell, sm_t *sm_p){
   trx = trx < 0 ? 0 : trx;
   try = try < 0 ? 0 : try;
 
-  //loop over centroid region
-  for(i=blx;i<trx;i++){
-    for(j=bly;j<try;j++){
-      px = i + j*SHKYS;
-      val = (double)image[px]; //add image correction
-      //check max value
-      if(val > maxval){
-	maxval=val;
-	maxpix=px;
+  //save limits
+  cell->blx = blx;
+  cell->bly = bly;
+  cell->trx = trx;
+  cell->try = try;
+
+  if(0){
+    //loop over centroid region
+    for(i=blx;i<trx;i++){
+      for(j=bly;j<try;j++){
+	px = i + j*SHKYS;
+	val = (double)image[px]; //add image correction
+	//check max value
+	if(val > maxval){
+	  maxval=val;
+	  maxpix=px;
+	}
+	//integrate signal
+	i_sum  += val;
+	ix_sum += val * ((double)i + 0.5);
+	iy_sum += val * ((double)j + 0.5);
       }
-      //integrate signal
-      i_sum  += val;
-      ix_sum += val * ((double)i + 0.5);
-      iy_sum += val * ((double)j + 0.5);
     }
+  
+    //calculate centroid
+    cell->centroid[0] = ix_sum/i_sum;
+    cell->centroid[1] = iy_sum/i_sum;
+  
+    //calculate deviation
+    cell->deviation[0] = cell->origin[0] - cell->centroid[0]; 
+    cell->deviation[1] = cell->origin[1] - cell->centroid[1];
+
+    //set max pixel
+    cell->maxpix = maxpix;
+    cell->maxval = image[maxpix];
+  
+    //check if spot is above threshold
+    if(cell->spot_found && maxval < SHK_SPOT_LOWER_THRESH)
+      cell->spot_found=0;
+    if(maxval > SHK_SPOT_UPPER_THRESH)
+      cell->spot_found=1;
+
+    //check spot captured flag
+    if(!cell->spot_found)
+      cell->spot_captured=0;
+  
+    //decide if spot is in the beam
+    cell->beam_select=0;
+    if(cell->spot_found) //could add more tests here
+      cell->beam_select=1;
   }
-  
-  //calculate centroid
-  cell->centroid[0] = ix_sum/i_sum;
-  cell->centroid[1] = iy_sum/i_sum;
-  
-  //calculate deviation
-  cell->deviation[0] = cell->origin[0] - cell->centroid[0]; 
-  cell->deviation[1] = cell->origin[1] - cell->centroid[1];
-
-  //set max pixel
-  cell->maxpix = maxpix;
-  cell->maxval = image[maxpix];
-  
-  //check if spot is above threshold
-  if(cell->spot_found && maxval < SHK_SPOT_LOWER_THRESH)
-    cell->spot_found=0;
-  if(maxval > SHK_SPOT_UPPER_THRESH)
-    cell->spot_found=1;
-
-  //check spot captured flag
-  if(!cell->spot_found)
-    cell->spot_captured=0;
-  
-  //decide if spot is in the beam
-  cell->beam_select=0;
-  if(cell->spot_found) //could add more tests here
-    cell->beam_select=1;
 }
 
 /**************************************************************/
@@ -141,16 +149,18 @@ void shk_centroid(uint16 *image, shkcell_t *cells, sm_t *sm_p){
 void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   static shkfull_t shkfull;
   static shkevent_t shkevent;
-  static struct timespec start,now,delta;
+  shkfull_t *shkfull_p;
+  shkevent_t *shkevent_p;
+  static struct timespec first,start,end,delta;
   static int init=0;
   double dt;
   int32 i,j;
   uint16 fakepx=0;
 
   //Get time immidiately
-  clock_gettime(CLOCK_REALTIME,&now);
+  clock_gettime(CLOCK_REALTIME,&start);
   if(frame_number == 0)
-    memcpy(&start,&now,sizeof(struct timespec));
+    memcpy(&first,&start,sizeof(struct timespec));
 
   //Initialize
   if(!init){
@@ -165,12 +175,10 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   shkevent.temp = 0;
   shkevent.imxsize = SHKXS;
   shkevent.imysize = SHKYS;
-  shkevent.state = 0;
   shkevent.mode = 0;
-  shkevent.time_sec = now.tv_sec;
-  shkevent.time_nsec = now.tv_nsec;
+  shkevent.start_sec = start.tv_sec;
+  shkevent.start_nsec = start.tv_nsec;
 
-  
   //Calculate centroids
   shk_centroid(buffer->pvAddress,shkevent.cells,sm_p);
   
@@ -178,15 +186,26 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
 
   //Apply update
 
-  //Write event
-  write_to_buffer(sm_p,(void *)&shkevent,SHKEVENT);
+  //Open circular buffer
+  shkevent_p=(shkevent_t *)open_buffer(sm_p,SHKEVENT);
+
+  //Copy data
+  memcpy(shkevent_p,&shkevent,sizeof(shkevent_t));;
+  
+  //Get final timestamp
+  clock_gettime(CLOCK_REALTIME,&end);
+  shkevent_p->end_sec = end.tv_sec;
+  shkevent_p->end_nsec = end.tv_nsec;
+  
+  //Close buffer
+  close_buffer(sm_p,SHKEVENT);
   
   
   /*******************************************************/
   /*                   Full image code                   */
   /*******************************************************/
   
-  if(timespec_subtract(&delta,&now,&start))
+  if(timespec_subtract(&delta,&start,&first))
     printf("SHK: shk_process_image --> timespec_subtract error!\n");
   ts2double(&delta,&dt);
   if(dt > SHK_FULL_IMAGE_TIME){
@@ -199,40 +218,56 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     shkfull.imxsize = SHKXS;
     shkfull.imysize = SHKYS;
     shkfull.mode = 0;
-    shkfull.time_sec = now.tv_sec;
-    shkfull.time_nsec = now.tv_nsec;
+    shkfull.start_sec = start.tv_sec;
+    shkfull.start_nsec = start.tv_nsec;
 
-    //Copy full image
-    memcpy(&(shkfull.image.data[0][0]),buffer->pvAddress,sizeof(shkfull.image.data));
-
+    //Copy cells
+    memcpy(shkfull.cells,shkevent.cells,sizeof(shkevent.cells));
+ 
     //Fake data
-    if(sm_p->shk_fake_mode == 1){
-      for(i=0;i<SHKXS;i++)
-	for(j=0;j<SHKYS;j++)
-	  shkfull.image.data[i][j]=fakepx++;
-      for(i=0;i<LOWFS_N_ZERNIKE;i++)
-	shkfull.zernikes[i]=i;
+    if(sm_p->shk_fake_mode > 0){
+      if(sm_p->shk_fake_mode == 1){
+	for(i=0;i<SHKXS;i++)
+	  for(j=0;j<SHKYS;j++)
+	    shkfull.image.data[i][j]=fakepx++;
+	for(i=0;i<LOWFS_N_ZERNIKE;i++)
+	  shkfull.zernikes[i]=i;
       
+      }
+      if(sm_p->shk_fake_mode == 2){
+	for(i=0;i<SHKXS;i++)
+	  for(j=0;j<SHKYS;j++)
+	    shkfull.image.data[i][j]=2*fakepx++;
+	for(i=0;i<LOWFS_N_ZERNIKE;i++)
+	  shkfull.zernikes[i]=i;
+      }
+      if(sm_p->shk_fake_mode == 3){
+	for(i=0;i<SHKXS;i++)
+	  for(j=0;j<SHKYS;j++)
+	    shkfull.image.data[i][j]=3*fakepx++;
+	for(i=0;i<LOWFS_N_ZERNIKE;i++)
+	  shkfull.zernikes[i]=i;
+      }
     }
-    if(sm_p->shk_fake_mode == 2){
-      for(i=0;i<SHKXS;i++)
-	for(j=0;j<SHKYS;j++)
-	  shkfull.image.data[i][j]=2*fakepx++;
-      for(i=0;i<LOWFS_N_ZERNIKE;i++)
-	shkfull.zernikes[i]=i;
-    }
-    if(sm_p->shk_fake_mode == 3){
-      for(i=0;i<SHKXS;i++)
-	for(j=0;j<SHKYS;j++)
-	  shkfull.image.data[i][j]=3*fakepx++;
-      for(i=0;i<LOWFS_N_ZERNIKE;i++)
-	shkfull.zernikes[i]=i;
-    }
-    
-    //Write full image
-    write_to_buffer(sm_p,(void *)&shkfull,SHKFULL);
+    else{
+      //Copy full image
+      memcpy(&(shkfull.image.data[0][0]),buffer->pvAddress,sizeof(shkfull.image.data));
+    }  
 
+    //Open circular buffer
+    shkfull_p=(shkfull_t *)open_buffer(sm_p,SHKFULL);
+
+    //Copy data
+    memcpy(shkfull_p,&shkfull,sizeof(shkfull_t));;
+    
+    //Get final timestamp
+    shkfull_p->end_sec = end.tv_sec;
+    shkfull_p->end_nsec = end.tv_nsec;
+  
+    //Close buffer
+    close_buffer(sm_p,SHKFULL);
+    
     //Reset time
-    memcpy(&start,&now,sizeof(struct timespec));
+    memcpy(&first,&start,sizeof(struct timespec));
   }
 }

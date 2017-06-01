@@ -21,7 +21,7 @@
 void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   static lytfull_t lytfull;
   static lytevent_t lytevent;
-  static struct timespec start,now,delta;
+  static struct timespec first,start,delta;
   double dt;
   int32 i,j,k;
   uint16 fakepx=0;
@@ -31,9 +31,9 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   const int matrix_n=LOWFS_N_ZERNIKE;
   
   //Get time immidiately
-  clock_gettime(CLOCK_REALTIME,&now);
+  clock_gettime(CLOCK_REALTIME,&start);
   if(frame_number == 0)
-    memcpy(&start,&now,sizeof(struct timespec));
+    memcpy(&first,&start,sizeof(struct timespec));
 
   //Fill out event header
   lytevent.frame_number = frame_number;
@@ -42,10 +42,9 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   lytevent.temp = 0;
   lytevent.imxsize = LYTXS;
   lytevent.imysize = LYTYS;
-  lytevent.state = 0;
   lytevent.mode = 0;
-  lytevent.time_sec = now.tv_sec;
-  lytevent.time_nsec = now.tv_nsec;
+  lytevent.start_sec = start.tv_sec;
+  lytevent.start_nsec = start.tv_nsec;
 
   //Copy image into event
   memcpy(&(lytevent.image.data[0][0]),buffer->pvAddress,sizeof(lytevent.image.data));
@@ -65,7 +64,7 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   write_to_buffer(sm_p,(void *)&lytevent,LYTEVENT);
 
   //Full image code
-  if(timespec_subtract(&delta,&now,&start))
+  if(timespec_subtract(&delta,&start,&first))
     printf("LYT: lyt_process_image --> timespec_subtract error!\n");
   ts2double(&delta,&dt);
   if(dt > LYT_FULL_IMAGE_TIME){
@@ -78,8 +77,8 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     lytfull.imxsize = LYTXS;
     lytfull.imysize = LYTYS;
     lytfull.mode = 0;
-    lytfull.time_sec = now.tv_sec;
-    lytfull.time_nsec = now.tv_nsec;
+    lytfull.start_sec = start.tv_sec;
+    lytfull.start_nsec = start.tv_nsec;
 
     //Copy full image
     memcpy(&(lytfull.image.data[0][0]),buffer->pvAddress,sizeof(lytfull.image.data));
@@ -105,6 +104,6 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     write_to_buffer(sm_p,(void *)&lytfull,LYTFULL);
 
     //Reset time
-    memcpy(&start,&now,sizeof(struct timespec));
+    memcpy(&first,&start,sizeof(struct timespec));
   }
 }
