@@ -197,8 +197,8 @@ enum bufids {SCIEVENT, SCIFULL, SHKEVENT, SHKFULL, LYTEVENT, LYTFULL, ACQEVENT, 
 /*************************************************
  * IWC Parameters
  *************************************************/
-#define IWC_CHANNELS 79
-#define IWC_STROKE   0.5
+#define IWC_NSPA     76
+#define IWC_STROKE   2.0
 #define IWCXS        10
 #define IWCYS        10
 #define IWC_DMAX     ((1<<14) - 1)
@@ -306,6 +306,14 @@ typedef struct {
   double deviation[2];
 } shkcell_t;
 
+typedef struct iwc_struct{
+  uint16 spa[IWC_NSPA];
+  uint16 a;
+  uint16 b;
+  uint16 c;
+  uint16 dummy; //padding to 4bytes (80 x 16bits)
+} iwc_t;
+
 /*************************************************
  * Event Structures
  *************************************************/
@@ -326,21 +334,25 @@ typedef struct scievent_struct{
 } scievent_t;
 
 typedef struct shkevent_struct{
-  uint32  packet_type;
-  uint32  frame_number;
-  float   exptime;
-  float   ontime;
-  float   temp;
-  uint32  imxsize;
-  uint32  imysize;
-  uint32  mode;
-  int64   start_sec;
-  int64   start_nsec;
-  int64   end_sec;
-  int64   end_nsec;
-  double  zernikes[LOWFS_N_ZERNIKE];
-  uint16  iwc[IWC_CHANNELS];
+  uint32    packet_type;
+  uint32    frame_number;
+
+  float     exptime;
+  float     ontime;
+
+  float     temp;
+  uint32    imxsize;
+
+  uint32    imysize;
+  uint32    mode;
+
+  int64     start_sec;
+  int64     start_nsec;
+  int64     end_sec;
+  int64     end_nsec;
   shkcell_t cells[SHK_NCELLS];
+  double    zernikes[LOWFS_N_ZERNIKE];
+  iwc_t     iwc;
 } shkevent_t;
 
 typedef struct lytevent_struct{
@@ -357,7 +369,7 @@ typedef struct lytevent_struct{
   int64   end_sec;
   int64   end_nsec;
   double  zernikes[LOWFS_N_ZERNIKE];
-  uint16  iwc[IWC_CHANNELS];
+  iwc_t   iwc;
   lyt_t   image; 
 } lytevent_t;
 
@@ -410,8 +422,7 @@ typedef struct shkfull_struct{
   int64   end_sec;
   int64   end_nsec;
   shk_t   image;
-  double  zernikes[LOWFS_N_ZERNIKE];
-  shkcell_t cells[SHK_NCELLS];
+  shkevent_t shkevent;
 } shkfull_t;
 
 typedef struct lytfull_struct{

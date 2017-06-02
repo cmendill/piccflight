@@ -185,21 +185,21 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   //Calculate update
 
   //Apply update
-
+  
   //Open circular buffer
   shkevent_p=(shkevent_t *)open_buffer(sm_p,SHKEVENT);
-
+  
   //Copy data
   memcpy(shkevent_p,&shkevent,sizeof(shkevent_t));;
-  
+
   //Get final timestamp
   clock_gettime(CLOCK_REALTIME,&end);
   shkevent_p->end_sec = end.tv_sec;
   shkevent_p->end_nsec = end.tv_nsec;
-  
+
   //Close buffer
   close_buffer(sm_p,SHKEVENT);
-  
+
   
   /*******************************************************/
   /*                   Full image code                   */
@@ -221,39 +221,33 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     shkfull.start_sec = start.tv_sec;
     shkfull.start_nsec = start.tv_nsec;
 
-    //Copy cells
-    memcpy(shkfull.cells,shkevent.cells,sizeof(shkevent.cells));
- 
     //Fake data
     if(sm_p->shk_fake_mode > 0){
-      if(sm_p->shk_fake_mode == 1){
+      if(sm_p->shk_fake_mode == 1)
 	for(i=0;i<SHKXS;i++)
 	  for(j=0;j<SHKYS;j++)
 	    shkfull.image.data[i][j]=fakepx++;
-	for(i=0;i<LOWFS_N_ZERNIKE;i++)
-	  shkfull.zernikes[i]=i;
       
-      }
-      if(sm_p->shk_fake_mode == 2){
+      if(sm_p->shk_fake_mode == 2)
 	for(i=0;i<SHKXS;i++)
 	  for(j=0;j<SHKYS;j++)
 	    shkfull.image.data[i][j]=2*fakepx++;
-	for(i=0;i<LOWFS_N_ZERNIKE;i++)
-	  shkfull.zernikes[i]=i;
-      }
-      if(sm_p->shk_fake_mode == 3){
+
+      if(sm_p->shk_fake_mode == 3)
 	for(i=0;i<SHKXS;i++)
 	  for(j=0;j<SHKYS;j++)
 	    shkfull.image.data[i][j]=3*fakepx++;
-	for(i=0;i<LOWFS_N_ZERNIKE;i++)
-	  shkfull.zernikes[i]=i;
-      }
     }
     else{
-      //Copy full image
+      //Copy full image -- takes about 700 us
       memcpy(&(shkfull.image.data[0][0]),buffer->pvAddress,sizeof(shkfull.image.data));
     }  
-
+    
+    //Copy event
+    shkevent.end_sec = end.tv_sec;
+    shkevent.end_nsec = end.tv_nsec;
+    memcpy(&shkfull.shkevent,&shkevent,sizeof(shkevent));
+ 
     //Open circular buffer
     shkfull_p=(shkfull_t *)open_buffer(sm_p,SHKFULL);
 
@@ -261,9 +255,10 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     memcpy(shkfull_p,&shkfull,sizeof(shkfull_t));;
     
     //Get final timestamp
+    clock_gettime(CLOCK_REALTIME,&end);
     shkfull_p->end_sec = end.tv_sec;
     shkfull_p->end_nsec = end.tv_nsec;
-  
+
     //Close buffer
     close_buffer(sm_p,SHKFULL);
     
