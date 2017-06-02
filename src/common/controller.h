@@ -204,6 +204,8 @@ enum bufids {SCIEVENT, SCIFULL, SHKEVENT, SHKFULL, LYTEVENT, LYTFULL, ACQEVENT, 
 #define IWC_DMAX     ((1<<14) - 1)
 #define IWC_DMIN     0                   
 #define IWC_DMID     ((IWC_DMIN+IWC_DMAX)/2)  
+#define IWC_SPA_BIAS 5000
+#define IWC_SPA_POKE 1000
 
 /*************************************************
  * Process ID Numbers
@@ -335,16 +337,13 @@ typedef struct scievent_struct{
 typedef struct shkevent_struct{
   uint32    packet_type;
   uint32    frame_number;
-
   float     exptime;
   float     ontime;
-
   float     temp;
   uint32    imxsize;
-
   uint32    imysize;
-  uint32    mode;
-
+  uint16    mode;
+  uint16    iwc_calmode;
   int64     start_sec;
   int64     start_nsec;
   int64     end_sec;
@@ -494,10 +493,9 @@ typedef volatile struct {
   uint32 shk_mode;        //Shack-Hartmann camera mode
   uint32 acq_mode;        //Acquisition camera mode
   
-  //DM positions
-  int16   dm[DMXS][DMYS];
-  int16   iwc[IWCXS][IWCYS];
-
+  //IWC Calibration Mode
+  uint16 iwc_calmode;
+  
   //LOWFC Settings
   uint16 iwc_commander;
 

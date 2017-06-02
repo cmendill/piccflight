@@ -40,6 +40,7 @@ int handle_command(char *line, sm_t *sm_p){
   /****************************************
    * SHARED MEMORY COMMANDS
    ***************************************/
+  //Fake Data
   if(!strncasecmp(line,"shk fake",8)){
     strncpy(stemp,line+8,4);
     itemp = atoi(stemp);
@@ -54,7 +55,19 @@ int handle_command(char *line, sm_t *sm_p){
     printf("CMD: Changed LYT fake mode to %d\n",sm_p->lyt_fake_mode);
     return(CMD_NORMAL);
   }
- 
+
+  //IWC Calibration
+  if(!strncasecmp(line,"iwc cal 0",9)){
+    sm_p->iwc_calmode=0;
+    printf("CMD: Changed IWC calibration mode to %d\n",sm_p->iwc_calmode);
+    return(CMD_NORMAL);
+  }
+  if(!strncasecmp(line,"iwc cal 1",9)){
+    sm_p->iwc_calmode=1;
+    printf("CMD: Changed IWC calibration mode to %d\n",sm_p->iwc_calmode);
+    return(CMD_NORMAL);
+  }
+
 
 
   

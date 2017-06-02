@@ -11,6 +11,7 @@
 /* piccflight headers */
 #include "../common/controller.h"
 #include "../common/common_functions.h"
+#include "../iwc/iwc_functions.h"
 #include "../phx/include/phx_api.h"
 #include "../phx/config.h"
 
@@ -193,8 +194,11 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   //Calculate centroids
   shk_centroid(buffer->pvAddress,shkevent.cells,sm_p);
   
-  //Calculate update
+  //Calibrate IWC
+  iwc_calibrate(sm_p->iwc_calmode,&shkevent.iwc);
 
+  //Calculate IWC Update
+  
   //Apply update
   
   //Open circular buffer
