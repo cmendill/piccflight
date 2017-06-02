@@ -292,9 +292,8 @@ typedef struct {
   uint16 spot_found;
   uint16 spot_captured;
   //-----
-  uint16 maxpix;
-  uint16 maxval;
-  uint32 dummy;
+  uint32 maxpix;
+  uint32 maxval;
   //-----
   uint16 blx;
   uint16 bly;

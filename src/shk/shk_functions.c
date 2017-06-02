@@ -40,24 +40,28 @@ void shk_init_cells(shkcell_t *cells){
 /*                      SHK_CENTROID_CELL                     */
 /**************************************************************/
 void shk_centroid_cell(uint16 *image, shkcell_t *cell, sm_t *sm_p){
-  double i_sum=0, ix_sum=0, iy_sum=0, val=0, maxval=0;
-  int maxpix=0;
+  double xnum=0, ynum=0, total=0;
+  uint32 maxpix=0,maxval=0;
   int blx,bly,trx,try;
   int boxsize,boxsize_new;
-  int i,j,px;
+  int x,y,px;
+  double xhist[SHKXS]={0};
+  double yhist[SHKYS]={0};
+  double val;
   
-  //set boxsize & spot_captured flag
+
+  //Set boxsize & spot_captured flag
   boxsize     = SHK_MAX_BOXSIZE;
   boxsize_new = sm_p->shk_boxsize;
   if(cell->spot_found){
     if(cell->spot_captured){
-      //if spot was captured, but is now outside the box, unset captured
+      //If spot was captured, but is now outside the box, unset captured
       if((abs(cell->deviation[0]) > boxsize_new) && (abs(cell->deviation[1]) > boxsize_new)){
 	cell->spot_captured=0;
       }
     }
     else{
-      //if spot was not captured, check if it is within the capture region
+      //If spot was not captured, check if it is within the capture region
       if((abs(cell->deviation[0]) < (boxsize_new-SHK_BOX_DEADBAND)) && (abs(cell->deviation[1]) < (boxsize_new-SHK_BOX_DEADBAND))){
 	cell->spot_captured=1;
 	boxsize=sm_p->shk_boxsize;
@@ -65,13 +69,13 @@ void shk_centroid_cell(uint16 *image, shkcell_t *cell, sm_t *sm_p){
     }
   }
   
-  //calculate corners of centroid box
+  //Calculate corners of centroid box
   blx = floor(cell->origin[0] - boxsize);
   bly = floor(cell->origin[1] - boxsize);
   trx = floor(cell->origin[0] + boxsize);
   try = floor(cell->origin[1] + boxsize);
 
-  //impose limits
+  //Impose limits
   blx = blx > SHKXS ? SHKXS : blx;
   bly = bly > SHKYS ? SHKYS : bly;
   blx = blx < 0 ? 0 : blx;
@@ -81,57 +85,62 @@ void shk_centroid_cell(uint16 *image, shkcell_t *cell, sm_t *sm_p){
   trx = trx < 0 ? 0 : trx;
   try = try < 0 ? 0 : try;
 
-  //save limits
+  //Save limits
   cell->blx = blx;
   cell->bly = bly;
   cell->trx = trx;
   cell->try = try;
-
-  if(0){
-    //loop over centroid region
-    for(i=blx;i<trx;i++){
-      for(j=bly;j<try;j++){
-	px = i + j*SHKYS;
-	val = (double)image[px]; //add image correction
-	//check max value
-	if(val > maxval){
-	  maxval=val;
-	  maxpix=px;
-	}
-	//integrate signal
-	i_sum  += val;
-	ix_sum += val * ((double)i + 0.5);
-	iy_sum += val * ((double)j + 0.5);
+  
+  //Build x,y histograms
+  for(x=blx;x<trx;x++){
+    for(y=bly;y<try;y++){
+      px = x + y*SHKYS;
+      val = (double)image[px];
+      xhist[x] += val;
+      yhist[y] += val;
+      if(image[px] > maxval){
+	maxval=image[px];
+	maxpix=px;
       }
     }
-  
-    //calculate centroid
-    cell->centroid[0] = ix_sum/i_sum;
-    cell->centroid[1] = iy_sum/i_sum;
-  
-    //calculate deviation
-    cell->deviation[0] = cell->origin[0] - cell->centroid[0]; 
-    cell->deviation[1] = cell->origin[1] - cell->centroid[1];
-
-    //set max pixel
-    cell->maxpix = maxpix;
-    cell->maxval = image[maxpix];
-  
-    //check if spot is above threshold
-    if(cell->spot_found && maxval < SHK_SPOT_LOWER_THRESH)
-      cell->spot_found=0;
-    if(maxval > SHK_SPOT_UPPER_THRESH)
-      cell->spot_found=1;
-
-    //check spot captured flag
-    if(!cell->spot_found)
-      cell->spot_captured=0;
-  
-    //decide if spot is in the beam
-    cell->beam_select=0;
-    if(cell->spot_found) //could add more tests here
-      cell->beam_select=1;
   }
+  
+  //Weight histograms
+  for(x=blx;x<trx;x++){
+    xnum  += ((double)x+0.5) * xhist[x];
+  }
+  for(y=bly;y<try;y++){
+    ynum  += ((double)y+0.5) * yhist[y];
+    total += yhist[y];
+  }
+  
+  //Calculate centroid
+  cell->centroid[0] = xnum/total;
+  cell->centroid[1] = ynum/total;
+  
+  //Calculate deviation
+  cell->deviation[0] = cell->origin[0] - cell->centroid[0]; 
+  cell->deviation[1] = cell->origin[1] - cell->centroid[1];
+ 
+  //set max pixel
+  cell->maxpix = maxpix;
+  cell->maxval = maxval;
+  
+  //check if spot is above threshold
+  if(cell->spot_found && (maxval < SHK_SPOT_LOWER_THRESH))
+    cell->spot_found=0;
+  
+  //if(maxval > SHK_SPOT_UPPER_THRESH)
+  cell->spot_found=1;
+  
+  //check spot captured flag
+  if(!cell->spot_found)
+    cell->spot_captured=0;
+  
+  //decide if spot is in the beam
+  cell->beam_select=0;
+  //if(cell->spot_found) //could add more tests here
+  cell->beam_select=1;
 }
 
 /**************************************************************/
@@ -164,6 +173,8 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
 
   //Initialize
   if(!init){
+    memset(&shkfull,0,sizeof(shkfull));
+    memset(&shkevent,0,sizeof(shkevent));
     shk_init_cells(shkevent.cells);
     init=1;
   }
