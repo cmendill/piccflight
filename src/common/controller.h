@@ -65,7 +65,8 @@ typedef int8_t int8;
 * Hardware Switches
 *************************************************/
 #define IWC_ENABLE      1 // IWC
-#define DM_ENABLE       1 // DM
+#define DM_ENABLE       0 // DM
+#define PEZ_ENABLE      1 // PIEZO Mirrors
 
 /*************************************************
 * Software Switches
@@ -184,9 +185,14 @@ enum bufids {SCIEVENT, SCIFULL, SHKEVENT, SHKFULL, LYTEVENT, LYTFULL, ACQEVENT, 
 #define GAIN_D_MAX      0        //(.)   Maximum D gain      
 
 /*************************************************
+ * Xinetics Controller Parameters
+ *************************************************/
+#define XIN_NCHANNELS   288 //Update for flight 2
+
+/*************************************************
  * DM Parameters
  *************************************************/
-#define DM_CHANNELS 1024
+#define DM_NACT     1024
 #define DM_STROKE   0.5
 #define DMXS        32
 #define DMYS        32
@@ -198,6 +204,7 @@ enum bufids {SCIEVENT, SCIFULL, SHKEVENT, SHKFULL, LYTEVENT, LYTFULL, ACQEVENT, 
  * IWC Parameters
  *************************************************/
 #define IWC_NSPA     76
+#define IWC_NTTP     3
 #define IWC_STROKE   2.0
 #define IWCXS        10
 #define IWCYS        10
@@ -208,9 +215,14 @@ enum bufids {SCIEVENT, SCIFULL, SHKEVENT, SHKFULL, LYTEVENT, LYTFULL, ACQEVENT, 
 #define IWC_SPA_POKE 1000
 
 /*************************************************
+ * PIEZO Mirror Parameters
+ *************************************************/
+#define PEZ_NACT 2
+
+/*************************************************
  * Process ID Numbers
  *************************************************/
-enum procids {WATID, SCIID, SHKID, LYTID, TLMID, ACQID, MOTID, THMID, SRVID, TMPID, HSKID,DIAID,NCLIENTS};
+enum procids {WATID, SCIID, SHKID, LYTID, TLMID, ACQID, MOTID, THMID, SRVID, TMPID, HSKID, DIAID, NCLIENTS};
 
 /*************************************************
  * Shack-Hartmann (SHK) Settings
@@ -309,11 +321,18 @@ typedef struct {
 
 typedef struct iwc_struct{
   uint16 spa[IWC_NSPA];
-  uint16 a;
-  uint16 b;
-  uint16 c;
-  uint16 dummy; //padding to 4bytes (80 x 16bits)
+  uint16 ttp[IWC_NTTP];
+  uint16 pad; //padding to 4bytes (80 x 16bits)
 } iwc_t;
+
+typedef struct dm_struct{
+  uint16 act[DM_NACT];
+} dm_t;
+
+typedef struct pez_struct{
+  uint16 fm1[PEZ_NACT];
+  uint16 fm2[PEZ_NACT];
+} pez_t;
 
 /*************************************************
  * Event Structures
@@ -492,13 +511,19 @@ typedef volatile struct {
   uint32 lyt_mode;        //Lyot LOWFS camera mode
   uint32 shk_mode;        //Shack-Hartmann camera mode
   uint32 acq_mode;        //Acquisition camera mode
+
+  //Devices
+  signed short xin_dev;   //Xinetics Quickusb device handle
+  uint16 xin_commander;   //Process in control of the Xinetics controller
+
+  //Actuators
+  dm_t dm;
+  iwc_t iwc;
+  pez_t pez;
   
   //IWC Calibration Mode
   uint16 iwc_calmode;
   
-  //LOWFC Settings
-  uint16 iwc_commander;
-
   //Shack-Hartmann Settings
   uint16 shk_boxsize;     //SHK centroid boxsize
   

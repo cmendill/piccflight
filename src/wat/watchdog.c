@@ -19,6 +19,7 @@
 #include "handle_command.h"
 #include "../common/controller.h"
 #include "../common/common_functions.h"
+#include "../xin/xin_functions.h"
 
 /* Constants */
 #define STDIN 0  // file descriptor for standard input
@@ -234,7 +235,7 @@ int main(int argc,char **argv){
   char line[CMD_MAX_LENGTH];
   int i;
   int retval;
-  int shutdown;
+  int shutdown=0;
 
   /* Open Shared Memory */
   sm_t *sm_p;
@@ -335,6 +336,16 @@ int main(int argc,char **argv){
   sm_p->circbuf[ACQFULL].nbytes  = sizeof(acqfull_t);
   sm_p->circbuf[ACQFULL].bufsize = ACQFULLSIZE;
   sprintf((char *)sm_p->circbuf[ACQFULL].name,"ACQFULL");
+
+  /* Open Xinetics Driver */
+  signed short xin_dev;
+  sm_p->xin_dev=-1;
+  if((xin_dev = xin_open()) < 0){
+    printf("WAT: xin_open failed!\n");
+    xin_closeDev(xin_dev);
+  }else{
+    sm_p->xin_dev = xin_dev;
+  }
   
   /* Launch Watchdog */
   if(sm_p->w[WATID].run){
