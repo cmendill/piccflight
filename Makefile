@@ -21,7 +21,7 @@ COMDEP  = Makefile $(wildcard ./src/*/*.h) $(wildcard ./src/*/*/*.h)
 
 #ALL
 MAKEALL = $(TARGET)watchdog 
-all: $(MAKEALL) getshk
+all: $(MAKEALL) $(DIABIN)
 
 #WATCHDOG
 $(TARGET)watchdog: $(OBJECT) 
@@ -32,12 +32,9 @@ $(TARGET)watchdog: $(OBJECT)
 	$(CC) $(USER_CFLAGS) -o $@ -c $< 
 
 #DIAGNOSTIC EXECUTABLES
-getshk: dia/getshk.c $(COMDEP) 
-	$(CC) $(USER_CFLAGS) -o $(TARGET)getshk dia/getshk.c src/common/common_functions.o $(LINK)
-
-#USERSPACE EXECUTABLES
-#%: %.c  $(COMDEP)
-#	$(CC) $(USER_CFLAGS) -o $@ $< src/common/common_functions.c $(LINK)
+%: %.c  $(COMDEP)
+	$(eval TAR = $(TARGET)$(notdir $(basename $@)))
+	$(CC) $(USER_CFLAGS) -o $(TAR) $< src/common/common_functions.c $(LINK)
 
 #SCRIPTS
 scripts:

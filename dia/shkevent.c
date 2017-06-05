@@ -44,7 +44,7 @@ int main(int argc,char **argv){
   }
   /* Open output file */
   //--setup filename
-  sprintf(outfile,"data/getshk.txt");
+  sprintf(outfile,"data/shkevent_output.dat");
   //--open file
   out = fopen(outfile,"w");
   if(out==NULL){
@@ -62,16 +62,15 @@ int main(int argc,char **argv){
   count=0;
   while(1){
     if(check_buffer(sm_p,SHKEVENT,DIAID)){
+      //Read shkevent
       memcpy((void *)&shkevent,
 	     (void *)&sm_p->shkevent[sm_p->circbuf[SHKEVENT].read_offsets[DIAID] % sm_p->circbuf[SHKEVENT].bufsize],sizeof(shkevent_t));
       sm_p->circbuf[SHKEVENT].read_offsets[DIAID]++;
-      for(i=0;i<SHK_NCELLS;i++)
-	fprintf(out,"%10d,%5d,%5d,%5d,%15.8f,%15.8f,%15.8f,%15.8f,%15.8f,%15.8f\n",
-		shkevent.frame_number,shkevent.cells[i].index,shkevent.cells[i].spot_found,shkevent.cells[i].spot_captured,
-		shkevent.cells[i].origin[0],shkevent.cells[i].origin[1],
-		shkevent.cells[i].centroid[0],shkevent.cells[i].centroid[1],
-		shkevent.cells[i].deviation[0],shkevent.cells[i].deviation[1]
-		);
+
+      //Save shkevent
+      fwrite(&shkevent,sizeof(shkevent),1,out);
+
+      //Check counter
       if(++count == nevents)
 	break;
     }

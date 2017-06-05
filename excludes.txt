@@ -8,5 +8,6 @@ sync.sh
 #executables
 bin/watchdog
 bin/getshk
+bin/shkevent
 
 
