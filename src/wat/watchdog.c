@@ -397,7 +397,10 @@ int main(int argc,char **argv){
   sm_p->die = 1;
   //close Xinetics driver
 #if XIN_ENABLE
-  xin_closeDev(xin_dev);
+  if(xin_dev >= 0){
+    xin_zero(xin_dev);
+    xin_closeDev(xin_dev);
+  }
 #endif
   
   //Wait for watchdog to exit

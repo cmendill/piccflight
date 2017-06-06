@@ -40,6 +40,8 @@ void shkctrlC(int sig)
     PHX_Close( &shkCamera ); /* Close the Phoenix board */
     PHX_Destroy( &shkCamera ); /* Destroy the Phoenix handle */
   }
+
+
   exit(sig);
 }
 

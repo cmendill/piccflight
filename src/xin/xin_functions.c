@@ -33,6 +33,21 @@ void iwc_calibrate(uint16 calmode, iwc_t *iwc){
 }
 
 /**************************************************************/
+/*                      IWC_CHECK                             */
+/**************************************************************/
+void iwc_check(iwc_t *iwc){
+  int i;
+  for(i=0;i<IWC_NSPA;i++){
+    iwc->spa[i] = iwc->spa[i] > IWC_DMAX ? IWC_DMAX : iwc->spa[i];
+    iwc->spa[i] = iwc->spa[i] < IWC_DMIN ? IWC_DMIN : iwc->spa[i];
+  }
+  for(i=0;i<IWC_NTTP;i++){
+    iwc->ttp[i] = iwc->ttp[i] > IWC_DMAX ? IWC_DMAX : iwc->ttp[i];
+    iwc->ttp[i] = iwc->ttp[i] < IWC_DMIN ? IWC_DMIN : iwc->ttp[i];
+  }
+}
+
+/**************************************************************/
 /*                      XIN_OPEN                              */
 /**************************************************************/
 int xin_open(void){
@@ -117,20 +132,19 @@ int xin_closeDev(signed short hDevice){
   return 0;
 }
 
+
 /**************************************************************/
-/*                      IWC_CHECK                             */
+/*                      XIN_ZERO                              */
 /**************************************************************/
-void iwc_check(iwc_t *iwc){
-  int i;
-  for(i=0;i<IWC_NSPA;i++){
-    iwc->spa[i] = iwc->spa[i] > IWC_DMAX ? IWC_DMAX : iwc->spa[i];
-    iwc->spa[i] = iwc->spa[i] < IWC_DMIN ? IWC_DMIN : iwc->spa[i];
+int xin_zero(signed short hDevice){
+  uint16 output[XIN_NCHANNELS]={0};
+  if(xin_writeUsb(hDevice, (unsigned char *)output, sizeof(output))){
+    printf("XIN: xin_writeUsb failed!\n");
+    return 1;
   }
-  for(i=0;i<IWC_NTTP;i++){
-    iwc->ttp[i] = iwc->ttp[i] > IWC_DMAX ? IWC_DMAX : iwc->ttp[i];
-    iwc->ttp[i] = iwc->ttp[i] < IWC_DMIN ? IWC_DMIN : iwc->ttp[i];
-  }
+  return 0;
 }
+
 /**************************************************************/
 /*                      XIN_WRITE                             */
 /**************************************************************/
