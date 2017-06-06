@@ -169,14 +169,13 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
 
   //Get time immidiately
   clock_gettime(CLOCK_REALTIME,&start);
-  if(frame_number == 0)
-    memcpy(&first,&start,sizeof(struct timespec));
   
   //Initialize
   if(!init){
     memset(&shkfull,0,sizeof(shkfull));
     memset(&shkevent,0,sizeof(shkevent));
     shk_init_cells(shkevent.cells);
+    memcpy(&first,&start,sizeof(struct timespec));
     init=1;
   }
 

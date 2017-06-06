@@ -18,7 +18,7 @@
 /**************************************************************/
 void iwc_calibrate(uint16 calmode, iwc_t *iwc){
   int i;
-  static int count=0;
+  static unsigned long int count=0;
   
   //Flip through calibration modes
   if(calmode == 1){
@@ -27,6 +27,7 @@ void iwc_calibrate(uint16 calmode, iwc_t *iwc){
       iwc->spa[i]=IWC_SPA_BIAS;
     //poke one actuator
     iwc->spa[count/10 % IWC_NSPA] = IWC_SPA_BIAS+IWC_SPA_POKE;
+    count++;
     return;
   }
 }
@@ -117,26 +118,42 @@ int xin_closeDev(signed short hDevice){
 }
 
 /**************************************************************/
+/*                      IWC_CHECK                             */
+/**************************************************************/
+void iwc_check(iwc_t *iwc){
+  int i;
+  for(i=0;i<IWC_NSPA;i++){
+    iwc->spa[i] = iwc->spa[i] > IWC_DMAX ? IWC_DMAX : iwc->spa[i];
+    iwc->spa[i] = iwc->spa[i] < IWC_DMIN ? IWC_DMIN : iwc->spa[i];
+  }
+  for(i=0;i<IWC_NTTP;i++){
+    iwc->ttp[i] = iwc->ttp[i] > IWC_DMAX ? IWC_DMAX : iwc->ttp[i];
+    iwc->ttp[i] = iwc->ttp[i] < IWC_DMIN ? IWC_DMIN : iwc->ttp[i];
+  }
+}
+/**************************************************************/
 /*                      XIN_WRITE                             */
 /**************************************************************/
 int xin_write(signed short hDevice, iwc_t *iwc, dm_t *dm, pez_t *pez){
-  int spa_map[IWC_NSPA];
-  int ttp_map[IWC_NTTP];
-  int pez1_map[PEZ_NACT];
-  int pez2_map[PEZ_NACT];
-  int dm_map[DM_NACT];
-  uint16 output[XIN_NCHANNELS]={};
+  #include "iwc_map.h"
+  int pez1_map[PEZ_NACT]={0};
+  int pez2_map[PEZ_NACT]={0};
+  int dm_map[DM_NACT]={0};
+  uint16 output[XIN_NCHANNELS]={0};
   int i;
 
   if(hDevice >= 0){
 #if IWC_ENABLE
+    //Check IWC
+    iwc_check(iwc);
+    
     //Map IWC
     for(i=0;i<IWC_NSPA;i++)
       output[spa_map[i]] = iwc->spa[i];
   
     //Map TTP
     for(i=0;i<IWC_NTTP;i++)
-      output[ttp_map[i]] = iwc->ttp[i];
+      output[ttp_map[i]] = 0;//iwc->ttp[i]; set back when proper checks are in place
 #endif
 
 #if PEZ_ENABLE

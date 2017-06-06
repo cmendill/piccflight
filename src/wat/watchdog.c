@@ -338,14 +338,19 @@ int main(int argc,char **argv){
   sprintf((char *)sm_p->circbuf[ACQFULL].name,"ACQFULL");
 
   /* Open Xinetics Driver */
-  signed short xin_dev;
   sm_p->xin_dev=-1;
+#if XIN_ENABLE
+  signed short xin_dev;
   if((xin_dev = xin_open()) < 0){
     printf("WAT: xin_open failed!\n");
     xin_closeDev(xin_dev);
-  }else{
+  }
+  else{
     sm_p->xin_dev = xin_dev;
   }
+#else
+  printf("WAT: XIN driver disabled\n");
+#endif
   
   /* Launch Watchdog */
   if(sm_p->w[WATID].run){
@@ -390,7 +395,11 @@ int main(int argc,char **argv){
   printf("WAT: cleaning up...\n");
   //tell all subthreads to die
   sm_p->die = 1;
-
+  //close Xinetics driver
+#if XIN_ENABLE
+  xin_closeDev(xin_dev);
+#endif
+  
   //Wait for watchdog to exit
   if(procwait(sm_p->w[WATID].pid,EXIT_TIMEOUT))
     printf("WAT: cleanup timeout!\n");

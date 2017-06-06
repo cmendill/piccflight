@@ -64,6 +64,7 @@ typedef int8_t int8;
 /*************************************************
 * Hardware Switches
 *************************************************/
+#define XIN_ENABLE      0 // Xinetics Controller (Master IWC,DM,PEZ)
 #define IWC_ENABLE      1 // IWC
 #define DM_ENABLE       0 // DM
 #define PEZ_ENABLE      1 // PIEZO Mirrors
@@ -211,8 +212,8 @@ enum bufids {SCIEVENT, SCIFULL, SHKEVENT, SHKFULL, LYTEVENT, LYTFULL, ACQEVENT, 
 #define IWC_DMAX     ((1<<14) - 1)
 #define IWC_DMIN     0                   
 #define IWC_DMID     ((IWC_DMIN+IWC_DMAX)/2)  
-#define IWC_SPA_BIAS 5000
-#define IWC_SPA_POKE 1000
+#define IWC_SPA_BIAS 9902
+#define IWC_SPA_POKE 6000
 
 /*************************************************
  * PIEZO Mirror Parameters
@@ -230,9 +231,9 @@ enum procids {WATID, SCIID, SHKID, LYTID, TLMID, ACQID, MOTID, THMID, SRVID, TMP
 #define SHK_CONFIG_FILE       "phx_config/shk.cfg"
 #define SHK_FULL_IMAGE_TIME   0.5    //[seconds] period that full images are written to circbuf
 #define SHK_PX_PITCH_UM       5.5
-#define SHK_XCELLS            18
-#define SHK_YCELLS            18
-#define SHK_NCELLS            324
+#define SHK_XCELLS            16
+#define SHK_YCELLS            16
+#define SHK_NCELLS            256
 #define SHK_LENSLET_PITCH_UM  300.0  
 #define SHK_FOCAL_LENGTH_UM   18600.0
 #define SHK_BOX_DEADBAND      3      //[pixels] deadband radius for switching to smaller boxsize
@@ -240,8 +241,8 @@ enum procids {WATID, SCIID, SHKID, LYTID, TLMID, ACQID, MOTID, THMID, SRVID, TMP
 #define SHK_MAX_BOXSIZE       27     //[pixels] gives a 5 pixel buffer around edges
 #define SHK_SPOT_UPPER_THRESH 20
 #define SHK_SPOT_LOWER_THRESH 15
-#define SHK_CELL_XOFF         21.09
-#define SHK_CELL_YOFF         21.09
+#define SHK_CELL_XOFF         75.63
+#define SHK_CELL_YOFF         62.00
 #define SHK_CELL_ROTATION     0.0
 #define SHK_CELL_XSCALE       1.0
 #define SHK_CELL_YSCALE       1.0
