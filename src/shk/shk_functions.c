@@ -161,7 +161,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   static shkevent_t shkevent;
   shkfull_t *shkfull_p;
   shkevent_t *shkevent_p;
-  static struct timespec first,start,end,delta;
+  static struct timespec first,start,end,delta,last;
   static int init=0;
   double dt;
   int32 i,j;
@@ -171,7 +171,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   clock_gettime(CLOCK_REALTIME,&start);
   if(frame_number == 0)
     memcpy(&first,&start,sizeof(struct timespec));
-
+  
   //Initialize
   if(!init){
     memset(&shkfull,0,sizeof(shkfull));
@@ -179,11 +179,16 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     shk_init_cells(shkevent.cells);
     init=1;
   }
+
+  //Measure exposure time
+  if(timespec_subtract(&delta,&start,&last))
+    printf("SHK: shk_process_image --> timespec_subtract error!\n");
+  ts2double(&delta,&dt);
   
   //Fill out event header
   shkevent.frame_number = frame_number;
   shkevent.exptime = 0;
-  shkevent.ontime = 0;
+  shkevent.ontime = dt;
   shkevent.temp = 0;
   shkevent.imxsize = SHKXS;
   shkevent.imysize = SHKYS;
@@ -226,7 +231,9 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   //Close buffer
   close_buffer(sm_p,SHKEVENT);
 
-  
+  //Save time
+  memcpy(&last,&start,sizeof(struct timespec));
+
   /*******************************************************/
   /*                   Full image code                   */
   /*******************************************************/
@@ -237,15 +244,15 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   if(dt > SHK_FULL_IMAGE_TIME){
     //Fill out full image header
     shkfull.packet_type  = SHKFULL;
-    shkfull.frame_number = frame_number;
-    shkfull.exptime = 0;
-    shkfull.ontime = 0;
-    shkfull.temp = 0;
+    shkfull.frame_number = shkevent.frame_number;
+    shkfull.exptime = shkevent.exptime;
+    shkfull.ontime = shkevent.ontime;
+    shkfull.temp = shkevent.temp;
     shkfull.imxsize = SHKXS;
     shkfull.imysize = SHKYS;
-    shkfull.mode = 0;
-    shkfull.start_sec = start.tv_sec;
-    shkfull.start_nsec = start.tv_nsec;
+    shkfull.mode = shkevent.mode;
+    shkfull.start_sec = shkevent.start_sec;
+    shkfull.start_nsec = shkevent.start_nsec;
 
     //Fake data
     if(sm_p->shk_fake_mode > 0){
