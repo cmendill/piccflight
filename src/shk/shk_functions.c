@@ -175,6 +175,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     memset(&shkfull,0,sizeof(shkfull));
     memset(&shkevent,0,sizeof(shkevent));
     shk_init_cells(shkevent.cells);
+    iwc_init(&shkevent.iwc);
     memcpy(&first,&start,sizeof(struct timespec));
     init=1;
   }

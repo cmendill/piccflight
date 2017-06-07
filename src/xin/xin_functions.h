@@ -1,3 +1,4 @@
+void iwc_init(iwc_t *iwc);
 void iwc_calibrate(uint16 calmode, iwc_t *iwc);
 void iwc_check(iwc_t *iwc);
 int xin_open(void);

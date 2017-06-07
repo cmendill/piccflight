@@ -14,6 +14,17 @@
 #include "../common/common_functions.h"
 
 /**************************************************************/
+/*                      IWC_INIT                             */
+/**************************************************************/
+void iwc_init(iwc_t *iwc){
+  int i;
+  for(i=0;i<IWC_NSPA;i++)
+    iwc->spa[i] = IWC_SPA_BIAS;
+  for(i=0;i<IWC_NTTP;i++)
+    iwc->ttp[i] = 0;
+}
+
+/**************************************************************/
 /*                      IWC_CALIBRATE                         */
 /**************************************************************/
 void iwc_calibrate(uint16 calmode, iwc_t *iwc){
