@@ -214,7 +214,7 @@ enum bufids {SCIEVENT, SCIFULL, SHKEVENT, SHKFULL, LYTEVENT, LYTFULL, ACQEVENT, 
 #define IWC_DMID     ((IWC_DMIN+IWC_DMAX)/2)  
 #define IWC_SPA_BIAS 9902
 #define IWC_SPA_POKE 6000
-
+#define IWC_NCALIM   25  //number of calibration images to take per step
 /*************************************************
  * PIEZO Mirror Parameters
  *************************************************/
@@ -323,7 +323,7 @@ typedef struct {
 typedef struct iwc_struct{
   uint16 spa[IWC_NSPA];
   uint16 ttp[IWC_NTTP];
-  uint16 pad; //padding to 4bytes (80 x 16bits)
+  uint16 calmode; 
 } iwc_t;
 
 typedef struct dm_struct{

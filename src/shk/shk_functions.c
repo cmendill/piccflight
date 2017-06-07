@@ -131,8 +131,8 @@ void shk_centroid_cell(uint16 *image, shkcell_t *cell, sm_t *sm_p){
   if(cell->spot_found && (maxval < SHK_SPOT_LOWER_THRESH))
     cell->spot_found=0;
   
-  //if(maxval > SHK_SPOT_UPPER_THRESH)
-  cell->spot_found=1;
+  if(maxval > SHK_SPOT_UPPER_THRESH)
+    cell->spot_found=1;
   
   //check spot captured flag
   if(!cell->spot_found)
@@ -140,8 +140,8 @@ void shk_centroid_cell(uint16 *image, shkcell_t *cell, sm_t *sm_p){
   
   //decide if spot is in the beam
   cell->beam_select=0;
-  //if(cell->spot_found) //could add more tests here
-  cell->beam_select=1;
+  if(cell->spot_found) //could add more tests here
+    cell->beam_select=1;
 }
 
 /**************************************************************/
@@ -199,13 +199,12 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   //Calculate centroids
   shk_centroid(buffer->pvAddress,shkevent.cells,sm_p);
 
+  //Calibrate IWC
+  iwc_calibrate(sm_p->iwc_calmode,&shkevent.iwc);
+
   //Get new IWC position
   if(sm_p->iwc_calmode > 0){
-    //Calibrate IWC
-    iwc_calibrate(sm_p->iwc_calmode,&shkevent.iwc);
-  }else{
-    //Calculate IWC Update
-    
+    //Do something
   }
 
   //Save update to shared memory

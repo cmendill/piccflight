@@ -57,19 +57,21 @@ int handle_command(char *line, sm_t *sm_p){
   }
 
   //IWC Calibration
-  if(!strncasecmp(line,"iwc cal 0",9)){
+  if(!strncasecmp(line,"iwc calmode 0",13)){
     sm_p->iwc_calmode=0;
     printf("CMD: Changed IWC calibration mode to %d\n",sm_p->iwc_calmode);
     return(CMD_NORMAL);
   }
-  if(!strncasecmp(line,"iwc cal 1",9)){
+  if(!strncasecmp(line,"iwc calmode 1",13)){
     sm_p->iwc_calmode=1;
     printf("CMD: Changed IWC calibration mode to %d\n",sm_p->iwc_calmode);
     return(CMD_NORMAL);
   }
-
-
-
+  if(!strncasecmp(line,"iwc calmode 2",13)){
+    sm_p->iwc_calmode=2;
+    printf("CMD: Changed IWC calibration mode to %d\n",sm_p->iwc_calmode);
+    return(CMD_NORMAL);
+  }
   
   //return with command not found
   return(CMD_NOT_FOUND);

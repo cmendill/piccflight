@@ -29,16 +29,45 @@ void iwc_init(iwc_t *iwc){
 /**************************************************************/
 void iwc_calibrate(uint16 calmode, iwc_t *iwc){
   int i;
-  static unsigned long int count=0;
+  static unsigned long int countA=0;
+  static unsigned long int countB=0;
+
+  //Unset cal mode
+  iwc->calmode = 0;
   
   //Flip through calibration modes
+  if(calmode == 0){
+    //Reset counter
+    countA=0;
+    countB=0;
+    return;
+  }
   if(calmode == 1){
     //set all SPA actuators to bias
     for(i=0;i<IWC_NSPA;i++)
       iwc->spa[i]=IWC_SPA_BIAS;
     //poke one actuator
-    iwc->spa[(count/10) % IWC_NSPA] = IWC_SPA_BIAS+IWC_SPA_POKE;
-    count++;
+    iwc->spa[(countA/IWC_NCALIM) % IWC_NSPA] = IWC_SPA_BIAS+IWC_SPA_POKE;
+    countA++;
+    return;
+  }
+  if(calmode == 2){
+    if(countA >= 0 && countA < (2*IWC_NSPA*IWC_NCALIM)){
+      //set calibration flag
+      iwc->calmode = calmode;
+      
+      //set all SPA actuators to bias
+      for(i=0;i<IWC_NSPA;i++)
+	iwc->spa[i]=IWC_SPA_BIAS;
+      
+      //poke one actuator
+      if((countA/IWC_NCALIM) % 2 == 1){
+	iwc->spa[(countB/IWC_NCALIM) % IWC_NSPA] = IWC_SPA_BIAS+IWC_SPA_POKE;
+	countB++;
+      }
+      
+    }
+    countA++;
     return;
   }
 }
