@@ -27,14 +27,15 @@ all: $(MAKEALL) $(DIABIN)
 $(TARGET)watchdog: $(OBJECT) 
 	$(CC) $(USER_CFLAGS) -o $(TARGET)watchdog $(OBJECT) $(LINK)
 
+
 #USERSPACE OBJECTS
 %.o: %.c  $(COMDEP)
 	$(CC) $(USER_CFLAGS) -o $@ -c $< 
 
 #DIAGNOSTIC EXECUTABLES
-%: %.c  $(COMDEP)
-	$(eval TAR = $(TARGET)$(notdir $(basename $@)))
-	$(CC) $(USER_CFLAGS) -o $(TAR) $< src/common/common_functions.c $(LINK)
+%: %.c  $(COMDEP) src/common/common_functions.o
+	$(CC) $(USER_CFLAGS) -o $@ $< src/common/common_functions.o $(LINK)
+	mv $@ bin/
 
 #SCRIPTS
 scripts:

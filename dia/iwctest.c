@@ -149,7 +149,8 @@ void gh_map(short comarr[NACT]){
 
   unsigned short act_map[NACT];
   fseek(mapFile,0, SEEK_SET);
-  fread(&act_map, mapLen, 1, mapFile);
+  if(fread(&act_map, mapLen, 1, mapFile) != 1)
+    perror("fread()");
   fclose(mapFile);
 
   int i;
@@ -226,12 +227,15 @@ int main(int argc, char* argv[]){
   struct timeval start, stop;
   double secs = 0;
 
-  system("stty raw -echo");
+  if(system("stty raw -echo"))
+    perror("system()");
+  
   while (1){
     ch = getchar();
     
     if(ch=='`'){
-      system("stty cooked echo");
+      if(system("stty cooked echo"))
+	perror("system()");
       printf("\nExiting due to keyboard command.\n\r");
       printf("Setting all actuators to 0\r\n");
       for(i=0; i<NACT; i++){
@@ -389,7 +393,7 @@ int main(int argc, char* argv[]){
 	  // index=act_ind[j];
 	  randint = (short)rand()%rand_range;// + rand_min;
 	  cdata[j]=cdata[j]+(randint);
-	  printf("Act Command #%i: %li (randint: %hi)\r\n", j, cdata[j], randint);
+	  printf("Act Command #%d: %d (randint: %hi)\r\n", j, cdata[j], randint);
 	}
 	usleep(100000);
 	gh_map(cdata);

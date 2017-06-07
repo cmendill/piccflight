@@ -67,7 +67,7 @@ typedef int8_t int8;
 #define XIN_ENABLE      1 // Xinetics Controller (Master IWC,DM,PEZ)
 #define IWC_ENABLE      1 // IWC
 #define DM_ENABLE       0 // DM
-#define PEZ_ENABLE      1 // PIEZO Mirrors
+#define PEZ_ENABLE      0 // PIEZO Mirrors
 
 /*************************************************
 * Software Switches

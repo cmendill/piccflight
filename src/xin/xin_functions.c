@@ -26,7 +26,7 @@ void iwc_calibrate(uint16 calmode, iwc_t *iwc){
     for(i=0;i<IWC_NSPA;i++)
       iwc->spa[i]=IWC_SPA_BIAS;
     //poke one actuator
-    iwc->spa[count/10 % IWC_NSPA] = IWC_SPA_BIAS+IWC_SPA_POKE;
+    iwc->spa[(count/10) % IWC_NSPA] = IWC_SPA_BIAS+IWC_SPA_POKE;
     count++;
     return;
   }
@@ -164,7 +164,7 @@ int xin_write(signed short hDevice, iwc_t *iwc, dm_t *dm, pez_t *pez){
     //Map IWC
     for(i=0;i<IWC_NSPA;i++)
       output[spa_map[i]] = iwc->spa[i];
-  
+    
     //Map TTP
     for(i=0;i<IWC_NTTP;i++)
       output[ttp_map[i]] = 0;//iwc->ttp[i]; set back when proper checks are in place
@@ -190,6 +190,7 @@ int xin_write(signed short hDevice, iwc_t *iwc, dm_t *dm, pez_t *pez){
       printf("XIN: xin_writeUsb failed!\n");
       return 1;
     }
+    
   }
   return 0;
 }
