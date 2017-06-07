@@ -188,7 +188,7 @@ enum bufids {SCIEVENT, SCIFULL, SHKEVENT, SHKFULL, LYTEVENT, LYTFULL, ACQEVENT, 
 /*************************************************
  * Xinetics Controller Parameters
  *************************************************/
-#define XIN_NCHANNELS   288 //Update for flight 2
+#define XIN_NCHANNELS   96 //288 causes actuator glitch
 
 /*************************************************
  * DM Parameters
