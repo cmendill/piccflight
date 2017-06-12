@@ -26,4 +26,5 @@
 #define ACQ_MODE_DEFAULT 0
 
 //Shack-Hartmann Settings
-#define SHK_BOXSIZE_DEFAULT 7
+#define SHK_BOXSIZE_DEFAULT     7
+#define SHK_FIT_ZERNIKE_DEFAULT 0

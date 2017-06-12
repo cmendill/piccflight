@@ -56,7 +56,7 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
       lyt_image_arr[k++]=(double)lytevent.image.data[i][j];
   
   //Matrix multiply
-  //NUMERIC_multiply(lyt_zernike_matrix_inv,lyt_image_arr,lytevent.zernikes,matrix_m,matrix_n);
+  //num_dgemv(lyt_zernike_matrix_inv,lyt_image_arr,lytevent.zernikes,matrix_m,matrix_n);
   
   //Apply update
 

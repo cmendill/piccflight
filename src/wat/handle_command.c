@@ -72,6 +72,20 @@ int handle_command(char *line, sm_t *sm_p){
     printf("CMD: Changed IWC calibration mode to %d\n",sm_p->iwc_calmode);
     return(CMD_NORMAL);
   }
+
+  //SHK Zernike Fitting
+  if(!strncasecmp(line,"shk zfit on",11)){
+    sm_p->shk_fit_zernike=1;
+    printf("CMD: Turned SHK Zernike fitting ON [%d]\n",sm_p->shk_fit_zernike);
+    return(CMD_NORMAL);
+  }
+  if(!strncasecmp(line,"shk zfit off",12)){
+    sm_p->shk_fit_zernike=0;
+    printf("CMD: Turned SHK Zernike fitting OFF [%d]\n",sm_p->shk_fit_zernike);
+    return(CMD_NORMAL);
+  }
+  
+  
   
   //return with command not found
   return(CMD_NOT_FOUND);

@@ -239,8 +239,8 @@ enum procids {WATID, SCIID, SHKID, LYTID, TLMID, ACQID, MOTID, THMID, SRVID, TMP
 #define SHK_BOX_DEADBAND      3      //[pixels] deadband radius for switching to smaller boxsize
 #define SHK_MIN_BOXSIZE       (SHK_BOX_DEADBAND+1)
 #define SHK_MAX_BOXSIZE       27     //[pixels] gives a 5 pixel buffer around edges
-#define SHK_SPOT_UPPER_THRESH 20
-#define SHK_SPOT_LOWER_THRESH 15
+#define SHK_SPOT_UPPER_THRESH 200
+#define SHK_SPOT_LOWER_THRESH 100
 #define SHK_CELL_XOFF         75.63
 #define SHK_CELL_YOFF         62.00
 #define SHK_CELL_ROTATION     0.0
@@ -335,6 +335,11 @@ typedef struct pez_struct{
   uint16 fm2[PEZ_NACT];
 } pez_t;
 
+typedef struct shk_zmatrix_inv_struct{
+  uint32 beam_ncells;
+  double matrix_inv[SHK_NCELLS*LOWFS_N_ZERNIKE*2];
+} shk_zmatrix_t;
+
 /*************************************************
  * Event Structures
  *************************************************/
@@ -359,7 +364,7 @@ typedef struct shkevent_struct{
   uint32    frame_number;
   float     exptime;
   float     ontime;
-  float     temp;
+  uint32    temp;
   uint32    imxsize;
   uint32    imysize;
   uint16    mode;
@@ -526,7 +531,8 @@ typedef volatile struct {
   uint16 iwc_calmode;
   
   //Shack-Hartmann Settings
-  uint16 shk_boxsize;     //SHK centroid boxsize
+  uint16 shk_boxsize;        //SHK centroid boxsize
+  uint16 shk_fit_zernike;    //Turn SHK Zernike fitting ON/OFF
   
   //Events circular buffers
   scievent_t scievent[SCIEVENTSIZE];
