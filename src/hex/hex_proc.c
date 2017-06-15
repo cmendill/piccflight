@@ -59,7 +59,7 @@ void hex_proc(void){
   }
 
   /* Reference Hexapod */
-  if(hex_reference(hexfd, 1)){
+  if(hex_reference(hexfd, 0)){
     printf("HEX: hex_reference error!\n");
     sleep(1);
     hexctrlC(0);    
