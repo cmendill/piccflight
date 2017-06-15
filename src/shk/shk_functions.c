@@ -297,13 +297,6 @@ void shk_zernike_fit(shkevent_t *shkevent){
     dphi_dxdy[i+beam_ncells] = shkevent->cells[beam_cell_index[i]].deviation[1]*px2slope;
   }
   num_dgemv(matrix_inv, dphi_dxdy, shkevent->zernikes, beam_ncells_2, LOWFS_N_ZERNIKE);
-  
-  shkevent->zernikes[0] = 0;
-  printf("SHK: Zernike Amplitudes : [ ");
-  for(i=0; i<LOWFS_N_ZERNIKE; i++)
-    printf("%.4ef, ", shkevent->zernikes[i]);
-  printf("\b\b ]\n");
-
 }
 
 /**************************************************************/
