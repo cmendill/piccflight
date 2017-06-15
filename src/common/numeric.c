@@ -11,6 +11,7 @@
 #include <mkl.h>
 #include "numeric.h"
 
+#define NUMERIC_DEBUG 0
 #define MIN(A,B)   ((A) < (B) ? (A) : (B))
 
 /******************************************************************************
@@ -102,15 +103,15 @@ void num_dgesvdi(double* A, double* A_inv, int mm, int nn) {
   // info = LAPACKE_dgesvd(LAPACK_COL_MAJOR, 'A', 'A', mm, nn, A, mm, s, u, mm, vt, nn, superb);
   info = LAPACKE_dgesdd(LAPACK_COL_MAJOR, 'S', mm, nn, A, mm, s, u, mm, vt, nn);
 
-  printf("NUM: Singular values : [ ");
+  if(NUMERIC_DEBUG) printf("NUM: Singular values : [ ");
   // build the s_inv array s_inv = 1/s
   for(ii=0; ii<nn; ii++){
     // s_inv[ii] = s[ii]/(pow(s[ii],2) + alpha^2); // tikhonov regularization
     // s_inv[ii] = ((1.0/s[ii])>cutoff)?0.0:(1.0/s[ii]); // cutoff regularization
     s_inv[ii] = (s[ii]==0)?0:1.0/s[ii]; // no Regularization
-    printf("%.4f, ", s_inv[ii]);
+    if(NUMERIC_DEBUG) printf("%.4f, ", s_inv[ii]);
   }
-  printf("\b\b ]\n");
+  if(NUMERIC_DEBUG) printf("\b\b ]\n");
   /* transpose u, vt can be transposed at the multiplication cblas_dgemm*/
   mkl_dimatcopy('C', 'T', mm, nn, alpha, u, mm, nn);
 

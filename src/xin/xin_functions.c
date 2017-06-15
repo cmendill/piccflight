@@ -27,21 +27,16 @@ void iwc_init(iwc_t *iwc){
 /**************************************************************/
 /*                      IWC_CALIBRATE                         */
 /**************************************************************/
-void iwc_calibrate(uint16 calmode, iwc_t *iwc){
+void iwc_calibrate(uint16 calmode, iwc_t *iwc, int reset){
   int i;
   static unsigned long int countA=0;
   static unsigned long int countB=0;
-
-  //Unset cal mode
-  iwc->calmode = 0;
-  
-  //Flip through calibration modes
-  if(calmode == 0){
-    //Reset counter
+  if(reset){
     countA=0;
     countB=0;
     return;
   }
+
   if(calmode == 1){
     //set all SPA actuators to bias
     for(i=0;i<IWC_NSPA;i++)

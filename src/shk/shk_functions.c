@@ -272,7 +272,7 @@ void shk_zernike_fit(shkevent_t *shkevent){
   const double px2slope = SHK_PX_PITCH_UM/SHK_FOCAL_LENGTH_UM;
   static double matrix_inv[SHK_NCELLS*LOWFS_N_ZERNIKE*2] = {0};
   static double dphi_dxdy[2*SHK_NCELLS] = {0};
-
+   
   for(i=0; i<SHK_NCELLS; i++) {
     if (shkevent->cells[i].beam_select) {
       //save the spot index
@@ -281,6 +281,12 @@ void shk_zernike_fit(shkevent_t *shkevent){
       if(!beam_cell_used[i]) regen_matrix=1;
       beam_cell_used[i]=1;
       beam_ncells++;
+    }else{
+      if(beam_cell_used[i]){
+	//if the spot was used last time, regenerate
+	regen_matrix=1;
+	beam_cell_used[i]=0;
+      }
     }
   }
   beam_ncells_2 = 2*beam_ncells;
@@ -296,7 +302,8 @@ void shk_zernike_fit(shkevent_t *shkevent){
     dphi_dxdy[i]             = shkevent->cells[beam_cell_index[i]].deviation[0]*px2slope;
     dphi_dxdy[i+beam_ncells] = shkevent->cells[beam_cell_index[i]].deviation[1]*px2slope;
   }
-  num_dgemv(matrix_inv, dphi_dxdy, shkevent->zernikes, beam_ncells_2, LOWFS_N_ZERNIKE);
+
+  num_dgemv(matrix_inv, dphi_dxdy,shkevent->zernikes, LOWFS_N_ZERNIKE, beam_ncells_2);
 }
 
 /**************************************************************/
@@ -322,6 +329,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     memset(&shkevent,0,sizeof(shkevent));
     shk_init_cells(shkevent.cells);
     iwc_init(&shkevent.iwc);
+    iwc_calibrate(sm_p->iwc_calmode,&shkevent.iwc,1);
     memcpy(&first,&start,sizeof(struct timespec));
     init=1;
   }
@@ -348,12 +356,13 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   //Fit Zernikes
   if(sm_p->shk_fit_zernike) shk_zernike_fit(&shkevent);
 
-  //Calibrate IWC
-  iwc_calibrate(sm_p->iwc_calmode,&shkevent.iwc);
-
-  //Get new IWC position
+  //Calculate new IWC position
   if(sm_p->iwc_calmode == 0){
     //Do something
+  }
+  else{
+    //Calibrate IWC
+    iwc_calibrate(sm_p->iwc_calmode,&shkevent.iwc,0);
   }
 
   //Save update to shared memory

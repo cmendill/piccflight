@@ -167,13 +167,14 @@ enum bufids {SCIEVENT, SCIFULL, SHKEVENT, SHKFULL, LYTEVENT, LYTFULL, ACQEVENT, 
 #define SHK_DEBUG       0 // print shk messages
 #define SCI_DEBUG       0 // print sci messages
 #define WAT_DEBUG       0 // print wat messages
-#define SRV_DEBUG       1 // print wat messages
+#define SRV_DEBUG       1 // print srv messages
 
 /*************************************************
  * Other Messaging
  *************************************************/
 #define MSG_SAVEDATA    0 // print data saving messages
 #define MSG_CTRLC       1 // print SIGINT messages
+
 
 /*************************************************
  * Limits
@@ -253,8 +254,8 @@ enum procids {WATID, SCIID, SHKID, LYTID, TLMID, ACQID, MOTID, THMID, SRVID, TMP
 #define SHK_MAX_BOXSIZE       27     //[pixels] gives a 5 pixel buffer around edges
 #define SHK_SPOT_UPPER_THRESH 200
 #define SHK_SPOT_LOWER_THRESH 100
-#define SHK_CELL_XOFF         75.63
-#define SHK_CELL_YOFF         62.00
+#define SHK_CELL_XOFF         80.63
+#define SHK_CELL_YOFF         58.00
 #define SHK_CELL_ROTATION     0.0
 #define SHK_CELL_XSCALE       1.0
 #define SHK_CELL_YSCALE       1.0
