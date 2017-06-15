@@ -10,5 +10,6 @@ bin/watchdog
 bin/getshk
 bin/shkevent
 bin/iwctest
+doc
 
 

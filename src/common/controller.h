@@ -215,15 +215,27 @@ enum bufids {SCIEVENT, SCIFULL, SHKEVENT, SHKFULL, LYTEVENT, LYTFULL, ACQEVENT, 
 #define IWC_SPA_BIAS 9902
 #define IWC_SPA_POKE 6000
 #define IWC_NCALIM   25  //number of calibration images to take per step
+
 /*************************************************
  * PIEZO Mirror Parameters
  *************************************************/
 #define PEZ_NACT 2
 
 /*************************************************
+ * HEXAPOD Parameters
+ *************************************************/
+#define HEX_DEVICE       "/dev/ttyUSB0"
+#define HEX_BAUD         115200
+#define HEX_NAXES        6
+#define HEX_AXES_ALL     "X Y Z U V W"
+#define HEX_AXES_PIV     "R S T"
+#define HEX_POS_HOME     {0,0,0,0,0,0}
+#define HEX_REF_TIMEOUT  20 //seconds
+
+/*************************************************
  * Process ID Numbers
  *************************************************/
-enum procids {WATID, SCIID, SHKID, LYTID, TLMID, ACQID, MOTID, THMID, SRVID, TMPID, HSKID, DIAID, NCLIENTS};
+enum procids {WATID, SCIID, SHKID, LYTID, TLMID, ACQID, MOTID, THMID, SRVID, TMPID, HSKID, HEXID, DIAID, NCLIENTS};
 
 /*************************************************
  * Shack-Hartmann (SHK) Settings
@@ -526,6 +538,7 @@ typedef volatile struct {
   dm_t dm;
   iwc_t iwc;
   pez_t pez;
+  double hex[HEX_NAXES];
   
   //IWC Calibration Mode
   uint16 iwc_calmode;

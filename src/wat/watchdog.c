@@ -40,6 +40,7 @@ extern void thm_proc(void); //thermal controller
 extern void srv_proc(void); //data server
 extern void tmp_proc(void); //temperature sensors
 extern void hsk_proc(void); //housekeeping data
+extern void hex_proc(void); //hexapod controller
 
 
 
@@ -236,6 +237,7 @@ int main(int argc,char **argv){
   int i;
   int retval;
   int shutdown=0;
+  const double hex_pos[HEX_NAXES] = HEX_POSITION_DEFAULT;
 
   /* Open Shared Memory */
   sm_t *sm_p;
@@ -288,6 +290,7 @@ int main(int argc,char **argv){
     case SRVID:sm_p->w[i].launch = srv_proc; break;
     case TMPID:sm_p->w[i].launch = tmp_proc; break;
     case HSKID:sm_p->w[i].launch = hsk_proc; break;
+    case HEXID:sm_p->w[i].launch = hex_proc; break;
     }
   }
   
@@ -301,7 +304,8 @@ int main(int argc,char **argv){
   sm_p->acq_mode        = ACQ_MODE_DEFAULT;  
   sm_p->shk_boxsize     = SHK_BOXSIZE_DEFAULT;
   sm_p->shk_fit_zernike = SHK_FIT_ZERNIKE_DEFAULT;
-
+  memcpy((void *)sm_p->hex,(void *)hex_pos,sizeof(hex_pos));
+  
   /* Configure Circular Buffers */
   //-- Event buffers
   sm_p->circbuf[SCIEVENT].buffer  = (void *)sm_p->scievent;

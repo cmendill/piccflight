@@ -7,7 +7,7 @@ MKLOPTS = -I$(MKL_INCLUDE_DIR)
 #COMPILER OPTIONS
 CC = gcc
 USER_CFLAGS = -Wall -Wno-unused -O6 -m64 -D_PHX_LINUX $(MKLOPTS)
-LINK = -Lsrc/phx/lib -lphx -lpfw -lpbu -lm -lpthread -lrt -lquickusb $(MKLLINKLINE)
+LINK = -Lsrc/phx/lib -Lsrc/hex/lib -lphx -lpfw -lpbu -lm -lpthread -lrt -lquickusb -lpi_pi_gcs2 $(MKLLINKLINE)
 
 #FILES
 TARGET  = ./bin/
