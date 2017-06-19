@@ -85,6 +85,22 @@ int handle_command(char *line, sm_t *sm_p){
     return(CMD_NORMAL);
   }
   
+  //Hexapod control
+  if(!strncasecmp(line,"hex getpos",10)){
+    sm_p->hex_getpos=1;
+    printf("CMD: Getting hexapod position\n");
+    return(CMD_NORMAL);
+  }
+  if(!strncasecmp(line,"hex gohome",10)){
+    sm_p->hex_gohome=1;
+    printf("CMD: Moving hexapod to home positon\n");
+    return(CMD_NORMAL);
+  }
+  if(!strncasecmp(line,"hex godef",9)){
+    sm_p->hex_godef=1;
+    printf("CMD: Moving hexapod to default positon\n");
+    return(CMD_NORMAL);
+  }
   
   
   //return with command not found

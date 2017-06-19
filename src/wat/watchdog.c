@@ -237,7 +237,7 @@ int main(int argc,char **argv){
   int i;
   int retval;
   int shutdown=0;
-  const double hex_pos[HEX_NAXES] = HEX_POSITION_DEFAULT;
+  const double hex_pos[HEX_NAXES] = HEX_POS_DEFAULT;
 
   /* Open Shared Memory */
   sm_t *sm_p;

@@ -19,7 +19,7 @@ int hex_connect(void){
 //Move hexapod
 int hex_move(int id, double *pos){
   const char axes_all[13] = HEX_AXES_ALL;
-  char *chkaxis=" "; //will check all axes
+  char *chkaxis=""; //will check all axes
   
   if(!PI_MOV(id, axes_all, pos)){
     printf("HEX: PI_MOV error!\n");
@@ -27,7 +27,7 @@ int hex_move(int id, double *pos){
   }
   int bIsMoving = 1;
   while(bIsMoving){
-    if(!PI_IsMoving(id,chkaxis , &bIsMoving)){
+    if(!PI_IsMoving(id,chkaxis, &bIsMoving)){
       printf("HEX: PI_IsMoving error!\n");
       return 1;
     }
@@ -50,6 +50,28 @@ int hex_reference(int id,int force){
       printf("HEX: PI_FRF error!\n");
       return 1;
     }
+  }
+  return 0;
+}
+
+//Obtain positions of all axes
+int hex_getpos(int id, double *pos){
+  const char axes_all[13] = HEX_AXES_ALL;
+  if (!PI_qPOS(id,axes_all, pos))
+    {
+      printf("HEX: PI_qPOS error!\n");
+      return 1;
+    }
+  return 0;
+}
+
+//Set pivot point
+int hex_setpivot(int id, double *pivot){
+  const char axes_piv[7] = "R S T";
+  
+  if(!PI_SPI(id, axes_piv, pivot)){
+    printf("HEX: PI_SPI error!\n");
+    return 1;
   }
   return 0;
 }

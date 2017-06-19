@@ -20,12 +20,10 @@
 int hex_shmfd;
 int hexfd;
 
-/* Hexapod Home Position */
-double hex_home[HEX_NAXES] = HEX_POS_HOME;
-
 /* CTRL-C Function */
 void hexctrlC(int sig)
 {
+  double hex_home[HEX_NAXES] = HEX_POS_HOME;
 #if MSG_CTRLC
   printf("HEX: ctrlC! exiting.\n");
 #endif
@@ -39,8 +37,11 @@ void hexctrlC(int sig)
 void hex_proc(void){
   uint32 count = 0;
   int bFlag,i;
+  double hexpos[6]={0};
+  double hexhome[6] = HEX_POS_HOME;
+  double hexdef[6]  = HEX_POS_DEFAULT;
+  double pivot[3]   = {HEX_PIVOT_X,HEX_PIVOT_Y,HEX_PIVOT_Z};
   
- 
   /* Open Shared Memory */
   sm_t *sm_p;
   if((sm_p = openshm(&hex_shmfd)) == NULL){
@@ -86,9 +87,13 @@ void hex_proc(void){
     printf("HEX: Referencing complete after %d seconds\n",i);
   }
   
+  /* Set Pivot Point*/
+  if(hex_setpivot(hexfd, pivot)){
+    printf("HEX: hex_setpivot error!\n");
+    sleep(1);
+    hexctrlC(0);    
+  }
 
-  
-  
   while(1){
     /* Check if we've been asked to exit */
     if(sm_p->w[HEXID].die)
@@ -96,6 +101,18 @@ void hex_proc(void){
     
     /* Check in with the watchdog */
     checkin(sm_p,HEXID);
+
+    //Go home
+    if(sm_p->hex_gohome){
+      memcpy((void *)sm_p->hex,(void *)hexhome,sizeof(hexhome));
+      sm_p->hex_gohome=0;
+    }
+
+    //Go to default
+    if(sm_p->hex_godef){
+      memcpy((void *)sm_p->hex,(void *)hexdef,sizeof(hexdef));
+      sm_p->hex_godef=0;
+    }
     
     /* Move Hexapod */
     if(hex_move(hexfd,(double *)sm_p->hex)){
@@ -103,7 +120,24 @@ void hex_proc(void){
       sleep(1);
       hexctrlC(0);    
     }
-    
+        
+    /* Get Hexapod Position */
+    if(sm_p->hex_getpos){
+      if(hex_getpos(hexfd,hexpos)){
+	printf("HEX: hex_getpos error!\n");
+	sleep(1);
+	hexctrlC(0);    
+      }
+      //Print position
+      printf("HEX: X = %f\n",hexpos[0]);
+      printf("HEX: Y = %f\n",hexpos[1]);
+      printf("HEX: Z = %f\n",hexpos[2]);
+      printf("HEX: U = %f\n",hexpos[3]);
+      printf("HEX: V = %f\n",hexpos[4]);
+      printf("HEX: W = %f\n",hexpos[5]);
+      sm_p->hex_getpos = 0;
+    }
+        
     /* Sleep */
     sleep(sm_p->w[HEXID].per);
   }

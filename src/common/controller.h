@@ -225,13 +225,17 @@ enum bufids {SCIEVENT, SCIFULL, SHKEVENT, SHKFULL, LYTEVENT, LYTFULL, ACQEVENT, 
 /*************************************************
  * HEXAPOD Parameters
  *************************************************/
-#define HEX_DEVICE       "/dev/ttyUSB0"
+#define HEX_DEVICE       "/dev/ttyS0"
 #define HEX_BAUD         115200
 #define HEX_NAXES        6
 #define HEX_AXES_ALL     "X Y Z U V W"
 #define HEX_AXES_PIV     "R S T"
 #define HEX_POS_HOME     {0,0,0,0,0,0}
-#define HEX_REF_TIMEOUT  20 //seconds
+#define HEX_POS_DEFAULT  {-0.532703, -0.116609, 0.129163, -0.084472, 0.158890, 0.100052}
+#define HEX_PIVOT_X       122.32031250
+#define HEX_PIVOT_Y       206.61012268
+#define HEX_PIVOT_Z       74.0
+#define HEX_REF_TIMEOUT   20 //seconds
 
 /*************************************************
  * Process ID Numbers
@@ -547,7 +551,12 @@ typedef volatile struct {
   //Shack-Hartmann Settings
   uint16 shk_boxsize;        //SHK centroid boxsize
   uint16 shk_fit_zernike;    //Turn SHK Zernike fitting ON/OFF
-  
+
+  //Commands
+  uint16 hex_getpos;
+  uint16 hex_gohome;
+  uint16 hex_godef;
+
   //Events circular buffers
   scievent_t scievent[SCIEVENTSIZE];
   shkevent_t shkevent[SHKEVENTSIZE];
