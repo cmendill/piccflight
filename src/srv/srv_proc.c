@@ -75,9 +75,6 @@ void srv_proc(void) {
   pthread_create(&listener_thread,NULL,srv_listener,(void *)0);
   
   while(1){
-    //check in with watchdog
-    checkin(sm_p,SRVID);
-    
     if(clientfd >= 0){
       for(i=0;i<NCIRCBUF;i++){
 	if(srv_send[i]){
@@ -96,6 +93,11 @@ void srv_proc(void) {
 	  }
 	}
       }
+    }else{
+      //sleep
+      sleep(sm_p->w[SRVID].per);
+      //check in with watchdog
+      checkin(sm_p,SRVID);
     }
   }
   srvctrlC(0);
