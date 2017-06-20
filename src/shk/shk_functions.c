@@ -20,9 +20,10 @@
 /*                      SHK_INIT_CELLS                        */
 /**************************************************************/
 void shk_init_cells(shkcell_t *cells){
+  #include "shk_beam_select.h"
   float cell_size_px = SHK_LENSLET_PITCH_UM/SHK_PX_PITCH_UM;
   int i,j,c;
-  
+
   //Zero out cells
   memset(cells,0,sizeof(shkcell_t));
   
@@ -33,6 +34,7 @@ void shk_init_cells(shkcell_t *cells){
       cells[c].index = c;
       cells[c].origin[0] = i*cell_size_px + cell_size_px/2 + SHK_CELL_XOFF;
       cells[c].origin[1] = j*cell_size_px + cell_size_px/2 + SHK_CELL_YOFF;
+      cells[c].beam_select = shk_beam_select[c];
       c++;
     }
   }
@@ -138,11 +140,6 @@ void shk_centroid_cell(uint16 *image, shkcell_t *cell, sm_t *sm_p){
   //check spot captured flag
   if(!cell->spot_found)
     cell->spot_captured=0;
-  
-  //decide if spot is in the beam
-  cell->beam_select=0;
-  if(cell->spot_found) //could add more tests here
-    cell->beam_select=1;
 }
 
 /**************************************************************/
