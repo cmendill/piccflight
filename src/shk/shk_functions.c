@@ -392,7 +392,7 @@ void shk_cellpid(shkevent_t *shkevent, int reset){
     memset(yint,0,sizeof(yint));
     for(i=0;i<SHK_NCELLS;i++){
       shkevent->cells[i].command[0] = 0;
-      shkevent->cells[i].command[1] = 1;
+      shkevent->cells[i].command[1] = 0;
     }
     init=1;
   }
