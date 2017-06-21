@@ -76,12 +76,12 @@ int handle_command(char *line, sm_t *sm_p){
   //SHK Zernike Fitting
   if(!strncasecmp(line,"shk zfit on",11)){
     sm_p->shk_fit_zernike=1;
-    printf("CMD: Turned SHK Zernike fitting ON [%d]\n",sm_p->shk_fit_zernike);
+    printf("CMD: Turned SHK Zernike fitting ON\n");
     return(CMD_NORMAL);
   }
   if(!strncasecmp(line,"shk zfit off",12)){
     sm_p->shk_fit_zernike=0;
-    printf("CMD: Turned SHK Zernike fitting OFF [%d]\n",sm_p->shk_fit_zernike);
+    printf("CMD: Turned SHK Zernike fitting OFF\n");
     return(CMD_NORMAL);
   }
   
@@ -99,6 +99,13 @@ int handle_command(char *line, sm_t *sm_p){
   if(!strncasecmp(line,"hex godef",9)){
     sm_p->hex_godef=1;
     printf("CMD: Moving hexapod to default positon\n");
+    return(CMD_NORMAL);
+  }
+  
+  //Reset Commands
+  if(!strncasecmp(line,"shk reset",9)){
+    sm_p->shk_reset=1;
+    printf("CMD: Resetting SHK\n");
     return(CMD_NORMAL);
   }
   
