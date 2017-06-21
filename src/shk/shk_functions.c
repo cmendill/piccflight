@@ -19,25 +19,30 @@
 /**************************************************************/
 /*                      SHK_INIT_CELLS                        */
 /**************************************************************/
-void shk_init_cells(shkcell_t *cells){
+int shk_init_cells(shkcell_t *cells){
   #include "shk_beam_select.h"
   float cell_size_px = SHK_LENSLET_PITCH_UM/SHK_PX_PITCH_UM;
-  int i,j,c;
-
+  int i,j,c,x,y;
+  int beam_ncells=0;
+  
   //Zero out cells
   memset(cells,0,sizeof(shkcell_t));
   
   //Initialize cells
   c=0;
-  for(i=0;i<SHK_XCELLS;i++){
-    for(j=0;j<SHK_YCELLS;j++){
+  for(j=0;j<SHK_YCELLS;j++){
+    for(i=0;i<SHK_XCELLS;i++){
+      x = c % SHK_XCELLS;
+      y = SHK_YCELLS - 1 - c / SHK_YCELLS;
       cells[c].index = c;
       cells[c].origin[0] = i*cell_size_px + cell_size_px/2 + SHK_CELL_XOFF;
       cells[c].origin[1] = j*cell_size_px + cell_size_px/2 + SHK_CELL_YOFF;
-      cells[c].beam_select = shk_beam_select[c];
+      cells[c].beam_select = shk_beam_select[y*SHK_XCELLS + x];
+      beam_ncells += cells[c].beam_select;
       c++;
     }
   }
+  return beam_ncells;
 }
 
 /**************************************************************/
@@ -56,19 +61,21 @@ void shk_centroid_cell(uint16 *image, shkcell_t *cell, sm_t *sm_p){
 
   //Set boxsize & spot_captured flag
   boxsize     = SHK_MAX_BOXSIZE;
-  boxsize_new = sm_p->shk_boxsize;
-  if(cell->spot_found){
-    if(cell->spot_captured){
-      //If spot was captured, but is now outside the box, unset captured
-      if((abs(cell->deviation[0]) > boxsize_new) && (abs(cell->deviation[1]) > boxsize_new)){
-	cell->spot_captured=0;
+  if(sm_p->iwc_calmode == 0){
+    boxsize_new = sm_p->shk_boxsize;
+    if(cell->spot_found){
+      if(cell->spot_captured){
+	//If spot was captured, but is now outside the box, unset captured
+	if((abs(cell->deviation[0]) > boxsize_new) && (abs(cell->deviation[1]) > boxsize_new)){
+	  cell->spot_captured=0;
+	}
       }
-    }
-    else{
-      //If spot was not captured, check if it is within the capture region
-      if((abs(cell->deviation[0]) < (boxsize_new-SHK_BOX_DEADBAND)) && (abs(cell->deviation[1]) < (boxsize_new-SHK_BOX_DEADBAND))){
-	cell->spot_captured=1;
-	boxsize=sm_p->shk_boxsize;
+      else{
+	//If spot was not captured, check if it is within the capture region
+	if((abs(cell->deviation[0]) < (boxsize_new-SHK_BOX_DEADBAND)) && (abs(cell->deviation[1]) < (boxsize_new-SHK_BOX_DEADBAND))){
+	  cell->spot_captured=1;
+	  boxsize=sm_p->shk_boxsize;
+	}
       }
     }
   }
@@ -123,8 +130,8 @@ void shk_centroid_cell(uint16 *image, shkcell_t *cell, sm_t *sm_p){
   cell->centroid[1] = ynum/total;
   
   //Calculate deviation
-  cell->deviation[0] = cell->origin[0] - cell->centroid[0]; 
-  cell->deviation[1] = cell->origin[1] - cell->centroid[1];
+  cell->deviation[0] = cell->centroid[0] - cell->origin[0];
+  cell->deviation[1] = cell->centroid[1] - cell->origin[1];
  
   //set max pixel
   cell->maxpix = maxpix;
@@ -145,10 +152,15 @@ void shk_centroid_cell(uint16 *image, shkcell_t *cell, sm_t *sm_p){
 /**************************************************************/
 /*                      SHK_CENTROID                          */
 /**************************************************************/
-void shk_centroid(uint16 *image, shkcell_t *cells, sm_t *sm_p){
+void shk_centroid(uint16 *image, shkevent_t *shkevent, sm_t *sm_p){
   int i;
-  for(i=0;i<SHK_NCELLS;i++)
-    shk_centroid_cell(image,&cells[i],sm_p);
+  int beam_ncells = 0;
+  
+  for(i=0;i<SHK_NCELLS;i++){
+    shk_centroid_cell(image,&shkevent->cells[i],sm_p);
+    beam_ncells += shkevent->cells[i].beam_select;
+  }
+  shkevent->beam_ncells = beam_ncells;
 }
 
 /**************************************************************/
@@ -304,6 +316,102 @@ void shk_zernike_fit(shkevent_t *shkevent){
 }
 
 /**************************************************************/
+/*                        SHK_SHK2IWC                         */
+/**************************************************************/
+int shk_shk2iwc(shkevent_t *shkevent, int reset){
+  FILE *matrix=NULL;
+  char matrix_file[MAX_FILENAME];
+  static int init=0;
+  static double shk2iwc[2*SHK_NCELLS*IWC_NSPA]={0};
+  double shk_xydev[2*SHK_NCELLS];
+  uint64 fsize,rsize;
+  int c,i,beam_ncells_2;
+    
+  if(!init || reset){
+    /* Open matrix file */
+    //--setup filename
+    sprintf(matrix_file,SHKMATRIX_FILE);
+    //--open file
+    if((matrix = fopen(matrix_file,"r")) == NULL){
+      perror("fopen");
+      return 1;
+    }
+    //--check file size
+    fseek(matrix, 0L, SEEK_END);
+    fsize = ftell(matrix);
+    rewind(matrix);
+    rsize = 2*shkevent->beam_ncells*IWC_NSPA*sizeof(double);
+    if(fsize != rsize){
+      printf("SHK: incorrect matrix file size %lu != %lu\n",fsize,rsize);
+      return 1;
+    }
+    //--read matrix
+    if(fread(shk2iwc,2*shkevent->beam_ncells*IWC_NSPA*sizeof(double),1,matrix) != 1){
+      perror("fread");
+      return 1;
+    }
+    //--close file
+    fclose(matrix);
+
+    //--set init flag
+    init=1;
+  }
+
+  //Format displacement array
+  c=0;
+  for(i=0;i<SHK_NCELLS;i++){
+    if(shkevent->cells[i].beam_select){
+      shk_xydev[2*c + 0] = shkevent->cells[i].command[0];
+      shk_xydev[2*c + 1] = shkevent->cells[i].command[1];
+      c++;
+    }
+  }
+  beam_ncells_2 = 2*shkevent->beam_ncells;
+  
+  //Do Matrix Multiply
+  num_dgemv(shk2iwc,shk_xydev,shkevent->iwc_spa_matrix, IWC_NSPA, beam_ncells_2);
+
+  //Recast to integers
+  for(i=0;i<IWC_NSPA;i++) shkevent->iwc.spa[i] = (uint16)(shkevent->iwc_spa_matrix[i] + IWC_SPA_BIAS);
+
+  return 0;
+}
+/**************************************************************/
+/*                        SHK_CELLPID                         */
+/**************************************************************/
+void shk_cellpid(shkevent_t *shkevent, int reset){
+  static int init = 0;
+  static double xint[SHK_NCELLS] = {0};
+  static double yint[SHK_NCELLS] = {0};
+  const double kP = -0.1, kI = 0.0;
+  int i;
+
+  //Initialize
+  if(!init || reset){
+    memset(xint,0,sizeof(xint));
+    memset(yint,0,sizeof(yint));
+    for(i=0;i<SHK_NCELLS;i++){
+      shkevent->cells[i].command[0] = 0;
+      shkevent->cells[i].command[1] = 1;
+    }
+    init=1;
+  }
+  
+  for(i=0;i<SHK_NCELLS;i++){
+    if(shkevent->cells[i].beam_select){
+      //Calculate integrals
+      xint[i] += shkevent->cells[i].deviation[0];
+      yint[i] += shkevent->cells[i].deviation[1];
+      //Calculate command
+      shkevent->cells[i].command[0] += kP * shkevent->cells[i].deviation[0] + kI * xint[i];
+      shkevent->cells[i].command[1] += kP * shkevent->cells[i].deviation[1] + kI * yint[i];
+    }
+  }
+  
+  
+}
+
+/**************************************************************/
 /*                      SHK_PROCESS_IMAGE                     */
 /**************************************************************/
 void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
@@ -311,22 +419,33 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   static shkevent_t shkevent;
   shkfull_t *shkfull_p;
   shkevent_t *shkevent_p;
+  dm_t dm;
+  pez_t pez;
   static struct timespec first,start,end,delta,last;
   static int init=0;
   double dt;
   int32 i,j;
   uint16 fakepx=0;
-
+  
   //Get time immidiately
   clock_gettime(CLOCK_REALTIME,&start);
+
+  //Check reset
+  if(sm_p->shk_reset){
+    init=0;
+    sm_p->shk_reset=0;
+  }
   
   //Initialize
   if(!init){
     memset(&shkfull,0,sizeof(shkfull));
     memset(&shkevent,0,sizeof(shkevent));
-    shk_init_cells(shkevent.cells);
+    memset(&dm,0,sizeof(dm_t));
+    memset(&pez,0,sizeof(pez_t));
+    shkevent.beam_ncells = shk_init_cells(shkevent.cells);
     iwc_init(&shkevent.iwc);
-    iwc_calibrate(sm_p->iwc_calmode,&shkevent.iwc,1);
+    shk_shk2iwc(&shkevent,1);
+    shk_cellpid(&shkevent,1);
     memcpy(&first,&start,sizeof(struct timespec));
     init=1;
   }
@@ -340,7 +459,6 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   shkevent.frame_number = frame_number;
   shkevent.exptime = 0;
   shkevent.ontime = dt;
-  shkevent.temp = 0;
   shkevent.imxsize = SHKXS;
   shkevent.imysize = SHKYS;
   shkevent.mode = 0;
@@ -348,25 +466,25 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   shkevent.start_nsec = start.tv_nsec;
 
   //Calculate centroids
-  shk_centroid(buffer->pvAddress,shkevent.cells,sm_p);
+  shk_centroid(buffer->pvAddress,&shkevent,sm_p);
 
   //Fit Zernikes
   if(sm_p->shk_fit_zernike) shk_zernike_fit(&shkevent);
-
+  
   //Calculate new IWC position
   if(sm_p->iwc_calmode == 0){
-    //Do something
+    //Run PID
+    shk_cellpid(&shkevent,0);
+    //Convert cells to IWC
+    shk_shk2iwc(&shkevent,0);
   }
   else{
     //Calibrate IWC
     iwc_calibrate(sm_p->iwc_calmode,&shkevent.iwc,0);
   }
 
-  //Save update to shared memory
-  memcpy((void *)&sm_p->iwc,(void *)&shkevent.iwc,sizeof(iwc_t));
-  
   //Apply update
-  if(xin_write(sm_p->xin_dev,(iwc_t *)&sm_p->iwc,(dm_t *)&sm_p->dm,(pez_t *)&sm_p->pez)){
+  if(xin_write(sm_p->xin_dev,&shkevent.iwc,&dm,&pez)){
     printf("SHK: xin_write failed!\n");
     //Do something??
   }
@@ -400,7 +518,6 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     shkfull.frame_number = shkevent.frame_number;
     shkfull.exptime = shkevent.exptime;
     shkfull.ontime = shkevent.ontime;
-    shkfull.temp = shkevent.temp;
     shkfull.imxsize = SHKXS;
     shkfull.imysize = SHKYS;
     shkfull.mode = shkevent.mode;
