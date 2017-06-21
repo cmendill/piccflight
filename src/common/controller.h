@@ -98,11 +98,10 @@ typedef int8_t int8;
 #define DARKFILE_SCI    "data/darkframe.sci.%3.3d.%3.3d.%2.2dC.dat"
 #define FLATFILE_SCI    "data/flatframe.sci.%3.3d.dat" 
 #define FAKEFILE_SCI    "data/fakeframe.sci.%3.3d.%s.dat"
-#define FITSHEAD        "com/fits"
-#define FITSNAME        "data/fits/data%c.%05d.fits"
 #define HOSTPORT        "ANY:24924"
 #define DATAPATH        "data/flight_data/folder_%5.5d/"
 #define DATANAME        "data/flight_data/folder_%5.5d/picture.%s.%8.8d.dat"
+#define SHKMATRIX_FILE  "data/shk/iwc_shk_infl_inv.dat"
 #define MAX_FILENAME    128
 
 
@@ -258,8 +257,8 @@ enum procids {WATID, SCIID, SHKID, LYTID, TLMID, ACQID, MOTID, THMID, SRVID, TMP
 #define SHK_MAX_BOXSIZE       27     //[pixels] gives a 5 pixel buffer around edges
 #define SHK_SPOT_UPPER_THRESH 200
 #define SHK_SPOT_LOWER_THRESH 100
-#define SHK_CELL_XOFF         80.63
-#define SHK_CELL_YOFF         58.00
+#define SHK_CELL_XOFF         78
+#define SHK_CELL_YOFF         58
 #define SHK_CELL_ROTATION     0.0
 #define SHK_CELL_XSCALE       1.0
 #define SHK_CELL_YSCALE       1.0
@@ -335,6 +334,7 @@ typedef struct {
   double origin[2];
   double centroid[2];
   double deviation[2];
+  double command[2];
 } shkcell_t;
 
 typedef struct iwc_struct{
@@ -381,7 +381,7 @@ typedef struct shkevent_struct{
   uint32    frame_number;
   float     exptime;
   float     ontime;
-  uint32    temp;
+  uint32    beam_ncells;
   uint32    imxsize;
   uint32    imysize;
   uint16    mode;
@@ -392,6 +392,7 @@ typedef struct shkevent_struct{
   int64     end_nsec;
   shkcell_t cells[SHK_NCELLS];
   double    zernikes[LOWFS_N_ZERNIKE];
+  double    iwc_spa_matrix[IWC_NSPA];
   iwc_t     iwc;
 } shkevent_t;
 
@@ -540,9 +541,6 @@ typedef volatile struct {
   uint16 xin_commander;   //Process in control of the Xinetics controller
 
   //Actuators
-  dm_t dm;
-  iwc_t iwc;
-  pez_t pez;
   double hex[HEX_NAXES];
   
   //IWC Calibration Mode
@@ -556,7 +554,8 @@ typedef volatile struct {
   uint16 hex_getpos;
   uint16 hex_gohome;
   uint16 hex_godef;
-
+  uint16 shk_reset;
+  
   //Events circular buffers
   scievent_t scievent[SCIEVENTSIZE];
   shkevent_t shkevent[SHKEVENTSIZE];
