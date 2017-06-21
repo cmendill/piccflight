@@ -524,37 +524,40 @@ typedef volatile struct {
   procinfo_t w[NCLIENTS];
   
   //Fake modes
-  uint32 tlm_fake_mode;        //Telemetry fake mode
-  uint32 sci_fake_mode;        //Science camera fake mode
-  uint32 lyt_fake_mode;        //Lyot LOWFS camera fake mode
-  uint32 shk_fake_mode;        //Shack-Hartmann camera fake mode
-  uint32 acq_fake_mode;        //Acquisition camera fake mode
+  int tlm_fake_mode;        //Telemetry fake mode
+  int sci_fake_mode;        //Science camera fake mode
+  int lyt_fake_mode;        //Lyot LOWFS camera fake mode
+  int shk_fake_mode;        //Shack-Hartmann camera fake mode
+  int acq_fake_mode;        //Acquisition camera fake mode
   
   //Camera modes
-  uint32 sci_mode;        //Science camera mode
-  uint32 lyt_mode;        //Lyot LOWFS camera mode
-  uint32 shk_mode;        //Shack-Hartmann camera mode
-  uint32 acq_mode;        //Acquisition camera mode
+  int sci_mode;        //Science camera mode
+  int lyt_mode;        //Lyot LOWFS camera mode
+  int shk_mode;        //Shack-Hartmann camera mode
+  int acq_mode;        //Acquisition camera mode
 
   //Devices
   signed short xin_dev;   //Xinetics Quickusb device handle
-  uint16 xin_commander;   //Process in control of the Xinetics controller
+  int xin_commander;   //Process in control of the Xinetics controller
 
   //Actuators
   double hex[HEX_NAXES];
   
   //IWC Calibration Mode
-  uint16 iwc_calmode;
+  int iwc_calmode;
   
   //Shack-Hartmann Settings
-  uint16 shk_boxsize;        //SHK centroid boxsize
-  uint16 shk_fit_zernike;    //Turn SHK Zernike fitting ON/OFF
-
+  int shk_boxsize;        //SHK centroid boxsize
+  int shk_fit_zernike;    //Turn SHK Zernike fitting ON/OFF
+  double shk_kP;
+  double shk_kI;
+  double shk_kD;
+  
   //Commands
-  uint16 hex_getpos;
-  uint16 hex_gohome;
-  uint16 hex_godef;
-  uint16 shk_reset;
+  int hex_getpos;
+  int hex_gohome;
+  int hex_godef;
+  int shk_reset;
   
   //Events circular buffers
   scievent_t scievent[SCIEVENTSIZE];

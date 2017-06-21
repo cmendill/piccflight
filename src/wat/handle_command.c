@@ -9,6 +9,7 @@
 #include <ctype.h>
 
 /* piccflight headers */
+#include "watchdog.h"
 #include "handle_command.h"
 #include "../common/controller.h"
 
@@ -109,7 +110,53 @@ int handle_command(char *line, sm_t *sm_p){
     return(CMD_NORMAL);
   }
   
-  
+  //SHK Gain
+  if(!strncasecmp(line,"shk gain ",9) && strlen(line)>10){
+    if(!strncasecmp(line+9,"5",1)){
+      sm_p->shk_kP = SHK_KP_DEFAULT/1;
+      sm_p->shk_kI = SHK_KI_DEFAULT/1;
+      sm_p->shk_kD = SHK_KD_DEFAULT/1;
+      printf("SHK switching to gain 5\n");
+      return CMD_NORMAL;
+    }
+    if(!strncasecmp(line+9,"4",1)){
+      sm_p->shk_kP = SHK_KP_DEFAULT/2;
+      sm_p->shk_kI = SHK_KI_DEFAULT/2;
+      sm_p->shk_kD = SHK_KD_DEFAULT/2;
+      printf("SHK switching to gain 4\n");
+      return CMD_NORMAL;
+    }
+    if(!strncasecmp(line+9,"3",1)){
+      sm_p->shk_kP = SHK_KP_DEFAULT/3;
+      sm_p->shk_kI = SHK_KI_DEFAULT/3;
+      sm_p->shk_kD = SHK_KD_DEFAULT/3;
+      printf("SHK switching to gain 3\n");
+      return CMD_NORMAL;
+    }
+    if(!strncasecmp(line+9,"2",1)){
+      sm_p->shk_kP = SHK_KP_DEFAULT/4;
+      sm_p->shk_kI = SHK_KI_DEFAULT/4;
+      sm_p->shk_kD = SHK_KD_DEFAULT/4;
+      printf("SHK switching to gain 2\n");
+      return CMD_NORMAL;
+    }
+    if(!strncasecmp(line+9,"1",1)){
+      sm_p->shk_kP = SHK_KP_DEFAULT/5;
+      sm_p->shk_kI = SHK_KI_DEFAULT/5;
+      sm_p->shk_kD = SHK_KD_DEFAULT/5;
+      printf("SHK switching to gain 1\n");
+      return CMD_NORMAL;
+    }
+    if(!strncasecmp(line+9,"0",1)){
+      sm_p->shk_kP = 0;
+      sm_p->shk_kI = 0;
+      sm_p->shk_kD = 0;
+      printf("SHK switching to gain 0\n");
+      return CMD_NORMAL;
+    }
+  }
+
+
   //return with command not found
   return(CMD_NOT_FOUND);
 }

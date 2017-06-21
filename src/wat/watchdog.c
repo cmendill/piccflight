@@ -304,6 +304,9 @@ int main(int argc,char **argv){
   sm_p->acq_mode        = ACQ_MODE_DEFAULT;  
   sm_p->shk_boxsize     = SHK_BOXSIZE_DEFAULT;
   sm_p->shk_fit_zernike = SHK_FIT_ZERNIKE_DEFAULT;
+  sm_p->shk_kP          = SHK_KP_DEFAULT;
+  sm_p->shk_kI          = SHK_KI_DEFAULT;
+  sm_p->shk_kD          = SHK_KD_DEFAULT;
   memcpy((void *)sm_p->hex,(void *)hex_pos,sizeof(hex_pos));
   
   /* Configure Circular Buffers */

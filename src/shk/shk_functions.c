@@ -326,7 +326,8 @@ int shk_shk2iwc(shkevent_t *shkevent, int reset){
   double shk_xydev[2*SHK_NCELLS];
   uint64 fsize,rsize;
   int c,i,beam_ncells_2;
-    
+  static int test=0;
+  
   if(!init || reset){
     /* Open matrix file */
     //--setup filename
@@ -379,11 +380,11 @@ int shk_shk2iwc(shkevent_t *shkevent, int reset){
 /**************************************************************/
 /*                        SHK_CELLPID                         */
 /**************************************************************/
-void shk_cellpid(shkevent_t *shkevent, int reset){
+void shk_cellpid(sm_t *sm_p, shkevent_t *shkevent, int reset){
   static int init = 0;
   static double xint[SHK_NCELLS] = {0};
   static double yint[SHK_NCELLS] = {0};
-  const double kP = -0.1, kI = 0.0;
+  volatile double kP,kI,kD;
   int i;
 
   //Initialize
@@ -396,6 +397,11 @@ void shk_cellpid(shkevent_t *shkevent, int reset){
     }
     init=1;
   }
+
+  //Set gains
+  kP = sm_p->shk_kP;
+  kI = sm_p->shk_kI;
+  kD = sm_p->shk_kD;
   
   for(i=0;i<SHK_NCELLS;i++){
     if(shkevent->cells[i].beam_select){
@@ -445,7 +451,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     shkevent.beam_ncells = shk_init_cells(shkevent.cells);
     iwc_init(&shkevent.iwc);
     shk_shk2iwc(&shkevent,1);
-    shk_cellpid(&shkevent,1);
+    shk_cellpid(sm_p,&shkevent,1);
     memcpy(&first,&start,sizeof(struct timespec));
     init=1;
   }
@@ -474,7 +480,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   //Calculate new IWC position
   if(sm_p->iwc_calmode == 0){
     //Run PID
-    shk_cellpid(&shkevent,0);
+    shk_cellpid(sm_p,&shkevent,0);
     //Convert cells to IWC
     shk_shk2iwc(&shkevent,0);
   }
