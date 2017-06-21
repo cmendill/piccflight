@@ -29,7 +29,7 @@
 /* Prototypes */
 int handle_command(char *line, sm_t *sm_p);
 
-/* Processes to Watch */
+//Flight Processes
 extern void sci_proc(void); //science camera 
 extern void shk_proc(void); //shack-hartmann camera
 extern void lyt_proc(void); //lyot lowfs camera
@@ -42,7 +42,8 @@ extern void tmp_proc(void); //temperature sensors
 extern void hsk_proc(void); //housekeeping data
 extern void hex_proc(void); //hexapod controller
 
-
+//Diagnostic Processes
+extern void getshk_proc(void); //get shkevents
 
 /* Kill Process */
 void kill_proc(sm_t *sm_p,int id){ 

@@ -13,6 +13,9 @@
 #include "handle_command.h"
 #include "../common/controller.h"
 
+/* prototypes */
+void getshk_proc(void); //get shkevents
+
 /* Report Fake Modes */
 void report_fake_modes(void){
   printf("************************************************\n");
@@ -73,6 +76,37 @@ int handle_command(char *line, sm_t *sm_p){
     printf("CMD: Changed IWC calibration mode to %d\n",sm_p->iwc_calmode);
     return(CMD_NORMAL);
   }
+
+  //SHK Calibration
+  if(!strncasecmp(line,"shk calibrate spa",17)){
+    printf("CMD: Running SHK SPA calibration\n");
+    printf("  -- Disabling PID\n");
+    //Turn off gains
+    sm_p->shk_kP = 0;
+    sm_p->shk_kI = 0;
+    sm_p->shk_kD = 0;
+    printf("  -- Resetting SHK\n");
+    sm_p->shk_reset = 1;
+    sleep(1);
+    
+    //Start data recording
+    printf("  -- Starting data recording\n");
+    sm_p->w[DIAID].launch = getshk_proc;
+    sm_p->w[DIAID].run    = 1;
+    sleep(1);
+    //Start probe pattern
+    sm_p->iwc_calmode=2;
+    printf("  -- Changing IWC calibration mode to %d\n",sm_p->iwc_calmode);
+    while(sm_p->iwc_calmode == 2)
+      sleep(1);
+    printf("  -- Stopping data recording\n");
+    //Stop data recording
+    sm_p->w[DIAID].run    = 0;
+    printf("  -- Done\n");
+    
+    return(CMD_NORMAL);
+  }
+  
 
   //SHK Zernike Fitting
   if(!strncasecmp(line,"shk zfit on",11)){

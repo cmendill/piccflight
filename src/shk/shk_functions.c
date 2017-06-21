@@ -432,6 +432,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   double dt;
   int32 i,j;
   uint16 fakepx=0;
+  int calmode=0;
   
   //Get time immidiately
   clock_gettime(CLOCK_REALTIME,&start);
@@ -450,6 +451,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     memset(&pez,0,sizeof(pez_t));
     shkevent.beam_ncells = shk_init_cells(shkevent.cells);
     iwc_init(&shkevent.iwc);
+    iwc_calibrate(calmode,&shkevent.iwc,1);
     shk_shk2iwc(&shkevent,1);
     shk_cellpid(sm_p,&shkevent,1);
     memcpy(&first,&start,sizeof(struct timespec));
@@ -461,6 +463,9 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     printf("SHK: shk_process_image --> timespec_subtract error!\n");
   ts2double(&delta,&dt);
   
+  //Set calmode
+  calmode = sm_p->iwc_calmode;
+
   //Fill out event header
   shkevent.frame_number = frame_number;
   shkevent.exptime = 0;
@@ -470,7 +475,9 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   shkevent.mode = 0;
   shkevent.start_sec = start.tv_sec;
   shkevent.start_nsec = start.tv_nsec;
+  shkevent.iwc.calmode = calmode;
 
+  
   //Calculate centroids
   shk_centroid(buffer->pvAddress,&shkevent,sm_p);
 
@@ -478,7 +485,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   if(sm_p->shk_fit_zernike) shk_zernike_fit(&shkevent);
   
   //Calculate new IWC position
-  if(sm_p->iwc_calmode == 0){
+  if(calmode == 0){
     //Run PID
     shk_cellpid(sm_p,&shkevent,0);
     //Convert cells to IWC
@@ -486,9 +493,9 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   }
   else{
     //Calibrate IWC
-    iwc_calibrate(sm_p->iwc_calmode,&shkevent.iwc,0);
+    sm_p->iwc_calmode = iwc_calibrate(calmode,&shkevent.iwc,0);
   }
-
+  
   //Apply update
   if(xin_write(sm_p->xin_dev,&shkevent.iwc,&dm,&pez)){
     printf("SHK: xin_write failed!\n");
