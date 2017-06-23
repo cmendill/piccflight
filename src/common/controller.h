@@ -390,6 +390,8 @@ typedef struct shkevent_struct{
   int64     start_nsec;
   int64     end_sec;
   int64     end_nsec;
+  double    xtilt;
+  double    ytilt;
   shkcell_t cells[SHK_NCELLS];
   double    zernikes[LOWFS_N_ZERNIKE];
   double    iwc_spa_matrix[IWC_NSPA];

@@ -145,8 +145,11 @@ void shk_centroid_cell(uint16 *image, shkcell_t *cell, sm_t *sm_p){
     cell->spot_found=1;
   
   //check spot captured flag
-  if(!cell->spot_found)
+  if(!cell->spot_found){
     cell->spot_captured=0;
+    cell->deviation[0] = 0;
+    cell->deviation[1] = 0;
+  }
 }
 
 /**************************************************************/
@@ -155,12 +158,33 @@ void shk_centroid_cell(uint16 *image, shkcell_t *cell, sm_t *sm_p){
 void shk_centroid(uint16 *image, shkevent_t *shkevent, sm_t *sm_p){
   int i;
   int beam_ncells = 0;
+
+  //Zero out tilts
+  shkevent->xtilt=0;
+  shkevent->ytilt=0;
   
   for(i=0;i<SHK_NCELLS;i++){
     shk_centroid_cell(image,&shkevent->cells[i],sm_p);
-    beam_ncells += shkevent->cells[i].beam_select;
+    if(shkevent->cells[i].beam_select){
+      shkevent->xtilt += shkevent->cells[i].deviation[0];
+      shkevent->ytilt += shkevent->cells[i].deviation[1];
+      beam_ncells++;
+    }
   }
   shkevent->beam_ncells = beam_ncells;
+  
+  //Average tilts
+  shkevent->xtilt /= beam_ncells;
+  shkevent->ytilt /= beam_ncells;
+
+  //Subtract tilts
+  for(i=0;i<SHK_NCELLS;i++){
+    if(shkevent->cells[i].beam_select){
+      shkevent->cells[i].deviation[0] -= shkevent->xtilt;  
+      shkevent->cells[i].deviation[1] -= shkevent->ytilt;
+    }
+  }
+  
 }
 
 /**************************************************************/
