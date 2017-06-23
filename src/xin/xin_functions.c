@@ -7,7 +7,7 @@
 #include <string.h>
 #include <fcntl.h>
 #include <ctype.h>
-
+#include <time.h>
 
 /* piccflight headers */
 #include "../common/controller.h"
@@ -28,10 +28,12 @@ void iwc_init(iwc_t *iwc){
 /*                      IWC_CALIBRATE                         */
 /**************************************************************/
 int iwc_calibrate(int calmode, iwc_t *iwc, int reset){
-  int i;
+  int i,j;
   static unsigned long int countA=0;
   static unsigned long int countB=0;
   static int init=0;
+  time_t t;
+
   if(reset){
     countA=0;
     countB=0;
@@ -42,16 +44,20 @@ int iwc_calibrate(int calmode, iwc_t *iwc, int reset){
     countB=0;
     init=1;
   }
-  
+
+  /* CALMODE 1: Scan through acuators poking one at a time */
   if(calmode == 1){
-    //set all SPA actuators to bias
+    //Set all SPA actuators to bias
     for(i=0;i<IWC_NSPA;i++)
       iwc->spa[i]=IWC_SPA_BIAS;
     //poke one actuator
     iwc->spa[(countA/IWC_NCALIM) % IWC_NSPA] = IWC_SPA_BIAS+IWC_SPA_POKE;
     countA++;
-    return calmode;
   }
+
+  /* CALMODE 2: Scan through acuators poking one at a time.
+   *            Set flat inbetween each poke
+   */
   if(calmode == 2){
     if(countA >= 0 && countA < (2*IWC_NSPA*IWC_NCALIM)){
       //set all SPA actuators to bias
@@ -66,11 +72,23 @@ int iwc_calibrate(int calmode, iwc_t *iwc, int reset){
       countA++;
     }
     else{
+      //Turn off calibration
       calmode = 0;
       init = 0;
     }
-    return calmode;
   }
+
+  /* CALMODE 3: Set random pattern on IWC */
+  if(calmode == 3){
+    //Intializes random number generator
+    srand((unsigned) time(&t));
+    for(i=0;i<IWC_NSPA;i++)
+      iwc->spa[i] = (rand() % 2*IWC_SPA_POKE) - IWC_SPA_POKE + IWC_SPA_BIAS;
+    calmode = 0;
+    //init=0;
+  }
+
+  //Return calmode
   return calmode;
 }
 

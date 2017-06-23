@@ -76,6 +76,11 @@ int handle_command(char *line, sm_t *sm_p){
     printf("CMD: Changed IWC calibration mode to %d\n",sm_p->iwc_calmode);
     return(CMD_NORMAL);
   }
+  if(!strncasecmp(line,"iwc calmode 3",13)){
+    sm_p->iwc_calmode=3;
+    printf("CMD: Changed IWC calibration mode to %d\n",sm_p->iwc_calmode);
+    return(CMD_NORMAL);
+  }
 
   //SHK Calibration
   if(!strncasecmp(line,"shk calibrate spa",17)){
