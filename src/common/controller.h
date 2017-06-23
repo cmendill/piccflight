@@ -116,9 +116,9 @@ typedef int8_t int8;
  *************************************************/
 #define WARNING   "WARNING...WARNING...WARNING...WARNING\nWARNING...WARNING...WARNING...WARNING\nWARNING...WARNING...WARNING...WARNING\nWARNING...WARNING...WARNING...WARNING\n"
 #define REBOOT   "REBOOT...REBOOT...REBOOT...REBOOT\nREBOOT...REBOOT...REBOOT...REBOOT\nREBOOT...REBOOT...REBOOT...REBOOT\nREBOOT...REBOOT...REBOOT...REBOOT\n"
-#define PROC_WAITTIME        5  //Timeout for procwait
-#define EXIT_WAITTIME       10  //Timeout for exit
-#define ERASE_TIMEOUT       25  //Time to wait for TLM to exit on command: erase flight data
+#define EXIT_TIMEOUT    25  //procwait exit timeout
+#define PROC_TIMEOUT    5   //procwait process timeout
+#define ERASE_TIMEOUT   25  //Time to wait for TLM to exit on command: erase flight data
 
 
 /*************************************************
@@ -172,7 +172,7 @@ enum bufids {SCIEVENT, SCIFULL, SHKEVENT, SHKFULL, LYTEVENT, LYTFULL, ACQEVENT, 
  * Other Messaging
  *************************************************/
 #define MSG_SAVEDATA    0 // print data saving messages
-#define MSG_CTRLC       1 // print SIGINT messages
+#define MSG_CTRLC       0 // print SIGINT messages
 
 
 /*************************************************
