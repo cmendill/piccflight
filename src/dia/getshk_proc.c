@@ -57,17 +57,16 @@ void getshk_proc(void){
     fclose(out);
     exit(0);
   }
-  else
-    printf("GETSHK: opened %s\n",outfile);
   
   /* Enter loop to read shack-hartmann events */
-  /* NOTE: IM NOT SURE WHY READ_BUFFER_EVENT DOES NOT WORK HERE. 
-     NEED TO FIGURE THIS OUT. GIVES A SEGFAULT IF USED. 
-  */
   while(getshk_run){
     if(read_from_buffer(sm_p, &shkevent, SHKEVENT, DIAID)){
       //Save shkevent
       fwrite(&shkevent,sizeof(shkevent),1,out);
+
+      //Check in with the watchdog
+      if(getshk_count % 10 == 0) checkin(sm_p,DIAID);
+
       getshk_count++;
     }
   }
