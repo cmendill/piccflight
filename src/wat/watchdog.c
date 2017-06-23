@@ -23,8 +23,6 @@
 
 /* Constants */
 #define STDIN 0  // file descriptor for standard input
-#define EXIT_TIMEOUT 60 //procwait exit timeout
-#define PROC_TIMEOUT 1  //procwait process timeout
 
 /* Prototypes */
 int handle_command(char *line, sm_t *sm_p);
@@ -41,6 +39,7 @@ extern void srv_proc(void); //data server
 extern void tmp_proc(void); //temperature sensors
 extern void hsk_proc(void); //housekeeping data
 extern void hex_proc(void); //hexapod controller
+extern void dia_proc(void); //diagnostic program
 
 //Diagnostic Processes
 extern void getshk_proc(void); //get shkevents
@@ -70,11 +69,11 @@ void kill_proc(sm_t *sm_p,int id){
       kill(sm_p->w[id].pid,SIGKILL);
       //wait for process to die
       if(procwait(sm_p->w[id].pid,PROC_TIMEOUT)){
-	if(WAT_DEBUG) printf(WARNING);
-	if(WAT_DEBUG) printf("WAT: could not kill %s!\n",sm_p->w[id].name);
+	printf(WARNING);
+	printf("WAT: could not kill %s!\n",sm_p->w[id].name);
       }
       else{
-	if(WAT_DEBUG) printf("WAT: unloaded with SIGKILL: %s\n",sm_p->w[id].name);
+	printf("WAT: unloaded with SIGKILL: %s\n",sm_p->w[id].name);
       }
     }
     else{
@@ -292,6 +291,7 @@ int main(int argc,char **argv){
     case TMPID:sm_p->w[i].launch = tmp_proc; break;
     case HSKID:sm_p->w[i].launch = hsk_proc; break;
     case HEXID:sm_p->w[i].launch = hex_proc; break;
+    case DIAID:sm_p->w[i].launch = dia_proc; break;
     }
   }
   
