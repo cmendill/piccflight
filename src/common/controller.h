@@ -262,6 +262,7 @@ enum procids {WATID, SCIID, SHKID, LYTID, TLMID, ACQID, MOTID, THMID, SRVID, TMP
 #define SHK_CELL_ROTATION     0.0
 #define SHK_CELL_XSCALE       1.0
 #define SHK_CELL_YSCALE       1.0
+#define SHK_ORIGIN_NAVG       25
 
 /*************************************************
  * Packets
@@ -560,6 +561,7 @@ typedef volatile struct {
   int hex_gohome;
   int hex_godef;
   int shk_reset;
+  int shk_setorigin;
   
   //Events circular buffers
   scievent_t scievent[SCIEVENTSIZE];

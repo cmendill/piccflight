@@ -46,6 +46,43 @@ int shk_init_cells(shkcell_t *cells){
 }
 
 /**************************************************************/
+/*                      SHK_SETORIGIN                         */
+/**************************************************************/
+int shk_setorigin(shkcell_t *cells){
+  int i;
+  static double cx[SHK_NCELLS]={0}, cy[SHK_NCELLS]={0};
+  static int count=0;
+  const int navg = SHK_ORIGIN_NAVG;
+  
+  //Average the centroids
+  if(count < navg){
+    for(i=0;i<SHK_NCELLS;i++){
+      if(cells[i].beam_select){
+	cx[i] += cells[i].centroid[0] / navg;
+	cy[i] += cells[i].centroid[1] / navg;
+      }
+    }
+    count++;
+    return 1;
+  }
+  else{
+    //Set origins = averaged centroids
+    for(i=0;i<SHK_NCELLS;i++){
+      if(cells[i].beam_select){
+	cells[i].origin[0] = cx[i];
+	cells[i].origin[1] = cy[i];
+      }
+    }
+    
+    //Reset
+    count = 0;
+    memset(cx,0,sizeof(cx));
+    memset(cy,0,sizeof(cy));
+    printf("SHK: New origin set\n");
+    return 0;
+  }
+}
+/**************************************************************/
 /*                      SHK_CENTROID_CELL                     */
 /**************************************************************/
 void shk_centroid_cell(uint16 *image, shkcell_t *cell, sm_t *sm_p){
@@ -505,6 +542,10 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   //Calculate centroids
   shk_centroid(buffer->pvAddress,&shkevent,sm_p);
 
+  //Set origin
+  if(sm_p->shk_setorigin)
+    sm_p->shk_setorigin = shk_setorigin(shkevent.cells);
+  
   //Fit Zernikes
   if(sm_p->shk_fit_zernike) shk_zernike_fit(&shkevent);
   

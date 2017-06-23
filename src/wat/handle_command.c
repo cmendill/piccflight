@@ -143,7 +143,22 @@ int handle_command(char *line, sm_t *sm_p){
     printf("CMD: Resetting SHK\n");
     return(CMD_NORMAL);
   }
-  
+
+  //SHK Commands
+  if(!strncasecmp(line,"shk set origin",14)){
+    printf("CMD: Setting SHK origin\n");
+    //Turn off gains
+    printf("  -- Disabling PID\n");
+    sm_p->shk_kP = 0;
+    sm_p->shk_kI = 0;
+    sm_p->shk_kD = 0;
+    printf("  -- Resetting SHK\n");
+    sm_p->shk_reset = 1;
+    sleep(1);
+     sm_p->shk_setorigin=1;
+    return(CMD_NORMAL);
+  }
+    
   //SHK Gain
   if(!strncasecmp(line,"shk gain ",9) && strlen(line)>10){
     if(!strncasecmp(line+9,"5",1)){
