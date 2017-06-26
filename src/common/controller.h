@@ -263,6 +263,11 @@ enum procids {WATID, SCIID, SHKID, LYTID, TLMID, ACQID, MOTID, THMID, SRVID, TMP
 #define SHK_CELL_XSCALE       1.0
 #define SHK_CELL_YSCALE       1.0
 #define SHK_ORIGIN_NAVG       25
+#define SHK_XMIN              0
+#define SHK_XMAX              (SHKXS-1)
+#define SHK_YMIN              0
+#define SHK_YMAX              (SHKYS-1)
+
 
 /*************************************************
  * Packets
@@ -332,6 +337,8 @@ typedef struct {
   uint16 trx;
   uint16 try;
   //-----
+  double intensity;
+  double background;
   double origin[2];
   double centroid[2];
   double deviation[2];

@@ -87,10 +87,11 @@ int shk_setorigin(shkcell_t *cells){
 /**************************************************************/
 void shk_centroid_cell(uint16 *image, shkcell_t *cell, sm_t *sm_p){
   double xnum=0, ynum=0, total=0;
+  static double background = 0;
   uint32 maxpix=0,maxval=0;
   int blx,bly,trx,try;
   int boxsize,boxsize_new;
-  int x,y,px;
+  int x,y,px,npix;
   double xhist[SHKXS]={0};
   double yhist[SHKYS]={0};
   double val;
@@ -126,28 +127,34 @@ void shk_centroid_cell(uint16 *image, shkcell_t *cell, sm_t *sm_p){
   try = floor(cell->origin[1] + boxsize);
 
   //Impose limits
-  blx = blx > SHKXS ? SHKXS : blx;
-  bly = bly > SHKYS ? SHKYS : bly;
-  blx = blx < 0 ? 0 : blx;
-  bly = bly < 0 ? 0 : bly;
-  trx = trx > SHKXS ? SHKXS : trx;
-  try = try > SHKYS ? SHKYS : try;
-  trx = trx < 0 ? 0 : trx;
-  try = try < 0 ? 0 : try;
+  blx = blx > SHK_XMAX ? SHK_XMAX : blx;
+  bly = bly > SHK_YMAX ? SHK_YMAX : bly;
+  blx = blx < SHK_XMIN ? SHK_XMIN : blx;
+  bly = bly < SHK_YMIN ? SHK_YMIN : bly;
+  trx = trx > SHK_XMAX ? SHK_XMAX : trx;
+  try = try > SHK_YMAX ? SHK_YMAX : try;
+  trx = trx < SHK_XMIN ? SHK_XMIN : trx;
+  try = try < SHK_YMIN ? SHK_YMIN : try;
 
   //Save limits
   cell->blx = blx;
   cell->bly = bly;
   cell->trx = trx;
   cell->try = try;
+
+  //Unset background
+  if(cell->index == 0)
+    background = 0;
   
   //Build x,y histograms
-  for(x=blx;x<trx;x++){
-    for(y=bly;y<try;y++){
+  npix=0;
+  for(x=blx;x<=trx;x++){
+    for(y=bly;y<=try;y++){
       px = x + y*SHKYS;
-      val = (double)image[px];
+      val = (double)image[px] - background;
       xhist[x] += val;
       yhist[y] += val;
+      npix++;
       if(image[px] > maxval){
 	maxval=image[px];
 	maxpix=px;
@@ -156,14 +163,15 @@ void shk_centroid_cell(uint16 *image, shkcell_t *cell, sm_t *sm_p){
   }
   
   //Weight histograms
-  for(x=blx;x<trx;x++){
+  for(x=blx;x<=trx;x++){
     xnum  += ((double)x+0.5) * xhist[x];
   }
-  for(y=bly;y<try;y++){
+  for(y=bly;y<=try;y++){
     ynum  += ((double)y+0.5) * yhist[y];
     total += yhist[y];
   }
   
+
   //Calculate centroid
   cell->centroid[0] = xnum/total;
   cell->centroid[1] = ynum/total;
@@ -172,18 +180,26 @@ void shk_centroid_cell(uint16 *image, shkcell_t *cell, sm_t *sm_p){
   cell->deviation[0] = cell->centroid[0] - cell->origin[0];
   cell->deviation[1] = cell->centroid[1] - cell->origin[1];
  
-  //set max pixel
+  //Set max pixel
   cell->maxpix = maxpix;
   cell->maxval = maxval;
+
+  //Save total intensity and background
+  cell->intensity  = total;
+  cell->background = background;
   
-  //check if spot is above threshold
+  //Set background
+  if(cell->index == 0)
+    background = total/npix;
+
+  //Check if spot is above threshold
   if(cell->spot_found && (maxval < SHK_SPOT_LOWER_THRESH))
     cell->spot_found=0;
   
   if(maxval > SHK_SPOT_UPPER_THRESH)
     cell->spot_found=1;
   
-  //check spot captured flag
+  //Check spot captured flag
   if(!cell->spot_found){
     cell->spot_captured=0;
     cell->deviation[0] = 0;
@@ -203,8 +219,8 @@ void shk_centroid(uint16 *image, shkevent_t *shkevent, sm_t *sm_p){
   shkevent->ytilt=0;
   
   for(i=0;i<SHK_NCELLS;i++){
-    shk_centroid_cell(image,&shkevent->cells[i],sm_p);
-    if(shkevent->cells[i].beam_select){
+    if(i==0 || shkevent->cells[i].beam_select){
+      shk_centroid_cell(image,&shkevent->cells[i],sm_p);
       shkevent->xtilt += shkevent->cells[i].deviation[0];
       shkevent->ytilt += shkevent->cells[i].deviation[1];
       beam_ncells++;
