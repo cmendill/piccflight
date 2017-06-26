@@ -111,11 +111,13 @@ void shk_centroid_cell(uint16 *image, shkcell_t *cell, sm_t *sm_p){
 	//If spot was not captured, check if it is within the capture region
 	if((abs(cell->deviation[0]) < (boxsize_new-SHK_BOX_DEADBAND)) && (abs(cell->deviation[1]) < (boxsize_new-SHK_BOX_DEADBAND))){
 	  cell->spot_captured=1;
-	  boxsize=sm_p->shk_boxsize;
 	}
       }
     }
+    if(cell->spot_captured)
+      boxsize = boxsize_new;
   }
+  
   
   //Calculate corners of centroid box
   blx = floor(cell->origin[0] - boxsize);
