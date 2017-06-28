@@ -27,18 +27,21 @@ void iwc_init(iwc_t *iwc){
 /**************************************************************/
 /*                      IWC_CALIBRATE                         */
 /**************************************************************/
-int iwc_calibrate(int calmode, iwc_t *iwc, int reset){
+int iwc_calibrate(int calmode, iwc_t *iwc,int reset){
   int i,j;
   static unsigned long int countA=0;
   static unsigned long int countB=0;
   static int init=0;
   time_t t;
-
+  
+  /* Reset */
   if(reset){
     countA=0;
     countB=0;
     return calmode;
   }
+  
+  /* Initialize */
   if(!init){
     countA=0;
     countB=0;
@@ -53,6 +56,7 @@ int iwc_calibrate(int calmode, iwc_t *iwc, int reset){
     //poke one actuator
     iwc->spa[(countA/IWC_NCALIM) % IWC_NSPA] = IWC_SPA_BIAS+IWC_SPA_POKE;
     countA++;
+    return calmode;
   }
 
   /* CALMODE 2: Scan through acuators poking one at a time.
@@ -76,6 +80,7 @@ int iwc_calibrate(int calmode, iwc_t *iwc, int reset){
       calmode = 0;
       init = 0;
     }
+    return calmode;
   }
 
   /* CALMODE 3: Set random pattern on IWC */
@@ -84,8 +89,10 @@ int iwc_calibrate(int calmode, iwc_t *iwc, int reset){
     srand((unsigned) time(&t));
     for(i=0;i<IWC_NSPA;i++)
       iwc->spa[i] = (rand() % 2*IWC_SPA_POKE) - IWC_SPA_POKE + IWC_SPA_BIAS;
+    //Turn off calibration
     calmode = 0;
-    //init=0;
+    init = 0;
+    return calmode;
   }
 
   //Return calmode

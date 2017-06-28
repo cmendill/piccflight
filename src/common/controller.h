@@ -393,13 +393,16 @@ typedef struct shkevent_struct{
   uint32    imxsize;
   uint32    imysize;
   uint16    mode;
-  uint16    iwc_calmode;
+  uint16    boxsize;
   int64     start_sec;
   int64     start_nsec;
   int64     end_sec;
   int64     end_nsec;
   double    xtilt;
   double    ytilt;
+  double    kP;
+  double    kI;
+  double    kD;
   shkcell_t cells[SHK_NCELLS];
   double    zernikes[LOWFS_N_ZERNIKE];
   double    iwc_spa_matrix[IWC_NSPA];

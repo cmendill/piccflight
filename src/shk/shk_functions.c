@@ -19,14 +19,15 @@
 /**************************************************************/
 /*                      SHK_INIT_CELLS                        */
 /**************************************************************/
-int shk_init_cells(shkcell_t *cells){
+void shk_init_cells(shkevent_t *shkevent){
   #include "shk_beam_select.h"
   float cell_size_px = SHK_LENSLET_PITCH_UM/SHK_PX_PITCH_UM;
   int i,j,c,x,y;
   int beam_ncells=0;
   
   //Zero out cells
-  memset(cells,0,sizeof(shkcell_t));
+  memset(shkevent->cells,0,sizeof(shkcell_t));
+  shkevent->beam_ncells = 0;
   
   //Initialize cells
   c=0;
@@ -34,21 +35,20 @@ int shk_init_cells(shkcell_t *cells){
     for(i=0;i<SHK_XCELLS;i++){
       x = c % SHK_XCELLS;
       y = SHK_YCELLS - 1 - c / SHK_YCELLS;
-      cells[c].index = c;
-      cells[c].origin[0] = i*cell_size_px + cell_size_px/2 + SHK_CELL_XOFF;
-      cells[c].origin[1] = j*cell_size_px + cell_size_px/2 + SHK_CELL_YOFF;
-      cells[c].beam_select = shk_beam_select[y*SHK_XCELLS + x];
-      beam_ncells += cells[c].beam_select;
+      shkevent->cells[c].index = c;
+      shkevent->cells[c].origin[0] = i*cell_size_px + cell_size_px/2 + SHK_CELL_XOFF;
+      shkevent->cells[c].origin[1] = j*cell_size_px + cell_size_px/2 + SHK_CELL_YOFF;
+      shkevent->cells[c].beam_select = shk_beam_select[y*SHK_XCELLS + x];
+      shkevent->beam_ncells += shkevent->cells[c].beam_select;
       c++;
     }
   }
-  return beam_ncells;
 }
 
 /**************************************************************/
 /*                      SHK_SETORIGIN                         */
 /**************************************************************/
-int shk_setorigin(shkcell_t *cells){
+int shk_setorigin(shkevent_t *shkevent){
   int i;
   static double cx[SHK_NCELLS]={0}, cy[SHK_NCELLS]={0};
   static int count=0;
@@ -57,9 +57,9 @@ int shk_setorigin(shkcell_t *cells){
   //Average the centroids
   if(count < navg){
     for(i=0;i<SHK_NCELLS;i++){
-      if(cells[i].beam_select){
-	cx[i] += cells[i].centroid[0] / navg;
-	cy[i] += cells[i].centroid[1] / navg;
+      if(shkevent->cells[i].beam_select){
+	cx[i] += shkevent->cells[i].centroid[0] / navg;
+	cy[i] += shkevent->cells[i].centroid[1] / navg;
       }
     }
     count++;
@@ -68,9 +68,9 @@ int shk_setorigin(shkcell_t *cells){
   else{
     //Set origins = averaged centroids
     for(i=0;i<SHK_NCELLS;i++){
-      if(cells[i].beam_select){
-	cells[i].origin[0] = cx[i];
-	cells[i].origin[1] = cy[i];
+      if(shkevent->cells[i].beam_select){
+	shkevent->cells[i].origin[0] = cx[i];
+	shkevent->cells[i].origin[1] = cy[i];
       }
     }
     
@@ -85,7 +85,7 @@ int shk_setorigin(shkcell_t *cells){
 /**************************************************************/
 /*                      SHK_CENTROID_CELL                     */
 /**************************************************************/
-void shk_centroid_cell(uint16 *image, shkcell_t *cell, sm_t *sm_p){
+void shk_centroid_cell(uint16 *image, shkcell_t *cell, int shk_boxsize, int iwc_calmode){
   double xnum=0, ynum=0, total=0;
   static double background = 0;
   uint32 maxpix=0,maxval=0;
@@ -98,9 +98,9 @@ void shk_centroid_cell(uint16 *image, shkcell_t *cell, sm_t *sm_p){
   
 
   //Set boxsize & spot_captured flag
-  boxsize     = SHK_MAX_BOXSIZE;
-  if(sm_p->iwc_calmode == 0){
-    boxsize_new = sm_p->shk_boxsize;
+  boxsize = SHK_MAX_BOXSIZE;
+  if(iwc_calmode == 0){
+    boxsize_new = shk_boxsize;
     if(cell->spot_found){
       if(cell->spot_captured){
 	//If spot was captured, but is now outside the box, unset captured
@@ -210,27 +210,32 @@ void shk_centroid_cell(uint16 *image, shkcell_t *cell, sm_t *sm_p){
 /**************************************************************/
 /*                      SHK_CENTROID                          */
 /**************************************************************/
-void shk_centroid(uint16 *image, shkevent_t *shkevent, sm_t *sm_p){
+void shk_centroid(uint16 *image, shkevent_t *shkevent){
   int i;
-  int beam_ncells = 0;
-
+  
   //Zero out tilts
   shkevent->xtilt=0;
   shkevent->ytilt=0;
+
+  //Set boxsize
+  if(shkevent->kP == 0 && shkevent->kI == 0 && shkevent->kI == 0)
+    shkevent->boxsize = SHK_MAX_BOXSIZE;
   
+  //Get background
+  shk_centroid_cell(image,&shkevent->cells[0],shkevent->boxsize,shkevent->iwc.calmode);
+  
+  //Centroid cells
   for(i=0;i<SHK_NCELLS;i++){
-    if(i==0 || shkevent->cells[i].beam_select){
-      shk_centroid_cell(image,&shkevent->cells[i],sm_p);
+    if(shkevent->cells[i].beam_select){
+      shk_centroid_cell(image,&shkevent->cells[i],shkevent->boxsize,shkevent->iwc.calmode);
       shkevent->xtilt += shkevent->cells[i].deviation[0];
       shkevent->ytilt += shkevent->cells[i].deviation[1];
-      beam_ncells++;
     }
   }
-  shkevent->beam_ncells = beam_ncells;
   
   //Average tilts
-  shkevent->xtilt /= beam_ncells;
-  shkevent->ytilt /= beam_ncells;
+  shkevent->xtilt /= shkevent->beam_ncells;
+  shkevent->ytilt /= shkevent->beam_ncells;
 
   //Subtract tilts
   for(i=0;i<SHK_NCELLS;i++){
@@ -245,7 +250,7 @@ void shk_centroid(uint16 *image, shkevent_t *shkevent, sm_t *sm_p){
 /**************************************************************/
 /*                   SHK_ZERNIKE_MATRIX                       */
 /**************************************************************/
-void shk_zernike_matrix(shkcell_t *cells, double *matrix_inv){
+void shk_zernike_matrix(shkevent_t *shkevent, double *matrix_inv){
   int i, beam_ncells=0;
   int beam_cell_index[SHK_NCELLS] = {0};
   double max_x = 0, max_y = 0, min_x = 0, min_y = 0;
@@ -255,14 +260,14 @@ void shk_zernike_matrix(shkcell_t *cells, double *matrix_inv){
   // beam_center = [mean(x), mean(y)] of beam cell origins
   // beam_radius = [(max(x)-min(x))/2, (max(y)-min(y))/2] of beam cell origins
   for(i=0; i<SHK_NCELLS; i++) {
-    if (cells[i].beam_select) {
+    if (shkevent->cells[i].beam_select) {
       beam_cell_index[beam_ncells] = i;
-      temp_beam_center[0] += cells[i].origin[0]; // center
-      temp_beam_center[1] += cells[i].origin[1]; // center
-      max_x = (cells[i].origin[0] > max_x) ? cells[i].origin[0] : max_x; // hold on to max x
-      max_y = (cells[i].origin[1] > max_y) ? cells[i].origin[1] : max_y; // hold on to max y
-      min_x = (cells[i].origin[0] < min_x) ? cells[i].origin[0] : min_x; // hold on to min x
-      min_y = (cells[i].origin[1] < min_y) ? cells[i].origin[1] : min_y; // hold on to min y
+      temp_beam_center[0] += shkevent->cells[i].origin[0]; // center
+      temp_beam_center[1] += shkevent->cells[i].origin[1]; // center
+      max_x = (shkevent->cells[i].origin[0] > max_x) ? shkevent->cells[i].origin[0] : max_x; // hold on to max x
+      max_y = (shkevent->cells[i].origin[1] > max_y) ? shkevent->cells[i].origin[1] : max_y; // hold on to max y
+      min_x = (shkevent->cells[i].origin[0] < min_x) ? shkevent->cells[i].origin[0] : min_x; // hold on to min x
+      min_y = (shkevent->cells[i].origin[1] < min_y) ? shkevent->cells[i].origin[1] : min_y; // hold on to min y
       beam_ncells++;
     }
   }
@@ -285,12 +290,12 @@ void shk_zernike_matrix(shkcell_t *cells, double *matrix_inv){
   double x_1 = 0, x_2 = 0, x_3 = 0, x_4 = 0, x_5=0;
   double y_1 = 0, y_2 = 0, y_3 = 0, y_4 = 0, y_5=0;
   for(i=0; i<beam_ncells; i++) {
-    x_1 = (cells[beam_cell_index[i]].origin[0] - beam_center[0])/beam_radius[0];
+    x_1 = (shkevent->cells[beam_cell_index[i]].origin[0] - beam_center[0])/beam_radius[0];
     x_2 = pow(x_1,2);
     x_3 = pow(x_1,3);
     x_4 = pow(x_1,4);
     x_5 = pow(x_1,5);
-    y_1 = (cells[beam_cell_index[i]].origin[1] - beam_center[1])/beam_radius[1];
+    y_1 = (shkevent->cells[beam_cell_index[i]].origin[1] - beam_center[1])/beam_radius[1];
     y_2 = pow(y_1,2);
     y_3 = pow(y_1,3);
     y_4 = pow(y_1,4);
@@ -381,7 +386,7 @@ void shk_zernike_fit(shkevent_t *shkevent){
 
   //generate the zernike matrix
   if(regen_matrix) {
-    shk_zernike_matrix(shkevent->cells, matrix_inv);
+    shk_zernike_matrix(shkevent, matrix_inv);
     printf("SHK: matrix inverted\n");
   }
 
@@ -459,11 +464,10 @@ int shk_shk2iwc(shkevent_t *shkevent, int reset){
 /**************************************************************/
 /*                        SHK_CELLPID                         */
 /**************************************************************/
-void shk_cellpid(sm_t *sm_p, shkevent_t *shkevent, int reset){
+void shk_cellpid(shkevent_t *shkevent, int reset){
   static int init = 0;
   static double xint[SHK_NCELLS] = {0};
   static double yint[SHK_NCELLS] = {0};
-  volatile double kP,kI,kD;
   int i;
 
   //Initialize
@@ -476,20 +480,14 @@ void shk_cellpid(sm_t *sm_p, shkevent_t *shkevent, int reset){
     }
     init=1;
   }
-
-  //Set gains
-  kP = sm_p->shk_kP;
-  kI = sm_p->shk_kI;
-  kD = sm_p->shk_kD;
-  
   for(i=0;i<SHK_NCELLS;i++){
     if(shkevent->cells[i].beam_select){
       //Calculate integrals
       xint[i] += shkevent->cells[i].deviation[0];
       yint[i] += shkevent->cells[i].deviation[1];
       //Calculate command
-      shkevent->cells[i].command[0] += kP * shkevent->cells[i].deviation[0] + kI * xint[i];
-      shkevent->cells[i].command[1] += kP * shkevent->cells[i].deviation[1] + kI * yint[i];
+      shkevent->cells[i].command[0] += shkevent->kP * shkevent->cells[i].deviation[0] + shkevent->kI * xint[i];
+      shkevent->cells[i].command[1] += shkevent->kP * shkevent->cells[i].deviation[1] + shkevent->kI * yint[i];
     }
   }
   
@@ -511,7 +509,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   double dt;
   int32 i,j;
   uint16 fakepx=0;
-  int calmode=0;
+  int iwc_calmode=0;
   
   //Get time immidiately
   clock_gettime(CLOCK_REALTIME,&start);
@@ -528,11 +526,11 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     memset(&shkevent,0,sizeof(shkevent));
     memset(&dm,0,sizeof(dm_t));
     memset(&pez,0,sizeof(pez_t));
-    shkevent.beam_ncells = shk_init_cells(shkevent.cells);
+    shk_init_cells(&shkevent);
     iwc_init(&shkevent.iwc);
-    iwc_calibrate(calmode,&shkevent.iwc,1);
+    iwc_calibrate(iwc_calmode,&shkevent.iwc,1);
     shk_shk2iwc(&shkevent,1);
-    shk_cellpid(sm_p,&shkevent,1);
+    shk_cellpid(&shkevent,1);
     memcpy(&first,&start,sizeof(struct timespec));
     init=1;
   }
@@ -542,8 +540,8 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     printf("SHK: shk_process_image --> timespec_subtract error!\n");
   ts2double(&delta,&dt);
   
-  //Set calmode
-  calmode = sm_p->iwc_calmode;
+  //Set iwc_calmode
+  iwc_calmode = sm_p->iwc_calmode;
 
   //Fill out event header
   shkevent.frame_number = frame_number;
@@ -552,32 +550,33 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   shkevent.imxsize = SHKXS;
   shkevent.imysize = SHKYS;
   shkevent.mode = 0;
+  shkevent.boxsize = sm_p->shk_boxsize;
   shkevent.start_sec = start.tv_sec;
   shkevent.start_nsec = start.tv_nsec;
-  shkevent.iwc.calmode = calmode;
-
+  shkevent.iwc.calmode = iwc_calmode;
+  shkevent.kP = sm_p->shk_kP;
+  shkevent.kI = sm_p->shk_kI;
+  shkevent.kD = sm_p->shk_kD;
+  
   
   //Calculate centroids
-  shk_centroid(buffer->pvAddress,&shkevent,sm_p);
+  shk_centroid(buffer->pvAddress,&shkevent);
 
   //Set origin
   if(sm_p->shk_setorigin)
-    sm_p->shk_setorigin = shk_setorigin(shkevent.cells);
+    sm_p->shk_setorigin = shk_setorigin(&shkevent);
   
   //Fit Zernikes
   if(sm_p->shk_fit_zernike) shk_zernike_fit(&shkevent);
   
-  //Calculate new IWC position
-  if(calmode == 0){
-    //Run PID
-    shk_cellpid(sm_p,&shkevent,0);
-    //Convert cells to IWC
-    shk_shk2iwc(&shkevent,0);
-  }
-  else{
-    //Calibrate IWC
-    sm_p->iwc_calmode = iwc_calibrate(calmode,&shkevent.iwc,0);
-  }
+  //Run PID
+  shk_cellpid(&shkevent,0);
+
+  //Convert cells to IWC
+  shk_shk2iwc(&shkevent,0);
+  
+  //Calibrate IWC
+  if(iwc_calmode) sm_p->iwc_calmode = iwc_calibrate(iwc_calmode,&shkevent.iwc,0);
   
   //Apply update
   if(xin_write(sm_p->xin_dev,&shkevent.iwc,&dm,&pez)){
