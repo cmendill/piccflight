@@ -31,13 +31,21 @@ int iwc_calibrate(int calmode, iwc_t *iwc,int reset){
   int i,j;
   static unsigned long int countA=0;
   static unsigned long int countB=0;
+  static double zernike2spa[LOWFS_N_ZERNIKE*IWC_NSPA]={0};
+  static double zernike_errors[LOWFS_N_ZERNIKE][ZERNIKE_ERRORS_NUMBER]={{0}};
+  const double steptime = ZERNIKE_ERRORS_PERIOD;
+  const int zuse[LOWFS_N_ZERNIKE]={0,0,0,1,1,1, 1,1,1,1,1,1, 0,0,0,0,0,0, 0,0,0,0,0,0};
   static int init=0;
-  time_t t;
   
+  time_t t;
+  FILE *fileptr=NULL;
+  char filename[MAX_FILENAME];
+   
   /* Reset */
   if(reset){
     countA=0;
     countB=0;
+    init=0;
     return calmode;
   }
   
@@ -45,6 +53,52 @@ int iwc_calibrate(int calmode, iwc_t *iwc,int reset){
   if(!init){
     countA=0;
     countB=0;
+
+    /* Open ZERNIKE2SPA matrix file */
+    //--setup filename
+    sprintf(filename,ZERNIKE2SPA_FILE);
+    //--open file
+    if((fileptr = fopen(filename,"r")) == NULL){
+      perror("fopen");
+      goto endofinit;
+    }
+    //--check file size
+    fseek(fileptr, 0L, SEEK_END);
+    if(ftell(fileptr) != sizeof(zernike2spa)){
+      printf("SHK: incorrect matrix file size %lu != %lu\n",ftell(fileptr),sizeof(zernike2spa));
+      goto endofinit;
+    }
+    rewind(fileptr);
+    //--read matrix
+    if(fread(zernike2spa,sizeof(zernike2spa),1,fileptr) != 1){
+      perror("fread");
+      goto endofinit;
+    }
+    
+    /* Open zernike errors file */
+    //--setup filename
+    sprintf(filename,ZERNIKE_ERRORS_FILE);
+    //--open file
+    if((fileptr = fopen(filename,"r")) == NULL){
+      perror("fopen");
+      goto endofinit;
+    }
+    //--check file size
+    fseek(fileptr, 0L, SEEK_END);
+    if(ftell(fileptr) != sizeof(zernike_errors)){
+      printf("SHK: incorrect zernike_errors file size %lu != %lu\n",ftell(fileptr),sizeof(zernike_errors));
+      goto endofinit;
+    }
+    rewind(fileptr);
+    //--read matrix
+    if(fread(zernike_errors,sizeof(zernike_errors),1,fileptr) != 1){
+      perror("fread");
+      goto endofinit;
+    }
+
+  endofinit:
+    //--close file
+    if(fileptr != NULL) fclose(fileptr);
     init=1;
   }
 
@@ -93,6 +147,11 @@ int iwc_calibrate(int calmode, iwc_t *iwc,int reset){
     calmode = 0;
     init = 0;
     return calmode;
+  }
+  /* CALMODE 4: Flight Simulator */
+  if(calmode == 4){
+    
+    
   }
 
   //Return calmode

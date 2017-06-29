@@ -103,6 +103,7 @@ typedef int8_t int8;
 #define DATANAME        "data/flight_data/folder_%5.5d/picture.%s.%8.8d.dat"
 #define SHKMATRIX_FILE  "data/shk/iwc_shk_infl_inv.dat"
 #define MAX_FILENAME    128
+#define ZERNIKE2SPA_FILE  "data/shk/iwc_shk_zern_infl_inv.dat"
 
 
 /*************************************************
@@ -144,6 +145,13 @@ enum bufids {SCIEVENT, SCIFULL, SHKEVENT, SHKFULL, LYTEVENT, LYTFULL, ACQEVENT, 
  * LOWFS Settings
  *************************************************/
 #define LOWFS_N_ZERNIKE         24
+
+/*************************************************
+ * Zernike Errors
+ *************************************************/
+#define ZERNIKE_ERRORS_FILE   "data/zernike/zernike_errors.dat"
+#define ZERNIKE_ERRORS_NUMBER 15000
+#define ZERNIKE_ERRORS_PERIOD 0.00200000
 
 /*************************************************
  * Camera Settings -- Keep sizes divisible by 4
