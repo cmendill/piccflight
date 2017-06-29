@@ -92,13 +92,13 @@ int handle_command(char *line, sm_t *sm_p){
     sm_p->shk_kD = 0;
     printf("  -- Resetting SHK\n");
     sm_p->shk_reset = 1;
-    sleep(1);
+    sleep(3);
     
     //Start data recording
     printf("  -- Starting data recording\n");
     sm_p->w[DIAID].launch = getshk_proc;
     sm_p->w[DIAID].run    = 1;
-    sleep(1);
+    sleep(3);
     //Start probe pattern
     sm_p->iwc_calmode=2;
     printf("  -- Changing IWC calibration mode to %d\n",sm_p->iwc_calmode);
