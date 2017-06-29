@@ -49,7 +49,7 @@ void getshk_proc(void){
 
   /* Open output file */
   //--setup filename
-  sprintf(outfile,"data/getshk_output.dat");
+  sprintf(outfile,"data/test_data/getshk_output.dat");
   //--open file
   out = fopen(outfile,"w");
   if(out==NULL){
