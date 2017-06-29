@@ -16,14 +16,16 @@
 /* prototypes */
 void getshk_proc(void); //get shkevents
 
-/* Report Fake Modes */
-void report_fake_modes(void){
+/* Print IWC Calibration Modes */
+void print_iwc_calmodes(void){
   printf("************************************************\n");
-  printf("*                   FAKE MODES                 *\n");
+  printf("*                 IWC CAL MODES                *\n");
   printf("************************************************\n");
   printf("0: Disabled\n");
-  printf("1: TM test pattern\n");
-  printf("2: Generate fake Shack-Hartmann images\n");
+  printf("1: Poke one SPA actuator at a time\n");
+  printf("2: Poke one SPA actuator at a time with flat inbetween\n");
+  printf("3: Poke all SPA actuators by a random amount\n");
+  printf("4: Run flight simulation\n");
   printf("\n");
 }
 
@@ -81,6 +83,16 @@ int handle_command(char *line, sm_t *sm_p){
     printf("CMD: Changed IWC calibration mode to %d\n",sm_p->iwc_calmode);
     return(CMD_NORMAL);
   }
+  if(!strncasecmp(line,"iwc calmode 4",13)){
+    sm_p->iwc_calmode=4;
+    printf("CMD: Changed IWC calibration mode to %d\n",sm_p->iwc_calmode);
+    return(CMD_NORMAL);
+  }
+  //--Keep this one at the end
+  if(!strncasecmp(line,"iwc calmode",11)){
+    print_iwc_calmodes();
+    return(CMD_NORMAL);
+  }
 
   //SHK Calibration
   if(!strncasecmp(line,"shk calibrate spa",17)){
@@ -112,7 +124,27 @@ int handle_command(char *line, sm_t *sm_p){
     return(CMD_NORMAL);
   }
   
-
+  //SHK Calibration
+  if(!strncasecmp(line,"shk flight test",15)){
+    printf("CMD: Running SHK Flight Test\n");
+    //Start data recording
+    printf("  -- Starting data recording\n");
+    sm_p->w[DIAID].launch = getshk_proc;
+    sm_p->w[DIAID].run    = 1;
+    sleep(3);
+    //Start probe pattern
+    sm_p->iwc_calmode=4;
+    printf("  -- Changing IWC calibration mode to %d\n",sm_p->iwc_calmode);
+    while(sm_p->iwc_calmode == 4)
+      sleep(1);
+    printf("  -- Stopping data recording\n");
+    //Stop data recording
+    sm_p->w[DIAID].run    = 0;
+    printf("  -- Done\n");
+    
+    return(CMD_NORMAL);
+  }
+  
   //SHK Zernike Fitting
   if(!strncasecmp(line,"shk zfit on",11)){
     sm_p->shk_fit_zernike=1;

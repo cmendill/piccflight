@@ -103,7 +103,7 @@ typedef int8_t int8;
 #define DATANAME        "data/flight_data/folder_%5.5d/picture.%s.%8.8d.dat"
 #define SHKMATRIX_FILE  "data/shk/iwc_shk_infl_inv.dat"
 #define MAX_FILENAME    128
-#define ZERNIKE2SPA_FILE  "data/shk/iwc_shk_zern_infl_inv.dat"
+#define ZERNIKE2SPA_FILE  "data/shk/iwc_shk_zern_infl.dat"
 
 
 /*************************************************

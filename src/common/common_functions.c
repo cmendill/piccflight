@@ -61,27 +61,33 @@ sm_t *openshm(int *mainfd){
 /******************************************************************************
         TIMESPEC_SUBTRACT
 ******************************************************************************/
-int timespec_subtract(struct timespec *result,struct timespec *x,struct timespec *y){
-  /* Calculates x-y */
+int timespec_subtract(struct timespec *result,struct timespec *inputx,struct timespec *inputy){
+  /* Calculates inputx-inputy */
+  static struct timespec x,y;
+
+  /* Copy input data */
+  memcpy(&x,inputx,sizeof(x));
+  memcpy(&y,inputy,sizeof(y));
+  
   /* Perform the carry for the later subtraction by updating y. */
-  if (x->tv_nsec < y->tv_nsec) {
-    int nsec = (y->tv_nsec - x->tv_nsec) / ONE_BILLION + 1;
-    y->tv_nsec -= ONE_BILLION * nsec;
-    y->tv_sec += nsec;
+  if (x.tv_nsec < y.tv_nsec) {
+    int nsec = (y.tv_nsec - x.tv_nsec) / ONE_BILLION + 1;
+    y.tv_nsec -= ONE_BILLION * nsec;
+    y.tv_sec += nsec;
   }
-  if (x->tv_nsec - y->tv_nsec > ONE_BILLION) {
-    int nsec = (x->tv_nsec - y->tv_nsec) / ONE_BILLION;
-    y->tv_nsec += ONE_BILLION * nsec;
-    y->tv_sec -= nsec;
+  if (x.tv_nsec - y.tv_nsec > ONE_BILLION) {
+    int nsec = (x.tv_nsec - y.tv_nsec) / ONE_BILLION;
+    y.tv_nsec += ONE_BILLION * nsec;
+    y.tv_sec -= nsec;
   }
 
   /* Compute the time remaining to wait.
      tv_nsec is certainly positive. */
-  result->tv_sec = x->tv_sec - y->tv_sec;
-  result->tv_nsec = x->tv_nsec - y->tv_nsec;
+  result->tv_sec = x.tv_sec - y.tv_sec;
+  result->tv_nsec = x.tv_nsec - y.tv_nsec;
 
   /* Return 1 if result is negative. */
-  return x->tv_sec < y->tv_sec;
+  return x.tv_sec < y.tv_sec;
 }
 
 /******************************************************************************

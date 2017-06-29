@@ -12,6 +12,7 @@
 /* piccflight headers */
 #include "../common/controller.h"
 #include "../common/common_functions.h"
+#include "../common/numeric.h"
 
 /**************************************************************/
 /*                      IWC_INIT                             */
@@ -28,23 +29,26 @@ void iwc_init(iwc_t *iwc){
 /*                      IWC_CALIBRATE                         */
 /**************************************************************/
 int iwc_calibrate(int calmode, iwc_t *iwc,int reset){
-  int i,j;
-  static unsigned long int countA=0;
-  static unsigned long int countB=0;
+  int i,j,index;
+  static struct timespec start,this,last,delta;
+  static unsigned long int countA=0,countB=0,countF=0;
   static double zernike2spa[LOWFS_N_ZERNIKE*IWC_NSPA]={0};
   static double zernike_errors[LOWFS_N_ZERNIKE][ZERNIKE_ERRORS_NUMBER]={{0}};
-  const double steptime = ZERNIKE_ERRORS_PERIOD;
+  const double zernike_timestep = ZERNIKE_ERRORS_PERIOD;
   const int zuse[LOWFS_N_ZERNIKE]={0,0,0,1,1,1, 1,1,1,1,1,1, 0,0,0,0,0,0, 0,0,0,0,0,0};
   static int init=0;
-  
   time_t t;
   FILE *fileptr=NULL;
   char filename[MAX_FILENAME];
-   
+  double dt=0,dt0=0,period=0;
+  double zernikes[LOWFS_N_ZERNIKE]={0};
+  double spa[IWC_NSPA];
+  
   /* Reset */
   if(reset){
     countA=0;
     countB=0;
+    countF=0;
     init=0;
     return calmode;
   }
@@ -53,7 +57,9 @@ int iwc_calibrate(int calmode, iwc_t *iwc,int reset){
   if(!init){
     countA=0;
     countB=0;
-
+    countF=0;
+    clock_gettime(CLOCK_REALTIME, &start);
+    
     /* Open ZERNIKE2SPA matrix file */
     //--setup filename
     sprintf(filename,ZERNIKE2SPA_FILE);
@@ -102,6 +108,12 @@ int iwc_calibrate(int calmode, iwc_t *iwc,int reset){
     init=1;
   }
 
+  /* Calculate times */
+  clock_gettime(CLOCK_REALTIME, &this);
+  if(timespec_subtract(&delta,&this,&start))
+    printf("SHK: shk_process_image --> timespec_subtract error!\n");
+  ts2double(&delta,&dt);
+  
   /* CALMODE 1: Scan through acuators poking one at a time */
   if(calmode == 1){
     //Set all SPA actuators to bias
@@ -131,6 +143,7 @@ int iwc_calibrate(int calmode, iwc_t *iwc,int reset){
     }
     else{
       //Turn off calibration
+      printf("XIN: Stopping IWC calmode 2\n");
       calmode = 0;
       init = 0;
     }
@@ -148,13 +161,35 @@ int iwc_calibrate(int calmode, iwc_t *iwc,int reset){
     init = 0;
     return calmode;
   }
+  
   /* CALMODE 4: Flight Simulator */
   if(calmode == 4){
-    
-    
+    if(countF == 0)
+      dt0 = dt;
+    if(countF == 1)
+      period = dt-dt0;
+    //Set index
+    index = (int)((dt-dt0)/zernike_timestep);
+    //Get zernikes for this timestep
+    for(i=0;i<LOWFS_N_ZERNIKE;i++)
+      if(zuse[i])
+	zernikes[i] = zernike_errors[i][index % ZERNIKE_ERRORS_NUMBER];
+    //Convert to IWC DAC codes
+    num_dgemv(zernike2spa, zernikes, spa, IWC_NSPA, LOWFS_N_ZERNIKE);
+    //Add offsets to SPA position
+    for(i=0;i<IWC_NSPA;i++)
+      iwc->spa[i] += (uint16)spa[i];
+    //Check if we are done
+    if((index + (int)(1.1*period/zernike_timestep)) > ZERNIKE_ERRORS_NUMBER){
+      //Turn off calibration
+      printf("XIN: Stopping IWC calmode 4\n");
+      calmode = 0;
+      init = 0;
+      return calmode;
+    }
+    countF++;
   }
-
-  //Return calmode
+    //Return calmode
   return calmode;
 }
 
