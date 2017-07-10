@@ -105,7 +105,7 @@ int handle_command(char *line, sm_t *sm_p){
     printf("  -- Resetting SHK\n");
     sm_p->shk_reset = 1;
     sleep(3);
-    
+
     //Start data recording
     printf("  -- Starting data recording\n");
     sm_p->w[DIAID].launch = getshk_proc;
@@ -120,10 +120,10 @@ int handle_command(char *line, sm_t *sm_p){
     //Stop data recording
     sm_p->w[DIAID].run    = 0;
     printf("  -- Done\n");
-    
+
     return(CMD_NORMAL);
   }
-  
+
   //SHK Calibration
   if(!strncasecmp(line,"shk flight test",15)){
     printf("CMD: Running SHK Flight Test\n");
@@ -141,10 +141,30 @@ int handle_command(char *line, sm_t *sm_p){
     //Stop data recording
     sm_p->w[DIAID].run    = 0;
     printf("  -- Done\n");
-    
+
     return(CMD_NORMAL);
   }
-  
+
+  //Start Manual Data Recording
+  if(!strncasecmp(line, "shk start rec", 13)){
+    printf("CMD: Start Manual Data Recording\n");
+    //Start data recording
+    printf("  --Starting data recording\n");
+    sm_p->w[DIAID].launch = getshk_proc;
+    sm_p->w[DIAID].run    = 1;
+    sleep(3);
+    return(CMD_NORMAL);
+  }
+
+  //Stop Manual Data Recording
+  if(!strncasecmp(line, "shk stop rec", 12)){
+    printf("CMD: Stopping Manual Data Recording\n");
+    //Stop data recording
+    sm_p->w[DIAID].run    = 0;
+    printf("  -- Done\n");
+    return(CMD_NORMAL);
+  }
+
   //SHK Zernike Fitting
   if(!strncasecmp(line,"shk zfit on",11)){
     sm_p->shk_fit_zernike=1;
@@ -156,7 +176,7 @@ int handle_command(char *line, sm_t *sm_p){
     printf("CMD: Turned SHK Zernike fitting OFF\n");
     return(CMD_NORMAL);
   }
-  
+
   //Hexapod control
   if(!strncasecmp(line,"hex getpos",10)){
     sm_p->hex_getpos=1;
@@ -173,7 +193,7 @@ int handle_command(char *line, sm_t *sm_p){
     printf("CMD: Moving hexapod to default positon\n");
     return(CMD_NORMAL);
   }
-  
+
   //Reset Commands
   if(!strncasecmp(line,"shk reset",9)){
     sm_p->shk_reset=1;
@@ -195,7 +215,7 @@ int handle_command(char *line, sm_t *sm_p){
      sm_p->shk_setorigin=1;
     return(CMD_NORMAL);
   }
-    
+
   //SHK Gain
   if(!strncasecmp(line,"shk gain ",9) && strlen(line)>10){
     if(!strncasecmp(line+9,"5",1)){
@@ -246,4 +266,3 @@ int handle_command(char *line, sm_t *sm_p){
   //return with command not found
   return(CMD_NOT_FOUND);
 }
-
