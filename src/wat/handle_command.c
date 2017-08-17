@@ -102,8 +102,8 @@ int handle_command(char *line, sm_t *sm_p){
     sm_p->shk_kP = 0;
     sm_p->shk_kI = 0;
     sm_p->shk_kD = 0;
-    printf("  -- Resetting SHK\n");
-    sm_p->shk_reset = 1;
+    //printf("  -- Resetting SHK\n");
+    //sm_p->shk_reset = 1;
     sleep(3);
 
     //Start data recording
@@ -124,7 +124,7 @@ int handle_command(char *line, sm_t *sm_p){
     return(CMD_NORMAL);
   }
 
-  //SHK Calibration
+  //SHK Flight Test
   if(!strncasecmp(line,"shk flight test",15)){
     printf("CMD: Running SHK Flight Test\n");
     //Start data recording
@@ -205,12 +205,12 @@ int handle_command(char *line, sm_t *sm_p){
   if(!strncasecmp(line,"shk set origin",14)){
     printf("CMD: Setting SHK origin\n");
     //Turn off gains
-    printf("  -- Disabling PID\n");
-    sm_p->shk_kP = 0;
-    sm_p->shk_kI = 0;
-    sm_p->shk_kD = 0;
-    printf("  -- Resetting SHK\n");
-    sm_p->shk_reset = 1;
+    //printf("  -- Disabling PID\n");
+    //sm_p->shk_kP = 0;
+    //sm_p->shk_kI = 0;
+    //sm_p->shk_kD = 0;
+    //printf("  -- Resetting SHK\n");
+    //sm_p->shk_reset = 1;
     sleep(1);
      sm_p->shk_setorigin=1;
     return(CMD_NORMAL);
@@ -222,42 +222,42 @@ int handle_command(char *line, sm_t *sm_p){
       sm_p->shk_kP = SHK_KP_DEFAULT/1;
       sm_p->shk_kI = SHK_KI_DEFAULT/1;
       sm_p->shk_kD = SHK_KD_DEFAULT/1;
-      printf("SHK switching to gain 5\n");
+      printf("SHK switching to gain 5: %f, %f, %f\n",sm_p->shk_kP,sm_p->shk_kI,sm_p->shk_kD);
       return CMD_NORMAL;
     }
     if(!strncasecmp(line+9,"4",1)){
       sm_p->shk_kP = SHK_KP_DEFAULT/2;
       sm_p->shk_kI = SHK_KI_DEFAULT/2;
       sm_p->shk_kD = SHK_KD_DEFAULT/2;
-      printf("SHK switching to gain 4\n");
+      printf("SHK switching to gain 4: %f, %f, %f\n",sm_p->shk_kP,sm_p->shk_kI,sm_p->shk_kD);
       return CMD_NORMAL;
     }
     if(!strncasecmp(line+9,"3",1)){
       sm_p->shk_kP = SHK_KP_DEFAULT/3;
       sm_p->shk_kI = SHK_KI_DEFAULT/3;
       sm_p->shk_kD = SHK_KD_DEFAULT/3;
-      printf("SHK switching to gain 3\n");
+      printf("SHK switching to gain 3: %f, %f, %f\n",sm_p->shk_kP,sm_p->shk_kI,sm_p->shk_kD);
       return CMD_NORMAL;
     }
     if(!strncasecmp(line+9,"2",1)){
       sm_p->shk_kP = SHK_KP_DEFAULT/4;
       sm_p->shk_kI = SHK_KI_DEFAULT/4;
       sm_p->shk_kD = SHK_KD_DEFAULT/4;
-      printf("SHK switching to gain 2\n");
+      printf("SHK switching to gain 2: %f, %f, %f\n",sm_p->shk_kP,sm_p->shk_kI,sm_p->shk_kD);
       return CMD_NORMAL;
     }
     if(!strncasecmp(line+9,"1",1)){
       sm_p->shk_kP = SHK_KP_DEFAULT/5;
       sm_p->shk_kI = SHK_KI_DEFAULT/5;
       sm_p->shk_kD = SHK_KD_DEFAULT/5;
-      printf("SHK switching to gain 1\n");
+      printf("SHK switching to gain 1: %f, %f, %f\n",sm_p->shk_kP,sm_p->shk_kI,sm_p->shk_kD);
       return CMD_NORMAL;
     }
     if(!strncasecmp(line+9,"0",1)){
       sm_p->shk_kP = 0;
       sm_p->shk_kI = 0;
       sm_p->shk_kD = 0;
-      printf("SHK switching to gain 0\n");
+      printf("SHK switching to gain 0: %f, %f, %f\n",sm_p->shk_kP,sm_p->shk_kI,sm_p->shk_kD);
       return CMD_NORMAL;
     }
   }

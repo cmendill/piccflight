@@ -154,11 +154,12 @@ int iwc_calibrate(int calmode, iwc_t *iwc,int reset){
   if(calmode == 3){
     //Intializes random number generator
     srand((unsigned) time(&t));
-    for(i=0;i<IWC_NSPA;i++)
-      iwc->spa[i] = (rand() % 2*IWC_SPA_POKE) - IWC_SPA_POKE + IWC_SPA_BIAS;
-    //Turn off calibration
-    calmode = 0;
-    init = 0;
+    if(countA == 0){
+      printf("XIN: Randomizing SPA\n");
+      for(i=0;i<IWC_NSPA;i++)
+	iwc->spa[i] = (uint16)(0.5*((rand() % 2*IWC_SPA_POKE) - IWC_SPA_POKE)) + IWC_SPA_BIAS;
+    }
+    countA++;
     return calmode;
   }
   
@@ -189,9 +190,19 @@ int iwc_calibrate(int calmode, iwc_t *iwc,int reset){
     }
     countF++;
   }
+
+  /* CALMODE 5: Hold current pattern on IWC */
+  if(calmode == 5){
+    for(i=0;i<IWC_NSPA;i++)
+      iwc->spa[i] = iwc->spa[i];
+  return calmode;
+  }
+
     //Return calmode
   return calmode;
 }
+
+
 
 /**************************************************************/
 /*                      IWC_CHECK                             */

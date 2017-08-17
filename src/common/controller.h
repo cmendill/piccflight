@@ -222,7 +222,7 @@ enum bufids {SCIEVENT, SCIFULL, SHKEVENT, SHKFULL, LYTEVENT, LYTFULL, ACQEVENT, 
 #define IWC_DMID     ((IWC_DMIN+IWC_DMAX)/2)  
 #define IWC_SPA_BIAS 9902
 #define IWC_SPA_POKE 6000
-#define IWC_NCALIM   25  //number of calibration images to take per step
+#define IWC_NCALIM   50  //number of calibration images to take per step
 
 /*************************************************
  * PIEZO Mirror Parameters
@@ -265,8 +265,8 @@ enum procids {WATID, SCIID, SHKID, LYTID, TLMID, ACQID, MOTID, THMID, SRVID, TMP
 #define SHK_MAX_BOXSIZE       27     //[pixels] gives a 5 pixel buffer around edges
 #define SHK_SPOT_UPPER_THRESH 200
 #define SHK_SPOT_LOWER_THRESH 100
-#define SHK_CELL_XOFF         78
-#define SHK_CELL_YOFF         58
+#define SHK_CELL_XOFF         73
+#define SHK_CELL_YOFF         53
 #define SHK_CELL_ROTATION     0.0
 #define SHK_CELL_XSCALE       1.0
 #define SHK_CELL_YSCALE       1.0

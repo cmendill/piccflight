@@ -28,7 +28,7 @@ void shk_init_cells(shkevent_t *shkevent){
   //Zero out cells
   memset(shkevent->cells,0,sizeof(shkcell_t));
   shkevent->beam_ncells = 0;
-  
+
   //Initialize cells
   c=0;
   for(j=0;j<SHK_YCELLS;j++){
@@ -217,7 +217,7 @@ void shk_centroid(uint16 *image, shkevent_t *shkevent){
   shkevent->ytilt=0;
 
   //Set boxsize
-  if(shkevent->kP == 0 && shkevent->kI == 0 && shkevent->kI == 0)
+  if(shkevent->iwc.calmode == 2) //NEED TO MAKE THIS MORE CLEAR
     shkevent->boxsize = SHK_MAX_BOXSIZE;
   
   //Get background
@@ -456,7 +456,7 @@ int shk_shk2iwc(shkevent_t *shkevent, int reset){
   num_dgemv(shk2iwc,shk_xydev,shkevent->iwc_spa_matrix, IWC_NSPA, beam_ncells_2);
 
   //Recast to integers
-  for(i=0;i<IWC_NSPA;i++) shkevent->iwc.spa[i] = (uint16)(shkevent->iwc_spa_matrix[i] + IWC_SPA_BIAS);
+  for(i=0;i<IWC_NSPA;i++) shkevent->iwc.spa[i] += (uint16)(shkevent->iwc_spa_matrix[i]);
 
   return 0;
 }
@@ -478,15 +478,18 @@ void shk_cellpid(shkevent_t *shkevent, int reset){
       shkevent->cells[i].command[1] = 0;
     }
     init=1;
+    if(reset) return;
   }
+
+  //Run PID
   for(i=0;i<SHK_NCELLS;i++){
     if(shkevent->cells[i].beam_select){
       //Calculate integrals
       xint[i] += shkevent->cells[i].deviation[0];
       yint[i] += shkevent->cells[i].deviation[1];
       //Calculate command
-      shkevent->cells[i].command[0] += shkevent->kP * shkevent->cells[i].deviation[0] + shkevent->kI * xint[i];
-      shkevent->cells[i].command[1] += shkevent->kP * shkevent->cells[i].deviation[1] + shkevent->kI * yint[i];
+      shkevent->cells[i].command[0] = shkevent->kP * shkevent->cells[i].deviation[0] + shkevent->kI * xint[i];
+      shkevent->cells[i].command[1] = shkevent->kP * shkevent->cells[i].deviation[1] + shkevent->kI * yint[i];
     }
   }
   
@@ -557,20 +560,18 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   shkevent.kI = sm_p->shk_kI;
   shkevent.kD = sm_p->shk_kD;
   
-  
   //Calculate centroids
   shk_centroid(buffer->pvAddress,&shkevent);
 
   //Set origin
-  if(sm_p->shk_setorigin)
-    sm_p->shk_setorigin = shk_setorigin(&shkevent);
+  if(sm_p->shk_setorigin) sm_p->shk_setorigin = shk_setorigin(&shkevent);
   
   //Fit Zernikes
   if(sm_p->shk_fit_zernike) shk_zernike_fit(&shkevent);
   
   //Run PID
   shk_cellpid(&shkevent,0);
-
+  
   //Convert cells to IWC
   shk_shk2iwc(&shkevent,0);
   
