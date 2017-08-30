@@ -68,6 +68,7 @@ typedef int8_t int8;
 #define IWC_ENABLE      1 // IWC
 #define DM_ENABLE       0 // DM
 #define PEZ_ENABLE      0 // PIEZO Mirrors
+#define HEX_ENABLE      1 // Hexapod
 
 /*************************************************
 * Software Switches
@@ -218,11 +219,11 @@ enum bufids {SCIEVENT, SCIFULL, SHKEVENT, SHKFULL, LYTEVENT, LYTFULL, ACQEVENT, 
 #define IWCXS        10
 #define IWCYS        10
 #define IWC_DMAX     ((1<<14) - 1)
-#define IWC_DMIN     0                   
-#define IWC_DMID     ((IWC_DMIN+IWC_DMAX)/2)  
-#define IWC_SPA_BIAS 9902
-#define IWC_SPA_POKE 6000
-#define IWC_NCALIM   50  //number of calibration images to take per step
+#define IWC_DMIN     0
+#define IWC_DMID     ((IWC_DMIN+IWC_DMAX)/2)
+#define IWC_SPA_BIAS 9502
+#define IWC_SPA_POKE 3000
+#define IWC_NCALIM   25  //number of calibration images to take per step
 
 /*************************************************
  * PIEZO Mirror Parameters
@@ -239,6 +240,9 @@ enum bufids {SCIEVENT, SCIFULL, SHKEVENT, SHKFULL, LYTEVENT, LYTFULL, ACQEVENT, 
 #define HEX_AXES_PIV     "R S T"
 #define HEX_POS_HOME     {0,0,0,0,0,0}
 #define HEX_POS_DEFAULT  {-0.532703, -0.116609, 0.129163, -0.084472, 0.158890, 0.100052}
+#define HEX_TRL_POKE      0.05
+#define HEX_ROT_POKE      0.005
+#define HEX_NCALIM        50
 #define HEX_PIVOT_X       122.32031250
 #define HEX_PIVOT_Y       206.61012268
 #define HEX_PIVOT_Z       74.0
@@ -258,15 +262,15 @@ enum procids {WATID, SCIID, SHKID, LYTID, TLMID, ACQID, MOTID, THMID, SRVID, TMP
 #define SHK_XCELLS            16
 #define SHK_YCELLS            16
 #define SHK_NCELLS            256
-#define SHK_LENSLET_PITCH_UM  300.0  
+#define SHK_LENSLET_PITCH_UM  300.0
 #define SHK_FOCAL_LENGTH_UM   18600.0
 #define SHK_BOX_DEADBAND      3      //[pixels] deadband radius for switching to smaller boxsize
 #define SHK_MIN_BOXSIZE       (SHK_BOX_DEADBAND+1)
 #define SHK_MAX_BOXSIZE       27     //[pixels] gives a 5 pixel buffer around edges
 #define SHK_SPOT_UPPER_THRESH 200
 #define SHK_SPOT_LOWER_THRESH 100
-#define SHK_CELL_XOFF         73
-#define SHK_CELL_YOFF         53
+#define SHK_CELL_XOFF         76
+#define SHK_CELL_YOFF         51
 #define SHK_CELL_ROTATION     0.0
 #define SHK_CELL_XSCALE       1.0
 #define SHK_CELL_YSCALE       1.0
@@ -356,8 +360,13 @@ typedef struct {
 typedef struct iwc_struct{
   uint16 spa[IWC_NSPA];
   uint16 ttp[IWC_NTTP];
-  uint16 calmode; 
+  uint16 calmode;
 } iwc_t;
+
+typedef struct hex_struct{
+  double axs[HEX_NAXES];
+  uint64 calmode;
+} hex_t;
 
 typedef struct dm_struct{
   uint16 act[DM_NACT];
@@ -415,6 +424,7 @@ typedef struct shkevent_struct{
   double    zernikes[LOWFS_N_ZERNIKE];
   double    iwc_spa_matrix[IWC_NSPA];
   iwc_t     iwc;
+  hex_t     hex;
 } shkevent_t;
 
 typedef struct lytevent_struct{
@@ -563,24 +573,27 @@ typedef volatile struct {
 
   //Actuators
   double hex[HEX_NAXES];
-  
+
   //IWC Calibration Mode
   int iwc_calmode;
-  
+
+  //HEX Calibration Mode
+  int hex_calmode;
+
   //Shack-Hartmann Settings
   int shk_boxsize;        //SHK centroid boxsize
   int shk_fit_zernike;    //Turn SHK Zernike fitting ON/OFF
   double shk_kP;
   double shk_kI;
   double shk_kD;
-  
+
   //Commands
   int hex_getpos;
   int hex_gohome;
   int hex_godef;
   int shk_reset;
   int shk_setorigin;
-  
+
   //Events circular buffers
   scievent_t scievent[SCIEVENTSIZE];
   shkevent_t shkevent[SHKEVENTSIZE];
@@ -595,8 +608,5 @@ typedef volatile struct {
 
   //Circular buffer package
   circbuf_t circbuf[NCIRCBUF];
- 
+
 } sm_t;
-
-
-

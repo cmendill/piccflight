@@ -34,6 +34,8 @@ int handle_command(char *line, sm_t *sm_p){
   float ftemp;
   int   itemp;
   char  stemp[CMD_MAX_LENGTH];
+  double trl_poke = HEX_TRL_POKE;
+  double rot_poke = HEX_ROT_POKE;
 
   /****************************************
    * SYSTEM COMMANDS
@@ -193,6 +195,110 @@ int handle_command(char *line, sm_t *sm_p){
     printf("CMD: Moving hexapod to default positon\n");
     return(CMD_NORMAL);
   }
+  if(!strncasecmp(line,"hex move x",10)){
+    sm_p->hex[0] += trl_poke;
+    printf("CMD: Moving hexapod axis x by %f mm\n", trl_poke);
+    return(CMD_NORMAL);
+  }
+  if(!strncasecmp(line,"hex move -x",11)){
+    sm_p->hex[0] -= trl_poke;
+    printf("CMD: Moving hexapod axis -x by %f mm\n", trl_poke);
+    return(CMD_NORMAL);
+  }
+  if(!strncasecmp(line,"hex move y",10)){
+    sm_p->hex[1] += trl_poke;
+    printf("CMD: Moving hexapod axis y by %f mm\n", trl_poke);
+    return(CMD_NORMAL);
+  }
+  if(!strncasecmp(line,"hex move -y",11)){
+    sm_p->hex[1] -= trl_poke;
+    printf("CMD: Moving hexapod axis -y by %f mm\n", trl_poke);
+    return(CMD_NORMAL);
+  }
+  if(!strncasecmp(line,"hex move z",10)){
+    sm_p->hex[2] += trl_poke;
+    printf("CMD: Moving hexapod axis z by %f mm\n", trl_poke);
+    return(CMD_NORMAL);
+  }
+  if(!strncasecmp(line,"hex move -z",11)){
+    sm_p->hex[2] -= trl_poke;
+    printf("CMD: Moving hexapod axis -z by %f mm\n", trl_poke);
+    return(CMD_NORMAL);
+  }
+  if(!strncasecmp(line,"hex move u",10)){
+    sm_p->hex[3] += rot_poke;
+    printf("CMD: Moving hexapod axis u by %f deg\n", rot_poke);
+    return(CMD_NORMAL);
+  }
+  if(!strncasecmp(line,"hex move -u",11)){
+    sm_p->hex[3] -= rot_poke;
+    printf("CMD: Moving hexapod axis -u by %f deg\n", rot_poke);
+    return(CMD_NORMAL);
+  }
+  if(!strncasecmp(line,"hex move v",10)){
+    sm_p->hex[4] += rot_poke;
+    printf("CMD: Moving hexapod axis v by %f deg\n", rot_poke);
+    return(CMD_NORMAL);
+  }
+  if(!strncasecmp(line,"hex move -v",11)){
+    sm_p->hex[4] -= rot_poke;
+    printf("CMD: Moving hexapod axis -v by %f deg\n", rot_poke);
+    return(CMD_NORMAL);
+  }
+  if(!strncasecmp(line,"hex move w",10)){
+    sm_p->hex[5] += rot_poke;
+    printf("CMD: Moving hexapod axis w by %f deg\n", rot_poke);
+    return(CMD_NORMAL);
+  }
+  if(!strncasecmp(line,"hex move -w",11)){
+    sm_p->hex[5] -= rot_poke;
+    printf("CMD: Moving hexapod axis -w by %f deg\n", rot_poke);
+    return(CMD_NORMAL);
+  }
+
+  // HEX Calmodes
+  if(!strncasecmp(line,"hex calmode 0",13)){
+    sm_p->hex_calmode=0;
+    printf("CMD: Changed HEX calibration mode to %d\n",sm_p->hex_calmode);
+    return(CMD_NORMAL);
+  }
+
+  if(!strncasecmp(line,"hex calmode 2",13)){
+    sm_p->hex_calmode=2;
+    printf("CMD: Changed HEX calibration mode to %d\n",sm_p->hex_calmode);
+    return(CMD_NORMAL);
+  }
+
+  //HEX Calibration
+  if(!strncasecmp(line,"shk calibrate hex",17)){
+    printf("CMD: Running HEX AXS calibration\n");
+    printf("  -- Disabling PID\n");
+    //Turn off gains
+    sm_p->shk_kP = 0;
+    sm_p->shk_kI = 0;
+    sm_p->shk_kD = 0;
+    //printf("  -- Resetting SHK\n");
+    //sm_p->shk_reset = 1;
+    sleep(3);
+
+    //Start data recording
+    printf("  -- Starting data recording\n");
+    sm_p->w[DIAID].launch = getshk_proc;
+    sm_p->w[DIAID].run    = 1;
+    sleep(3);
+    //Start probe pattern
+    sm_p->hex_calmode=2;
+    printf("  -- Changing HEX calibration mode to %d\n",sm_p->hex_calmode);
+    while(sm_p->hex_calmode == 2)
+      sleep(1);
+    printf("  -- Stopping data recording\n");
+    //Stop data recording
+    sm_p->w[DIAID].run    = 0;
+    printf("  -- Done\n");
+
+    return(CMD_NORMAL);
+  }
+
 
   //Reset Commands
   if(!strncasecmp(line,"shk reset",9)){

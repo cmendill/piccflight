@@ -6,10 +6,22 @@
 #include <string.h>
 #include <fcntl.h>
 #include <ctype.h>
+#include <time.h>
 
 /* piccflight headers */
 #include "PI_GCS2_DLL.h"
 #include "../common/controller.h"
+#include "../common/common_functions.h"
+
+/**************************************************************/
+/*                      HEX_INIT                              */
+/**************************************************************/
+void hex_init(hex_t *hex){
+  int i;
+  double hexdef[HEX_NAXES] = HEX_POS_DEFAULT;
+  for(i=0;i<HEX_NAXES;i++)
+    hex->axs[i] = hexdef[i];
+}
 
 //Connect to hexapod
 int hex_connect(void){
@@ -68,10 +80,79 @@ int hex_getpos(int id, double *pos){
 //Set pivot point
 int hex_setpivot(int id, double *pivot){
   const char axes_piv[7] = "R S T";
-  
+
   if(!PI_SPI(id, axes_piv, pivot)){
     printf("HEX: PI_SPI error!\n");
     return 1;
   }
   return 0;
+}
+
+/**************************************************************/
+/*                      HEX_CALIBRATE                         */
+/**************************************************************/
+
+int hex_calibrate(int calmode, hex_t *hex, int reset){
+  int i;
+  double hexdef[6]  = HEX_POS_DEFAULT;
+  static struct timespec start,this,last,delta;
+  static unsigned long int countA=0, countB=0;
+  static int init=0;
+  time_t t;
+  double dt=0;
+  double axs[HEX_NAXES];
+
+  /* Reset */
+  if(reset){
+    countA=0;
+    countB=0;
+    init=0;
+    return calmode;
+  }
+
+  /* Initialize */
+  if(!init){
+    countA=0;
+    countB=0;
+    clock_gettime(CLOCK_REALTIME, &start);
+    init=1;
+  }
+    /* Calculate times */
+    clock_gettime(CLOCK_REALTIME, &this);
+    if(timespec_subtract(&delta,&this,&start))
+      printf("SHK: shk_process_image --> timespec_subtract error!\n");
+    ts2double(&delta,&dt);
+
+  /* CALMODE 2: Move through axes one at a time.
+  *              Go home in between each move.
+  */
+  if(calmode == 2){
+    if((countA >= 0 && countA < (2*HEX_NAXES*HEX_NCALIM)) || (countA/HEX_NCALIM) % 2 == 0){
+      //move hexapod to default position.
+      for(i=0;i<HEX_NAXES;i++){
+        hex->axs[i]=hexdef[i];
+      }
+      //move one axis
+      if((countA/HEX_NCALIM) % 2 == 1){
+        if((countB/HEX_NCALIM) % HEX_NAXES <=2){
+          hex->axs[(countB/HEX_NCALIM) % HEX_NAXES] += HEX_TRL_POKE;
+        }else{
+          hex->axs[(countB/HEX_NCALIM) % HEX_NAXES] += HEX_ROT_POKE;
+        }
+        countB++;
+      }
+      countA++;
+    }
+    else{
+      //Turn off calibration
+      printf("HEX: Stopping HEX calmode 2\n");
+      for(i=0;i<HEX_NAXES;i++)
+        hex->axs[i] = hexdef[i];
+      calmode = 0;
+      init = 0;
+    }
+  return calmode;
+  }
+
+  return calmode;
 }

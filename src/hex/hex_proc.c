@@ -137,11 +137,15 @@ void hex_proc(void){
       printf("HEX: W = %f\n",hexpos[5]);
       sm_p->hex_getpos = 0;
     }
-        
+
     /* Sleep */
-    sleep(sm_p->w[HEXID].per);
+    if(sm_p->hex_calmode){
+      usleep(ONE_MILLION / 50);
+    }else{
+      sleep(sm_p->w[HEXID].per);
+    }
   }
-  
+
   hexctrlC(0);
   return;
 }

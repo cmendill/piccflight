@@ -13,6 +13,7 @@
 #include "../common/common_functions.h"
 #include "../common/numeric.h"
 #include "../xin/xin_functions.h"
+#include "../hex/hex_functions.h"
 #include "../phx/include/phx_api.h"
 #include "../phx/config.h"
 
@@ -231,19 +232,19 @@ void shk_centroid(uint16 *image, shkevent_t *shkevent){
       shkevent->ytilt += shkevent->cells[i].deviation[1];
     }
   }
-  
+
   //Average tilts
   shkevent->xtilt /= shkevent->beam_ncells;
   shkevent->ytilt /= shkevent->beam_ncells;
 
   //Subtract tilts
-  for(i=0;i<SHK_NCELLS;i++){
-    if(shkevent->cells[i].beam_select){
-      shkevent->cells[i].deviation[0] -= shkevent->xtilt;  
-      shkevent->cells[i].deviation[1] -= shkevent->ytilt;
-    }
-  }
-  
+  // for(i=0;i<SHK_NCELLS;i++){
+  //   if(shkevent->cells[i].beam_select){
+  //     shkevent->cells[i].deviation[0] -= shkevent->xtilt;
+  //     shkevent->cells[i].deviation[1] -= shkevent->ytilt;
+  //   }
+  // }
+
 }
 
 /**************************************************************/
@@ -512,7 +513,9 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   int32 i,j;
   uint16 fakepx=0;
   int iwc_calmode=0;
-  
+  int hex_calmode=0;
+  double old_hex;
+
   //Get time immidiately
   clock_gettime(CLOCK_REALTIME,&start);
 
@@ -530,7 +533,9 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     memset(&pez,0,sizeof(pez_t));
     shk_init_cells(&shkevent);
     iwc_init(&shkevent.iwc);
+    hex_init(&shkevent.hex);
     iwc_calibrate(iwc_calmode,&shkevent.iwc,1);
+    hex_calibrate(hex_calmode,&shkevent.hex,1);
     shk_shk2iwc(&shkevent,1);
     shk_cellpid(&shkevent,1);
     memcpy(&first,&start,sizeof(struct timespec));
@@ -541,9 +546,12 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   if(timespec_subtract(&delta,&start,&last))
     printf("SHK: shk_process_image --> timespec_subtract error!\n");
   ts2double(&delta,&dt);
-  
+
   //Set iwc_calmode
   iwc_calmode = sm_p->iwc_calmode;
+
+  //Set hex_calmode
+  hex_calmode = sm_p->hex_calmode;
 
   //Fill out event header
   shkevent.frame_number = frame_number;
@@ -556,37 +564,51 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   shkevent.start_sec = start.tv_sec;
   shkevent.start_nsec = start.tv_nsec;
   shkevent.iwc.calmode = iwc_calmode;
+  shkevent.hex.calmode = hex_calmode;
   shkevent.kP = sm_p->shk_kP;
   shkevent.kI = sm_p->shk_kI;
   shkevent.kD = sm_p->shk_kD;
-  
+
   //Calculate centroids
   shk_centroid(buffer->pvAddress,&shkevent);
 
   //Set origin
   if(sm_p->shk_setorigin) sm_p->shk_setorigin = shk_setorigin(&shkevent);
-  
+
   //Fit Zernikes
   if(sm_p->shk_fit_zernike) shk_zernike_fit(&shkevent);
-  
+
   //Run PID
   shk_cellpid(&shkevent,0);
-  
+
   //Convert cells to IWC
   shk_shk2iwc(&shkevent,0);
-  
+
   //Calibrate IWC
   if(iwc_calmode) sm_p->iwc_calmode = iwc_calibrate(iwc_calmode,&shkevent.iwc,0);
-  
-  //Apply update
+
+  //Calibrate HEX
+  if(hex_calmode) sm_p->hex_calmode = hex_calibrate(hex_calmode,&shkevent.hex,0);
+
+  //Apply update to IWC
   if(xin_write(sm_p->xin_dev,&shkevent.iwc,&dm,&pez)){
     printf("SHK: xin_write failed!\n");
     //Do something??
   }
-  
+
+  //Apply update to HEX
+  if(hex_calmode){
+    for(i=0;i<HEX_NAXES;i++){
+      old_hex = sm_p->hex[i];
+      sm_p->hex[i] = shkevent.hex.axs[i];
+      if(old_hex != sm_p->hex[i]){
+        usleep(ONE_MILLION);
+      }
+    }
+  }
   //Open circular buffer
   shkevent_p=(shkevent_t *)open_buffer(sm_p,SHKEVENT);
-  
+
   //Copy data
   memcpy(shkevent_p,&shkevent,sizeof(shkevent_t));;
 
