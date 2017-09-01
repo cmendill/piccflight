@@ -28,7 +28,7 @@
 int handle_command(char *line, sm_t *sm_p);
 
 //Flight Processes
-extern void sci_proc(void); //science camera 
+extern void sci_proc(void); //science camera
 extern void shk_proc(void); //shack-hartmann camera
 extern void lyt_proc(void); //lyot lowfs camera
 extern void tlm_proc(void); //telemetry
@@ -45,7 +45,7 @@ extern void dia_proc(void); //diagnostic program
 extern void getshk_proc(void); //get shkevents
 
 /* Kill Process */
-void kill_proc(sm_t *sm_p,int id){ 
+void kill_proc(sm_t *sm_p,int id){
   char rmmod[100] = "modprobe -r ";
   int i;
   int keep_going=1;
@@ -78,9 +78,9 @@ void kill_proc(sm_t *sm_p,int id){
     }
     else{
       if(WAT_DEBUG) printf("WAT: unloaded with SIGINT: %s\n",sm_p->w[id].name);
-    }  
+    }
   }
-  
+
   //setup for next time
   sm_p->w[id].pid = -1;
 }
@@ -99,7 +99,7 @@ void launch_proc(sm_t *sm_p,int id){
   sm_p->w[id].chk  =  0;
   sm_p->w[id].rec  =  0;
   sm_p->w[id].cnt  =  0;
-  
+
 
   // User-Space Process
   // --fork
@@ -112,7 +112,7 @@ void launch_proc(sm_t *sm_p,int id){
     }
     else{
       if(WAT_DEBUG) printf("WAT: started: %s:%d\n",sm_p->w[id].name,sm_p->w[id].pid);
-    }    
+    }
   }
   else{
     //we are the child
@@ -127,7 +127,7 @@ void wat_proc(void){
   volatile uint32 chk;
   sm_t *sm_p;
   int shmfd;
-  
+
   /**********************************
    *     Open shared memory
    *********************************/
@@ -139,7 +139,7 @@ void wat_proc(void){
     close(shmfd);
     exit(1);
   }
-  
+
 
   /* Start Watchdog */
   while(1){
@@ -148,10 +148,10 @@ void wat_proc(void){
       if(i != WATID)
 	if(sm_p->w[i].pid != -1)
 	  if(waitpid(sm_p->w[i].pid,NULL,WNOHANG) == sm_p->w[i].pid){
-	    sm_p->w[i].pid = -1; 
+	    sm_p->w[i].pid = -1;
 	    printf("WAT: %s crashed!\n",sm_p->w[i].name);
-	  }    
-    
+	  }
+
     /*(SECTION 1): Kill everything if we've been turned off*/
     if(sm_p->die){
       for(i=0;i<NCLIENTS;i++)
@@ -160,7 +160,7 @@ void wat_proc(void){
 	    kill_proc(sm_p,i);
       break;
     }
-    
+
     /*(SECTION 2): If loop has died or been dead for last LOOP_TIMEOUT checks: KILL */
     for(i=0;i<NCLIENTS;i++)
       if(i != WATID)
@@ -177,14 +177,14 @@ void wat_proc(void){
 	if(sm_p->w[i].run)
 	  if(sm_p->w[i].pid == -1)
 	    launch_proc(sm_p,i);
-    
+
     /*(SECTION 4): If loop is running and shouldn't be: KILL */
     for(i=0;i<NCLIENTS;i++)
       if(i != WATID)
 	if(!sm_p->w[i].run)
 	  if(sm_p->w[i].pid != -1)
 	    kill_proc(sm_p,i);
- 
+
     /*(SECTION 5): If loop returned and needs to be restarted */
     for(i=0;i<NCLIENTS;i++)
       if(i != WATID)
@@ -211,7 +211,7 @@ void wat_proc(void){
 	}
       }
     }
-        
+
     /*(SECTION 7): Print checkin counts*/
     if(WAT_DEBUG){
       printf("\n");
@@ -247,13 +247,13 @@ int main(int argc,char **argv){
     printf("openshm fail: main\n");
     close(shmfd);
     exit(0);
-  } 
+  }
 
   /* Erase Shared Memory */
   memset((char *)sm_p,0,sizeof(sm_t));
 
-  
-  /* Initialize Watchdog Structure*/ 
+
+  /* Initialize Watchdog Structure*/
   uint8 proctmo[NCLIENTS]  = PROCTMO;
   uint8 procask[NCLIENTS]  = PROCASK;
   uint8 procrun[NCLIENTS]  = PROCRUN;
@@ -294,22 +294,23 @@ int main(int argc,char **argv){
     case DIAID:sm_p->w[i].launch = dia_proc; break;
     }
   }
-  
+
   /* Set Runtime Defaults */
   /* All shmem numbers are ZERO unless defined here */
-  sm_p->memlock         = 0;  
+  sm_p->memlock         = 0;
   sm_p->die             = 0;
-  sm_p->sci_mode        = SCI_MODE_DEFAULT;  
-  sm_p->shk_mode        = SHK_MODE_DEFAULT;  
-  sm_p->lyt_mode        = LYT_MODE_DEFAULT;  
-  sm_p->acq_mode        = ACQ_MODE_DEFAULT;  
+  sm_p->sci_mode        = SCI_MODE_DEFAULT;
+  sm_p->shk_mode        = SHK_MODE_DEFAULT;
+  sm_p->lyt_mode        = LYT_MODE_DEFAULT;
+  sm_p->acq_mode        = ACQ_MODE_DEFAULT;
   sm_p->shk_boxsize     = SHK_BOXSIZE_DEFAULT;
   sm_p->shk_fit_zernike = SHK_FIT_ZERNIKE_DEFAULT;
   sm_p->shk_kP          = SHK_KP_DEFAULT;
   sm_p->shk_kI          = SHK_KI_DEFAULT;
   sm_p->shk_kD          = SHK_KD_DEFAULT;
+  sm_p->hex_kP          = HEX_KP_DEFAULT;
   memcpy((void *)sm_p->hex,(void *)hex_pos,sizeof(hex_pos));
-  
+
   /* Configure Circular Buffers */
   //-- Event buffers
   sm_p->circbuf[SCIEVENT].buffer  = (void *)sm_p->scievent;
@@ -360,7 +361,7 @@ int main(int argc,char **argv){
 #else
   printf("WAT: XIN driver disabled\n");
 #endif
-  
+
   /* Launch Watchdog */
   if(sm_p->w[WATID].run){
     if(sm_p->w[WATID].pid == -1){
@@ -394,10 +395,10 @@ int main(int argc,char **argv){
       shutdown=1;
       break;
     }
-    
+
 
 }
-  
+
  cleanup:
 
   /* Clean Up */
@@ -411,26 +412,25 @@ int main(int argc,char **argv){
     xin_closeDev(xin_dev);
   }
 #endif
-  
+
   //Wait for watchdog to exit
   if(procwait(sm_p->w[WATID].pid,EXIT_TIMEOUT))
     printf("WAT: cleanup timeout!\n");
   else
     printf("WAT: cleanup done.\n");
-  
+
   close(shmfd);
 
 
   //Shutdown CPU
   if(shutdown){
     printf("WAT: Shutting down CPU NOW!\n");
-    fflush(stdout); 
+    fflush(stdout);
     if(system("shutdown -h now"))
       printf("WAT: shutdown command failed! (%d)\n",errno);
-    
+
     //Go to sleep
     sleep(60);
   }
   return 0;
 }
-	

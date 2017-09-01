@@ -34,8 +34,8 @@ int handle_command(char *line, sm_t *sm_p){
   float ftemp;
   int   itemp;
   char  stemp[CMD_MAX_LENGTH];
-  double trl_poke = HEX_TRL_POKE;
-  double rot_poke = HEX_ROT_POKE;
+  double trl_poke = HEX_TRL_POKE * 0.1;
+  double rot_poke = HEX_ROT_POKE * 0.1;
 
   /****************************************
    * SYSTEM COMMANDS
@@ -263,6 +263,12 @@ int handle_command(char *line, sm_t *sm_p){
     return(CMD_NORMAL);
   }
 
+  if(!strncasecmp(line,"hex calmode 1",13)){
+    sm_p->hex_calmode=1;
+    printf("CMD: Changed HEX calibration mode to %d\n",sm_p->hex_calmode);
+    return(CMD_NORMAL);
+  }
+
   if(!strncasecmp(line,"hex calmode 2",13)){
     sm_p->hex_calmode=2;
     printf("CMD: Changed HEX calibration mode to %d\n",sm_p->hex_calmode);
@@ -364,6 +370,40 @@ int handle_command(char *line, sm_t *sm_p){
       sm_p->shk_kI = 0;
       sm_p->shk_kD = 0;
       printf("SHK switching to gain 0: %f, %f, %f\n",sm_p->shk_kP,sm_p->shk_kI,sm_p->shk_kD);
+      return CMD_NORMAL;
+    }
+  }
+
+  //HEX Gain
+  if(!strncasecmp(line,"hex gain ",9) && strlen(line)>10){
+    if(!strncasecmp(line+9,"5",1)){
+      sm_p->hex_kP = HEX_KP_DEFAULT/1;
+      printf("HEX switching to gain 5: %f\n",sm_p->hex_kP);
+      return CMD_NORMAL;
+    }
+    if(!strncasecmp(line+9,"4",1)){
+      sm_p->hex_kP = HEX_KP_DEFAULT/2;
+      printf("HEX switching to gain 4: %f\n",sm_p->hex_kP);
+      return CMD_NORMAL;
+    }
+    if(!strncasecmp(line+9,"3",1)){
+      sm_p->hex_kP = HEX_KP_DEFAULT/3;
+      printf("HEX switching to gain 3: %f\n",sm_p->hex_kP);
+      return CMD_NORMAL;
+    }
+    if(!strncasecmp(line+9,"2",1)){
+      sm_p->hex_kP = HEX_KP_DEFAULT/4;
+      printf("HEX switching to gain 2: %f\n",sm_p->hex_kP);
+      return CMD_NORMAL;
+    }
+    if(!strncasecmp(line+9,"1",1)){
+      sm_p->hex_kP = HEX_KP_DEFAULT/5;
+      printf("HEX switching to gain 1: %f\n",sm_p->hex_kP);
+      return CMD_NORMAL;
+    }
+    if(!strncasecmp(line+9,"0",1)){
+      sm_p->hex_kP = 0;
+      printf("HEX switching to gain 0: %f\n",sm_p->hex_kP);
       return CMD_NORMAL;
     }
   }

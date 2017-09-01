@@ -32,7 +32,7 @@ int hex_connect(void){
 int hex_move(int id, double *pos){
   const char axes_all[13] = HEX_AXES_ALL;
   char *chkaxis=""; //will check all axes
-  
+
   if(!PI_MOV(id, axes_all, pos)){
     printf("HEX: PI_MOV error!\n");
     return 1;
@@ -122,6 +122,9 @@ int hex_calibrate(int calmode, hex_t *hex, int reset){
     if(timespec_subtract(&delta,&this,&start))
       printf("SHK: shk_process_image --> timespec_subtract error!\n");
     ts2double(&delta,&dt);
+
+  /* CALMODE 1: Be not zero.*/
+
 
   /* CALMODE 2: Move through axes one at a time.
   *              Go home in between each move.

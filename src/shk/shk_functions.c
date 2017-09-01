@@ -25,7 +25,7 @@ void shk_init_cells(shkevent_t *shkevent){
   float cell_size_px = SHK_LENSLET_PITCH_UM/SHK_PX_PITCH_UM;
   int i,j,c,x,y;
   int beam_ncells=0;
-  
+
   //Zero out cells
   memset(shkevent->cells,0,sizeof(shkcell_t));
   shkevent->beam_ncells = 0;
@@ -54,7 +54,7 @@ int shk_setorigin(shkevent_t *shkevent){
   static double cx[SHK_NCELLS]={0}, cy[SHK_NCELLS]={0};
   static int count=0;
   const int navg = SHK_ORIGIN_NAVG;
-  
+
   //Average the centroids
   if(count < navg){
     for(i=0;i<SHK_NCELLS;i++){
@@ -74,7 +74,7 @@ int shk_setorigin(shkevent_t *shkevent){
 	shkevent->cells[i].origin[1] = cy[i];
       }
     }
-    
+
     //Reset
     count = 0;
     memset(cx,0,sizeof(cx));
@@ -96,7 +96,7 @@ void shk_centroid_cell(uint16 *image, shkcell_t *cell, int shk_boxsize, int iwc_
   double xhist[SHKXS]={0};
   double yhist[SHKYS]={0};
   double val;
-  
+
 
   //Set boxsize & spot_captured flag
   boxsize = SHK_MAX_BOXSIZE;
@@ -117,9 +117,9 @@ void shk_centroid_cell(uint16 *image, shkcell_t *cell, int shk_boxsize, int iwc_
   }
   if(cell->spot_captured)
     boxsize = boxsize_new;
-    
 
-  
+
+
   //Calculate corners of centroid box
   blx = floor(cell->origin[0] - boxsize);
   bly = floor(cell->origin[1] - boxsize);
@@ -145,7 +145,7 @@ void shk_centroid_cell(uint16 *image, shkcell_t *cell, int shk_boxsize, int iwc_
   //Unset background
   if(cell->index == 0)
     background = 0;
-  
+
   //Build x,y histograms
   npix=0;
   for(x=blx;x<=trx;x++){
@@ -161,7 +161,7 @@ void shk_centroid_cell(uint16 *image, shkcell_t *cell, int shk_boxsize, int iwc_
       }
     }
   }
-  
+
   //Weight histograms
   for(x=blx;x<=trx;x++){
     xnum  += ((double)x+0.5) * xhist[x];
@@ -170,16 +170,16 @@ void shk_centroid_cell(uint16 *image, shkcell_t *cell, int shk_boxsize, int iwc_
     ynum  += ((double)y+0.5) * yhist[y];
     total += yhist[y];
   }
-  
+
 
   //Calculate centroid
   cell->centroid[0] = xnum/total;
   cell->centroid[1] = ynum/total;
-  
+
   //Calculate deviation
   cell->deviation[0] = cell->centroid[0] - cell->origin[0];
   cell->deviation[1] = cell->centroid[1] - cell->origin[1];
- 
+
   //Set max pixel
   cell->maxpix = maxpix;
   cell->maxval = maxval;
@@ -187,7 +187,7 @@ void shk_centroid_cell(uint16 *image, shkcell_t *cell, int shk_boxsize, int iwc_
   //Save total intensity and background
   cell->intensity  = total;
   cell->background = background;
-  
+
   //Set background
   if(cell->index == 0)
     background = total/npix;
@@ -195,10 +195,10 @@ void shk_centroid_cell(uint16 *image, shkcell_t *cell, int shk_boxsize, int iwc_
   //Check if spot is above threshold
   if(cell->spot_found && (maxval < SHK_SPOT_LOWER_THRESH))
     cell->spot_found=0;
-  
+
   if(maxval > SHK_SPOT_UPPER_THRESH)
     cell->spot_found=1;
-  
+
   //Check spot captured flag
   if(!cell->spot_found){
     cell->spot_captured=0;
@@ -212,7 +212,7 @@ void shk_centroid_cell(uint16 *image, shkcell_t *cell, int shk_boxsize, int iwc_
 /**************************************************************/
 void shk_centroid(uint16 *image, shkevent_t *shkevent){
   int i;
-  
+
   //Zero out tilts
   shkevent->xtilt=0;
   shkevent->ytilt=0;
@@ -220,10 +220,10 @@ void shk_centroid(uint16 *image, shkevent_t *shkevent){
   //Set boxsize
   if(shkevent->iwc.calmode == 2) //NEED TO MAKE THIS MORE CLEAR
     shkevent->boxsize = SHK_MAX_BOXSIZE;
-  
+
   //Get background
   shk_centroid_cell(image,&shkevent->cells[0],shkevent->boxsize,shkevent->iwc.calmode);
-  
+
   //Centroid cells
   for(i=0;i<SHK_NCELLS;i++){
     if(shkevent->cells[i].beam_select){
@@ -359,13 +359,53 @@ void shk_zernike_matrix(shkevent_t *shkevent, double *matrix_inv){
 /*                      SHK_ZERNIKE_FIT                       */
 /**************************************************************/
 void shk_zernike_fit(shkevent_t *shkevent){
-  int i, beam_ncells=0, beam_ncells_2=0, regen_matrix=0;
+  FILE *matrix=NULL;
+  char matrix_file[MAX_FILENAME];
+  static double shk2zern[2*SHK_NCELLS*LOWFS_N_ZERNIKE]={0};
+  double shk_xydev[2*SHK_NCELLS];
+  uint64 fsize,rsize;
+  int i, c, beam_ncells=0, beam_ncells_2=0, regen_matrix=0;
   int beam_cell_index[SHK_NCELLS] = {0};
   static int beam_cell_used[SHK_NCELLS] = {0};
   const double px2slope = SHK_PX_PITCH_UM/SHK_FOCAL_LENGTH_UM;
   static double matrix_inv[SHK_NCELLS*LOWFS_N_ZERNIKE*2] = {0};
   static double dphi_dxdy[2*SHK_NCELLS] = {0};
-   
+
+  //set up file names
+  sprintf(matrix_file, SHK2ZERNIKE_FILE);
+  //open file
+  if((matrix = fopen(matrix_file, "r")) == NULL){
+    perror("fopen");
+  }
+  //check file size
+  fseek(matrix, 0L, SEEK_END);
+  fsize = ftell(matrix);
+  rewind(matrix);
+  rsize = 2*shkevent->beam_ncells*LOWFS_N_ZERNIKE*sizeof(double);
+  if(fsize != rsize){
+    printf("SHK: incorrect shk2zern matrix file size %lu != %lu\n", fsize, rsize);
+  }
+  //read matrix
+  if(fread(shk2zern,2*shkevent->beam_ncells*LOWFS_N_ZERNIKE*sizeof(double),1,matrix) !=1){
+    perror("fread");
+  }
+  //close file
+  fclose(matrix);
+
+  //format displacement array
+  c=0;
+  for(i=0;i<SHK_NCELLS;i++){
+    if(shkevent->cells[i].beam_select){
+      shk_xydev[2*c + 0] = shkevent->cells[i].deviation[0];
+      shk_xydev[2*c + 1] = shkevent->cells[i].deviation[1];
+      c++;
+    }
+  }
+  beam_ncells_2 = 2*shkevent->beam_ncells;
+
+  //Do matrix multiply
+  num_dgemv(shk2zern, shk_xydev, shkevent->zernikes, LOWFS_N_ZERNIKE, beam_ncells_2);
+
   for(i=0; i<SHK_NCELLS; i++) {
     if (shkevent->cells[i].beam_select) {
       //save the spot index
@@ -396,41 +436,72 @@ void shk_zernike_fit(shkevent_t *shkevent){
     dphi_dxdy[i+beam_ncells] = shkevent->cells[beam_cell_index[i]].deviation[1]*px2slope;
   }
 
-  num_dgemv(matrix_inv, dphi_dxdy,shkevent->zernikes, LOWFS_N_ZERNIKE, beam_ncells_2);
+  /* Previous matrix multiplication */
+  // num_dgemv(matrix_inv, dphi_dxdy,shkevent->zernikes, LOWFS_N_ZERNIKE, beam_ncells_2);
 }
 
 /**************************************************************/
 /*                        SHK_SHK2IWC                         */
 /**************************************************************/
-int shk_shk2iwc(shkevent_t *shkevent, int reset){
+int shk_shk2iwc(shkevent_t *shkevent, sm_t *sm_p, int reset){
   FILE *matrix=NULL;
+  FILE *zern_matrix=NULL;
   char matrix_file[MAX_FILENAME];
+  char zern_matrix_file[MAX_FILENAME];
   static int init=0;
   static double shk2iwc[2*SHK_NCELLS*IWC_NSPA]={0};
+  static double zern2iwc[LOWFS_N_ZERNIKE*IWC_NSPA]={0};
   double shk_xydev[2*SHK_NCELLS];
+  double shk_zern[LOWFS_N_ZERNIKE];
   uint64 fsize,rsize;
+  uint64 zfsize, zrsize;
   int c,i,beam_ncells_2;
   static int test=0;
-  
+
   if(!init || reset){
-    /* Open matrix file */
-    //--setup filename
+    /* Open matrix files */
+    //--setup filenames
     sprintf(matrix_file,SHKMATRIX_FILE);
-    //--open file
+    //--open files
     if((matrix = fopen(matrix_file,"r")) == NULL){
       perror("fopen");
       return 1;
     }
+    sprintf(zern_matrix_file, ZERNIKE2SPA_FILE);
+    if((zern_matrix = fopen(zern_matrix_file,"r")) == NULL){
+      perror("fopen");
+      return 1;
+    }
+
     //--check file size
     fseek(matrix, 0L, SEEK_END);
     fsize = ftell(matrix);
     rewind(matrix);
     rsize = 2*shkevent->beam_ncells*IWC_NSPA*sizeof(double);
     if(fsize != rsize){
-      printf("SHK: incorrect matrix file size %lu != %lu\n",fsize,rsize);
+      printf("SHK: incorrect spot2spa matrix file size %lu != %lu\n",fsize,rsize);
       return 1;
     }
-    //--read matrix
+    fseek(zern_matrix, 0L, SEEK_END);
+    zfsize = ftell(zern_matrix);
+    rewind(zern_matrix);
+    zrsize = LOWFS_N_ZERNIKE*IWC_NSPA*sizeof(double);
+    if(zfsize != zrsize){
+      printf("SHK: incorrect zern2spa matrix file size %lu != %lu\n",zfsize,zrsize);
+      return 1;
+    }
+
+      //--read matrix
+      if(fread(zern2iwc,LOWFS_N_ZERNIKE*IWC_NSPA*sizeof(double),1,zern_matrix) != 1){
+        perror("fread");
+        return 1;
+      }
+      //--close file
+      fclose(zern_matrix);
+
+      //--set init flag
+      init=1;
+
     if(fread(shk2iwc,2*shkevent->beam_ncells*IWC_NSPA*sizeof(double),1,matrix) != 1){
       perror("fread");
       return 1;
@@ -452,15 +523,76 @@ int shk_shk2iwc(shkevent_t *shkevent, int reset){
     }
   }
   beam_ncells_2 = 2*shkevent->beam_ncells;
-  
-  //Do Matrix Multiply
-  num_dgemv(shk2iwc,shk_xydev,shkevent->iwc_spa_matrix, IWC_NSPA, beam_ncells_2);
 
-  //Recast to integers
-  for(i=0;i<IWC_NSPA;i++) shkevent->iwc.spa[i] += (uint16)(shkevent->iwc_spa_matrix[i]);
+  for(i=0;i<LOWFS_N_ZERNIKE;i++){
+    shk_zern[i] = shkevent->zernikes[i]*shkevent->kP;
+  }
+
+  //Do Matrix Multiply and recast to ints
+  if(sm_p->shk_fit_zernike){
+    num_dgemv(zern2iwc,shk_zern,shkevent->iwc_spa_matrix, IWC_NSPA, LOWFS_N_ZERNIKE);
+    for(i=0;i<IWC_NSPA;i++) shkevent->iwc.spa[i] += (uint16)(shkevent->iwc_spa_matrix[i]);
+  }else{
+    num_dgemv(shk2iwc,shk_xydev,shkevent->iwc_spa_matrix, IWC_NSPA, beam_ncells_2);
+    for(i=0;i<IWC_NSPA;i++) shkevent->iwc.spa[i] += (uint16)(shkevent->iwc_spa_matrix[i]);
+  }
 
   return 0;
 }
+
+/**************************************************************/
+/*                        SHK_SHK2HEX                         */
+/**************************************************************/
+int shk_shk2hex(shkevent_t *shkevent, sm_t *sm_p, int reset){
+  FILE *matrix=NULL;
+  char matrix_file[MAX_FILENAME];
+  static int init=0;
+  static double shk2hex[LOWFS_N_ZERNIKE*HEX_NAXES]={0};
+  double shk_zern[LOWFS_N_ZERNIKE];
+  uint64 fsize,rsize;
+  int c,i,beam_ncells_2;
+  static int test=0;
+
+  if(!init || reset){
+    /* Open matrix file */
+    //--setup filename
+    sprintf(matrix_file,ZERNIKE2HEX_FILE);
+    //--open file
+    if((matrix = fopen(matrix_file,"r")) == NULL){
+      perror("fopen");
+      return 1;
+    }
+    //--check file size
+    fseek(matrix, 0L, SEEK_END);
+    fsize = ftell(matrix);
+    rewind(matrix);
+    rsize = LOWFS_N_ZERNIKE*HEX_NAXES*sizeof(double);
+    if(fsize != rsize){
+      printf("SHK: incorrect HEX matrix file size %lu != %lu\n",fsize,rsize);
+      return 1;
+    }
+    //--read matrix
+    if(fread(shk2hex,LOWFS_N_ZERNIKE*HEX_NAXES*sizeof(double),1,matrix) != 1){
+      perror("fread");
+      return 1;
+    }
+    //--close file
+    fclose(matrix);
+
+    //--set init flag
+    init=1;
+  }
+
+  //Do Matrix Multiply
+  num_dgemv(shk2hex,shkevent->zernikes ,shkevent->hex_axs_matrix, HEX_NAXES, LOWFS_N_ZERNIKE);
+
+  //Recast to doubles
+  if(sm_p->shk_fit_zernike)
+    for(i=0;i<HEX_NAXES;i++) shkevent->hex.axs[i] += (double)(shkevent->hex_axs_matrix[i])*shkevent->kH;
+
+  return 0;
+}
+
 /**************************************************************/
 /*                        SHK_CELLPID                         */
 /**************************************************************/
@@ -493,8 +625,6 @@ void shk_cellpid(shkevent_t *shkevent, int reset){
       shkevent->cells[i].command[1] = shkevent->kP * shkevent->cells[i].deviation[1] + shkevent->kI * yint[i];
     }
   }
-  
-  
 }
 
 /**************************************************************/
@@ -514,7 +644,6 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   uint16 fakepx=0;
   int iwc_calmode=0;
   int hex_calmode=0;
-  double old_hex;
 
   //Get time immidiately
   clock_gettime(CLOCK_REALTIME,&start);
@@ -524,7 +653,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     init=0;
     sm_p->shk_reset=0;
   }
-  
+
   //Initialize
   if(!init){
     memset(&shkfull,0,sizeof(shkfull));
@@ -536,8 +665,9 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     hex_init(&shkevent.hex);
     iwc_calibrate(iwc_calmode,&shkevent.iwc,1);
     hex_calibrate(hex_calmode,&shkevent.hex,1);
-    shk_shk2iwc(&shkevent,1);
-    shk_cellpid(&shkevent,1);
+    shk_cellpid(&shkevent, 1);
+    shk_shk2iwc(&shkevent,sm_p, 1);
+    shk_shk2hex(&shkevent,sm_p, 1);
     memcpy(&first,&start,sizeof(struct timespec));
     init=1;
   }
@@ -568,6 +698,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   shkevent.kP = sm_p->shk_kP;
   shkevent.kI = sm_p->shk_kI;
   shkevent.kD = sm_p->shk_kD;
+  shkevent.kH = sm_p->hex_kP;
 
   //Calculate centroids
   shk_centroid(buffer->pvAddress,&shkevent);
@@ -579,10 +710,13 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   if(sm_p->shk_fit_zernike) shk_zernike_fit(&shkevent);
 
   //Run PID
-  shk_cellpid(&shkevent,0);
+  shk_cellpid(&shkevent, 0);
 
   //Convert cells to IWC
-  shk_shk2iwc(&shkevent,0);
+  shk_shk2iwc(&shkevent,sm_p,0);
+
+  //Convert cells to HEX
+  shk_shk2hex(&shkevent,sm_p,0);
 
   //Calibrate IWC
   if(iwc_calmode) sm_p->iwc_calmode = iwc_calibrate(iwc_calmode,&shkevent.iwc,0);
@@ -598,14 +732,10 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
 
   //Apply update to HEX
   if(hex_calmode){
-    for(i=0;i<HEX_NAXES;i++){
-      old_hex = sm_p->hex[i];
+    for(i=0;i<HEX_NAXES;i++)
       sm_p->hex[i] = shkevent.hex.axs[i];
-      if(old_hex != sm_p->hex[i]){
-        usleep(ONE_MILLION);
-      }
-    }
   }
+
   //Open circular buffer
   shkevent_p=(shkevent_t *)open_buffer(sm_p,SHKEVENT);
 
@@ -624,7 +754,6 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   memcpy(&last,&start,sizeof(struct timespec));
 
 
-  
   /*******************  Full Image Code  *****************/
   if(timespec_subtract(&delta,&start,&first))
     printf("SHK: shk_process_image --> timespec_subtract error!\n");
@@ -647,7 +776,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
 	for(i=0;i<SHKXS;i++)
 	  for(j=0;j<SHKYS;j++)
 	    shkfull.image.data[i][j]=fakepx++;
-      
+
       if(sm_p->shk_fake_mode == 2)
 	for(i=0;i<SHKXS;i++)
 	  for(j=0;j<SHKYS;j++)
@@ -661,19 +790,19 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     else{
       //Copy full image -- takes about 700 us
       memcpy(&(shkfull.image.data[0][0]),buffer->pvAddress,sizeof(shkfull.image.data));
-    }  
-    
+    }
+
     //Copy event
     shkevent.end_sec = end.tv_sec;
     shkevent.end_nsec = end.tv_nsec;
     memcpy(&shkfull.shkevent,&shkevent,sizeof(shkevent));
- 
+
     //Open circular buffer
     shkfull_p=(shkfull_t *)open_buffer(sm_p,SHKFULL);
 
     //Copy data
     memcpy(shkfull_p,&shkfull,sizeof(shkfull_t));;
-    
+
     //Get final timestamp
     clock_gettime(CLOCK_REALTIME,&end);
     shkfull_p->end_sec = end.tv_sec;
@@ -681,7 +810,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
 
     //Close buffer
     close_buffer(sm_p,SHKFULL);
-    
+
     //Reset time
     memcpy(&first,&start,sizeof(struct timespec));
   }

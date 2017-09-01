@@ -54,7 +54,7 @@ typedef int8_t int8;
 #define FIFTYONEPI   (51.0*PI)
 #define RAD2AS       206264.81
 #define LAMBDA       0.600         // Central Wavelength [microns]
-#define PHASE_RAD2NM (LAMBDA*1000./TWOPI)       
+#define PHASE_RAD2NM (LAMBDA*1000./TWOPI)
 
 /*************************************************
  * General
@@ -96,15 +96,17 @@ typedef int8_t int8;
 /*************************************************
  * Base Addresses & Files
  *************************************************/
-#define DARKFILE_SCI    "data/darkframe.sci.%3.3d.%3.3d.%2.2dC.dat"
-#define FLATFILE_SCI    "data/flatframe.sci.%3.3d.dat" 
-#define FAKEFILE_SCI    "data/fakeframe.sci.%3.3d.%s.dat"
-#define HOSTPORT        "ANY:24924"
-#define DATAPATH        "data/flight_data/folder_%5.5d/"
-#define DATANAME        "data/flight_data/folder_%5.5d/picture.%s.%8.8d.dat"
-#define SHKMATRIX_FILE  "data/shk/iwc_shk_infl_inv.dat"
-#define MAX_FILENAME    128
+#define DARKFILE_SCI      "data/darkframe.sci.%3.3d.%3.3d.%2.2dC.dat"
+#define FLATFILE_SCI      "data/flatframe.sci.%3.3d.dat"
+#define FAKEFILE_SCI      "data/fakeframe.sci.%3.3d.%s.dat"
+#define HOSTPORT          "ANY:24924"
+#define DATAPATH          "data/flight_data/folder_%5.5d/"
+#define DATANAME          "data/flight_data/folder_%5.5d/picture.%s.%8.8d.dat"
+#define SHKMATRIX_FILE    "data/shk/iwc_shk_infl_inv.dat"
+#define ZERNIKE2HEX_FILE  "data/shk/hex_shk_zern_infl.dat"
+#define MAX_FILENAME      128
 #define ZERNIKE2SPA_FILE  "data/shk/iwc_shk_zern_infl.dat"
+#define SHK2ZERNIKE_FILE  "data/shk/shk2zern.dat"
 
 
 /*************************************************
@@ -188,11 +190,11 @@ enum bufids {SCIEVENT, SCIFULL, SHKEVENT, SHKFULL, LYTEVENT, LYTFULL, ACQEVENT, 
  * Limits
  *************************************************/
 #define GAIN_P_MIN     -1        //(.)   Minimum P gain
-#define GAIN_P_MAX      0        //(.)   Maximum P gain      
-#define GAIN_I_MIN     -1        //(.)   Minimum I gain   
-#define GAIN_I_MAX      0        //(.)   Maximum I gain      
-#define GAIN_D_MIN     -1        //(.)   Minimum D gain   
-#define GAIN_D_MAX      0        //(.)   Maximum D gain      
+#define GAIN_P_MAX      0        //(.)   Maximum P gain
+#define GAIN_I_MIN     -1        //(.)   Minimum I gain
+#define GAIN_I_MAX      0        //(.)   Maximum I gain
+#define GAIN_D_MIN     -1        //(.)   Minimum D gain
+#define GAIN_D_MAX      0        //(.)   Maximum D gain
 
 /*************************************************
  * Xinetics Controller Parameters
@@ -207,8 +209,8 @@ enum bufids {SCIEVENT, SCIFULL, SHKEVENT, SHKFULL, LYTEVENT, LYTFULL, ACQEVENT, 
 #define DMXS        32
 #define DMYS        32
 #define DM_DMAX     ((1<<14) - 1)
-#define DM_DMIN     0                   
-#define DM_DMID     ((DM_DMIN+DM_DMAX)/2)  
+#define DM_DMIN     0
+#define DM_DMID     ((DM_DMIN+DM_DMAX)/2)
 
 /*************************************************
  * IWC Parameters
@@ -398,7 +400,7 @@ typedef struct scievent_struct{
   int64   start_nsec;
   int64   end_sec;
   int64   end_nsec;
-  sci_t   image; 
+  sci_t   image;
 } scievent_t;
 
 typedef struct shkevent_struct{
@@ -420,9 +422,11 @@ typedef struct shkevent_struct{
   double    kP;
   double    kI;
   double    kD;
+  double    kH;
   shkcell_t cells[SHK_NCELLS];
   double    zernikes[LOWFS_N_ZERNIKE];
   double    iwc_spa_matrix[IWC_NSPA];
+  double    hex_axs_matrix[HEX_NAXES];
   iwc_t     iwc;
   hex_t     hex;
 } shkevent_t;
@@ -442,7 +446,7 @@ typedef struct lytevent_struct{
   int64   end_nsec;
   double  zernikes[LOWFS_N_ZERNIKE];
   iwc_t   iwc;
-  lyt_t   image; 
+  lyt_t   image;
 } lytevent_t;
 
 typedef struct acqevent_struct{
@@ -458,7 +462,7 @@ typedef struct acqevent_struct{
   int64   start_nsec;
   int64   end_sec;
   int64   end_nsec;
-  acq_t   image; 
+  acq_t   image;
 } acqevent_t;
 
 /*************************************************
@@ -477,7 +481,7 @@ typedef struct scifull_struct{
   int64   start_nsec;
   int64   end_sec;
   int64   end_nsec;
-  sci_t   image; 
+  sci_t   image;
 } scifull_t;
 
 typedef struct shkfull_struct{
@@ -510,7 +514,7 @@ typedef struct lytfull_struct{
   int64   start_nsec;
   int64   end_sec;
   int64   end_nsec;
-  lyt_t   image; 
+  lyt_t   image;
 } lytfull_t;
 
 typedef struct acqfull_struct{
@@ -526,7 +530,7 @@ typedef struct acqfull_struct{
   int64   start_nsec;
   int64   end_sec;
   int64   end_nsec;
-  acq_t   image; 
+  acq_t   image;
 } acqfull_t;
 
 
@@ -553,14 +557,14 @@ typedef volatile struct {
 
   //Process information
   procinfo_t w[NCLIENTS];
-  
+
   //Fake modes
   int tlm_fake_mode;        //Telemetry fake mode
   int sci_fake_mode;        //Science camera fake mode
   int lyt_fake_mode;        //Lyot LOWFS camera fake mode
   int shk_fake_mode;        //Shack-Hartmann camera fake mode
   int acq_fake_mode;        //Acquisition camera fake mode
-  
+
   //Camera modes
   int sci_mode;        //Science camera mode
   int lyt_mode;        //Lyot LOWFS camera mode
@@ -586,6 +590,7 @@ typedef volatile struct {
   double shk_kP;
   double shk_kI;
   double shk_kD;
+  double hex_kP;
 
   //Commands
   int hex_getpos;
