@@ -64,8 +64,9 @@ typedef int8_t int8;
 /*************************************************
 * Hardware Switches
 *************************************************/
-#define XIN_ENABLE      1 // Xinetics Controller (Master IWC,DM,PEZ)
-#define IWC_ENABLE      1 // IWC
+#define XIN_ENABLE      0 // Xinetics Controller (Master IWC,DM,PEZ)
+#define IWC_ENABLE      0 // IWC
+#define ALP_ENABLE      1 // ALPAO DM
 #define DM_ENABLE       0 // DM
 #define PEZ_ENABLE      0 // PIEZO Mirrors
 #define HEX_ENABLE      1 // Hexapod
@@ -102,11 +103,12 @@ typedef int8_t int8;
 #define HOSTPORT          "ANY:24924"
 #define DATAPATH          "data/flight_data/folder_%5.5d/"
 #define DATANAME          "data/flight_data/folder_%5.5d/picture.%s.%8.8d.dat"
-#define SHKMATRIX_FILE    "data/shk/iwc_shk_infl_inv.dat"
-#define ZERNIKE2HEX_FILE  "data/shk/hex_shk_zern_infl.dat"
-#define MAX_FILENAME      128
-#define ZERNIKE2SPA_FILE  "data/shk/iwc_shk_zern_infl.dat"
+#define SHKMATRIX_FILE    "data/shk/shk2alp.dat"
+#define ZERNIKE2HEX_FILE  "data/shk/zern2hex.dat"
+#define ZERNIKE2SPA_FILE  "data/shk/zern2spa.dat"
+#define ZERNIKE2ALP_FILE  "data/shk/zern2alp.dat"
 #define SHK2ZERNIKE_FILE  "data/shk/shk2zern.dat"
+#define MAX_FILENAME      128
 
 
 /*************************************************
@@ -228,6 +230,20 @@ enum bufids {SCIEVENT, SCIFULL, SHKEVENT, SHKFULL, LYTEVENT, LYTFULL, ACQEVENT, 
 #define IWC_NCALIM   25  //number of calibration images to take per step
 
 /*************************************************
+ * ALPAO Parameters
+ *************************************************/
+#define ALP_NACT     97
+#define ALP_STROKE   2.0
+#define ALPXS        10
+#define ALPYS        10
+#define ALP_DMAX     0.99
+#define ALP_DMIN     -0.99
+#define ALP_DMID     ((ALP_DMIN+ALP_DMAX)/2)
+#define ALP_BIAS     0.0
+#define ALP_POKE     0.05
+#define ALP_NCALIM   25  //number of calibration images to take per step
+
+/*************************************************
  * PIEZO Mirror Parameters
  *************************************************/
 #define PEZ_NACT 2
@@ -241,7 +257,8 @@ enum bufids {SCIEVENT, SCIFULL, SHKEVENT, SHKFULL, LYTEVENT, LYTFULL, ACQEVENT, 
 #define HEX_AXES_ALL     "X Y Z U V W"
 #define HEX_AXES_PIV     "R S T"
 #define HEX_POS_HOME     {0,0,0,0,0,0}
-#define HEX_POS_DEFAULT  {-0.532703, -0.116609, 0.129163, -0.084472, 0.158890, 0.100052}
+#define HEX_POS_DEFAULT  {-0.975245, -0.087218, 0.540486, 0.116010, 0.345594, 0.036398}
+// #define HEX_POS_DEFAULT  {-0.485280, 0.061392, -0.883088, 0.374033, 0.194114, 0.098642}
 #define HEX_TRL_POKE      0.05
 #define HEX_ROT_POKE      0.005
 #define HEX_NCALIM        50
@@ -271,8 +288,8 @@ enum procids {WATID, SCIID, SHKID, LYTID, TLMID, ACQID, MOTID, THMID, SRVID, TMP
 #define SHK_MAX_BOXSIZE       27     //[pixels] gives a 5 pixel buffer around edges
 #define SHK_SPOT_UPPER_THRESH 200
 #define SHK_SPOT_LOWER_THRESH 100
-#define SHK_CELL_XOFF         76
-#define SHK_CELL_YOFF         51
+#define SHK_CELL_XOFF         73
+#define SHK_CELL_YOFF         56
 #define SHK_CELL_ROTATION     0.0
 #define SHK_CELL_XSCALE       1.0
 #define SHK_CELL_YSCALE       1.0
@@ -365,6 +382,11 @@ typedef struct iwc_struct{
   uint16 calmode;
 } iwc_t;
 
+typedef struct alp_struct{
+  double act[ALP_NACT];
+  uint16 calmode;
+} alp_t;
+
 typedef struct hex_struct{
   double axs[HEX_NAXES];
   uint64 calmode;
@@ -426,9 +448,11 @@ typedef struct shkevent_struct{
   shkcell_t cells[SHK_NCELLS];
   double    zernikes[LOWFS_N_ZERNIKE];
   double    iwc_spa_matrix[IWC_NSPA];
+  double    alp_act_matrix[ALP_NACT];
   double    hex_axs_matrix[HEX_NAXES];
   iwc_t     iwc;
   hex_t     hex;
+  alp_t     alp;
 } shkevent_t;
 
 typedef struct lytevent_struct{
@@ -574,12 +598,16 @@ typedef volatile struct {
   //Devices
   signed short xin_dev;   //Xinetics Quickusb device handle
   int xin_commander;   //Process in control of the Xinetics controller
+  int alp_dev;           //ALPAO DM device handle
 
   //Actuators
   double hex[HEX_NAXES];
 
   //IWC Calibration Mode
   int iwc_calmode;
+
+  //ALPCalibration Mode
+  int alp_calmode;
 
   //HEX Calibration Mode
   int hex_calmode;

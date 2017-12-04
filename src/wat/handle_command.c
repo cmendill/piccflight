@@ -34,8 +34,8 @@ int handle_command(char *line, sm_t *sm_p){
   float ftemp;
   int   itemp;
   char  stemp[CMD_MAX_LENGTH];
-  double trl_poke = HEX_TRL_POKE * 0.1;
-  double rot_poke = HEX_ROT_POKE * 0.1;
+  double trl_poke = HEX_TRL_POKE * 0.2;
+  double rot_poke = HEX_ROT_POKE * 0.2;
 
   /****************************************
    * SYSTEM COMMANDS
@@ -96,7 +96,72 @@ int handle_command(char *line, sm_t *sm_p){
     return(CMD_NORMAL);
   }
 
-  //SHK Calibration
+  //ALP Calmodes
+  if(!strncasecmp(line,"alp calmode 0",13)){
+    sm_p->alp_calmode=0;
+    printf("CMD: Changed ALP calibration mode to %d\n",sm_p->alp_calmode);
+    return(CMD_NORMAL);
+  }
+
+  if(!strncasecmp(line,"alp calmode 1",13)){
+    sm_p->alp_calmode=1;
+    printf("CMD: Changed ALP calibration mode to %d\n",sm_p->alp_calmode);
+    return(CMD_NORMAL);
+  }
+
+  if(!strncasecmp(line,"alp calmode 2",13)){
+    sm_p->alp_calmode=2;
+    printf("CMD: Changed ALP calibration mode to %d\n",sm_p->alp_calmode);
+    return(CMD_NORMAL);
+  }
+
+  if(!strncasecmp(line,"alp calmode 3",13)){
+    sm_p->alp_calmode=3;
+    printf("CMD: Changed ALP calibration mode to %d\n",sm_p->alp_calmode);
+    return(CMD_NORMAL);
+  }
+
+  if(!strncasecmp(line,"alp calmode 4",13)){
+    sm_p->alp_calmode=4;
+    printf("CMD: Changed ALP calibration mode to %d\n",sm_p->alp_calmode);
+    return(CMD_NORMAL);
+  }
+
+
+
+  //ALP Calibration
+  if(!strncasecmp(line,"shk calibrate alp",17)){
+    printf("CMD: Running SHK ALP calibration\n");
+    printf("  -- Disabling PID\n");
+    //Turn off gains
+    sm_p->shk_kP = 0;
+    sm_p->shk_kI = 0;
+    sm_p->shk_kD = 0;
+    //printf("  -- Resetting SHK\n");
+    //sm_p->shk_reset = 1;
+    sleep(3);
+
+    //Start data recording
+    printf("  -- Starting data recording\n");
+    sm_p->w[DIAID].launch = getshk_proc;
+    sm_p->w[DIAID].run    = 1;
+    sleep(3);
+    //Start probe pattern
+    sm_p->alp_calmode=2;
+    printf("  -- Changing ALP calibration mode to %d\n",sm_p->alp_calmode);
+    while(sm_p->alp_calmode == 2)
+      sleep(1);
+    printf("  -- Stopping data recording\n");
+    //Stop data recording
+    sm_p->w[DIAID].run    = 0;
+    printf("  -- Done\n");
+
+    return(CMD_NORMAL);
+  }
+
+
+
+  //SPA Calibration
   if(!strncasecmp(line,"shk calibrate spa",17)){
     printf("CMD: Running SHK SPA calibration\n");
     printf("  -- Disabling PID\n");

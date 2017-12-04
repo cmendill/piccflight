@@ -20,6 +20,8 @@
 #include "../common/controller.h"
 #include "../common/common_functions.h"
 #include "../xin/xin_functions.h"
+#include "../alp/alp_functions.h"
+#include "../alp/acedev5.h"
 
 /* Constants */
 #define STDIN 0  // file descriptor for standard input
@@ -362,6 +364,25 @@ int main(int argc,char **argv){
   printf("WAT: XIN driver disabled\n");
 #endif
 
+/* Open ALPAO Driver */
+#if ALP_ENABLE
+  const int* alp_dev;
+  int dmIds[1];
+  alp_dev = alp_open(dmIds);
+  if(*alp_dev < 0){
+    printf("WAT: alp_open failed!\n");
+    alp_closeDev(alp_dev);
+  }
+  else{
+    sm_p->alp_dev = *alp_dev;
+  }
+  // printf("WAT: dmIds: %i\n", alp_dev);
+#else
+  printf("WAT: ALP driver disabled\n");
+#endif
+
+
+
   /* Launch Watchdog */
   if(sm_p->w[WATID].run){
     if(sm_p->w[WATID].pid == -1){
@@ -405,6 +426,7 @@ int main(int argc,char **argv){
   printf("WAT: cleaning up...\n");
   //tell all subthreads to die
   sm_p->die = 1;
+
   //close Xinetics driver
 #if XIN_ENABLE
   if(xin_dev >= 0){
@@ -413,11 +435,22 @@ int main(int argc,char **argv){
   }
 #endif
 
+
   //Wait for watchdog to exit
   if(procwait(sm_p->w[WATID].pid,EXIT_TIMEOUT))
     printf("WAT: cleanup timeout!\n");
   else
     printf("WAT: cleanup done.\n");
+
+
+//Close ALPAO driver
+  #if ALP_ENABLE
+    // if(*alp_dev >= 0){
+      alp_zero(alp_dev);
+      printf("WAT: alp_dev: %i\n", sm_p->alp_dev);
+      alp_closeDev(alp_dev);
+    // }
+  #endif
 
   close(shmfd);
 

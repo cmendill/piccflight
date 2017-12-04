@@ -14,6 +14,8 @@
 #include "../common/numeric.h"
 #include "../xin/xin_functions.h"
 #include "../hex/hex_functions.h"
+#include "../alp/alp_functions.h"
+#include "../alp/acedev5.h"
 #include "../phx/include/phx_api.h"
 #include "../phx/config.h"
 
@@ -208,7 +210,47 @@ void shk_centroid_cell(uint16 *image, shkcell_t *cell, int shk_boxsize, int iwc_
 }
 
 /**************************************************************/
-/*                      SHK_CENTROID                          */
+/*                      SHK_CENTROID_IWC                      */
+/**************************************************************/
+// void shk_centroid(uint16 *image, shkevent_t *shkevent){
+//   int i;
+//
+//   //Zero out tilts
+//   shkevent->xtilt=0;
+//   shkevent->ytilt=0;
+//
+//   //Set boxsize
+//   if(shkevent->iwc.calmode == 2) //NEED TO MAKE THIS MORE CLEAR
+//     shkevent->boxsize = SHK_MAX_BOXSIZE;
+//
+//   //Get background
+//   shk_centroid_cell(image,&shkevent->cells[0],shkevent->boxsize,shkevent->iwc.calmode);
+//
+//   //Centroid cells
+//   for(i=0;i<SHK_NCELLS;i++){
+//     if(shkevent->cells[i].beam_select){
+//       shk_centroid_cell(image,&shkevent->cells[i],shkevent->boxsize,shkevent->iwc.calmode);
+//       shkevent->xtilt += shkevent->cells[i].deviation[0];
+//       shkevent->ytilt += shkevent->cells[i].deviation[1];
+//     }
+//   }
+//
+//   //Average tilts
+//   shkevent->xtilt /= shkevent->beam_ncells;
+//   shkevent->ytilt /= shkevent->beam_ncells;
+//
+//   //Subtract tilts
+//   // for(i=0;i<SHK_NCELLS;i++){
+//   //   if(shkevent->cells[i].beam_select){
+//   //     shkevent->cells[i].deviation[0] -= shkevent->xtilt;
+//   //     shkevent->cells[i].deviation[1] -= shkevent->ytilt;
+//   //   }
+//   // }
+//
+// }
+
+/**************************************************************/
+/*                      SHK_CENTROID_ALP                      */
 /**************************************************************/
 void shk_centroid(uint16 *image, shkevent_t *shkevent){
   int i;
@@ -218,16 +260,16 @@ void shk_centroid(uint16 *image, shkevent_t *shkevent){
   shkevent->ytilt=0;
 
   //Set boxsize
-  if(shkevent->iwc.calmode == 2) //NEED TO MAKE THIS MORE CLEAR
+  if(shkevent->alp.calmode == 2) //NEED TO MAKE THIS MORE CLEAR
     shkevent->boxsize = SHK_MAX_BOXSIZE;
 
   //Get background
-  shk_centroid_cell(image,&shkevent->cells[0],shkevent->boxsize,shkevent->iwc.calmode);
+  shk_centroid_cell(image,&shkevent->cells[0],shkevent->boxsize,shkevent->alp.calmode);
 
   //Centroid cells
   for(i=0;i<SHK_NCELLS;i++){
     if(shkevent->cells[i].beam_select){
-      shk_centroid_cell(image,&shkevent->cells[i],shkevent->boxsize,shkevent->iwc.calmode);
+      shk_centroid_cell(image,&shkevent->cells[i],shkevent->boxsize,shkevent->alp.calmode);
       shkevent->xtilt += shkevent->cells[i].deviation[0];
       shkevent->ytilt += shkevent->cells[i].deviation[1];
     }
@@ -376,6 +418,7 @@ void shk_zernike_fit(shkevent_t *shkevent){
   //open file
   if((matrix = fopen(matrix_file, "r")) == NULL){
     perror("fopen");
+    printf("shk2zernike_file\n");
   }
   //check file size
   fseek(matrix, 0L, SEEK_END);
@@ -383,11 +426,11 @@ void shk_zernike_fit(shkevent_t *shkevent){
   rewind(matrix);
   rsize = 2*shkevent->beam_ncells*LOWFS_N_ZERNIKE*sizeof(double);
   if(fsize != rsize){
-    printf("SHK: incorrect shk2zern matrix file size %lu != %lu\n", fsize, rsize);
+    // printf("SHK: incorrect shk2zern matrix file size %lu != %lu\n", fsize, rsize);
   }
   //read matrix
   if(fread(shk2zern,2*shkevent->beam_ncells*LOWFS_N_ZERNIKE*sizeof(double),1,matrix) !=1){
-    perror("fread");
+    // perror("fread");
   }
   //close file
   fclose(matrix);
@@ -405,6 +448,13 @@ void shk_zernike_fit(shkevent_t *shkevent){
 
   //Do matrix multiply
   num_dgemv(shk2zern, shk_xydev, shkevent->zernikes, LOWFS_N_ZERNIKE, beam_ncells_2);
+
+  // double zern_offset[24]={      -0.00000,   0.0135805,    -0.0271113,  0.00863601,   0.0277714,   0.0382247,  -0.000627516,   -0.00352233,    -0.0194335,  0.00962264,    -0.0138212,  -9.02948e-05,    -0.0343523,  0.00119619,
+  // 0.00885264,   -0.00791998,    -0.0176545,   0.0158954,   0.0110489,   0.0252110,  0.00504202,    -0.0121719,  0.00607450,   -0.00243058};
+  //
+  // for(i=0;i<LOWFS_N_ZERNIKE;i++){
+  //   shkevent->zernikes[i] += zern_offset[i];
+  // }
 
   for(i=0; i<SHK_NCELLS; i++) {
     if (shkevent->cells[i].beam_select) {
@@ -443,16 +493,119 @@ void shk_zernike_fit(shkevent_t *shkevent){
 /**************************************************************/
 /*                        SHK_SHK2IWC                         */
 /**************************************************************/
-int shk_shk2iwc(shkevent_t *shkevent, sm_t *sm_p, int reset){
+// int shk_shk2iwc(shkevent_t *shkevent, sm_t *sm_p, int reset){
+//   FILE *matrix=NULL;
+//   FILE *zern_matrix=NULL;
+//   char matrix_file[MAX_FILENAME];
+//   char zern_matrix_file[MAX_FILENAME];
+//   static int init=0;
+//   static double shk2iwc[2*SHK_NCELLS*IWC_NSPA]={0};
+//   static double zern2iwc[LOWFS_N_ZERNIKE*IWC_NSPA]={0};
+//   double shk_xydev[2*SHK_NCELLS];
+//   double shk_zern[LOWFS_N_ZERNIKE];
+//   uint64 fsize,rsize;
+//   uint64 zfsize, zrsize;
+//   int c,i,beam_ncells_2;
+//   static int test=0;
+//
+//   if(!init || reset){
+//     /* Open matrix files */
+//     //--setup filenames
+//     sprintf(matrix_file,SHKMATRIX_FILE);
+//     //--open files
+//     if((matrix = fopen(matrix_file,"r")) == NULL){
+//       perror("fopen");
+//       printf("shkmatrix_file\n")
+// ;      return 1;
+//     }
+//     sprintf(zern_matrix_file, ZERNIKE2SPA_FILE);
+//     if((zern_matrix = fopen(zern_matrix_file,"r")) == NULL){
+//       perror("fopen");
+//       printf("zernike2spa_file\n");
+//       return 1;
+//     }
+//
+//     //--check file size
+//     fseek(matrix, 0L, SEEK_END);
+//     fsize = ftell(matrix);
+//     rewind(matrix);
+//     rsize = 2*shkevent->beam_ncells*IWC_NSPA*sizeof(double);
+//     if(fsize != rsize){
+//       printf("SHK: incorrect spot2spa matrix file size %lu != %lu\n",fsize,rsize);
+//       return 1;
+//     }
+//     fseek(zern_matrix, 0L, SEEK_END);
+//     zfsize = ftell(zern_matrix);
+//     rewind(zern_matrix);
+//     zrsize = LOWFS_N_ZERNIKE*IWC_NSPA*sizeof(double);
+//     if(zfsize != zrsize){
+//       printf("SHK: incorrect zern2spa matrix file size %lu != %lu\n",zfsize,zrsize);
+//       return 1;
+//     }
+//
+//       //--read matrix
+//       if(fread(zern2iwc,LOWFS_N_ZERNIKE*IWC_NSPA*sizeof(double),1,zern_matrix) != 1){
+//         perror("fread");
+//         return 1;
+//       }
+//       //--close file
+//       fclose(zern_matrix);
+//
+//       //--set init flag
+//       init=1;
+//
+//     if(fread(shk2iwc,2*shkevent->beam_ncells*IWC_NSPA*sizeof(double),1,matrix) != 1){
+//       perror("fread");
+//       return 1;
+//     }
+//     //--close file
+//     fclose(matrix);
+//
+//     //--set init flag
+//     init=1;
+//   }
+//
+//   //Format displacement array
+//   c=0;
+//   for(i=0;i<SHK_NCELLS;i++){
+//     if(shkevent->cells[i].beam_select){
+//       shk_xydev[2*c + 0] = shkevent->cells[i].command[0];
+//       shk_xydev[2*c + 1] = shkevent->cells[i].command[1];
+//       c++;
+//     }
+//   }
+//   beam_ncells_2 = 2*shkevent->beam_ncells;
+//
+//   for(i=0;i<LOWFS_N_ZERNIKE;i++){
+//     shk_zern[i] = shkevent->zernikes[i]*shkevent->kP;
+//   }
+//
+//   //Do Matrix Multiply and recast to ints
+//   if(sm_p->shk_fit_zernike){
+//     num_dgemv(zern2iwc,shk_zern,shkevent->iwc_spa_matrix, IWC_NSPA, LOWFS_N_ZERNIKE);
+//     for(i=0;i<IWC_NSPA;i++) shkevent->iwc.spa[i] += (uint16)(shkevent->iwc_spa_matrix[i]);
+//   }else{
+//     num_dgemv(shk2iwc,shk_xydev,shkevent->iwc_spa_matrix, IWC_NSPA, beam_ncells_2);
+//     for(i=0;i<IWC_NSPA;i++) shkevent->iwc.spa[i] += (uint16)(shkevent->iwc_spa_matrix[i]);
+//   }
+//
+//   return 0;
+// }
+
+/**************************************************************/
+/*                        SHK_SHK2ALP                         */
+/**************************************************************/
+int shk_shk2alp(shkevent_t *shkevent, sm_t *sm_p, int reset){
   FILE *matrix=NULL;
   FILE *zern_matrix=NULL;
   char matrix_file[MAX_FILENAME];
   char zern_matrix_file[MAX_FILENAME];
   static int init=0;
-  static double shk2iwc[2*SHK_NCELLS*IWC_NSPA]={0};
-  static double zern2iwc[LOWFS_N_ZERNIKE*IWC_NSPA]={0};
+  static double shk2alp[2*SHK_NCELLS*ALP_NACT]={0};
+  static double zern2alp[LOWFS_N_ZERNIKE*ALP_NACT]={0};
   double shk_xydev[2*SHK_NCELLS];
   double shk_zern[LOWFS_N_ZERNIKE];
+  double total=0;
   uint64 fsize,rsize;
   uint64 zfsize, zrsize;
   int c,i,beam_ncells_2;
@@ -467,7 +620,7 @@ int shk_shk2iwc(shkevent_t *shkevent, sm_t *sm_p, int reset){
       perror("fopen");
       return 1;
     }
-    sprintf(zern_matrix_file, ZERNIKE2SPA_FILE);
+    sprintf(zern_matrix_file, ZERNIKE2ALP_FILE);
     if((zern_matrix = fopen(zern_matrix_file,"r")) == NULL){
       perror("fopen");
       return 1;
@@ -477,22 +630,22 @@ int shk_shk2iwc(shkevent_t *shkevent, sm_t *sm_p, int reset){
     fseek(matrix, 0L, SEEK_END);
     fsize = ftell(matrix);
     rewind(matrix);
-    rsize = 2*shkevent->beam_ncells*IWC_NSPA*sizeof(double);
+    rsize = 2*shkevent->beam_ncells*ALP_NACT*sizeof(double);
     if(fsize != rsize){
-      printf("SHK: incorrect spot2spa matrix file size %lu != %lu\n",fsize,rsize);
+      printf("SHK: incorrect spot2alp matrix file size %lu != %lu\n",fsize,rsize);
       return 1;
     }
     fseek(zern_matrix, 0L, SEEK_END);
     zfsize = ftell(zern_matrix);
     rewind(zern_matrix);
-    zrsize = LOWFS_N_ZERNIKE*IWC_NSPA*sizeof(double);
+    zrsize = LOWFS_N_ZERNIKE*ALP_NACT*sizeof(double);
     if(zfsize != zrsize){
-      printf("SHK: incorrect zern2spa matrix file size %lu != %lu\n",zfsize,zrsize);
+      printf("SHK: incorrect zern2alp matrix file size %lu != %lu\n",zfsize,zrsize);
       return 1;
     }
 
       //--read matrix
-      if(fread(zern2iwc,LOWFS_N_ZERNIKE*IWC_NSPA*sizeof(double),1,zern_matrix) != 1){
+      if(fread(zern2alp,LOWFS_N_ZERNIKE*ALP_NACT*sizeof(double),1,zern_matrix) != 1){
         perror("fread");
         return 1;
       }
@@ -502,7 +655,7 @@ int shk_shk2iwc(shkevent_t *shkevent, sm_t *sm_p, int reset){
       //--set init flag
       init=1;
 
-    if(fread(shk2iwc,2*shkevent->beam_ncells*IWC_NSPA*sizeof(double),1,matrix) != 1){
+    if(fread(shk2alp,2*shkevent->beam_ncells*ALP_NACT*sizeof(double),1,matrix) != 1){
       perror("fread");
       return 1;
     }
@@ -527,16 +680,30 @@ int shk_shk2iwc(shkevent_t *shkevent, sm_t *sm_p, int reset){
   for(i=0;i<LOWFS_N_ZERNIKE;i++){
     shk_zern[i] = shkevent->zernikes[i]*shkevent->kP;
   }
+// alp_act_matrix
+  //Do Matrix Multiply and recast to doubles
 
-  //Do Matrix Multiply and recast to ints
   if(sm_p->shk_fit_zernike){
-    num_dgemv(zern2iwc,shk_zern,shkevent->iwc_spa_matrix, IWC_NSPA, LOWFS_N_ZERNIKE);
-    for(i=0;i<IWC_NSPA;i++) shkevent->iwc.spa[i] += (uint16)(shkevent->iwc_spa_matrix[i]);
-  }else{
-    num_dgemv(shk2iwc,shk_xydev,shkevent->iwc_spa_matrix, IWC_NSPA, beam_ncells_2);
-    for(i=0;i<IWC_NSPA;i++) shkevent->iwc.spa[i] += (uint16)(shkevent->iwc_spa_matrix[i]);
-  }
+    num_dgemv(zern2alp,shk_zern,shkevent->alp_act_matrix, ALP_NACT, LOWFS_N_ZERNIKE);
+    for(i=0;i<ALP_NACT;i++){
+      shkevent->alp.act[i] += (double)(shkevent->alp_act_matrix[i]);
+      total += shkevent->alp.act[i];
+    }
+    // for(i=0;i<ALP_NACT;i++){
+    //   shkevent->alp.act[i] -= (double)(total/ALP_NACT);
+    // }
 
+  }else{
+    num_dgemv(shk2alp,shk_xydev,shkevent->alp_act_matrix, ALP_NACT, beam_ncells_2);
+    for(i=0;i<ALP_NACT;i++){
+      shkevent->alp.act[i] += (double)(shkevent->alp_act_matrix[i]);
+      total += shkevent->alp.act[i];
+    }
+    // for(i=0;i<ALP_NACT;i++){
+    //   shkevent->alp.act[i] -= (double)(total/ALP_NACT);
+    // }
+  }
+// printf("[SHK] Total average act magnitude: %f\n", (double)(total/ALP_NACT));
   return 0;
 }
 
@@ -560,6 +727,7 @@ int shk_shk2hex(shkevent_t *shkevent, sm_t *sm_p, int reset){
     //--open file
     if((matrix = fopen(matrix_file,"r")) == NULL){
       perror("fopen");
+      printf("zernike2hex_file\n");
       return 1;
     }
     //--check file size
@@ -587,8 +755,8 @@ int shk_shk2hex(shkevent_t *shkevent, sm_t *sm_p, int reset){
   num_dgemv(shk2hex,shkevent->zernikes ,shkevent->hex_axs_matrix, HEX_NAXES, LOWFS_N_ZERNIKE);
 
   //Recast to doubles
-  if(sm_p->shk_fit_zernike)
-    for(i=0;i<HEX_NAXES;i++) shkevent->hex.axs[i] += (double)(shkevent->hex_axs_matrix[i])*shkevent->kH;
+  if(sm_p->shk_fit_zernike  && sm_p->hex_calmode)
+    for(i=0;i<HEX_NAXES;i++) shkevent->hex.axs[i] += (double)(shkevent->hex_axs_matrix[i])*sm_p->hex_kP;
 
   return 0;
 }
@@ -643,7 +811,9 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   int32 i,j;
   uint16 fakepx=0;
   int iwc_calmode=0;
+  int alp_calmode=0;
   int hex_calmode=0;
+
 
   //Get time immidiately
   clock_gettime(CLOCK_REALTIME,&start);
@@ -662,11 +832,14 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     memset(&pez,0,sizeof(pez_t));
     shk_init_cells(&shkevent);
     iwc_init(&shkevent.iwc);
+    alp_init(&shkevent.alp);
     hex_init(&shkevent.hex);
-    iwc_calibrate(iwc_calmode,&shkevent.iwc,1);
+    // iwc_calibrate(iwc_calmode,&shkevent.iwc,1);
+    alp_calibrate(alp_calmode,&shkevent.alp,1);
     hex_calibrate(hex_calmode,&shkevent.hex,1);
     shk_cellpid(&shkevent, 1);
-    shk_shk2iwc(&shkevent,sm_p, 1);
+    // shk_shk2iwc(&shkevent,sm_p, 1);
+    shk_shk2alp(&shkevent,sm_p, 1);
     shk_shk2hex(&shkevent,sm_p, 1);
     memcpy(&first,&start,sizeof(struct timespec));
     init=1;
@@ -679,6 +852,9 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
 
   //Set iwc_calmode
   iwc_calmode = sm_p->iwc_calmode;
+
+  //Set alp_calmode
+  alp_calmode = sm_p->alp_calmode;
 
   //Set hex_calmode
   hex_calmode = sm_p->hex_calmode;
@@ -694,6 +870,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   shkevent.start_sec = start.tv_sec;
   shkevent.start_nsec = start.tv_nsec;
   shkevent.iwc.calmode = iwc_calmode;
+  shkevent.alp.calmode = alp_calmode;
   shkevent.hex.calmode = hex_calmode;
   shkevent.kP = sm_p->shk_kP;
   shkevent.kI = sm_p->shk_kI;
@@ -713,27 +890,56 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   shk_cellpid(&shkevent, 0);
 
   //Convert cells to IWC
-  shk_shk2iwc(&shkevent,sm_p,0);
+  // shk_shk2iwc(&shkevent,sm_p,0);
+
+  shk_shk2alp(&shkevent, sm_p, 0);
 
   //Convert cells to HEX
   shk_shk2hex(&shkevent,sm_p,0);
 
   //Calibrate IWC
-  if(iwc_calmode) sm_p->iwc_calmode = iwc_calibrate(iwc_calmode,&shkevent.iwc,0);
+  // if(iwc_calmode) sm_p->iwc_calmode = iwc_calibrate(iwc_calmode,&shkevent.iwc,0);
+
+  //Calibrate ALP
+  if(alp_calmode) sm_p->alp_calmode = alp_calibrate(alp_calmode,&shkevent.alp,0);
 
   //Calibrate HEX
   if(hex_calmode) sm_p->hex_calmode = hex_calibrate(hex_calmode,&shkevent.hex,0);
 
   //Apply update to IWC
-  if(xin_write(sm_p->xin_dev,&shkevent.iwc,&dm,&pez)){
-    printf("SHK: xin_write failed!\n");
-    //Do something??
-  }
+  // if(xin_write(sm_p->xin_dev,&shkevent.iwc,&dm,&pez)){
+  //   printf("SHK: xin_write failed!\n");
+  //   //Do something??
+  // }
+
+  //Apply update to ALP
+  // int cell_ind = 132;
+  // printf("Cell[%i].deviation[0]: %f\n", cell_ind, shkevent.cells[cell_ind].deviation[0]);
+  // printf("Cell[%i].deviation[1]: %f\n", cell_ind, shkevent.cells[cell_ind].deviation[1]);
+  // usleep(500000);
+
+  // for(i=0; i<5; i++){
+  //   shkevent.alp.act[i] = 0;
+  // }
+  // shkevent.alp.act[10] = 0;
+  // shkevent.alp.act[53] = 0;
+  int alp_dev;
+  alp_dev = sm_p->alp_dev;
+  alp_write(&alp_dev, &shkevent.alp);
+  // int act = 48;
+  // printf("ALP: actuator #%i: %f\n", act, shkevent.alp.act[act]);
+
 
   //Apply update to HEX
   if(hex_calmode){
-    for(i=0;i<HEX_NAXES;i++)
-      sm_p->hex[i] = shkevent.hex.axs[i];
+    for(i=0;i<HEX_NAXES;i++){
+      if(sm_p->hex[i] != shkevent.hex.axs[i]){
+        sm_p->hex[i] = shkevent.hex.axs[i];
+        if(hex_calmode == 2){
+          usleep(ONE_MILLION / 2.0);
+        }
+      }
+    }
   }
 
   //Open circular buffer
