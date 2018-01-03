@@ -127,6 +127,43 @@ int handle_command(char *line, sm_t *sm_p){
     return(CMD_NORMAL);
   }
 
+  if(!strncasecmp(line,"alp calmode 5",13)){
+    sm_p->alp_calmode=5;
+    printf("CMD: Changed ALP calibration mode to %d\n",sm_p->alp_calmode);
+    return(CMD_NORMAL);
+  }
+
+  if(!strncasecmp(line,"alp calmode 6",13)){
+    sm_p->alp_calmode=6;
+    printf("CMD: Changed ALP calibration mode to %d\n",sm_p->alp_calmode);
+    return(CMD_NORMAL);
+  }
+
+  if(!strncasecmp(line,"alp calmode 7",13)){
+    sm_p->alp_calmode=7;
+    printf("CMD: Changed ALP calibration mode to %d\n",sm_p->alp_calmode);
+    return(CMD_NORMAL);
+  }
+
+  if(!strncasecmp(line,"foo",3)){
+    char buff1[8];
+    printf("Please enter zern mode:\n");
+    scanf("%s", buff1);
+    int zern = atoi(buff1);
+
+    char buff2[8];
+    printf("Please enter value:\n");
+    scanf("%s", buff2);
+    double val = atof(buff2);
+
+    printf("zern: %i, val: %f\n", zern, val);
+    sm_p->zern_targ[zern] = val;
+    return(CMD_NORMAL);
+  }
+
+
+
+
 
 
   //ALP Calibration
@@ -190,6 +227,29 @@ int handle_command(char *line, sm_t *sm_p){
 
     return(CMD_NORMAL);
   }
+
+    //Zern Calibration
+    if(!strncasecmp(line,"shk calibrate zern",18)){
+      printf("CMD: Running SHK Zern calibration\n");
+      sleep(3);
+
+      //Start data recording
+      printf("  -- Starting data recording\n");
+      sm_p->w[DIAID].launch = getshk_proc;
+      sm_p->w[DIAID].run    = 1;
+      sleep(3);
+      //Start probe pattern
+      sm_p->alp_calmode=7;
+      printf("  -- Changing ALP calibration mode to %d\n",sm_p->alp_calmode);
+      while(sm_p->alp_calmode == 7)
+        sleep(1);
+      printf("  -- Stopping data recording\n");
+      //Stop data recording
+      sm_p->w[DIAID].run    = 0;
+      printf("  -- Done\n");
+
+      return(CMD_NORMAL);
+    }
 
   //SHK Flight Test
   if(!strncasecmp(line,"shk flight test",15)){

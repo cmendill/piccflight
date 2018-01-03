@@ -307,10 +307,10 @@ int main(int argc,char **argv){
   sm_p->acq_mode        = ACQ_MODE_DEFAULT;
   sm_p->shk_boxsize     = SHK_BOXSIZE_DEFAULT;
   sm_p->shk_fit_zernike = SHK_FIT_ZERNIKE_DEFAULT;
-  sm_p->shk_kP          = SHK_KP_DEFAULT;
+  sm_p->shk_kP          = 0;//SHK_KP_DEFAULT;
   sm_p->shk_kI          = SHK_KI_DEFAULT;
   sm_p->shk_kD          = SHK_KD_DEFAULT;
-  sm_p->hex_kP          = HEX_KP_DEFAULT;
+  sm_p->hex_kP          = 0;//HEX_KP_DEFAULT;
   memcpy((void *)sm_p->hex,(void *)hex_pos,sizeof(hex_pos));
 
   /* Configure Circular Buffers */
@@ -376,7 +376,6 @@ int main(int argc,char **argv){
   else{
     sm_p->alp_dev = *alp_dev;
   }
-  // printf("WAT: dmIds: %i\n", alp_dev);
 #else
   printf("WAT: ALP driver disabled\n");
 #endif

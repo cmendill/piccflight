@@ -157,6 +157,8 @@ enum bufids {SCIEVENT, SCIFULL, SHKEVENT, SHKFULL, LYTEVENT, LYTFULL, ACQEVENT, 
 #define ZERNIKE_ERRORS_FILE   "data/zernike/zernike_errors.dat"
 #define ZERNIKE_ERRORS_NUMBER 15000
 #define ZERNIKE_ERRORS_PERIOD 0.00200000
+#define ZERNIKE_ERRORS_SHORT_FILE "data/zernike/zernike_errors_short.dat"
+#define ZERNIKE_ERRORS_SHORT_NUMBER 600
 
 /*************************************************
  * Camera Settings -- Keep sizes divisible by 4
@@ -259,8 +261,8 @@ enum bufids {SCIEVENT, SCIFULL, SHKEVENT, SHKFULL, LYTEVENT, LYTFULL, ACQEVENT, 
 #define HEX_POS_HOME     {0,0,0,0,0,0}
 #define HEX_POS_DEFAULT  {-0.975245, -0.087218, 0.540486, 0.116010, 0.345594, 0.036398}
 // #define HEX_POS_DEFAULT  {-0.485280, 0.061392, -0.883088, 0.374033, 0.194114, 0.098642}
-#define HEX_TRL_POKE      0.05
-#define HEX_ROT_POKE      0.005
+#define HEX_TRL_POKE      0.1
+#define HEX_ROT_POKE      0.01
 #define HEX_NCALIM        50
 #define HEX_PIVOT_X       122.32031250
 #define HEX_PIVOT_Y       206.61012268
@@ -371,6 +373,7 @@ typedef struct {
   double intensity;
   double background;
   double origin[2];
+  double cell_origin[2];
   double centroid[2];
   double deviation[2];
   double command[2];
@@ -383,7 +386,11 @@ typedef struct iwc_struct{
 } iwc_t;
 
 typedef struct alp_struct{
-  double act[ALP_NACT];
+  double act_cmd[ALP_NACT];
+  double act_now[ALP_NACT];
+  double zern_now[LOWFS_N_ZERNIKE];
+  double zern_cmd[LOWFS_N_ZERNIKE];
+  double zern_trg[LOWFS_N_ZERNIKE];
   uint16 calmode;
 } alp_t;
 
@@ -626,6 +633,7 @@ typedef volatile struct {
   int hex_godef;
   int shk_reset;
   int shk_setorigin;
+  double zern_targ[LOWFS_N_ZERNIKE];
 
   //Events circular buffers
   scievent_t scievent[SCIEVENTSIZE];

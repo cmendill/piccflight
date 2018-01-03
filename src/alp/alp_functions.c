@@ -20,9 +20,14 @@
 /**************************************************************/
 void alp_init(alp_t *alp){
   int i;
-  for(i=0; i<ALP_NACT; i++)
-    alp->act[i] = ALP_BIAS;
+  for(i=0; i<ALP_NACT; i++){
+    alp->act_cmd[i] = ALP_BIAS;
+  }
+  for(i=0; i<LOWFS_N_ZERNIKE; i++){
+    alp->zern_trg[i] = 0.0;
+  }
 }
+
 
 /**************************************************************/
 /*                      ALP_CALIBRATE                         */
@@ -33,9 +38,11 @@ int alp_calibrate(int calmode, alp_t *alp, int reset){
   static unsigned long int countA=0,countB=0,countF=0;
   static double zernike2alp[LOWFS_N_ZERNIKE*ALP_NACT]={0};
   static double zernike_errors[LOWFS_N_ZERNIKE][ZERNIKE_ERRORS_NUMBER]={{0}};
+  static double zernike_errors_short[LOWFS_N_ZERNIKE][ZERNIKE_ERRORS_SHORT_NUMBER] ={{0}};
   const double zernike_timestep = ZERNIKE_ERRORS_PERIOD;
   const int zuse[LOWFS_N_ZERNIKE]={0,0,0,1,1,1, 1,1,1,1,1,1, 0,0,0,0,0,0, 0,0,0,0,0,0};
   static int init=0;
+  int index_short = 0;
   time_t t;
   FILE *fileptr=NULL;
   char filename[MAX_FILENAME];
@@ -101,6 +108,27 @@ int alp_calibrate(int calmode, alp_t *alp, int reset){
       goto endofinit;
     }
 
+
+    /* Open zernike errors (short) file */
+    sprintf(filename,ZERNIKE_ERRORS_SHORT_FILE);
+    //--open file
+    if((fileptr = fopen(filename,"r")) == NULL){
+      perror("fopen");
+      goto endofinit;
+    }
+    //--check file size
+    fseek(fileptr, 0L, SEEK_END);
+    if(ftell(fileptr) != sizeof(zernike_errors_short)){
+      printf("SHK: incorrect zernike_errors_short file size %lu != %lu\n",ftell(fileptr), sizeof(zernike_errors_short));
+      goto endofinit;
+    }
+    rewind(fileptr);
+    //--read matrix
+    if(fread(zernike_errors_short,sizeof(zernike_errors_short),1,fileptr) != 1){
+      perror("fread");
+      goto endofinit;
+    }
+
   endofinit:
     //--close file
     if(fileptr != NULL) fclose(fileptr);
@@ -117,9 +145,9 @@ int alp_calibrate(int calmode, alp_t *alp, int reset){
   if(calmode == 1){
     //Set all ALP actuators to bias
     for(i=0;i<ALP_NACT;i++)
-      alp->act[i]=ALP_BIAS;
+      alp->act_cmd[i]=ALP_BIAS;
     //poke one actuator
-    alp->act[(countA/ALP_NCALIM) % ALP_NACT] = ALP_BIAS + ALP_POKE;
+    alp->act_cmd[(countA/ALP_NCALIM) % ALP_NACT] = ALP_BIAS + ALP_POKE;
     // usleep(500000);
     countA++;
     return calmode;
@@ -132,16 +160,15 @@ int alp_calibrate(int calmode, alp_t *alp, int reset){
     if(countA >= 0 && countA < (2*ALP_NACT*ALP_NCALIM)){
       //set all ALP actuators to bias
       for(i=0;i<ALP_NACT;i++)
-	alp->act[i]=ALP_BIAS;
+	alp->act_cmd[i]=ALP_BIAS;
 
       //poke one actuator
       if((countA/ALP_NCALIM) % 2 == 1){
-	alp->act[(countB/ALP_NCALIM) % ALP_NACT] = ALP_BIAS + ALP_POKE;
+	alp->act_cmd[(countB/ALP_NCALIM) % ALP_NACT] = ALP_BIAS + ALP_POKE;
 	countB++;
       }
       countA++;
-    }
-    else{
+    }else{
       //Turn off calibration
       printf("ALP: Stopping ALP calmode 2\n");
       calmode = 0;
@@ -153,15 +180,37 @@ int alp_calibrate(int calmode, alp_t *alp, int reset){
 
   /* CALMODE 3: Set Zernike on ALP */
   if(calmode == 3){
-    double zerns[24] = {0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-    for(i=0;i<LOWFS_N_ZERNIKE;i++){
-      zernikes[i] = zerns[i];
+    int N_STEP=75;
+    int N_ZERNS = LOWFS_N_ZERNIKE;
+    static double act_base[ALP_NACT];
+    if(countA >= 0 && countA < (2*N_ZERNS*N_STEP)+50){
+      for(i=0; i<ALP_NACT; i++){
+        if(countA==0){
+          act_base[i] = alp->act_cmd[i];
+        }
+        alp->act_now[i] = alp->act_cmd[i];
+        alp->act_cmd[i] = act_base[i];
+      }
+      for(i=0;i<LOWFS_N_ZERNIKE;i++){
+        zernikes[i] = 0.0;
+      }
+      // num_dgemv(zernike2alp, zernikes, act, ALP_NACT, LOWFS_N_ZERNIKE);
+
+      if((countA/N_STEP) % 2 == 1){
+          zernikes[countB/N_STEP % N_ZERNS] = 0.1;
+          num_dgemv(zernike2alp, zernikes, act, ALP_NACT, LOWFS_N_ZERNIKE);
+        for(i=0; i<ALP_NACT; i++){
+          alp->act_cmd[i] += (double)act[i];
+        }
+        countB++;
+      }
+      countA++;
+
+    }else{
+      printf("ALP: Stopping calmode 3\n");
+      calmode = 0;
+      init = 0;
     }
-    num_dgemv(zernike2alp, zernikes, act, ALP_NACT, LOWFS_N_ZERNIKE);
-    for(i=0;i<ALP_NACT;i++){
-  	   alp->act[i] = (double)0.5*act[i];
-    }
-    // countA++;
     return calmode;
   }
 
@@ -185,7 +234,7 @@ int alp_calibrate(int calmode, alp_t *alp, int reset){
     num_dgemv(zernike2alp, zernikes, act, ALP_NACT, LOWFS_N_ZERNIKE);
     //Add offsets to ALP position
     for(i=0;i<ALP_NACT;i++)
-      alp->act[i] += (double)act[i]*1.0;
+      alp->act_cmd[i] += (double)act[i]*5.0;
     //Check if we are done
     if((index + (int)(1.1*period/zernike_timestep)) > ZERNIKE_ERRORS_NUMBER){
       //Turn off calibration
@@ -196,6 +245,69 @@ int alp_calibrate(int calmode, alp_t *alp, int reset){
     }
     countF++;
   }
+
+  /* CALMODE 6: Flight Simulator (short) */
+
+  if(calmode == 6){
+    //Set index
+
+
+    for(i=0;i<LOWFS_N_ZERNIKE;i++){
+      if(zuse[i]){
+         zernikes[i] = zernike_errors_short[i][index_short];
+      }
+    }
+    //Convert to ALP DAC codes
+    num_dgemv(zernike2alp, zernikes, act, ALP_NACT, LOWFS_N_ZERNIKE);
+    //Add offsets to ALP position
+    for(i=0;i<ALP_NACT;i++){
+      alp->act_cmd[i] += (double)act[i]*100.0;
+    }
+    index_short +=1;
+    printf("[ALP] index: %i\n", index_short);
+    //Check if we are done
+    if(index_short > ZERNIKE_ERRORS_SHORT_NUMBER){
+      //Turn off calibration
+      printf("ALP: Stopping ALP calmode 4\n");
+      calmode = 0;
+      init = 0;
+      return calmode;
+    }
+
+  }
+
+  /* CALMODE 7: Set closed loop Zernike on ALP */
+  if(calmode == 7){
+    int N_ZERNS = LOWFS_N_ZERNIKE;
+    int N_STEP = 75;
+
+
+    if(countA >= 0 && countA < (2*N_ZERNS*N_STEP)+50){
+      for(i=0; i<ALP_NACT; i++){
+        alp->act_now[i] = alp->act_cmd[i];
+      }
+      for(i=0;i<LOWFS_N_ZERNIKE;i++){
+        alp->zern_trg[i] = 0.0;
+      }
+
+      if(countA/N_STEP % 2 ==1){
+        alp->zern_trg[countB/N_STEP % N_ZERNS] = 0.1;
+        countB++;
+      }
+      countA++;
+      if(countA > 2*N_ZERNS*N_STEP){
+        for(i=0;i<ALP_NACT;i++){
+          alp->act_cmd[i] = 0.0;
+        }
+      }
+    }else{
+      printf("ALP: Stopping calmode 7\n");
+      calmode = 0;
+      init = 0;
+    }
+    return calmode;
+  }
+
 
 
 
@@ -211,8 +323,8 @@ int alp_calibrate(int calmode, alp_t *alp, int reset){
 void alp_check(alp_t *alp){
   int i;
   for(i=0;i<ALP_NACT;i++){
-    alp->act[i] = alp->act[i] > ALP_DMAX ? ALP_DMAX : alp->act[i];
-    alp->act[i] = alp->act[i] < ALP_DMIN ? ALP_DMIN : alp->act[i];
+    alp->act_cmd[i] = alp->act_cmd[i] < ALP_DMIN ? ALP_DMIN : alp->act_cmd[i];
+    alp->act_cmd[i] = alp->act_cmd[i] > ALP_DMAX ? ALP_DMAX : alp->act_cmd[i];
   }
 }
 
@@ -274,7 +386,7 @@ int alp_write(const int* alp_dev, alp_t* alp){
     // int act = 1;
     // double* cmd = alp->act;
     // printf("Sending %f to act %i\n", *cmd, act);
-    ret = acedev5Send(1, alp_dev, alp->act);
+    ret = acedev5Send(1, alp_dev, alp->act_cmd);
     if ( ret != acecsSUCCESS ){
         return -1;
 

@@ -41,6 +41,8 @@ void shk_init_cells(shkevent_t *shkevent){
       shkevent->cells[c].index = c;
       shkevent->cells[c].origin[0] = i*cell_size_px + cell_size_px/2 + SHK_CELL_XOFF;
       shkevent->cells[c].origin[1] = j*cell_size_px + cell_size_px/2 + SHK_CELL_YOFF;
+      shkevent->cells[c].cell_origin[0] = i*cell_size_px + cell_size_px/2 + SHK_CELL_XOFF;
+      shkevent->cells[c].cell_origin[1] = j*cell_size_px + cell_size_px/2 + SHK_CELL_YOFF;
       shkevent->cells[c].beam_select = shk_beam_select[y*SHK_XCELLS + x];
       shkevent->beam_ncells += shkevent->cells[c].beam_select;
       c++;
@@ -72,8 +74,8 @@ int shk_setorigin(shkevent_t *shkevent){
     //Set origins = averaged centroids
     for(i=0;i<SHK_NCELLS;i++){
       if(shkevent->cells[i].beam_select){
-	shkevent->cells[i].origin[0] = cx[i];
-	shkevent->cells[i].origin[1] = cy[i];
+	shkevent->cells[i].cell_origin[0] = cx[i];
+	shkevent->cells[i].cell_origin[1] = cy[i];
       }
     }
 
@@ -123,10 +125,10 @@ void shk_centroid_cell(uint16 *image, shkcell_t *cell, int shk_boxsize, int iwc_
 
 
   //Calculate corners of centroid box
-  blx = floor(cell->origin[0] - boxsize);
-  bly = floor(cell->origin[1] - boxsize);
-  trx = floor(cell->origin[0] + boxsize);
-  try = floor(cell->origin[1] + boxsize);
+  blx = floor(cell->cell_origin[0] - boxsize);
+  bly = floor(cell->cell_origin[1] - boxsize);
+  trx = floor(cell->cell_origin[0] + boxsize);
+  try = floor(cell->cell_origin[1] + boxsize);
 
   //Impose limits
   blx = blx > SHK_XMAX ? SHK_XMAX : blx;
@@ -260,8 +262,8 @@ void shk_centroid(uint16 *image, shkevent_t *shkevent){
   shkevent->ytilt=0;
 
   //Set boxsize
-  if(shkevent->alp.calmode == 2) //NEED TO MAKE THIS MORE CLEAR
-    shkevent->boxsize = SHK_MAX_BOXSIZE;
+  // if(shkevent->alp.calmode > 0) //NEED TO MAKE THIS MORE CLEAR
+  //   shkevent->boxsize = SHK_MAX_BOXSIZE;
 
   //Get background
   shk_centroid_cell(image,&shkevent->cells[0],shkevent->boxsize,shkevent->alp.calmode);
@@ -426,11 +428,11 @@ void shk_zernike_fit(shkevent_t *shkevent){
   rewind(matrix);
   rsize = 2*shkevent->beam_ncells*LOWFS_N_ZERNIKE*sizeof(double);
   if(fsize != rsize){
-    // printf("SHK: incorrect shk2zern matrix file size %lu != %lu\n", fsize, rsize);
+    printf("SHK: incorrect shk2zern matrix file size %lu != %lu\n", fsize, rsize);
   }
   //read matrix
   if(fread(shk2zern,2*shkevent->beam_ncells*LOWFS_N_ZERNIKE*sizeof(double),1,matrix) !=1){
-    // perror("fread");
+    perror("fread");
   }
   //close file
   fclose(matrix);
@@ -448,6 +450,11 @@ void shk_zernike_fit(shkevent_t *shkevent){
 
   //Do matrix multiply
   num_dgemv(shk2zern, shk_xydev, shkevent->zernikes, LOWFS_N_ZERNIKE, beam_ncells_2);
+
+  //Record measured zernikes
+  for(i=0; i<LOWFS_N_ZERNIKE;i++){
+    shkevent->alp.zern_now[i] = shkevent->zernikes[i];
+  }
 
   // double zern_offset[24]={      -0.00000,   0.0135805,    -0.0271113,  0.00863601,   0.0277714,   0.0382247,  -0.000627516,   -0.00352233,    -0.0194335,  0.00962264,    -0.0138212,  -9.02948e-05,    -0.0343523,  0.00119619,
   // 0.00885264,   -0.00791998,    -0.0176545,   0.0158954,   0.0110489,   0.0252110,  0.00504202,    -0.0121719,  0.00607450,   -0.00243058};
@@ -605,6 +612,7 @@ int shk_shk2alp(shkevent_t *shkevent, sm_t *sm_p, int reset){
   static double zern2alp[LOWFS_N_ZERNIKE*ALP_NACT]={0};
   double shk_xydev[2*SHK_NCELLS];
   double shk_zern[LOWFS_N_ZERNIKE];
+  double zern_trg[LOWFS_N_ZERNIKE];
   double total=0;
   uint64 fsize,rsize;
   uint64 zfsize, zrsize;
@@ -677,33 +685,29 @@ int shk_shk2alp(shkevent_t *shkevent, sm_t *sm_p, int reset){
   }
   beam_ncells_2 = 2*shkevent->beam_ncells;
 
+  //Apply target
   for(i=0;i<LOWFS_N_ZERNIKE;i++){
-    shk_zern[i] = shkevent->zernikes[i]*shkevent->kP;
+    sm_p->zern_targ[i] = shkevent->alp.zern_trg[i];
+    shk_zern[i] = shkevent->zernikes[i] - shkevent->alp.zern_trg[i];
   }
-// alp_act_matrix
-  //Do Matrix Multiply and recast to doubles
 
+
+  //Do Matrix Multiply set actuator commands
   if(sm_p->shk_fit_zernike){
     num_dgemv(zern2alp,shk_zern,shkevent->alp_act_matrix, ALP_NACT, LOWFS_N_ZERNIKE);
     for(i=0;i<ALP_NACT;i++){
-      shkevent->alp.act[i] += (double)(shkevent->alp_act_matrix[i]);
-      total += shkevent->alp.act[i];
+      shkevent->alp.act_cmd[i] += (double)(shkevent->alp_act_matrix[i]*shkevent->kP);
+      total += shkevent->alp.act_cmd[i];
     }
-    // for(i=0;i<ALP_NACT;i++){
-    //   shkevent->alp.act[i] -= (double)(total/ALP_NACT);
-    // }
 
   }else{
     num_dgemv(shk2alp,shk_xydev,shkevent->alp_act_matrix, ALP_NACT, beam_ncells_2);
     for(i=0;i<ALP_NACT;i++){
-      shkevent->alp.act[i] += (double)(shkevent->alp_act_matrix[i]);
-      total += shkevent->alp.act[i];
+      shkevent->alp.act_cmd[i] += (double)(shkevent->alp_act_matrix[i]*shkevent->kP);
+      total += shkevent->alp.act_cmd[i];
     }
-    // for(i=0;i<ALP_NACT;i++){
-    //   shkevent->alp.act[i] -= (double)(total/ALP_NACT);
-    // }
   }
-// printf("[SHK] Total average act magnitude: %f\n", (double)(total/ALP_NACT));
+
   return 0;
 }
 
@@ -752,7 +756,7 @@ int shk_shk2hex(shkevent_t *shkevent, sm_t *sm_p, int reset){
   }
 
   //Do Matrix Multiply
-  num_dgemv(shk2hex,shkevent->zernikes ,shkevent->hex_axs_matrix, HEX_NAXES, LOWFS_N_ZERNIKE);
+  num_dgemv(shk2hex, shkevent->zernikes ,shkevent->hex_axs_matrix, HEX_NAXES, LOWFS_N_ZERNIKE);
 
   //Recast to doubles
   if(sm_p->shk_fit_zernike  && sm_p->hex_calmode)
@@ -783,16 +787,23 @@ void shk_cellpid(shkevent_t *shkevent, int reset){
   }
 
   //Run PID
-  for(i=0;i<SHK_NCELLS;i++){
-    if(shkevent->cells[i].beam_select){
-      //Calculate integrals
-      xint[i] += shkevent->cells[i].deviation[0];
-      yint[i] += shkevent->cells[i].deviation[1];
-      //Calculate command
-      shkevent->cells[i].command[0] = shkevent->kP * shkevent->cells[i].deviation[0] + shkevent->kI * xint[i];
-      shkevent->cells[i].command[1] = shkevent->kP * shkevent->cells[i].deviation[1] + shkevent->kI * yint[i];
+  int alp_calmode = shkevent->alp.calmode;
+  if(alp_calmode != 5){
+    for(i=0;i<SHK_NCELLS;i++){
+      if(shkevent->cells[i].beam_select){
+        //Calculate integrals
+        xint[i] += shkevent->cells[i].deviation[0];
+        yint[i] += shkevent->cells[i].deviation[1];
+        //Calculate command
+        shkevent->cells[i].command[0] = shkevent->kP * shkevent->cells[i].deviation[0] + shkevent->kI * xint[i];
+        shkevent->cells[i].command[1] = shkevent->kP * shkevent->cells[i].deviation[1] + shkevent->kI * yint[i];
+      }
     }
   }
+  for(i=0; i<LOWFS_N_ZERNIKE; i++){
+    shkevent->alp.zern_cmd[i] = shkevent->zernikes[i] * shkevent->kP;
+  }
+
 }
 
 /**************************************************************/
@@ -845,6 +856,11 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     init=1;
   }
 
+  //Write current act positions
+  for(i=0; i<ALP_NACT; i++){
+    shkevent.alp.act_now[i] = shkevent.alp.act_cmd[i];
+  }
+
   //Measure exposure time
   if(timespec_subtract(&delta,&start,&last))
     printf("SHK: shk_process_image --> timespec_subtract error!\n");
@@ -887,18 +903,29 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   if(sm_p->shk_fit_zernike) shk_zernike_fit(&shkevent);
 
   //Run PID
-  shk_cellpid(&shkevent, 0);
+  // if(!alp_calmode){
+    shk_cellpid(&shkevent, 0);
+  // }
 
+  // OLD IWC CODE///////////////////////////////////////////////////////////////
   //Convert cells to IWC
   // shk_shk2iwc(&shkevent,sm_p,0);
+
+  //Calibrate IWC
+  // if(iwc_calmode) sm_p->iwc_calmode = iwc_calibrate(iwc_calmode,&shkevent.iwc,0);
+
+  //Apply update to IWC
+  // if(xin_write(sm_p->xin_dev,&shkevent.iwc,&dm,&pez)){
+  //   printf("SHK: xin_write failed!\n");
+  //   //Do something??
+  // }
+  //////////////////////////////////////////////////////////////////////////////
+
 
   shk_shk2alp(&shkevent, sm_p, 0);
 
   //Convert cells to HEX
   shk_shk2hex(&shkevent,sm_p,0);
-
-  //Calibrate IWC
-  // if(iwc_calmode) sm_p->iwc_calmode = iwc_calibrate(iwc_calmode,&shkevent.iwc,0);
 
   //Calibrate ALP
   if(alp_calmode) sm_p->alp_calmode = alp_calibrate(alp_calmode,&shkevent.alp,0);
@@ -906,28 +933,20 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   //Calibrate HEX
   if(hex_calmode) sm_p->hex_calmode = hex_calibrate(hex_calmode,&shkevent.hex,0);
 
-  //Apply update to IWC
-  // if(xin_write(sm_p->xin_dev,&shkevent.iwc,&dm,&pez)){
-  //   printf("SHK: xin_write failed!\n");
-  //   //Do something??
-  // }
-
   //Apply update to ALP
-  // int cell_ind = 132;
-  // printf("Cell[%i].deviation[0]: %f\n", cell_ind, shkevent.cells[cell_ind].deviation[0]);
-  // printf("Cell[%i].deviation[1]: %f\n", cell_ind, shkevent.cells[cell_ind].deviation[1]);
-  // usleep(500000);
-
-  // for(i=0; i<5; i++){
-  //   shkevent.alp.act[i] = 0;
+  // for(i=0; i<LOWFS_N_ZERNIKE; i++){
+  //   shkevent.alp.zern_cmd[i] = shkevent.zernikes[i] * shkevent.kP;
   // }
-  // shkevent.alp.act[10] = 0;
-  // shkevent.alp.act[53] = 0;
-  int alp_dev;
-  alp_dev = sm_p->alp_dev;
-  alp_write(&alp_dev, &shkevent.alp);
-  // int act = 48;
-  // printf("ALP: actuator #%i: %f\n", act, shkevent.alp.act[act]);
+  // if(sm_p->hex_godef == 1){
+    if(alp_calmode != 5){
+      int alp_dev;
+      alp_dev = sm_p->alp_dev;
+      alp_write(&alp_dev, &shkevent.alp);
+    }
+  // }
+
+
+
 
 
   //Apply update to HEX
