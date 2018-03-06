@@ -433,6 +433,7 @@ void shk_zernike_fit(shkevent_t *shkevent){
   //read matrix
   if(fread(shk2zern,2*shkevent->beam_ncells*LOWFS_N_ZERNIKE*sizeof(double),1,matrix) !=1){
     perror("fread");
+    printf("shk2zern file\r");
   }
   //close file
   fclose(matrix);
@@ -613,11 +614,13 @@ int shk_shk2alp(shkevent_t *shkevent, sm_t *sm_p, int reset){
   double shk_xydev[2*SHK_NCELLS];
   double shk_zern[LOWFS_N_ZERNIKE];
   double zern_trg[LOWFS_N_ZERNIKE];
-  double total=0;
+  double total = 0;
+  double low_zern_tot  = 0;
+  double high_zern_tot = 0;
   uint64 fsize,rsize;
   uint64 zfsize, zrsize;
   int c,i,beam_ncells_2;
-  static int test=0;
+  static int test = 0;
 
   if(!init || reset){
     /* Open matrix files */
@@ -626,11 +629,13 @@ int shk_shk2alp(shkevent_t *shkevent, sm_t *sm_p, int reset){
     //--open files
     if((matrix = fopen(matrix_file,"r")) == NULL){
       perror("fopen");
+      printf("shk2alp file\r");
       return 1;
     }
     sprintf(zern_matrix_file, ZERNIKE2ALP_FILE);
     if((zern_matrix = fopen(zern_matrix_file,"r")) == NULL){
       perror("fopen");
+      printf("zern2alp file\r");
       return 1;
     }
 
@@ -655,6 +660,7 @@ int shk_shk2alp(shkevent_t *shkevent, sm_t *sm_p, int reset){
       //--read matrix
       if(fread(zern2alp,LOWFS_N_ZERNIKE*ALP_NACT*sizeof(double),1,zern_matrix) != 1){
         perror("fread");
+        printf("zern2alp file\r");
         return 1;
       }
       //--close file
@@ -665,6 +671,7 @@ int shk_shk2alp(shkevent_t *shkevent, sm_t *sm_p, int reset){
 
     if(fread(shk2alp,2*shkevent->beam_ncells*ALP_NACT*sizeof(double),1,matrix) != 1){
       perror("fread");
+      printf("shk2alp file\r");
       return 1;
     }
     //--close file
@@ -685,12 +692,28 @@ int shk_shk2alp(shkevent_t *shkevent, sm_t *sm_p, int reset){
   }
   beam_ncells_2 = 2*shkevent->beam_ncells;
 
-  //Apply target
+  //Calculate total of low/high zernikes
+  for(i=0;i<5;i++){
+    low_zern_tot += shkevent->zernikes[i];
+  }
+  for(i=5;i<LOWFS_N_ZERNIKE;i++){
+    high_zern_tot += shkevent->zernikes[i];
+  }
+
+  if(low_zern_tot > 1.0){
+    init=0;
+    sm_p->shk_reset=1;
+  }
+  //Apply target / Zernike thresholding
   for(i=0;i<LOWFS_N_ZERNIKE;i++){
     sm_p->zern_targ[i] = shkevent->alp.zern_trg[i];
     shk_zern[i] = shkevent->zernikes[i] - shkevent->alp.zern_trg[i];
+    if(low_zern_tot > 0.05){
+      if(i > 4){
+        shk_zern[i] = 0.0;
+      }
+    }
   }
-
 
   //Do Matrix Multiply set actuator commands
   if(sm_p->shk_fit_zernike){
@@ -738,14 +761,15 @@ int shk_shk2hex(shkevent_t *shkevent, sm_t *sm_p, int reset){
     fseek(matrix, 0L, SEEK_END);
     fsize = ftell(matrix);
     rewind(matrix);
-    rsize = LOWFS_N_ZERNIKE*HEX_NAXES*sizeof(double);
+    rsize = (LOWFS_N_ZERNIKE-8)*HEX_NAXES*sizeof(double);
     if(fsize != rsize){
       printf("SHK: incorrect HEX matrix file size %lu != %lu\n",fsize,rsize);
       return 1;
     }
     //--read matrix
-    if(fread(shk2hex,LOWFS_N_ZERNIKE*HEX_NAXES*sizeof(double),1,matrix) != 1){
+    if(fread(shk2hex,(LOWFS_N_ZERNIKE-8)*HEX_NAXES*sizeof(double),1,matrix) != 1){
       perror("fread");
+      printf("shk2hex file\r");
       return 1;
     }
     //--close file

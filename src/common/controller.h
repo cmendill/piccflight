@@ -149,7 +149,7 @@ enum bufids {SCIEVENT, SCIFULL, SHKEVENT, SHKFULL, LYTEVENT, LYTFULL, ACQEVENT, 
 /*************************************************
  * LOWFS Settings
  *************************************************/
-#define LOWFS_N_ZERNIKE         24
+#define LOWFS_N_ZERNIKE         32
 
 /*************************************************
  * Zernike Errors
@@ -238,8 +238,8 @@ enum bufids {SCIEVENT, SCIFULL, SHKEVENT, SHKFULL, LYTEVENT, LYTFULL, ACQEVENT, 
 #define ALP_STROKE   2.0
 #define ALPXS        10
 #define ALPYS        10
-#define ALP_DMAX     0.99
-#define ALP_DMIN     -0.99
+#define ALP_DMAX     0.9
+#define ALP_DMIN     -0.9
 #define ALP_DMID     ((ALP_DMIN+ALP_DMAX)/2)
 #define ALP_BIAS     0.0
 #define ALP_POKE     0.05

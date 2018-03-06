@@ -322,9 +322,16 @@ int alp_calibrate(int calmode, alp_t *alp, int reset){
 /**************************************************************/
 void alp_check(alp_t *alp){
   int i;
+  double max_diff = 0.1;
+  for(i=1;i<ALP_NACT;i++){
+    if((alp->act_cmd[i]-alp->act_cmd[i-1] > max_diff) || (alp->act_cmd[i]-alp->act_cmd[i-1] < max_diff)){
+      alp->act_cmd[i] -= (alp->act_cmd[i]-alp->act_cmd[i-1]-max_diff);
+    }
   for(i=0;i<ALP_NACT;i++){
     alp->act_cmd[i] = alp->act_cmd[i] < ALP_DMIN ? ALP_DMIN : alp->act_cmd[i];
     alp->act_cmd[i] = alp->act_cmd[i] > ALP_DMAX ? ALP_DMAX : alp->act_cmd[i];
+  }
+
   }
 }
 

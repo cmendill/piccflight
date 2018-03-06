@@ -456,37 +456,37 @@ int handle_command(char *line, sm_t *sm_p){
   //SHK Gain
   if(!strncasecmp(line,"shk gain ",9) && strlen(line)>10){
     if(!strncasecmp(line+9,"5",1)){
-      sm_p->shk_kP = SHK_KP_DEFAULT/1;
-      sm_p->shk_kI = SHK_KI_DEFAULT/1;
-      sm_p->shk_kD = SHK_KD_DEFAULT/1;
+      sm_p->shk_kP = SHK_KP_DEFAULT*1.0;
+      sm_p->shk_kI = SHK_KI_DEFAULT*1.0;
+      sm_p->shk_kD = SHK_KD_DEFAULT*1.0;
       printf("SHK switching to gain 5: %f, %f, %f\n",sm_p->shk_kP,sm_p->shk_kI,sm_p->shk_kD);
       return CMD_NORMAL;
     }
     if(!strncasecmp(line+9,"4",1)){
-      sm_p->shk_kP = SHK_KP_DEFAULT/2;
-      sm_p->shk_kI = SHK_KI_DEFAULT/2;
-      sm_p->shk_kD = SHK_KD_DEFAULT/2;
+      sm_p->shk_kP = SHK_KP_DEFAULT*0.8;
+      sm_p->shk_kI = SHK_KI_DEFAULT*0.8;
+      sm_p->shk_kD = SHK_KD_DEFAULT*0.8;
       printf("SHK switching to gain 4: %f, %f, %f\n",sm_p->shk_kP,sm_p->shk_kI,sm_p->shk_kD);
       return CMD_NORMAL;
     }
     if(!strncasecmp(line+9,"3",1)){
-      sm_p->shk_kP = SHK_KP_DEFAULT/3;
-      sm_p->shk_kI = SHK_KI_DEFAULT/3;
-      sm_p->shk_kD = SHK_KD_DEFAULT/3;
+      sm_p->shk_kP = SHK_KP_DEFAULT*0.6;
+      sm_p->shk_kI = SHK_KI_DEFAULT*0.6;
+      sm_p->shk_kD = SHK_KD_DEFAULT*0.6;
       printf("SHK switching to gain 3: %f, %f, %f\n",sm_p->shk_kP,sm_p->shk_kI,sm_p->shk_kD);
       return CMD_NORMAL;
     }
     if(!strncasecmp(line+9,"2",1)){
-      sm_p->shk_kP = SHK_KP_DEFAULT/4;
-      sm_p->shk_kI = SHK_KI_DEFAULT/4;
-      sm_p->shk_kD = SHK_KD_DEFAULT/4;
+      sm_p->shk_kP = SHK_KP_DEFAULT*0.4;
+      sm_p->shk_kI = SHK_KI_DEFAULT*0.4;
+      sm_p->shk_kD = SHK_KD_DEFAULT*0.4;
       printf("SHK switching to gain 2: %f, %f, %f\n",sm_p->shk_kP,sm_p->shk_kI,sm_p->shk_kD);
       return CMD_NORMAL;
     }
     if(!strncasecmp(line+9,"1",1)){
-      sm_p->shk_kP = SHK_KP_DEFAULT/5;
-      sm_p->shk_kI = SHK_KI_DEFAULT/5;
-      sm_p->shk_kD = SHK_KD_DEFAULT/5;
+      sm_p->shk_kP = SHK_KP_DEFAULT*0.2;
+      sm_p->shk_kI = SHK_KI_DEFAULT*0.2;
+      sm_p->shk_kD = SHK_KD_DEFAULT*0.2;
       printf("SHK switching to gain 1: %f, %f, %f\n",sm_p->shk_kP,sm_p->shk_kI,sm_p->shk_kD);
       return CMD_NORMAL;
     }
@@ -507,22 +507,22 @@ int handle_command(char *line, sm_t *sm_p){
       return CMD_NORMAL;
     }
     if(!strncasecmp(line+9,"4",1)){
-      sm_p->hex_kP = HEX_KP_DEFAULT/2;
+      sm_p->hex_kP = HEX_KP_DEFAULT*0.8;
       printf("HEX switching to gain 4: %f\n",sm_p->hex_kP);
       return CMD_NORMAL;
     }
     if(!strncasecmp(line+9,"3",1)){
-      sm_p->hex_kP = HEX_KP_DEFAULT/3;
+      sm_p->hex_kP = HEX_KP_DEFAULT*0.6;
       printf("HEX switching to gain 3: %f\n",sm_p->hex_kP);
       return CMD_NORMAL;
     }
     if(!strncasecmp(line+9,"2",1)){
-      sm_p->hex_kP = HEX_KP_DEFAULT/4;
+      sm_p->hex_kP = HEX_KP_DEFAULT*0.4;
       printf("HEX switching to gain 2: %f\n",sm_p->hex_kP);
       return CMD_NORMAL;
     }
     if(!strncasecmp(line+9,"1",1)){
-      sm_p->hex_kP = HEX_KP_DEFAULT/5;
+      sm_p->hex_kP = HEX_KP_DEFAULT*0.2;
       printf("HEX switching to gain 1: %f\n",sm_p->hex_kP);
       return CMD_NORMAL;
     }

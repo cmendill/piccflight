@@ -27,7 +27,7 @@
 //Shack-Hartmann Settings
 #define SHK_BOXSIZE_DEFAULT     7
 #define SHK_FIT_ZERNIKE_DEFAULT 1
-#define SHK_KP_DEFAULT  -0.5
+#define SHK_KP_DEFAULT  -0.9
 #define SHK_KI_DEFAULT  0.0
 #define SHK_KD_DEFAULT  0.0
 #define HEX_KP_DEFAULT -0.1
