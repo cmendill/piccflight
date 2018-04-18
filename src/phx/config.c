@@ -212,36 +212,39 @@ etStat CONFIG_RunFile(tHandle handle, char** pszConfigFileName) {
   char *token, *strParam, *strParamValue;
 
   eStat = BOBCAT_LoadFromFactory(handle);
-  printf("PHX: Opening: %s\n",*pszConfigFileName);
-  
+  printf("PHX: Opening config: %s\n",*pszConfigFileName);
+
   fp = fopen(*pszConfigFileName, "r");
-  if(fp==NULL)
+  if(fp==NULL){
+    printf("Config file\r\n");
     perror("fopen()");
-  
+  }else{
+    printf("PHX: config file opened.\r\n");
+  }
+
   while(fgets(strLine, PHX_CONFIG_MAX_LINE, (FILE*) fp)) {
     if(strstr(strLine, strPhoenix) != NULL) {
       #ifdef _VERBOSE
-        printf("phoenix block found\n");
+        printf("PHX: phoenix block found\n");
       #endif
       fphx=1; fbobcat=0; fsystem=0;
     } else if(strstr(strLine, strSystem) != NULL) {
       #ifdef _VERBOSE
-        printf("system block found\n");
+        printf("PHX: system block found\n");
       #endif
       fphx=0; fbobcat=0; fsystem=1;
     } else if(strstr(strLine, strBobcat) != NULL) {
       #ifdef _VERBOSE
-        printf("bobcat block found\n");
+        printf("PHX: bobcat block found\n");
       #endif
       fphx=0; fbobcat=1; fsystem=0;
     } else if (strLine[0]=='\n') {
       #ifdef _VERBOSE
-        printf("run PHX_ParameterSet( handle, (etParam)( PHX_DUMMY_PARAM | PHX_CACHE_FLUSH | PHX_FORCE_REWRITE ), NULL )\n");
-      #else
-        eStat = PHX_ParameterSet( handle, (etParam)( PHX_DUMMY_PARAM | PHX_CACHE_FLUSH | PHX_FORCE_REWRITE ), NULL );
+        printf("PHX: run PHX_ParameterSet( handle, (etParam)( PHX_DUMMY_PARAM | PHX_CACHE_FLUSH | PHX_FORCE_REWRITE ), NULL )\n");
       #endif
+        eStat = PHX_ParameterSet( handle, (etParam)( PHX_DUMMY_PARAM | PHX_CACHE_FLUSH | PHX_FORCE_REWRITE ), NULL );
     } else {
-      
+
       token = strtok(strLine, delimit);
       strParam = malloc(sizeof(char)*strlen(token)+1);
       strcpy(strParam, token);
@@ -260,10 +263,9 @@ etStat CONFIG_RunFile(tHandle handle, char** pszConfigFileName) {
               eStat = PHX_ERROR_BAD_PARAM_VALUE;
             } else {
               #ifdef _VERBOSE
-                printf("run eStat = PHX_BOBCAT_Configure(handle, %s, roi = [%d, %d, %d, %d, %s, %s])\n", strParam, roi.x_offset, roi.y_offset, roi.x_length, roi.y_length, roi.x_binning==BOBCAT_BINNING_1X?"BOBCAT_BINNING_1X":"er", roi.y_binning==BOBCAT_BINNING_1X?"BOBCAT_BINNING_1X":"er");
-              #else
-                eStat = PHX_BOBCAT_Configure(handle, pbParam, &roi);
+                printf("PHX: run eStat = PHX_BOBCAT_Configure(handle, %s, roi = [%d, %d, %d, %d, %s, %s])\n", strParam, roi.x_offset, roi.y_offset, roi.x_length, roi.y_length, roi.x_binning==BOBCAT_BINNING_1X?"BOBCAT_BINNING_1X":"er", roi.y_binning==BOBCAT_BINNING_1X?"BOBCAT_BINNING_1X":"er");
               #endif
+                eStat = PHX_BOBCAT_Configure(handle, pbParam, &roi);
             }
           } else {
             phxbobcatParamValue pbParamValue;
@@ -271,10 +273,9 @@ etStat CONFIG_RunFile(tHandle handle, char** pszConfigFileName) {
               eStat = PHX_ERROR_BAD_PARAM_VALUE;
             } else {
               #ifdef _VERBOSE
-                printf("run eStat = PHX_BOBCAT_Configure(handle, %s, %s)\n", strParam, strParamValue);
-              #else
-                eStat = PHX_BOBCAT_Configure(handle, pbParam, &pbParamValue);
+                printf("PHX: run eStat = PHX_BOBCAT_Configure(handle, %s, %s)\n", strParam, strParamValue);
               #endif
+                eStat = PHX_BOBCAT_Configure(handle, pbParam, &pbParamValue);
             }
           }
         }
@@ -288,10 +289,9 @@ etStat CONFIG_RunFile(tHandle handle, char** pszConfigFileName) {
             eStat = PHX_ERROR_BAD_PARAM_VALUE;
           } else{
             #ifdef _VERBOSE
-              printf("run eStat = BOBCAT_ParameterSet(handle, %s, %s)\n",strParam,strParamValue);
-            #else
-              eStat = BOBCAT_ParameterSet(handle, bParam, &bParamValue);
+              printf("PHX: run eStat = BOBCAT_ParameterSet(handle, %s, %s)\n",strParam,strParamValue);
             #endif
+            eStat = BOBCAT_ParameterSet(handle, bParam, &bParamValue);
           }
         }
       } else if (fphx) {
@@ -304,10 +304,9 @@ etStat CONFIG_RunFile(tHandle handle, char** pszConfigFileName) {
             eStat = PHX_ERROR_BAD_PARAM_VALUE;
           } else {
             #ifdef _VERBOSE
-              printf("run eStat = PHX_ParameterSet(handle, %s, %s)\n",strParam,strParamValue);
-            #else
-              eStat = PHX_ParameterSet(handle, pParam, &pParamValue);
+              printf("PHX: run eStat = PHX_ParameterSet(handle, %s, %s)\n",strParam,strParamValue);
             #endif
+            eStat = PHX_ParameterSet(handle, pParam, &pParamValue);
           }
         }
       }
@@ -319,13 +318,14 @@ etStat CONFIG_RunFile(tHandle handle, char** pszConfigFileName) {
   }
   if (feof(fp)) {
     #ifdef _VERBOSE
-      printf("run eStat = PHX_ParameterSet( handle, (etParam)( PHX_DUMMY_PARAM | PHX_CACHE_FLUSH | PHX_FORCE_REWRITE ), NULL )\n");
-    #else
-      eStat = PHX_ParameterSet( handle, (etParam)( PHX_DUMMY_PARAM | PHX_CACHE_FLUSH | PHX_FORCE_REWRITE ), NULL );
+      printf("PHX: run eStat = PHX_ParameterSet( handle, (etParam)( PHX_DUMMY_PARAM | PHX_CACHE_FLUSH | PHX_FORCE_REWRITE ), NULL )\n");
     #endif
+    eStat = PHX_ParameterSet( handle, (etParam)( PHX_DUMMY_PARAM | PHX_CACHE_FLUSH | PHX_FORCE_REWRITE ), NULL );
   }
 
   fclose(fp);
-
+  #ifdef _VERBOSE
+    printf("PHX: config done. Returning %d\n",eStat);
+  #endif
   return eStat;
 }

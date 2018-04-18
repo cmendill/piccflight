@@ -41,7 +41,7 @@ void hex_proc(void){
   double hexhome[6] = HEX_POS_HOME;
   double hexdef[6]  = HEX_POS_DEFAULT;
   double pivot[3]   = {HEX_PIVOT_X,HEX_PIVOT_Y,HEX_PIVOT_Z};
-  
+
   /* Open Shared Memory */
   sm_t *sm_p;
   if((sm_p = openshm(&hex_shmfd)) == NULL){
@@ -63,16 +63,16 @@ void hex_proc(void){
   if(hex_reference(hexfd, 0)){
     printf("HEX: hex_reference error!\n");
     sleep(1);
-    hexctrlC(0);    
+    hexctrlC(0);
   }
-  
+
   /* Wait for Referencing to Finish */
   for(i=0;i<HEX_REF_TIMEOUT;i++){
     bFlag = 0;
     if(!PI_IsControllerReady(hexfd, &bFlag)){
       printf("HEX: PI_IsControllerReady error!\n");
       sleep(1);
-      hexctrlC(0);    
+      hexctrlC(0);
     }
     if(bFlag) break;
     /* Check in with the watchdog */
@@ -82,23 +82,23 @@ void hex_proc(void){
   if(i==HEX_REF_TIMEOUT){
     printf("HEX: Referencing timeout!!\n");
     sleep(1);
-    hexctrlC(0);    
+    hexctrlC(0);
   }else{
     printf("HEX: Referencing complete after %d seconds\n",i);
   }
-  
+
   /* Set Pivot Point*/
   if(hex_setpivot(hexfd, pivot)){
     printf("HEX: hex_setpivot error!\n");
     sleep(1);
-    hexctrlC(0);    
+    hexctrlC(0);
   }
 
   while(1){
     /* Check if we've been asked to exit */
     if(sm_p->w[HEXID].die)
       hexctrlC(0);
-    
+
     /* Check in with the watchdog */
     checkin(sm_p,HEXID);
 
@@ -113,28 +113,28 @@ void hex_proc(void){
       memcpy((void *)sm_p->hex,(void *)hexdef,sizeof(hexdef));
       sm_p->hex_godef=0;
     }
-    
+
     /* Move Hexapod */
     if(hex_move(hexfd,(double *)sm_p->hex)){
       printf("HEX: hex_move error!\n");
       sleep(1);
-      hexctrlC(0);    
+      hexctrlC(0);
     }
-        
+
     /* Get Hexapod Position */
     if(sm_p->hex_getpos){
       if(hex_getpos(hexfd,hexpos)){
 	printf("HEX: hex_getpos error!\n");
 	sleep(1);
-	hexctrlC(0);    
+	hexctrlC(0);
       }
       //Print position
-      printf("HEX: X = %f\n",hexpos[0]);
-      printf("HEX: Y = %f\n",hexpos[1]);
-      printf("HEX: Z = %f\n",hexpos[2]);
-      printf("HEX: U = %f\n",hexpos[3]);
-      printf("HEX: V = %f\n",hexpos[4]);
-      printf("HEX: W = %f\n",hexpos[5]);
+      printf("HEX: X = %f\n",sm_p->hex[0]);
+      printf("HEX: Y = %f\n",sm_p->hex[1]);
+      printf("HEX: Z = %f\n",sm_p->hex[2]);
+      printf("HEX: U = %f\n",sm_p->hex[3]);
+      printf("HEX: V = %f\n",sm_p->hex[4]);
+      printf("HEX: W = %f\n",sm_p->hex[5]);
       sm_p->hex_getpos = 0;
     }
 

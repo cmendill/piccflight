@@ -43,7 +43,7 @@ int iwc_calibrate(int calmode, iwc_t *iwc,int reset){
   double dt=0,dt0=0,period=0;
   double zernikes[LOWFS_N_ZERNIKE]={0};
   double spa[IWC_NSPA];
-  
+
   /* Reset */
   if(reset){
     countA=0;
@@ -52,19 +52,20 @@ int iwc_calibrate(int calmode, iwc_t *iwc,int reset){
     init=0;
     return calmode;
   }
-  
+
   /* Initialize */
   if(!init){
     countA=0;
     countB=0;
     countF=0;
     clock_gettime(CLOCK_REALTIME, &start);
-    
+
     /* Open ZERNIKE2SPA matrix file */
     //--setup filename
     sprintf(filename,ZERNIKE2SPA_FILE);
     //--open file
     if((fileptr = fopen(filename,"r")) == NULL){
+      printf("Zernike2spa file\r\n");
       perror("fopen");
       goto endofinit;
     }
@@ -80,12 +81,13 @@ int iwc_calibrate(int calmode, iwc_t *iwc,int reset){
       perror("fread");
       goto endofinit;
     }
-    
+
     /* Open zernike errors file */
     //--setup filename
     sprintf(filename,ZERNIKE_ERRORS_FILE);
     //--open file
     if((fileptr = fopen(filename,"r")) == NULL){
+      printf("Zernike Errors file\r\n");
       perror("fopen");
       goto endofinit;
     }
@@ -113,7 +115,7 @@ int iwc_calibrate(int calmode, iwc_t *iwc,int reset){
   if(timespec_subtract(&delta,&this,&start))
     printf("SHK: shk_process_image --> timespec_subtract error!\n");
   ts2double(&delta,&dt);
-  
+
   /* CALMODE 1: Scan through acuators poking one at a time */
   if(calmode == 1){
     //Set all SPA actuators to bias
@@ -133,7 +135,7 @@ int iwc_calibrate(int calmode, iwc_t *iwc,int reset){
       //set all SPA actuators to bias
       for(i=0;i<IWC_NSPA;i++)
 	iwc->spa[i]=IWC_SPA_BIAS;
-      
+
       //poke one actuator
       if((countA/IWC_NCALIM) % 2 == 1){
 	iwc->spa[(countB/IWC_NCALIM) % IWC_NSPA] = IWC_SPA_BIAS+IWC_SPA_POKE;
@@ -162,7 +164,7 @@ int iwc_calibrate(int calmode, iwc_t *iwc,int reset){
     countA++;
     return calmode;
   }
-  
+
   /* CALMODE 4: Flight Simulator */
   if(calmode == 4){
     if(countF == 0)
@@ -229,7 +231,7 @@ int xin_open(void){
   signed short hDevice;
   unsigned long error;
   int lastE;
-  
+
   //Find Module
   res = QuickUsbFindModules(uname, listlen);
   if (res == 0){
@@ -332,11 +334,11 @@ int xin_write(signed short hDevice, iwc_t *iwc, dm_t *dm, pez_t *pez){
 #if IWC_ENABLE
     //Check IWC
     iwc_check(iwc);
-    
+
     //Map IWC
     for(i=0;i<IWC_NSPA;i++)
       output[spa_map[i]] = iwc->spa[i];
-    
+
     //Map TTP
     for(i=0;i<IWC_NTTP;i++)
       output[ttp_map[i]] = 0;//iwc->ttp[i]; set back when proper checks are in place
@@ -346,7 +348,7 @@ int xin_write(signed short hDevice, iwc_t *iwc, dm_t *dm, pez_t *pez){
     //Map Piezo Mirror #1
     for(i=0;i<PEZ_NACT;i++)
       output[pez1_map[i]] = pez->fm1[i];
-  
+
     //Map Piezo Mirror #2
     for(i=0;i<PEZ_NACT;i++)
       output[pez2_map[i]] = pez->fm2[i];
@@ -357,12 +359,12 @@ int xin_write(signed short hDevice, iwc_t *iwc, dm_t *dm, pez_t *pez){
     for(i=0;i<DM_NACT;i++)
       output[dm_map[i]] = dm->act[i];
 #endif
-  
+
     if(xin_writeUsb(hDevice, (unsigned char *)output, sizeof(output))){
       printf("XIN: xin_writeUsb failed!\n");
       return 1;
     }
-    
+
   }
   return 0;
 }

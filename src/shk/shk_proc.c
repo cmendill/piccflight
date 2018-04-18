@@ -35,7 +35,7 @@ void shkctrlC(int sig)
 #endif
   close(shk_shmfd);
   if ( shkCamera ) PHX_StreamRead( shkCamera, PHX_ABORT, NULL ); /* Now cease all captures */
-  
+
   if ( shkCamera ) { /* Release the Phoenix board */
     PHX_Close( &shkCamera ); /* Close the Phoenix board */
     PHX_Destroy( &shkCamera ); /* Destroy the Phoenix handle */
@@ -46,7 +46,7 @@ void shkctrlC(int sig)
 }
 
 /* Define an application specific structure to hold user information */
-typedef struct { 
+typedef struct {
   sm_t *sm_p; /* Shared memory pointer */
 } tContext;
 
@@ -55,14 +55,13 @@ static void shk_callback( tHandle shkCamera, ui32 dwInterruptMask, void *pvParam
   if ( dwInterruptMask & PHX_INTRPT_BUFFER_READY ) {
     stImageBuff stBuffer;
     tContext *aContext = (tContext *)pvParams;
-    
+
     etStat eStat = PHX_StreamRead( shkCamera, PHX_BUFFER_GET, &stBuffer );
     if ( PHX_OK == eStat ) {
       //Process image
       shk_process_image(&stBuffer,aContext->sm_p,shk_frame_count);
-
       //Check in with watchdog
-      
+
       //Increment frame counter
       shk_frame_count++;
     }
@@ -73,14 +72,14 @@ static void shk_callback( tHandle shkCamera, ui32 dwInterruptMask, void *pvParam
 /* Main Process */
 int shk_proc(void){
   char *configFileName = SHK_CONFIG_FILE;
-  etStat eStat = PHX_OK; 
+  etStat eStat = PHX_OK;
   etParamValue eParamValue;
   bobcatParamValue bParamValue;
   int nLastEventCount = 0;
   tContext shkContext;
   ui64 dwParamValue;
   etParamValue roiWidth, roiHeight, bufferWidth, bufferHeight;
-  
+
   /* Open Shared Memory */
   sm_t *sm_p;
   if((sm_p = openshm(&shk_shmfd)) == NULL){
@@ -92,40 +91,40 @@ int shk_proc(void){
   sigset(SIGINT, shkctrlC);	/* usually ^C */
 
   /* Set up context for callback */
-  memset( &shkContext, 0, sizeof( tContext ) ); 
+  memset( &shkContext, 0, sizeof( tContext ) );
   shkContext.sm_p = sm_p;
-  
+
   /* Create a Phoenix handle */
-  eStat = PHX_Create( &shkCamera, PHX_ErrHandlerDefault ); 
+  eStat = PHX_Create( &shkCamera, PHX_ErrHandlerDefault );
   if ( PHX_OK != eStat ){
     printf("SHK: Error PHX_Create\n");
     shkctrlC(0);
   }
-  
+
   /* Set the board number */
   eParamValue = PHX_BOARD_NUMBER_2;
-  eStat = PHX_ParameterSet( shkCamera, PHX_BOARD_NUMBER, &eParamValue ); 
+  eStat = PHX_ParameterSet( shkCamera, PHX_BOARD_NUMBER, &eParamValue );
   if ( PHX_OK != eStat ){
     printf("SHK: Error PHX_ParameterSet --> Board Number\n");
     shkctrlC(0);
   }
-  
+
   /* Open the Phoenix board */
-  eStat = PHX_Open( shkCamera ); 
+  eStat = PHX_Open( shkCamera );
   if ( PHX_OK != eStat ){
     printf("SHK: Error PHX_Open\n");
     shkctrlC(0);
   }
-  
+
   /* Run the config file */
-  eStat = CONFIG_RunFile( shkCamera, &configFileName );  
+  eStat = CONFIG_RunFile( shkCamera, &configFileName );
   if ( PHX_OK != eStat ){
     printf("SHK: Error CONFIG_RunFile\n");
     shkctrlC(0);
   }
-   
+
   /* Setup our own event context */
-  eStat = PHX_ParameterSet( shkCamera, PHX_EVENT_CONTEXT, (void *) &shkContext ); 
+  eStat = PHX_ParameterSet( shkCamera, PHX_EVENT_CONTEXT, (void *) &shkContext );
   if ( PHX_OK != eStat ){
     printf("SHK: Error PHX_ParameterSet --> PHX_EVENT_CONTEXT\n");
     shkctrlC(0);
@@ -147,8 +146,8 @@ int shk_proc(void){
     printf("SHK: Camera current size        : [%d x %d]\n", (bParamValue&0x0000FFFF), (bParamValue&0xFFFF0000)>>16 );
   }
 
-  
-  
+
+
 
   /* -------------------- Now start our capture -------------------- */
   eStat = PHX_StreamRead( shkCamera, PHX_START, (void*)shk_callback );
@@ -166,7 +165,7 @@ int shk_proc(void){
 
     /* Check in with the watchdog */
     checkin(sm_p,SHKID);
-    
+
     /* Sleep */
     sleep(sm_p->w[SHKID].per);
 

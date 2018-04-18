@@ -7,11 +7,13 @@
 #include <fcntl.h>
 #include <ctype.h>
 #include <time.h>
+#include <math.h>
 
 /* piccflight headers */
 #include "PI_GCS2_DLL.h"
 #include "../common/controller.h"
 #include "../common/common_functions.h"
+#include "../common/numeric.h"
 
 /**************************************************************/
 /*                      HEX_INIT                              */
@@ -28,13 +30,43 @@ int hex_connect(void){
   return PI_ConnectRS232ByDevName(HEX_DEVICE,HEX_BAUD);
 }
 
+
 //Move hexapod
 int hex_move(int id, double *pos){
+
+  double result[6];
   const char axes_all[13] = HEX_AXES_ALL;
   char *chkaxis=""; //will check all axes
 
-  if(!PI_MOV(id, axes_all, pos)){
+  double rotation_matrix[9] = { COS_Y*COS_Z,                     -COS_Y*SIN_Z,                      SIN_Y,
+                                SIN_X*SIN_Y*COS_Z + COS_X*SIN_Z, -SIN_X*SIN_Y*SIN_Z + COS_X*COS_Z, -SIN_X*COS_Y,
+                               -COS_X*SIN_Y*COS_Z + SIN_X*SIN_Z,  COS_X*SIN_Y*SIN_Z + SIN_X*COS_Z,  COS_X*COS_Y };
+  int i,j,k;
+  double temp_rpos[6];
+
+  for(i=0; i<6; i++){
+    if(i<3){
+      for(j=0; j<3; j++){
+        temp_rpos[i] += rotation_matrix[j+i*3] * pos[j+0];
+      }
+      // printf("Hex Coord[%i]: %lf\r\n", i, temp_rpos[i]);
+    }else{
+      k=i-3;
+      for(j=0; j<3; j++){
+        temp_rpos[i] += rotation_matrix[j+k*3] * pos[j+3];
+      }
+      // printf("Hex Coord[%i]: %lf\r\n", i, temp_rpos[i]);
+    }
+    result[i] = temp_rpos[i];
+    // printf("Scope Coord[%i]:%lf\r\n", i, pos[i]);
+  }
+
+
+  if(!PI_MOV(id, axes_all, result)){
     printf("HEX: PI_MOV error!\n");
+    int err;
+    err=PI_GetError(0);
+    printf("Error: %i\r\n", err);
     return 1;
   }
   int bIsMoving = 1;
@@ -43,7 +75,6 @@ int hex_move(int id, double *pos){
       printf("HEX: PI_IsMoving error!\n");
       return 1;
     }
-    usleep(1000);
   }
   return 0;
 }

@@ -26,7 +26,8 @@
   } tPhxCmd;
 
   #define DEFAULT_CFG_FILENAME "Imperx_Bobcat_0620CL-8bit-1tap.pcf" /* Application constants */
-  
+
+
   etStat CONFIG_ParseCmd( int, char*[], tPhxCmd* );
 
   int CONFIG_str_to_region(char**, region*);

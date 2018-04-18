@@ -1,7 +1,7 @@
 /***********************************************
  * Main Header for PICTURE-C Flight Software
  ***********************************************/
-
+//
 #include <stdint.h>
 #include <time.h>
 
@@ -66,7 +66,7 @@ typedef int8_t int8;
 *************************************************/
 #define XIN_ENABLE      0 // Xinetics Controller (Master IWC,DM,PEZ)
 #define IWC_ENABLE      0 // IWC
-#define ALP_ENABLE      1 // ALPAO DM
+#define ALP_ENABLE      0 // ALPAO DM
 #define DM_ENABLE       0 // DM
 #define PEZ_ENABLE      0 // PIEZO Mirrors
 #define HEX_ENABLE      1 // Hexapod
@@ -149,7 +149,7 @@ enum bufids {SCIEVENT, SCIFULL, SHKEVENT, SHKFULL, LYTEVENT, LYTFULL, ACQEVENT, 
 /*************************************************
  * LOWFS Settings
  *************************************************/
-#define LOWFS_N_ZERNIKE         32
+#define LOWFS_N_ZERNIKE         24
 
 /*************************************************
  * Zernike Errors
@@ -259,14 +259,29 @@ enum bufids {SCIEVENT, SCIFULL, SHKEVENT, SHKFULL, LYTEVENT, LYTFULL, ACQEVENT, 
 #define HEX_AXES_ALL     "X Y Z U V W"
 #define HEX_AXES_PIV     "R S T"
 #define HEX_POS_HOME     {0,0,0,0,0,0}
-#define HEX_POS_DEFAULT  {-0.975245, -0.087218, 0.540486, 0.116010, 0.345594, 0.036398}
-// #define HEX_POS_DEFAULT  {-0.485280, 0.061392, -0.883088, 0.374033, 0.194114, 0.098642}
-#define HEX_TRL_POKE      0.1
-#define HEX_ROT_POKE      0.01
+#define HEX_POS_DEFAULT  {0.267622 , 5.190431, -0.474835, 0.500365, 0.222410, 0.000877}
+#define HEX_TRL_POKE      3.0//0.1
+#define HEX_ROT_POKE      3.0//0.01
 #define HEX_NCALIM        50
-#define HEX_PIVOT_X       122.32031250
-#define HEX_PIVOT_Y       206.61012268
-#define HEX_PIVOT_Z       74.0
+#define HEX_PIVOT_X       0//122.32031250
+#define HEX_PIVOT_Y       0//206.61012268
+#define HEX_PIVOT_Z       0//74.0
+#define DEG_ROT_X         0.0 //deg
+#define DEG_ROT_Y         0.0 //deg
+#define DEG_ROT_Z         -30.0 // deg
+#define DEG2RAD           3.14159265 / 180.0000000
+#define THETA_X           DEG_ROT_X * DEG2RAD
+#define THETA_Y           DEG_ROT_Y * DEG2RAD
+#define THETA_Z           DEG_ROT_Z * DEG2RAD
+#define COS_X             cos(THETA_X)
+#define SIN_X             sin(THETA_X)
+#define COS_Y             cos(THETA_Y)
+#define SIN_Y             sin(THETA_Y)
+#define COS_Z             cos(THETA_Z)
+#define SIN_Z             sin(THETA_Z)
+
+
+
 #define HEX_REF_TIMEOUT   20 //seconds
 
 /*************************************************
@@ -609,9 +624,6 @@ typedef volatile struct {
 
   //Actuators
   double hex[HEX_NAXES];
-
-  //IWC Calibration Mode
-  int iwc_calmode;
 
   //ALPCalibration Mode
   int alp_calmode;

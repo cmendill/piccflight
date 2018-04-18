@@ -28,7 +28,6 @@ void alp_init(alp_t *alp){
   }
 }
 
-
 /**************************************************************/
 /*                      ALP_CALIBRATE                         */
 /**************************************************************/
@@ -71,6 +70,7 @@ int alp_calibrate(int calmode, alp_t *alp, int reset){
     sprintf(filename,ZERNIKE2ALP_FILE);
     //--open file
     if((fileptr = fopen(filename,"r")) == NULL){
+      printf("Zernike2alp file\r\n");
       perror("fopen");
       goto endofinit;
     }
@@ -92,6 +92,7 @@ int alp_calibrate(int calmode, alp_t *alp, int reset){
     sprintf(filename,ZERNIKE_ERRORS_FILE);
     //--open file
     if((fileptr = fopen(filename,"r")) == NULL){
+      printf("Zernike Errors file\r\n");
       perror("fopen");
       goto endofinit;
     }
@@ -113,6 +114,7 @@ int alp_calibrate(int calmode, alp_t *alp, int reset){
     sprintf(filename,ZERNIKE_ERRORS_SHORT_FILE);
     //--open file
     if((fileptr = fopen(filename,"r")) == NULL){
+      printf("Zernike Errors file\r\n");
       perror("fopen");
       goto endofinit;
     }
@@ -148,7 +150,6 @@ int alp_calibrate(int calmode, alp_t *alp, int reset){
       alp->act_cmd[i]=ALP_BIAS;
     //poke one actuator
     alp->act_cmd[(countA/ALP_NCALIM) % ALP_NACT] = ALP_BIAS + ALP_POKE;
-    // usleep(500000);
     countA++;
     return calmode;
   }
@@ -194,7 +195,6 @@ int alp_calibrate(int calmode, alp_t *alp, int reset){
       for(i=0;i<LOWFS_N_ZERNIKE;i++){
         zernikes[i] = 0.0;
       }
-      // num_dgemv(zernike2alp, zernikes, act, ALP_NACT, LOWFS_N_ZERNIKE);
 
       if((countA/N_STEP) % 2 == 1){
           zernikes[countB/N_STEP % N_ZERNS] = 0.1;
@@ -249,8 +249,6 @@ int alp_calibrate(int calmode, alp_t *alp, int reset){
   /* CALMODE 6: Flight Simulator (short) */
 
   if(calmode == 6){
-    //Set index
-
 
     for(i=0;i<LOWFS_N_ZERNIKE;i++){
       if(zuse[i]){
@@ -309,8 +307,6 @@ int alp_calibrate(int calmode, alp_t *alp, int reset){
   }
 
 
-
-
     //Return calmode
   return calmode;
 }
@@ -327,11 +323,10 @@ void alp_check(alp_t *alp){
     if((alp->act_cmd[i]-alp->act_cmd[i-1] > max_diff) || (alp->act_cmd[i]-alp->act_cmd[i-1] < max_diff)){
       alp->act_cmd[i] -= (alp->act_cmd[i]-alp->act_cmd[i-1]-max_diff);
     }
-  for(i=0;i<ALP_NACT;i++){
-    alp->act_cmd[i] = alp->act_cmd[i] < ALP_DMIN ? ALP_DMIN : alp->act_cmd[i];
-    alp->act_cmd[i] = alp->act_cmd[i] > ALP_DMAX ? ALP_DMAX : alp->act_cmd[i];
-  }
-
+    for(i=0;i<ALP_NACT;i++){
+      alp->act_cmd[i] = alp->act_cmd[i] < ALP_DMIN ? ALP_DMIN : alp->act_cmd[i];
+      alp->act_cmd[i] = alp->act_cmd[i] > ALP_DMAX ? ALP_DMAX : alp->act_cmd[i];
+    }
   }
 }
 
@@ -348,8 +343,6 @@ const int* alp_open(int* dmId){
   char            serial[128] = "BAX197";
 
   ret = acedev5Init(1, dmId, serial);
-  // printf("ALP: finished acedev5 init\n");
-
   if ( ret != acecsSUCCESS ){
       // return -1;
       printf("ALP: init failed.\n");
@@ -368,14 +361,12 @@ const int* alp_open(int* dmId){
   }
 
   printf("ALP: Total number of actuators: %i\n", nbAct );
-
   /* Initialize data */
   // data = (double*)calloc(nbAct, sizeof(double));
   for ( idx = 0 ; idx < nbAct ; idx++ ){
       data[idx] = 0;
   }
   // acecsErrDisplay();
-
   return dmId;
 }
 
@@ -390,13 +381,9 @@ int alp_write(const int* alp_dev, alp_t* alp){
         alp_check(alp);
     #endif
     }
-    // int act = 1;
-    // double* cmd = alp->act;
-    // printf("Sending %f to act %i\n", *cmd, act);
     ret = acedev5Send(1, alp_dev, alp->act_cmd);
     if ( ret != acecsSUCCESS ){
         return -1;
-
     }
   return ret;
 }
