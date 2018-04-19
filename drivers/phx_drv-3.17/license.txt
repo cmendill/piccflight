@@ -1,0 +1,115 @@
+Phoenix Driver Software Licence & Warranty Agreement
+----------------------------------------------------
+
+ACCEPTANCE
+If you agree with and wish to accept the terms and
+conditions of this Agreement it shall become a legally
+binding agreement between you and Active Silicon Limited
+and you may proceed to install, copy and use the software
+in accordance with the terms and conditions of the
+Agreement.
+
+REJECTION AND RIGHT TO A REFUND
+If you do not agree with or do not wish to be bound by
+the terms and conditions of this Agreement you may NOT
+install, copy or use the Software and should promptly
+return the software to the person who provided it to you
+for a refund.
+
+TERMS AND CONDITIONS
+1. Active Silicon Limited (hereafter referred to as
+"Active Silicon") hereby grants you a non-exclusive, non-
+transferable licence to use, copy, merge, demonstrate,
+market, distribute and sub-license the enclosed software,
+in object code form, and media on which it is contained
+(the "Licensed Software") in accordance with this
+Agreement.  Any merged portion of the Licensed Software
+will continue to be subject to the Terms and Conditions
+of this Agreement and you must reproduce and include all
+copyright notices in the merged program and on the media
+and documentation that accompany it.  You do not obtain
+title to the Licensed Software.  You have no right or
+authority to permit any other person to have access to
+the Licensed Software by means of timesharing, remote
+computing services, networking, or any other means (other
+than a sub-licence in accordance with this Agreement).
+
+2. You may market and sub-license the Licensed Software
+subject to the Terms and Conditions of this Agreement and
+only as an integral part of a computing system comprised
+of Active Silicon's hardware products.  You shall
+be responsible for installation, support and maintenance
+of any Licensed Software that is furnished to a
+sub-licensee and shall indemnify and hold Active Silicon
+harmless from any and all claims, demands, liability,
+expenses and costs, including reasonable legal costs,
+which are related in any way to your acts or omissions.
+Each sub-licence granted shall authorise the sub-licensee
+to make copies of the Licensed Software only for archival
+or back-up purposes necessary to sub-licensee's operation
+of the Licensed Software and any copies so made shall be
+deemed part of the Licensed Software.
+
+3. The Licensed Software is warranted for a period of
+ninety (90) days from date of shipment as evidenced by
+the invoice to you for the Licensed Software.  Active
+Silicon warrants that the Licensed Software will perform
+substantially in the manner described in the manual which
+accompanies the software.  If the Licensed Software fails
+to meet said specifications, you must report said failure
+to Active Silicon's Technical Support Department within
+the warranty period.  Active Silicon's only obligation
+under this warranty is to provide a "patch" or
+"workaround" within a reasonable period of time after
+receipt of report of failure.  Active Silicon will
+furnish, upon request, updates of the Licensed Software,
+if any, during the warranty period.  Change requests for
+user convenience, additional functionality, and
+enhancements are not considered defects and are not
+provided under Active Silicon's warranty.  Active
+Silicon's warranty does not cover defects reported after
+the expiration of the ninety (90) day warranty period.
+
+4. EXCEPT AS SET FORTH IN PARAGRAPH 3, ACTIVE SILICON
+DOES NOT MAKE ANY WARRANTY OR REPRESENTATIONS OF ANY
+KIND, EXPRESSED OR IMPLIED, WITH RESPECT TO THE LICENSED
+SOFTWARE AND SPECIFICALLY DISCLAIMS THE IMPLIED
+WARRANTIES OF SATISFACTORY QUALITY AND/OR FITNESS FOR ANY
+PARTICULAR PURPOSE OR USE.  DO NOT USE THE LICENSED
+SOFTWARE IN ANY CASE WHERE SIGNIFICANT DAMAGE OR INJURY
+TO PERSONS, PROPERTY OR BUSINESS MAY HAPPEN IF AN ERROR
+OCCURS.  YOU EXPRESSLY ASSUME ALL RISK FOR SUCH USE.
+
+5. UNDER NO CIRCUMSTANCES WILL ACTIVE SILICON BE LIABLE
+FOR ANY CONSEQUENTIAL LOSS (INCLUDING ANY COSTS, CLAIMS
+DAMAGES AND EXPENSES CALCULATED BY REFERENCE TO PROFITS,
+INCOME, PRODUCTION OR ACCRUALS), INCIDENTAL, SPECIAL OR
+EXEMPLARY DAMAGES EVEN IF APPRAISED OF THE LIKELIHOOD OF
+SUCH DAMAGES OCCURRING.
+
+6. THE LICENSED SOFTWARE CONTAINS CONFIDENTIAL
+INFORMATION AND TRADE SECRETS PROPRIETARY TO ACTIVE
+SILICON.  DISASSEMBLY OR DECOMPILATION OF THE SOFTWARE IS
+PROHIBITED.  No parts of the enclosed Software or
+documentation may be reproduced in any form by any means
+without prior written consent of Active Silicon or as
+otherwise permitted in this Agreement.
+
+7. You warrant that you will not use the Licensed
+Software except as herein permitted or authorised.  You
+will indemnify Active Silicon for any loss or expense,
+including reasonable legal costs, incurred by Active
+Silicon in defending any claim arising from use of the
+Licensed Software or from your failure to perform your
+obligations under this License Agreement.
+
+8. The invalidity of any portion or provision of this
+License Agreement shall not affect any other portions or
+provisions.  This License Agreement shall be governed by
+the laws of England.  This License Agreement is the
+entire agreement between you and Active Silicon, and it
+supersedes any prior agreement, oral or written, and any
+other communication between you and Active Silicon
+relating to the subject matter of this License Agreement.
+Any amendment or modification of this License Agreement
+must be in writing and signed by both parties.

@@ -1,9 +1,0 @@
-#!/bin/bash
-for ((node=0; node<128; node++)) ; do
-   mknod /dev/phx$node c $1 $node
-   chmod 666 /dev/phx$node
-   if [ -d /etc/udev/devices/ ]; then
-      mknod /etc/udev/devices/phx$node c $1 $node
-      chmod 666 /etc/udev/devices/phx$node
-   fi
-done

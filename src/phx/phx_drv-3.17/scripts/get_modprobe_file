@@ -1,5 +1,0 @@
-#!/bin/bash
-if [ -f /etc/modprobe.conf.local ] ; then echo "/etc/modprobe.conf.local";
-else echo "/etc/modprobe.conf"
-fi
-

@@ -6,22 +6,17 @@ MKLOPTS = -I$(MKL_INCLUDE_DIR)
 
 #COMPILER OPTIONS
 CC = gcc
-USER_CFLAGS = -Wall -Wno-unused -O6 -m64 -D_PHX_LINUX $(MKLOPTS)
-LINK = -Lsrc/phx/lib -Lsrc/hex/lib -Lsrc/alp/lib -lasdk -lphx -lpfw -lpbu -lm -lpthread -lrt -lquickusb -lpi_pi_gcs2 $(MKLLINKLINE)
+INCLUDE_FLAGS = -Ilib/phx/include -Ilib/rtd/include -Ilib/alpao/include -Ilib/hex/include -Ilib/quickusb/include
+USER_CFLAGS = -Wall -Wno-unused -O6 -m64 -D_PHX_LINUX $(MKLOPTS) $(INCLUDE_FLAGS)
+LINK = -Llib/phx -Llib/hex -Llib/alpao -Llib/quickusb -Llib/rtd -lasdk -lphx -lpfw -lpbu -lm -lpthread -lrt -lquickusb -lrtd-dm7820 -lpi_pi_gcs2 $(MKLLINKLINE)
 
 #FILES
-TARGET  = ./bin/
-SOURCE  = $(wildcard ./src/*/*.c)
+TARGET  = bin/
+SOURCE  = $(wildcard ./src/*.c)
 OBJECT  = $(patsubst %.c,%.o,$(SOURCE))
-DIASRC  = $(wildcard ./dia/*.c)
-DIABIN  = $(patsubst %.c,%,$(DIASRC))
 
 #DEPENDANCIES
-COMDEP  = Makefile $(wildcard ./src/*/*.h) $(wildcard ./src/*/*/*.h)
-
-#ALL
-MAKEALL = $(TARGET)watchdog 
-all: $(MAKEALL) $(DIABIN)
+COMDEP  = Makefile $(wildcard ./src/*.h)
 
 #WATCHDOG
 $(TARGET)watchdog: $(OBJECT) 
@@ -32,18 +27,9 @@ $(TARGET)watchdog: $(OBJECT)
 %.o: %.c  $(COMDEP)
 	$(CC) $(USER_CFLAGS) -o $@ -c $< 
 
-#DIAGNOSTIC EXECUTABLES
-%: %.c  $(COMDEP) src/common/common_functions.o
-	$(CC) $(USER_CFLAGS) -o $@ $< src/common/common_functions.o $(LINK)
-	mv $@ bin/
-
-#SCRIPTS
-scripts:
-	cp $(SCRIPTS) $(TARGET)
-
 #CLEAN
 clean:
-	rm -f ./src/*/*.o $(MAKEALL) 
+	rm -f ./src/*.o $(TARGET)watchdog
 
 #REMOVE *~ files
 remove_backups:
