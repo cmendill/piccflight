@@ -11,16 +11,14 @@ TELEMETRY INTERFACES
  - 4Mbps 16bit parallel data written out by the RTD DM7820 FPGA and encoded by the WFF93 encoder. 
 
 HARDWARE CONTROL
- - Science and wavefront sensor cameras (via CTU commands).
- - Nuller PZTs (3xs316)
- - Nuller DM (1024 ch)
+ - Science Camera
+ - Acquisition Camera
 
 DEFINITIONS
  - SCI: Flight 1 Science camera
  - LYT: Lyot LOWFS camera
  - SHK: Shack-Hartmann LOWFS camera
  - ACQ: Acquisition camera
- - 
 
 PC104 STACK
  - CPU: Versalogic Baycat
@@ -48,25 +46,23 @@ LIST OF PROCESSES
 
 LIST OF DRIVERS
  - RTD DM7820
-    - uses the stock DM7820 driver
-    - writes data to the FPGA FIFO using DMA
-
-OTHER CODE
- - src/lib/
-    - functions used by many processes
-    - src/lib/common_functions.c
-    - code for shared mem, circular buffer, sockets, image deinterlacing, changing camera modes
- - src/scripts/
-    - shell scripts
+ - Active Silicon Pheonix (phx) Framegrabber
+ - QuickUsb
+ 
+LIST OF LIBRARIES
+ - PI C887 Hexapod
+ - ALPAO DM
+ - Active Silicon Pheonix (phx) Framegrabber
+ - RTD DM7820
 
 SETTINGS
- - Most settings are held in the global header file: ./src/lib/controller.h
+ - Most settings are held in the global header file: ./src/controller.h
     - this is where you turn hardware on and off
- - Operational settings are held in ./src/wat/watchdog.h
+ - Operational settings are held in ./src/watchdog.h
     - this is where you turn processes on and off
 
 BUILD INSTRUCTIONS
- - type: make all
+ - type: make
  - binaries are written into the bin folder
 
 RUN INSTRUCTIONS
