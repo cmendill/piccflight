@@ -811,7 +811,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
 
   //Calculate centroids
   shk_centroid(buffer->pvAddress,&shkevent);
-  // printf("SHK: Centroids calculated\r\n");
+  
   //Set origin
   if(sm_p->shk_setorigin) sm_p->shk_setorigin = shk_setorigin(&shkevent);
 
@@ -819,13 +819,11 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   if(sm_p->shk_fit_zernike) shk_zernike_fit(&shkevent);
 
   //Run PID
-  if(!alp_calmode){
-    shk_cellpid(&shkevent, 0);
-  }
+  if(!alp_calmode) shk_cellpid(&shkevent, 0);
 
   //Convert cells to HEX
   shk_shk2hex(&shkevent,sm_p,0);
-
+  
   //Calibrate ALP
   if(alp_calmode) sm_p->alp_calmode = alp_calibrate(alp_calmode,&shkevent.alp,0);
 
@@ -871,11 +869,6 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     sm_p->hex[3] -= shkevent.zernikes[2] * (0.0005 / 4.0) * (0.5);
     sm_p->hex[4] += shkevent.zernikes[1] * (0.0005 / 4.0) * (0.5);
   }
-
-  //diagnostic to make sure all motions are recorded, regardless of calmode
-  // for(i=0;i<HEX_NAXES;i++){
-  //   shkevent.hex.axs[i] = sm_p->hex[i];
-  // }
 
   //Open circular buffer
   shkevent_p=(shkevent_t *)open_buffer(sm_p,SHKEVENT);
@@ -951,8 +944,8 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
 
     //Close buffer
     close_buffer(sm_p,SHKFULL);
-
+    
     //Reset time
     memcpy(&first,&start,sizeof(struct timespec));
   }
-}
+  }

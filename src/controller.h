@@ -181,13 +181,17 @@ enum bufids {SCIEVENT, SCIFULL, SHKEVENT, SHKFULL, LYTEVENT, LYTFULL, ACQEVENT, 
 /*************************************************
  * Debug Messaging
  *************************************************/
-#define TLM_DEBUG       0 // print tlm messages
-#define HSK_DEBUG       0 // print hsk messages
-#define LYT_DEBUG       0 // print bin messages
-#define SHK_DEBUG       0 // print shk messages
-#define SCI_DEBUG       0 // print sci messages
 #define WAT_DEBUG       0 // print wat messages
-#define SRV_DEBUG       1 // print srv messages
+#define SCI_DEBUG       0 // print sci messages
+#define SHK_DEBUG       0 // print shk messages
+#define LYT_DEBUG       0 // print lyt messages
+#define TLM_DEBUG       0 // print tlm messages
+#define ACQ_DEBUG       0 // print acq messages
+#define MOT_DEBUG       0 // print mot messages
+#define THM_DEBUG       0 // print thm messages
+#define SRV_DEBUG       0 // print srv messages
+#define HEX_DEBUG       0 // print hex messages
+#define DIA_DEBUG       0 // print dia messages
 
 /*************************************************
  * Other Messaging
@@ -294,7 +298,7 @@ enum bufids {SCIEVENT, SCIFULL, SHKEVENT, SHKFULL, LYTEVENT, LYTFULL, ACQEVENT, 
 /*************************************************
  * Process ID Numbers
  *************************************************/
-enum procids {WATID, SCIID, SHKID, LYTID, TLMID, ACQID, MOTID, THMID, SRVID, TMPID, HSKID, HEXID, DIAID, NCLIENTS};
+enum procids {WATID, SCIID, SHKID, LYTID, TLMID, ACQID, MOTID, THMID, SRVID, HEXID, DIAID, NCLIENTS};
 
 /*************************************************
  * Shack-Hartmann (SHK) Settings
