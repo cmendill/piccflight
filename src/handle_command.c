@@ -22,8 +22,8 @@ int handle_command(char *line, sm_t *sm_p){
   float ftemp;
   int   itemp;
   char  stemp[CMD_MAX_LENGTH];
-  double trl_poke = HEX_TRL_POKE * 1.0;//0.2;
-  double rot_poke = HEX_ROT_POKE * 1.0;//0.2;
+  static double trl_poke = HEX_TRL_POKE;//0.01;
+  static double rot_poke = HEX_ROT_POKE;///0.01;
 
   /****************************************
    * SYSTEM COMMANDS
@@ -101,21 +101,22 @@ int handle_command(char *line, sm_t *sm_p){
     return(CMD_NORMAL);
   }
 
-  if(!strncasecmp(line,"foo",3)){
-    char buff1[8];
-    printf("Please enter zern mode:\n");
-    scanf("%s", buff1);
-    int zern = atoi(buff1);
-
-    char buff2[8];
-    printf("Please enter value:\n");
-    scanf("%s", buff2);
-    double val = atof(buff2);
-
-    printf("zern: %i, val: %f\n", zern, val);
-    sm_p->zern_targ[zern] = val;
-    return(CMD_NORMAL);
-  }
+  // if(!strncasecmp(line,"zern",4)){
+  //   char buff1[2];
+  //   printf("Please enter zern mode:\n");
+  //   scanf("%s", buff1);
+  //   printf("You entered: %s\r\n", buff1);
+  //   int zern = atoi(buff1);
+  //
+  //   char buff2[2];
+  //   printf("Please enter value:\n");
+  //   scanf("%s", buff2);
+  //   printf("You entered: %s\r\n", buff2);
+  //   double val = atof(buff2);
+  //   printf("zern: %i, val: %f\r\n", zern, val);
+  //   sm_p->zern_targ[zern] = val;
+  //   return(0);
+  // }
 
   //ALP Calibration
   if(!strncasecmp(line,"shk calibrate alp",17)){
@@ -300,6 +301,19 @@ int handle_command(char *line, sm_t *sm_p){
   if(!strncasecmp(line,"hex move -w",11)){
     sm_p->hex[5] -= rot_poke;
     printf("CMD: Moving hexapod axis -w by %f deg\n", rot_poke);
+    return(CMD_NORMAL);
+  }
+
+  if(!strncasecmp(line,"hex inc step",12)){
+    rot_poke *= 2.0;
+    trl_poke *= 2.0;
+    printf("CMD: Increasing HEX movement to %f mm and %f deg\n", trl_poke, rot_poke);
+    return(CMD_NORMAL);
+  }
+  if(!strncasecmp(line,"hex dec step",12)){
+    rot_poke /= 2.0;
+    trl_poke /= 2.0;
+    printf("CMD: Decreasing HEX movement to %f mm and %f deg\n", trl_poke, rot_poke);
     return(CMD_NORMAL);
   }
 

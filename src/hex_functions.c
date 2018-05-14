@@ -30,40 +30,67 @@ int hex_connect(void){
   return PI_ConnectRS232ByDevName(HEX_DEVICE,HEX_BAUD);
 }
 
+//Disconnect from hexapod
+int hex_disconnect(hex_t *hex){
+  PI_CloseConnection(0);
+    printf("[hex]: Hexapod Disconnected.\r\n");
+    return 0;
+}
 
-//Move hexapod
-int hex_move(int id, double *pos){
-
-  double result[6];
-  const char axes_all[13] = HEX_AXES_ALL;
-  char *chkaxis=""; //will check all axes
-
+//Convert from Hexapod coords to scope coords
+int hex2scope(double *position, double *result){
+  int i,j,k;
   double rotation_matrix[9] = { COS_Y*COS_Z,                     -COS_Y*SIN_Z,                      SIN_Y,
                                 SIN_X*SIN_Y*COS_Z + COS_X*SIN_Z, -SIN_X*SIN_Y*SIN_Z + COS_X*COS_Z, -SIN_X*COS_Y,
-                               -COS_X*SIN_Y*COS_Z + SIN_X*SIN_Z,  COS_X*SIN_Y*SIN_Z + SIN_X*COS_Z,  COS_X*COS_Y };
-  int i,j,k;
-  double temp_rpos[6];
+                               -COS_X*SIN_Y*COS_Z + SIN_X*SIN_Z,  COS_X*SIN_Y*SIN_Z + SIN_X*COS_Z,  COS_X*COS_Y  };
 
   for(i=0; i<6; i++){
     if(i<3){
       for(j=0; j<3; j++){
-        temp_rpos[i] += rotation_matrix[j+i*3] * pos[j+0];
+        result[i] += rotation_matrix[j+i*3] * position[j+0];
       }
-      // printf("Hex Coord[%i]: %lf\r\n", i, temp_rpos[i]);
     }else{
       k=i-3;
       for(j=0; j<3; j++){
-        temp_rpos[i] += rotation_matrix[j+k*3] * pos[j+3];
+        result[i] += rotation_matrix[j+k*3] * position[j+3];
       }
-      // printf("Hex Coord[%i]: %lf\r\n", i, temp_rpos[i]);
     }
-    result[i] = temp_rpos[i];
-    // printf("Scope Coord[%i]:%lf\r\n", i, pos[i]);
   }
+  return 0;
+}
 
+//Convert from scope to hexapod coords
+int scope2hex(double *position, double *result){
+  int i,j,k;
+  double rotation_matrix[9] = { COS_Y*COS_Z,  SIN_X*SIN_Y*COS_Z + COS_X*SIN_Z, -COS_X*SIN_Y*COS_Z + SIN_X*SIN_Z,
+                               -COS_Y*SIN_Z, -SIN_X*SIN_Y*SIN_Z + COS_X*COS_Z,  COS_X*SIN_Y*SIN_Z + SIN_X*COS_Z,
+                                SIN_Y,       -SIN_X*COS_Y ,                     COS_X*COS_Y                      };
+
+  for(i=0; i<6; i++){
+    if(i<3){
+      for(j=0; j<3; j++){
+        result[i] += rotation_matrix[j+i*3] * position[j+0];
+      }
+    }else{
+      k=i-3;
+      for(j=0; j<3; j++){
+        result[i] += rotation_matrix[j+k*3] * position[j+3];
+      }
+    }
+  }
+  return 0;
+}
+
+//Move hexapod
+int hex_move(int id, double *pos){
+  double result[6] = {0};
+  scope2hex(pos, result);
+  const char axes_all[13] = HEX_AXES_ALL;
+  char *chkaxis=""; //will check all axes
 
   if(!PI_MOV(id, axes_all, result)){
     printf("HEX: PI_MOV error!\n");
+
     int err;
     err=PI_GetError(0);
     printf("Error: %i\r\n", err);
@@ -113,7 +140,10 @@ int hex_setpivot(int id, double *pivot){
   const char axes_piv[7] = "R S T";
 
   if(!PI_SPI(id, axes_piv, pivot)){
+    int err;
+    err=PI_GetError(0);
     printf("HEX: PI_SPI error!\n");
+    printf("Error: %i\r\n", err);
     return 1;
   }
   return 0;
@@ -187,6 +217,5 @@ int hex_calibrate(int calmode, hex_t *hex, int reset){
     }
   return calmode;
   }
-
   return calmode;
 }

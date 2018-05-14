@@ -34,11 +34,14 @@ void hexctrlC(int sig)
   exit(sig);
 }
 
+
 /* Main Process */
 void hex_proc(void){
+  if(HEX_ENABLE){
   uint32 count = 0;
   int bFlag,i;
   double hexpos[6]={0};
+  double scopepos[6] = {0};
   double hexhome[6] = HEX_POS_HOME;
   double hexdef[6]  = HEX_POS_DEFAULT;
   double pivot[3]   = {HEX_PIVOT_X,HEX_PIVOT_Y,HEX_PIVOT_Z};
@@ -125,17 +128,21 @@ void hex_proc(void){
     /* Get Hexapod Position */
     if(sm_p->hex_getpos){
       if(hex_getpos(hexfd,hexpos)){
-	printf("HEX: hex_getpos error!\n");
-	sleep(1);
-	hexctrlC(0);
+      	printf("HEX: hex_getpos error!\n");
+      	sleep(1);
+      	hexctrlC(0);
       }
+      for(i=0;i<HEX_NAXES;i++){
+        scopepos[i] = 0;
+      }
+      hex2scope(hexpos, scopepos);
       //Print position
-      printf("HEX: X = %f\n",sm_p->hex[0]);
-      printf("HEX: Y = %f\n",sm_p->hex[1]);
-      printf("HEX: Z = %f\n",sm_p->hex[2]);
-      printf("HEX: U = %f\n",sm_p->hex[3]);
-      printf("HEX: V = %f\n",sm_p->hex[4]);
-      printf("HEX: W = %f\n",sm_p->hex[5]);
+      printf("HEX: X = %f \n",scopepos[0]);
+      printf("HEX: Y = %f \n",scopepos[1]);
+      printf("HEX: Z = %f \n",scopepos[2]);
+      printf("HEX: U = %f \n",scopepos[3]);
+      printf("HEX: V = %f \n",scopepos[4]);
+      printf("HEX: W = %f \n",scopepos[5]);
       sm_p->hex_getpos = 0;
     }
 
@@ -149,4 +156,5 @@ void hex_proc(void){
 
   hexctrlC(0);
   return;
+}
 }

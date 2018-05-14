@@ -30,4 +30,4 @@
 #define SHK_KP_DEFAULT  -0.9
 #define SHK_KI_DEFAULT  0.0
 #define SHK_KD_DEFAULT  0.0
-#define HEX_KP_DEFAULT -0.1
+#define HEX_KP_DEFAULT 0.05

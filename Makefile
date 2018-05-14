@@ -8,7 +8,7 @@ MKLOPTS = -I$(MKL_INCLUDE_DIR)
 CC = gcc
 INCLUDE_FLAGS = -Ilib/phx/include -Ilib/rtd/include -Ilib/alpao/include -Ilib/hex/include -Ilib/quickusb/include
 USER_CFLAGS = -Wall -Wno-unused -O6 -m64 -D_PHX_LINUX $(MKLOPTS) $(INCLUDE_FLAGS)
-LINK = -Llib/phx -Llib/hex -Llib/alpao -Llib/quickusb -Llib/rtd -lasdk -lphx -lpfw -lpbu -lm -lpthread -lrt -lquickusb -lrtd-dm7820 -lpi_pi_gcs2 $(MKLLINKLINE)
+LINK = -Llib/phx -Llib/alpao -Llib/quickusb -Llib/rtd -lasdk -lphx -lpfw -lpbu -lm -lpthread -lrt -lquickusb -lrtd-dm7820 -lpi_pi_gcs2 $(MKLLINKLINE)
 
 #FILES
 TARGET  = bin/
@@ -20,7 +20,7 @@ COMDEP  = Makefile $(wildcard ./src/*.h)
 
 #WATCHDOG
 $(TARGET)watchdog: $(OBJECT) 
-	$(CC) $(USER_CFLAGS) -o $(TARGET)watchdog $(OBJECT) $(LINK)
+	$(CC) $(USER_CFLAGS) -o $(TARGET)watchdog $(OBJECT) $(LINK) 
 
 
 #USERSPACE OBJECTS

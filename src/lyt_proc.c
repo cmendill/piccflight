@@ -18,7 +18,7 @@
 #include "phx_config.h"
 
 /* LYT config */
-#define LYT_BOARD_NUMBER PHX_BOARD_NUMBER_1
+#define LYT_BOARD_NUMBER PHX_BOARD_NUMBER_2
 #define LYT_CONFIG_FILE "phx_config/lyt.cfg"
 
 /* Process File Descriptor */
@@ -42,7 +42,7 @@ void lytctrlC(int sig)
 #endif
   close(lyt_shmfd);
   if ( lytCamera ) PHX_StreamRead( lytCamera, PHX_ABORT, NULL ); /* Now cease all captures */
-  
+
   if (lytBuffer1) PBL_BufferDestroy( &lytBuffer1 );
   if (lytBuffer2) PBL_BufferDestroy( &lytBuffer1 );
 
@@ -64,14 +64,14 @@ static void lyt_callback( tHandle lytCamera, ui32 dwInterruptMask, void *pvParam
   if ( dwInterruptMask & PHX_INTRPT_BUFFER_READY ) {
     stImageBuff stBuffer;
     tContext *aContext = (tContext *)pvParams;
-    
+
     etStat eStat = PHX_StreamRead( lytCamera, PHX_BUFFER_GET, &stBuffer );
     if ( PHX_OK == eStat ) {
       //Process image
       //lyt_process_image(&stBuffer,aContext->sm_p,lyt_frame_count);
 
       //Check in with watchdog
-      
+
       //Increment frame counter
       lyt_frame_count++;
     }
@@ -111,7 +111,7 @@ int lyt_proc(void){
   memset( &aContext, 0, sizeof( tContext ) ); /* Initialise the user defined Event context structure */
   aContext.nCurrentEventCount = 0;
   aContext.sm_p = sm_p;
-  
+
   eStat = PHX_Create( &lytCamera, PHX_ErrHandlerDefault ); /* Create a Phoenix handle */
   if ( PHX_OK != eStat ){
     printf("LYT: Error PHX_Create\n");
@@ -129,7 +129,7 @@ int lyt_proc(void){
     printf("LYT: Error PHX_Open\n");
     lytctrlC(0);
   }
-  
+
   eStat = CONFIG_RunFile( lytCamera, &configFileName );  /* set the settings from the compound (BOBCAT and PHX) configuration file */
   if ( PHX_OK != eStat ){
     printf("LYT: Error CONFIG_RunFile\n");
@@ -144,25 +144,25 @@ int lyt_proc(void){
     printf("LYT: Error PHX_ParameterGet --> PHX_BUF_DST_XLENGTH\n");
     lytctrlC(0);
   }
-  
+
 
   eStat = PHX_ParameterGet( lytCamera, PHX_BUF_DST_YLENGTH, &dwBufferHeight );
   if ( PHX_OK != eStat ){
     printf("LYT: Error PHX_ParameterGet --> PHX_BUF_DST_YLENGTH\n");
     lytctrlC(0);
   }
-  
+
 
   if(LYT_DEBUG) printf("PHX_BUF_DST_XLENGTH : %d\nPHX_BUF_DST_yLENGTH : %d\n", dwBufferWidth, dwBufferHeight);
 
   dwBufferStride = dwBufferWidth; /* Convert width (in pixels) to stride (in bytes).*/
-  
+
   PBL_BufferParameterSet( lytBuffer1, PBL_BUFF_HEIGHT, &dwBufferHeight ); /* If we assume Y8 capture format Set the height and stride required. */
   PBL_BufferParameterSet( lytBuffer1, PBL_BUFF_STRIDE, &dwBufferStride );
 
   PBL_BufferParameterSet( lytBuffer2, PBL_BUFF_HEIGHT, &dwBufferHeight );
   PBL_BufferParameterSet( lytBuffer2, PBL_BUFF_STRIDE, &dwBufferStride );
-  
+
   PBL_BufferInit( lytBuffer1 ); /* Initialise each buffer. This creates the buffers in system memory. */
   PBL_BufferInit( lytBuffer2 );
 
@@ -199,7 +199,7 @@ int lyt_proc(void){
     printf("LYT: Error PHX_ParameterSet --> PHX_DST_PTRS_VIRT\n");
     lytctrlC(0);
   }
- 
+
 
   eParamValue = PHX_DST_PTR_USER_VIRT;
   eStat = PHX_ParameterSet( lytCamera, (etParam)( PHX_DST_PTR_TYPE | PHX_CACHE_FLUSH | PHX_FORCE_REWRITE ), (void *) &eParamValue );
@@ -207,14 +207,14 @@ int lyt_proc(void){
     printf("LYT: Error PHX_ParameterSet --> PHX_DST_PTR_TYPE | PHX_CACHE_FLUSH | PHX_FORCE_REWRITE\n");
     lytctrlC(0);
   }
- 
+
 
   eStat = PHX_ParameterSet( lytCamera, PHX_EVENT_CONTEXT, (void *) &aContext ); /* Setup our own event context */
   if ( PHX_OK != eStat ){
     printf("LYT: Error PHX_ParameterSet --> PHX_EVENT_CONTEXT\n");
     lytctrlC(0);
   }
- 
+
   /* -------------------- Now start our capture -------------------- */
   eStat = PHX_StreamRead( lytCamera, PHX_START, (void*)lyt_callback );
   if ( PHX_OK != eStat ){
@@ -231,7 +231,7 @@ int lyt_proc(void){
 
     /* Check in with the watchdog */
     checkin(sm_p,LYTID);
-    
+
     /* Sleep */
     sleep(sm_p->w[LYTID].per);
 

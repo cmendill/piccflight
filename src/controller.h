@@ -112,6 +112,7 @@ typedef int8_t int8;
 #define ZERNIKE2SPA_FILE  "data/shk/zern2spa.dat"
 #define ZERNIKE2ALP_FILE  "data/shk/zern2alp.dat"
 #define SHK2ZERNIKE_FILE  "data/shk/shk2zern.dat"
+#define ASTIG2TILT_FILE   "data/shk/astig2tilt.dat"
 #define MAX_FILENAME      128
 
 
@@ -154,6 +155,7 @@ enum bufids {SCIEVENT, SCIFULL, SHKEVENT, SHKFULL, LYTEVENT, LYTFULL, ACQEVENT, 
  * LOWFS Settings
  *************************************************/
 #define LOWFS_N_ZERNIKE         24
+#define LOWFS_N_HEX_ZERNIKE     5
 
 /*************************************************
  * Zernike Errors
@@ -263,16 +265,17 @@ enum bufids {SCIEVENT, SCIFULL, SHKEVENT, SHKFULL, LYTEVENT, LYTFULL, ACQEVENT, 
 #define HEX_AXES_ALL     "X Y Z U V W"
 #define HEX_AXES_PIV     "R S T"
 #define HEX_POS_HOME     {0,0,0,0,0,0}
-#define HEX_POS_DEFAULT  {0.267622 , 5.190431, -0.474835, 0.500365, 0.222410, 0.000877}
-#define HEX_TRL_POKE      3.0//0.1
-#define HEX_ROT_POKE      3.0//0.01
-#define HEX_NCALIM        50
+#define HEX_POS_DEFAULT  {-1.213708, 3.527789, -0.203860, 0.237366, 0.437258, 0.001710} // Scope coords  68 deg
+// #define HEX_POS_DEFAULT  {-1.213686, 3.527814 ,-0.071349, 0.233803, 0.441126, 0.001688} // Scope coords  73 deg
+#define HEX_TRL_POKE      0.005
+#define HEX_ROT_POKE      0.0005
+#define HEX_NCALIM        100
 #define HEX_PIVOT_X       0//122.32031250
 #define HEX_PIVOT_Y       0//206.61012268
 #define HEX_PIVOT_Z       0//74.0
 #define DEG_ROT_X         0.0 //deg
 #define DEG_ROT_Y         0.0 //deg
-#define DEG_ROT_Z         -30.0 // deg
+#define DEG_ROT_Z         30.0 // deg
 #define DEG2RAD           3.14159265 / 180.0000000
 #define THETA_X           DEG_ROT_X * DEG2RAD
 #define THETA_Y           DEG_ROT_Y * DEG2RAD
@@ -392,7 +395,7 @@ typedef struct {
   double intensity;
   double background;
   double origin[2];
-  double cell_origin[2];
+  double cenbox_origin[2];
   double centroid[2];
   double deviation[2];
   double command[2];

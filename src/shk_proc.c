@@ -102,7 +102,7 @@ int shk_proc(void){
   }
 
   /* Set the board number */
-  eParamValue = PHX_BOARD_NUMBER_2;
+  eParamValue = PHX_BOARD_NUMBER_1;
   eStat = PHX_ParameterSet( shkCamera, PHX_BOARD_NUMBER, &eParamValue );
   if ( PHX_OK != eStat ){
     printf("SHK: Error PHX_ParameterSet --> Board Number\n");

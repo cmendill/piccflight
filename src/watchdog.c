@@ -38,7 +38,7 @@ extern void acq_proc(void); //acquisition camera
 extern void mot_proc(void); //motor controller
 extern void thm_proc(void); //thermal controller
 extern void srv_proc(void); //data server
-extern void tmp_proc(void); //temperature sensors
+// extern void tmp_proc(void); //temperature sensors
 extern void hsk_proc(void); //housekeeping data
 extern void hex_proc(void); //hexapod controller
 extern void dia_proc(void); //diagnostic program
@@ -290,7 +290,7 @@ int main(int argc,char **argv){
     case MOTID:sm_p->w[i].launch = mot_proc; break;
     case THMID:sm_p->w[i].launch = thm_proc; break;
     case SRVID:sm_p->w[i].launch = srv_proc; break;
-    case TMPID:sm_p->w[i].launch = tmp_proc; break;
+    // case TMPID:sm_p->w[i].launch = tmp_proc; break;
     case HSKID:sm_p->w[i].launch = hsk_proc; break;
     case HEXID:sm_p->w[i].launch = hex_proc; break;
     case DIAID:sm_p->w[i].launch = dia_proc; break;
@@ -426,6 +426,12 @@ int main(int argc,char **argv){
   //tell all subthreads to die
   sm_p->die = 1;
 
+  //Send hexapod home
+    #if HEX_ENABLE
+      sm_p->hex_gohome = 1;
+      sleep(1);
+    #endif
+
   //close Xinetics driver
 #if XIN_ENABLE
   if(xin_dev >= 0){
@@ -450,6 +456,7 @@ int main(int argc,char **argv){
       alp_closeDev(alp_dev);
     // }
   #endif
+
 
   close(shmfd);
 

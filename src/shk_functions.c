@@ -6,8 +6,7 @@
 #include <string.h>
 #include <fcntl.h>
 #include <ctype.h>
-#include <acedev5.h>
-#include <phx_api.h>
+
 
 /* piccflight headers */
 #include "controller.h"
@@ -40,8 +39,8 @@ void shk_init_cells(shkevent_t *shkevent){
       shkevent->cells[c].index = c;
       shkevent->cells[c].origin[0] = i*cell_size_px + cell_size_px/2 + SHK_CELL_XOFF;
       shkevent->cells[c].origin[1] = j*cell_size_px + cell_size_px/2 + SHK_CELL_YOFF;
-      shkevent->cells[c].cell_origin[0] = i*cell_size_px + cell_size_px/2 + SHK_CELL_XOFF;
-      shkevent->cells[c].cell_origin[1] = j*cell_size_px + cell_size_px/2 + SHK_CELL_YOFF;
+      shkevent->cells[c].cenbox_origin[0] = i*cell_size_px + cell_size_px/2 + SHK_CELL_XOFF;
+      shkevent->cells[c].cenbox_origin[1] = j*cell_size_px + cell_size_px/2 + SHK_CELL_YOFF;
       shkevent->cells[c].beam_select = shk_beam_select[y*SHK_XCELLS + x];
       shkevent->beam_ncells += shkevent->cells[c].beam_select;
       c++;
@@ -70,11 +69,11 @@ int shk_setorigin(shkevent_t *shkevent){
     return 1;
   }
   else{
-    //Set origins = averaged centroids
+    //Set centroid box origins
     for(i=0;i<SHK_NCELLS;i++){
       if(shkevent->cells[i].beam_select){
-	shkevent->cells[i].cell_origin[0] = cx[i];
-	shkevent->cells[i].cell_origin[1] = cy[i];
+	shkevent->cells[i].cenbox_origin[0] = cx[i];
+	shkevent->cells[i].cenbox_origin[1] = cy[i];
       }
     }
 
@@ -82,7 +81,7 @@ int shk_setorigin(shkevent_t *shkevent){
     count = 0;
     memset(cx,0,sizeof(cx));
     memset(cy,0,sizeof(cy));
-    printf("SHK: New origin set\n");
+    printf("SHK: New centroid box origin set\n");
     return 0;
   }
 }
@@ -119,15 +118,14 @@ void shk_centroid_cell(uint16 *image, shkcell_t *cell, int shk_boxsize, int calm
     }
   }
   if(cell->spot_captured)
-    boxsize = boxsize_new;
-
-
+    // boxsize = boxsize_new;
+    boxsize=SHK_MAX_BOXSIZE;
 
   //Calculate corners of centroid box
-  blx = floor(cell->cell_origin[0] - boxsize);
-  bly = floor(cell->cell_origin[1] - boxsize);
-  trx = floor(cell->cell_origin[0] + boxsize);
-  try = floor(cell->cell_origin[1] + boxsize);
+  blx = floor(cell->cenbox_origin[0] - boxsize);
+  bly = floor(cell->cenbox_origin[1] - boxsize);
+  trx = floor(cell->cenbox_origin[0] + boxsize);
+  try = floor(cell->cenbox_origin[1] + boxsize);
 
   //Impose limits
   blx = blx > SHK_XMAX ? SHK_XMAX : blx;
@@ -362,17 +360,19 @@ void shk_zernike_matrix(shkevent_t *shkevent, double *matrix_inv){
 /*                      SHK_ZERNIKE_FIT                       */
 /**************************************************************/
 void shk_zernike_fit(shkevent_t *shkevent){
+
   FILE *matrix=NULL;
   char matrix_file[MAX_FILENAME];
   static double shk2zern[2*SHK_NCELLS*LOWFS_N_ZERNIKE]={0};
+  static double matrix_inv[SHK_NCELLS*LOWFS_N_ZERNIKE*2] = {0};
+  static double dphi_dxdy[2*SHK_NCELLS] = {0};
   double shk_xydev[2*SHK_NCELLS];
   uint64 fsize,rsize;
   int i, c, beam_ncells=0, beam_ncells_2=0, regen_matrix=0;
   int beam_cell_index[SHK_NCELLS] = {0};
   static int beam_cell_used[SHK_NCELLS] = {0};
   const double px2slope = SHK_PX_PITCH_UM/SHK_FOCAL_LENGTH_UM;
-  static double matrix_inv[SHK_NCELLS*LOWFS_N_ZERNIKE*2] = {0};
-  static double dphi_dxdy[2*SHK_NCELLS] = {0};
+
 
   //set up file names
   sprintf(matrix_file, SHK2ZERNIKE_FILE);
@@ -468,7 +468,7 @@ int shk_shk2alp(shkevent_t *shkevent, sm_t *sm_p, int reset){
   uint64 fsize,rsize;
   uint64 zfsize, zrsize;
   int c,i,beam_ncells_2;
-  static int test = 0;
+
 
   if(!init || reset){
     /* Open matrix files */
@@ -589,19 +589,24 @@ int shk_shk2hex(shkevent_t *shkevent, sm_t *sm_p, int reset){
   FILE *matrix=NULL;
   char matrix_file[MAX_FILENAME];
   static int init=0;
-  static double shk2hex[LOWFS_N_ZERNIKE*HEX_NAXES]={0};
-  double shk_zern[LOWFS_N_ZERNIKE];
+  static double zern2hex[LOWFS_N_HEX_ZERNIKE*HEX_NAXES]={0};
+  static double astig2tilt[LOWFS_N_HEX_ZERNIKE*HEX_NAXES]={0};
+  double shk_zern[LOWFS_N_HEX_ZERNIKE];
+  double shk_tilt[2];
+  double ttarray[2] = {0};
+  double ttgain = -0.02;
+  double step = 0.0005;
   uint64 fsize,rsize;
   int c,i,beam_ncells_2;
-  static int test=0;
+
 
   if(!init || reset){
-    /* Open matrix file */
+    /* Open zern2hex matrix file */
     //--setup filename
     sprintf(matrix_file,ZERNIKE2HEX_FILE);
     //--open file
     if((matrix = fopen(matrix_file,"r")) == NULL){
-      printf("zernike2hex_file\n");
+      printf("zern2hex file\n");
       perror("fopen");
       return 1;
     }
@@ -609,14 +614,41 @@ int shk_shk2hex(shkevent_t *shkevent, sm_t *sm_p, int reset){
     fseek(matrix, 0L, SEEK_END);
     fsize = ftell(matrix);
     rewind(matrix);
-    rsize = (LOWFS_N_ZERNIKE)*HEX_NAXES*sizeof(double);
+    rsize = (LOWFS_N_HEX_ZERNIKE)*HEX_NAXES*sizeof(double);
     if(fsize != rsize){
       printf("SHK: incorrect HEX matrix file size %lu != %lu\n",fsize,rsize);
       return 1;
     }
     //--read matrix
-    if(fread(shk2hex,(LOWFS_N_ZERNIKE-8)*HEX_NAXES*sizeof(double),1,matrix) != 1){
-      printf("shk2hex file\r");
+    if(fread(zern2hex,(LOWFS_N_HEX_ZERNIKE)*HEX_NAXES*sizeof(double),1,matrix) != 1){
+      printf("zern2hex file\r");
+      perror("fread");
+      return 1;
+    }
+    //--close file
+    fclose(matrix);
+
+    /* Open astig2tilt matrix file */
+    //--setup filename
+    sprintf(matrix_file,ASTIG2TILT_FILE);
+    //--open file
+    if((matrix = fopen(matrix_file,"r")) == NULL){
+      printf("astig2tilt file\n");
+      perror("fopen");
+      return 1;
+    }
+    //--check file size
+    fseek(matrix, 0L, SEEK_END);
+    fsize = ftell(matrix);
+    rewind(matrix);
+    rsize = (LOWFS_N_HEX_ZERNIKE)*HEX_NAXES*sizeof(double);
+    if(fsize != rsize){
+      printf("SHK: incorrect astig2tilt matrix file size %lu != %lu\n",fsize,rsize);
+      return 1;
+    }
+    //--read matrix
+    if(fread(astig2tilt,(LOWFS_N_HEX_ZERNIKE)*HEX_NAXES*sizeof(double),1,matrix) != 1){
+      printf("astig2tilt file\r");
       perror("fread");
       return 1;
     }
@@ -626,14 +658,33 @@ int shk_shk2hex(shkevent_t *shkevent, sm_t *sm_p, int reset){
     //--set init flag
     init=1;
   }
+  for(i=0;i<LOWFS_N_HEX_ZERNIKE;i++){
+    shk_zern[i] = shkevent->zernikes[i];
+  }
 
   //Do Matrix Multiply
-  num_dgemv(shk2hex, shkevent->zernikes ,shkevent->hex_axs_matrix, HEX_NAXES, LOWFS_N_ZERNIKE);
+  num_dgemv(zern2hex, shk_zern, shkevent->hex_axs_matrix, HEX_NAXES, LOWFS_N_HEX_ZERNIKE);
 
   //Recast to doubles
-  if(sm_p->shk_fit_zernike  && sm_p->hex_calmode)
-    for(i=0;i<HEX_NAXES;i++) shkevent->hex.axs[i] += (double)(shkevent->hex_axs_matrix[i])*sm_p->hex_kP;
+  if(sm_p->shk_fit_zernike  && sm_p->hex_calmode){
+    for(i=0;i<HEX_NAXES;i++){
+      shkevent->hex.axs[i] += (double)(shkevent->hex_axs_matrix[i])*sm_p->hex_kP;
+    }
 
+    //TESTING
+    // num_dgemv(astig2tilt, shkevent->zernikes[1:LOWFS_N_HEX_ZERNIKE], &shk_tilt, 2, LOWFS_N_HEX_ZERNIKE);
+
+    // for(i=0;i<30;i++){
+    //   printf("matrix element %i: %lf\r\n", i, zern2hex[i]);
+    // }
+    // printf("zern[2]: %lf\n", shk_zern[2]);
+    // printf("HEX[3] matrix moves: %lf\n", (shkevent->hex_axs_matrix[3])*sm_p->hex_kP);
+    // printf("--\n");
+    // ttarray[0] = 4.0;
+    // ttarray[1] = 5.0;
+    // shkevent->hex.axs[3] += shk_zern[1]*(step/ttarray[0]) * ttgain;
+    // shkevent->hex.axs[4] += shk_zern[2]*(step/ttarray[1]) * ttgain;
+  }
   return 0;
 }
 
@@ -797,16 +848,34 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   }
 
   //Apply update to HEX
-  if(hex_calmode){
+
+  //For calibration (temporary, while testing parts below)
+  if(hex_calmode ==2){
     for(i=0;i<HEX_NAXES;i++){
-      if(sm_p->hex[i] != shkevent.hex.axs[i]){
-        sm_p->hex[i] = shkevent.hex.axs[i];
-        if(hex_calmode == 2){
-          usleep(ONE_MILLION / 2.0);
-        }
-      }
+      sm_p->hex[i] = shkevent.hex.axs[i];
     }
+
+  //Use calmode 1 for control loop
+  if(hex_calmode == 1){
+
+    //TESTING
+    //x decen and its associated tilt
+    // sm_p->hex[0] += shkevent.zernikes[5] * (0.005 / 0.20) * (0.001);
+    // sm_p->hex[4] += shkevent.zernikes[5] * (0.0005 / 2.0) * (0.03);
+
+    //y decen and its associated tilt
+    // sm_p->hex[1] += shkevent.zernikes[4] * (0.005 / 0.10) * (0.001);
+    // sm_p->hex[3] -= shkevent.zernikes[4] * (0.0005 / 4.0) * (0.03);
+
+    // tilts alone
+    sm_p->hex[3] -= shkevent.zernikes[2] * (0.0005 / 4.0) * (0.5);
+    sm_p->hex[4] += shkevent.zernikes[1] * (0.0005 / 4.0) * (0.5);
   }
+
+  //diagnostic to make sure all motions are recorded, regardless of calmode
+  // for(i=0;i<HEX_NAXES;i++){
+  //   shkevent.hex.axs[i] = sm_p->hex[i];
+  // }
 
   //Open circular buffer
   shkevent_p=(shkevent_t *)open_buffer(sm_p,SHKEVENT);
