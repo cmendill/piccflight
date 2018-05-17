@@ -269,7 +269,8 @@ enum bufids {SCIEVENT, SCIFULL, SHKEVENT, SHKFULL, LYTEVENT, LYTFULL, ACQEVENT, 
 #define HEX_AXES_ALL     "X Y Z U V W"
 #define HEX_AXES_PIV     "R S T"
 #define HEX_POS_HOME     {0,0,0,0,0,0}
-#define HEX_POS_DEFAULT  {-1.213708, 3.527789, -0.203860, 0.237366, 0.437258, 0.001710} // Scope coords  68 deg
+// #define HEX_POS_DEFAULT  {-1.213708, 3.527789, -0.203860, 0.238664, 0.438938, 0.001710} // Scope coords  68 deg
+#define HEX_POS_DEFAULT  {-1.213708, 3.527789, -0.158688, 0.237347, 0.438734, 0.001710} // Scope coords  68 deg (minimum measured focus zern via SH)
 // #define HEX_POS_DEFAULT  {-1.213686, 3.527814 ,-0.071349, 0.233803, 0.441126, 0.001688} // Scope coords  73 deg
 #define HEX_TRL_POKE      0.005
 #define HEX_ROT_POKE      0.0005

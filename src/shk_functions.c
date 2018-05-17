@@ -746,6 +746,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   uint16 fakepx=0;
   int alp_calmode=0;
   int hex_calmode=0;
+  static int countA=0;
 
 
   //Get time immidiately
@@ -811,7 +812,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
 
   //Calculate centroids
   shk_centroid(buffer->pvAddress,&shkevent);
-  
+
   //Set origin
   if(sm_p->shk_setorigin) sm_p->shk_setorigin = shk_setorigin(&shkevent);
 
@@ -823,7 +824,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
 
   //Convert cells to HEX
   shk_shk2hex(&shkevent,sm_p,0);
-  
+
   //Calibrate ALP
   if(alp_calmode) sm_p->alp_calmode = alp_calibrate(alp_calmode,&shkevent.alp,0);
 
@@ -852,22 +853,23 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     for(i=0;i<HEX_NAXES;i++){
       sm_p->hex[i] = shkevent.hex.axs[i];
     }
-
+  }
   //Use calmode 1 for control loop
   if(hex_calmode == 1){
+    if(countA % 5 == 0){
+      if((countA/5) % 2 == 0){
+        sm_p->hex[3] += (shkevent.zernikes[2] *  0.00005) * -0.3;
+        sm_p->hex[4] += (shkevent.zernikes[1] * -0.00005) * -0.3;
+      }else{
+        sm_p->hex[2] += (shkevent.zernikes[3] * 0.006) * -0.1;
+      }
+    }
+    countA++;
+  }
 
-    //TESTING
-    //x decen and its associated tilt
-    // sm_p->hex[0] += shkevent.zernikes[5] * (0.005 / 0.20) * (0.001);
-    // sm_p->hex[4] += shkevent.zernikes[5] * (0.0005 / 2.0) * (0.03);
-
-    //y decen and its associated tilt
-    // sm_p->hex[1] += shkevent.zernikes[4] * (0.005 / 0.10) * (0.001);
-    // sm_p->hex[3] -= shkevent.zernikes[4] * (0.0005 / 4.0) * (0.03);
-
-    // tilts alone
-    sm_p->hex[3] -= shkevent.zernikes[2] * (0.0005 / 4.0) * (0.5);
-    sm_p->hex[4] += shkevent.zernikes[1] * (0.0005 / 4.0) * (0.5);
+  //diagnostic to make sure all motions are recorded, regardless of calmode
+  for(i=0;i<HEX_NAXES;i++){
+    shkevent.hex.axs[i] = sm_p->hex[i];
   }
 
   //Open circular buffer
@@ -944,7 +946,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
 
     //Close buffer
     close_buffer(sm_p,SHKFULL);
-    
+
     //Reset time
     memcpy(&first,&start,sizeof(struct timespec));
   }
