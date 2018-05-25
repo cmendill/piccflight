@@ -854,14 +854,28 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
       sm_p->hex[i] = shkevent.hex.axs[i];
     }
   }
+
   //Use calmode 1 for control loop
   if(hex_calmode == 1){
     if(countA % 5 == 0){
       if((countA/5) % 2 == 0){
-        sm_p->hex[3] += (shkevent.zernikes[2] *  0.00005) * -0.3;
-        sm_p->hex[4] += (shkevent.zernikes[1] * -0.00005) * -0.3;
+        //tilts
+        sm_p->hex[3] += (shkevent.zernikes[2] *  0.00005) *   -0.3;
+        sm_p->hex[4] += (shkevent.zernikes[1] * -0.00005) *   -0.3;
       }else{
-        sm_p->hex[2] += (shkevent.zernikes[3] * 0.006) * -0.1;
+        //astigs with associated tilts
+        // if(abs(shkevent.zernikes[5]) > 0.3){
+          sm_p->hex[0] += (shkevent.zernikes[5] *  0.01)    *   -0.1;
+          sm_p->hex[4] += (shkevent.zernikes[5] * -0.001)   *   -0.1;
+        // }
+        // if(abs(shkevent.zernikes[4]) > 0.3){
+          sm_p->hex[1] += (shkevent.zernikes[4] * -0.01)    *   -0.1;
+          sm_p->hex[3] += (shkevent.zernikes[4] * -0.001)   *   -0.1;
+        // }
+        //focus
+        // if(abs(shkevent.zernikes[3]) > 0.3){
+          sm_p->hex[2] += (shkevent.zernikes[3] *  0.006)   *   -0.1;
+        // }
       }
     }
     countA++;
