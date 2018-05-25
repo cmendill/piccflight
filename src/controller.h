@@ -167,7 +167,7 @@ enum bufids {SCIEVENT, SCIFULL, SHKEVENT, SHKFULL, LYTEVENT, LYTFULL, ACQEVENT, 
 #define ZERNIKE_ERRORS_SHORT_NUMBER 600
 
 /*************************************************
- * Camera Settings -- Keep sizes divisible by 4
+ * Camera Settings -- Keep sizes divisible by 4 (packets)
  *************************************************/
 #define SCIXS           128
 #define SCIYS           128
@@ -175,8 +175,8 @@ enum bufids {SCIEVENT, SCIFULL, SHKEVENT, SHKFULL, LYTEVENT, LYTFULL, ACQEVENT, 
 #define SHKYS           1024
 #define LYTXS           16
 #define LYTYS           16
-#define ACQXS           512
-#define ACQYS           512
+#define ACQXS           1280
+#define ACQYS           960
 
 /*************************************************
  * Debug Messaging
@@ -328,6 +328,11 @@ enum procids {WATID, SCIID, SHKID, LYTID, TLMID, ACQID, MOTID, THMID, SRVID, HEX
 #define SHK_YMIN              0
 #define SHK_YMAX              (SHKYS-1)
 
+  
+/*************************************************
+ * Acquisition Camera (ACQ) Settings
+ *************************************************/
+#define ACQ_FULL_IMAGE_TIME   0.5  //[seconds] period that full images are written to circbuf
 
 /*************************************************
  * Packets
@@ -373,15 +378,19 @@ typedef struct procinfo_struct{
 typedef struct sci_struct{
   uint16 data[SCIXS][SCIYS];
 } sci_t;
+
 typedef struct shk_struct{
   uint16 data[SHKXS][SHKYS];
 } shk_t;
+
 typedef struct lyt_struct{
   uint16 data[LYTXS][LYTYS];
 } lyt_t;
+
 typedef struct acq_struct{
   uint16 data[ACQXS][ACQYS];
 } acq_t;
+
 typedef struct {
   //keep aligned on 8 byte boundary
   uint16 index;
@@ -520,7 +529,6 @@ typedef struct acqevent_struct{
   int64   start_nsec;
   int64   end_sec;
   int64   end_nsec;
-  acq_t   image;
 } acqevent_t;
 
 /*************************************************
@@ -658,7 +666,8 @@ typedef volatile struct {
   int shk_reset;
   int shk_setorigin;
   double zern_targ[LOWFS_N_ZERNIKE];
-
+  int acq_reset;
+  
   //Events circular buffers
   scievent_t scievent[SCIEVENTSIZE];
   shkevent_t shkevent[SHKEVENTSIZE];

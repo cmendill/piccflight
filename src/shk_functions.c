@@ -774,7 +774,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     shk_shk2hex(&shkevent,sm_p, 1);
     memcpy(&first,&start,sizeof(struct timespec));
     init=1;
-    printf("SHK: Initialized\r\n");
+    if(SHK_DEBUG) printf("SHK: Initialized\n");
   }
 
   //Write current act positions
@@ -964,4 +964,4 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     //Reset time
     memcpy(&first,&start,sizeof(struct timespec));
   }
-  }
+}

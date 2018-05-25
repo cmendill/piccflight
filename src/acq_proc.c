@@ -8,49 +8,226 @@
 #include <string.h>
 #include <fcntl.h>
 #include <ctype.h>
+#include <libusb.h>
+#include <libuvc.h>
 
 /* piccflight headers */
 #include "controller.h"
 #include "common_functions.h"
+#include "acq_proc.h"
 
-/* Process File Descriptor */
+/* Globals */
+uvc_context_t *ctx;
+uvc_device_t *dev;
+uvc_device_handle_t *devh;
 int acq_shmfd;
+
 
 /* CTRL-C Function */
 void acqctrlC(int sig)
 {
-#if MSG_CTRLC
-  printf("ACQ: ctrlC! exiting.\n");
-#endif
+  if(MSG_CTRLC) printf("ACQ: ctrlC! exiting.\n");
+  
+  /* End the stream. Blocks until last callback is serviced */
+  uvc_stop_streaming(devh);
+  if(ACQ_DEBUG) printf("ACQ: Stream stopped\n");
+  
+  /* Release our handle on the device */
+  uvc_close(devh);
+  if(ACQ_DEBUG) printf("ACQ: Device closed\n");
+
+  /* Release the device descriptor */
+  uvc_unref_device(dev);
+  if(ACQ_DEBUG) printf("ACQ: Device released\n");
+
+  /* Close the UVC context */
+  uvc_exit(ctx);
+  if(ACQ_DEBUG) printf("ACQ: Context closed\n");
+
+  /* Close shared memory */
   close(acq_shmfd);
+
+  /* Exit */
   exit(sig);
 }
 
+
+/* Camera Callback Function */
+void cb(uvc_frame_t *frame, void *ptr) {
+  static acqevent_t acqevent;
+  static acqfull_t acqfull;
+  acqfull_t *acqfull_p;
+  acqevent_t *acqevent_p;
+  static struct timespec first,start,end,delta,last;
+  static int init=0;
+  double dt;
+  sm_t *sm_p = (sm_t *)ptr;
+    
+  /* Get time immidiately */
+  clock_gettime(CLOCK_REALTIME,&start);
+  
+  /* Debugging */
+  if(ACQ_DEBUG) printf("ACQ: Got frame: %d\n",frame->sequence);
+
+  /* Check in with the watchdog */
+  checkin(ptr,ACQID);
+  
+  /* Check reset */
+  if(sm_p->acq_reset){
+    init=0;
+    sm_p->acq_reset=0;
+  }
+  
+  /* Initialize */
+  if(!init){
+    memset(&acqfull,0,sizeof(acqfull));
+    memset(&acqevent,0,sizeof(acqevent));
+    memcpy(&first,&start,sizeof(struct timespec));
+    init=1;
+    if(ACQ_DEBUG) printf("ACQ: Initialized\n");
+  }
+
+
+  /* Measure exposure time */
+  if(timespec_subtract(&delta,&start,&last))
+    printf("ACQ: call back --> timespec_subtract error!\n");
+  ts2double(&delta,&dt);
+
+  /* Fill out event header */
+  acqevent.frame_number = frame->sequence;
+  acqevent.exptime = 0;
+  acqevent.ontime = dt;
+  acqevent.imxsize = ACQXS;
+  acqevent.imysize = ACQYS;
+  acqevent.mode = 0;
+  acqevent.start_sec = start.tv_sec;
+  acqevent.start_nsec = start.tv_nsec;
+
+  /* Open circular buffer */
+  acqevent_p=(acqevent_t *)open_buffer(sm_p,ACQEVENT);
+
+  /* Copy acqevent */
+  memcpy(acqevent_p,&acqevent,sizeof(acqevent_t));;
+
+  /* Get final timestamp */
+  clock_gettime(CLOCK_REALTIME,&end);
+  acqevent_p->end_sec = end.tv_sec;
+  acqevent_p->end_nsec = end.tv_nsec;
+
+  /* Close buffer */
+  close_buffer(sm_p,ACQEVENT);
+
+  /* Save time */
+  memcpy(&last,&start,sizeof(struct timespec));
+  
+  /*******************  Full Image Code  *****************/
+  if(timespec_subtract(&delta,&start,&first))
+    printf("ACQ: acq_process_image --> timespec_subtract error!\n");
+  ts2double(&delta,&dt);
+  if(dt > ACQ_FULL_IMAGE_TIME){
+    if(ACQ_DEBUG) printf("ACQ: Full Image: %d\n",frame->sequence);
+    //Fill out full image header
+    acqfull.packet_type  = ACQFULL;
+    acqfull.frame_number = acqevent.frame_number;
+    acqfull.exptime = acqevent.exptime;
+    acqfull.ontime = acqevent.ontime;
+    acqfull.imxsize = acqevent.imxsize;
+    acqfull.imysize = acqevent.imysize;
+    acqfull.mode = acqevent.mode;
+    acqfull.start_sec = acqevent.start_sec;
+    acqfull.start_nsec = acqevent.start_nsec;
+ 
+    /* Debugging */
+    if(ACQ_DEBUG) printf("ACQ: Frame Size: %lu  Buffer Size: %lu\n",frame->data_bytes,sizeof(acq_t));  
+
+    /* Copy image */
+    memcpy(&(acqfull.image.data[0][0]),frame->data,sizeof(acq_t));
+
+    /* Open circular buffer */
+    acqfull_p=(acqfull_t *)open_buffer(sm_p,ACQFULL);
+
+    /* Copy data */
+    memcpy(acqfull_p,&acqfull,sizeof(acqfull_t));;
+
+    /* Get final timestamp */
+    clock_gettime(CLOCK_REALTIME,&end);
+    acqfull_p->end_sec = end.tv_sec;
+    acqfull_p->end_nsec = end.tv_nsec;
+
+    /* Close buffer */
+    close_buffer(sm_p,ACQFULL);
+
+    /* Reset time */
+    memcpy(&first,&start,sizeof(struct timespec));
+  }
+ }
+
 /* Main Process */
 void acq_proc(void){
-  uint32 count = 0;
+  uvc_stream_ctrl_t ctrl;
+  uvc_error_t res;
+  int fps=5;
+    
   /* Open Shared Memory */
   sm_t *sm_p;
   if((sm_p = openshm(&acq_shmfd)) == NULL){
     printf("openshm fail: acq_proc\n");
     acqctrlC(0);
   }
-
+  
   /* Set soft interrupt handler */
   sigset(SIGINT, acqctrlC);	/* usually ^C */
 
-  while(1){
-    /* Check if we've been asked to exit */
-    if(sm_p->w[ACQID].die)
-      acqctrlC(0);
-    
-    /* Check in with the watchdog */
-    checkin(sm_p,ACQID);
-    
-    /* Sleep */
-    sleep(sm_p->w[ACQID].per);
+  /* Initialize a UVC service context. Libuvc will set up its own libusb
+   * context. Replace NULL with a libusb_context pointer to run libuvc
+   * from an existing libusb context. */
+  if((res = uvc_init(&ctx, NULL))<0){
+    uvc_perror(res, "uvc_init");
+    acqctrlC(0);
   }
-  
+
+  if(ACQ_DEBUG) printf("ACQ: UVC initialized\n");
+
+  /* Locates the first attached UVC device, stores in dev */
+  if((res = uvc_find_device(ctx, &dev, ACQ_VENDOR_ID, ACQ_PRODUCT_ID, NULL))<0){ /* filter devices: vendor_id, product_id, "serial_num" */
+    uvc_perror(res, "uvc_find_device"); /* no devices found */
+  } else {
+    if(ACQ_DEBUG) printf("ACQ: Device found\n");
+
+    /* Try to open the device: requires exclusive access */
+    if((res = uvc_open(dev, &devh))<0){
+      uvc_perror(res, "uvc_open"); /* unable to open device */
+    } else {
+      if(ACQ_DEBUG) printf("ACQ: Device opened\n");
+
+      /* Setup stream profile */
+      if((res = uvc_get_stream_ctrl_format_size(devh, &ctrl, UVC_FRAME_FORMAT_GRAY16, ACQXS, ACQYS, fps))<0){
+        uvc_perror(res, "get_mode"); /* device doesn't provide a matching stream */
+      } else {
+        /* Start stream */
+	if((res = uvc_start_streaming(devh, &ctrl, cb, (void *)sm_p, 0))<0){
+	  uvc_perror(res, "start_streaming"); /* unable to start stream */
+        } else {
+          if(ACQ_DEBUG) printf("ACQ: Streaming...\n");
+
+	  /* Turn on auto exposure */
+          uvc_set_ae_mode(devh, 1);
+
+	  /* Start loop */
+	  while(1){
+	    /* Check if we've been asked to exit */
+	    if(sm_p->w[ACQID].die)
+	      acqctrlC(0);
+	    
+	    /* Sleep */
+	    sleep(sm_p->w[ACQID].per);
+	  }
+        }
+      }
+    }
+  }
+
+  /* Exit */
   acqctrlC(0);
   return;
 }

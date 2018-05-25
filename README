@@ -61,6 +61,10 @@ SETTINGS
  - Operational settings are held in ./src/watchdog.h
     - this is where you turn processes on and off
 
+REQUIRED PACKAGES
+ - cmake (apt-get install cmake)
+ - libusb (apt-get install libusb-1.0-0-dev, create simlink of /usr/include/libusb-1.0/libusb.h to /usr/include/libusb.h)
+
 BUILD INSTRUCTIONS
  - type: make
  - binaries are written into the bin folder
