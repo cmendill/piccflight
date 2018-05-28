@@ -270,11 +270,11 @@ enum bufids {SCIEVENT, SCIFULL, SHKEVENT, SHKFULL, LYTEVENT, LYTFULL, ACQEVENT, 
 #define HEX_AXES_PIV     "R S T"
 #define HEX_POS_HOME     {0,0,0,0,0,0}
 // #define HEX_POS_DEFAULT  {-1.213708, 3.527789, -0.203860, 0.238664, 0.438938, 0.001710} // Scope coords  68 deg
-#define HEX_POS_DEFAULT  {-1.213708, 3.527789, -0.157447, 0.236375, 0.440839, 0.001710} // Scope coords  68 deg (minimum measured focus zern via SH)
+#define HEX_POS_DEFAULT  {-1.213708, 3.527789, -0.157457, 0.231722, 0.439093, 0.00171} // Scope coords  68 deg (minimum measured focus zern via SH)
 // #define HEX_POS_DEFAULT  {-1.213686, 3.527814 ,-0.071349, 0.233803, 0.441126, 0.001688} // Scope coords  73 deg
-#define HEX_TRL_POKE      0.005
-#define HEX_ROT_POKE      0.0005
-#define HEX_NCALIM        200
+#define HEX_TRL_POKE      0.01
+#define HEX_ROT_POKE      0.001
+#define HEX_NCALIM        50
 #define HEX_PIVOT_X       0//122.32031250
 #define HEX_PIVOT_Y       0//206.61012268
 #define HEX_PIVOT_Z       0//74.0
@@ -328,7 +328,7 @@ enum procids {WATID, SCIID, SHKID, LYTID, TLMID, ACQID, MOTID, THMID, SRVID, HEX
 #define SHK_YMIN              0
 #define SHK_YMAX              (SHKYS-1)
 
-  
+
 /*************************************************
  * Acquisition Camera (ACQ) Settings
  *************************************************/
@@ -667,7 +667,7 @@ typedef volatile struct {
   int shk_setorigin;
   double zern_targ[LOWFS_N_ZERNIKE];
   int acq_reset;
-  
+
   //Events circular buffers
   scievent_t scievent[SCIEVENTSIZE];
   shkevent_t shkevent[SHKEVENTSIZE];

@@ -336,6 +336,12 @@ int handle_command(char *line, sm_t *sm_p){
     return(CMD_NORMAL);
   }
 
+  if(!strncasecmp(line,"hex calmode 3",13)){
+    sm_p->hex_calmode=3;
+    printf("CMD: Changed HEX calibration mode to %d\n",sm_p->hex_calmode);
+    return(CMD_NORMAL);
+  }
+
   //HEX Calibration
   if(!strncasecmp(line,"shk calibrate hex",17)){
     printf("CMD: Running HEX AXS calibration\n");

@@ -157,7 +157,7 @@ int hex_calibrate(int calmode, hex_t *hex, int reset){
   int i;
   double hexdef[6]  = HEX_POS_DEFAULT;
   static struct timespec start,this,last,delta;
-  static unsigned long int countA=0, countB=0;
+  static unsigned long int countA=0, countB=0, countC=0;
   static int init=0;
   time_t t;
   double dt=0;
@@ -167,6 +167,7 @@ int hex_calibrate(int calmode, hex_t *hex, int reset){
   if(reset){
     countA=0;
     countB=0;
+    countC=0;
     init=0;
     return calmode;
   }
@@ -175,6 +176,7 @@ int hex_calibrate(int calmode, hex_t *hex, int reset){
   if(!init){
     countA=0;
     countB=0;
+    countC=0;
     clock_gettime(CLOCK_REALTIME, &start);
     init=1;
   }
@@ -184,6 +186,7 @@ int hex_calibrate(int calmode, hex_t *hex, int reset){
       printf("SHK: shk_process_image --> timespec_subtract error!\n");
     ts2double(&delta,&dt);
 
+    // printf("[HEX] Hex calmode %i\n", calmode);
   /* CALMODE 1: Be not zero.*/
 
 
@@ -216,6 +219,33 @@ int hex_calibrate(int calmode, hex_t *hex, int reset){
       init = 0;
     }
   return calmode;
+  }
+
+  /* CALMODE 3: Spiral Search. Tip/tilt hexapod axes in a spiral. */
+
+  if(calmode == 3){
+    double u_step;
+    double v_step;
+    int max_step = 1000;
+    double spiral_radius = 0.00001;
+    double start[HEX_NAXES] = HEX_POS_DEFAULT;
+    for(i=0;i<HEX_NAXES;i++){
+      hex->axs[i] = start[i];
+    }
+    if((countC/5) <= max_step){
+      u_step = countC * spiral_radius * cos(countC * (PI/180.0));
+      v_step = countC * spiral_radius * sin(countC * (PI/180.0));
+      hex->axs[3] = start[3] + u_step;
+      hex->axs[4] = start[4] + v_step;
+      countC++;
+
+    }else{
+        //Turn off calibration
+        printf("HEX: Stopping HEX calmode 3\n");
+        calmode = 0;
+        countC = 0;
+        // init = 0;
+    }
   }
   return calmode;
 }

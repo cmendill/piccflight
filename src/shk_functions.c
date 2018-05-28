@@ -792,6 +792,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
 
   //Set hex_calmode
   hex_calmode = sm_p->hex_calmode;
+  // printf("hex calmode: %i\n", sm_p->hex_calmode);
 
   //Fill out event header
   shkevent.frame_number = frame_number;
@@ -849,7 +850,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   //Apply update to HEX
 
   //For calibration (temporary, while testing parts below)
-  if(hex_calmode ==2){
+  if(hex_calmode >= 2){
     for(i=0;i<HEX_NAXES;i++){
       sm_p->hex[i] = shkevent.hex.axs[i];
     }
