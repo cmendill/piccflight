@@ -16,11 +16,16 @@
 
 #define LYT_FULL_IMAGE_TIME 0.5 //seconds
 
-/* lyt_process_image */
+/**************************************************************/
+/*                      LYT_PROCESS_IMAGE                     */
+/**************************************************************/
 void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   static lytfull_t lytfull;
   static lytevent_t lytevent;
-  static struct timespec first,start,delta;
+  lytfull_t *lytfull_p;
+  lytevent_t *lytevent_p;
+  static int init=0;
+  static struct timespec first,start,end,delta,last;
   double dt;
   int32 i,j,k;
   uint16 fakepx=0;
@@ -31,19 +36,38 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   
   //Get time immidiately
   clock_gettime(CLOCK_REALTIME,&start);
-  if(frame_number == 0)
-    memcpy(&first,&start,sizeof(struct timespec));
+  
+  //Check reset
+  if(sm_p->shk_reset){
+    init=0;
+    sm_p->shk_reset=0;
+  }
 
+  //Initialize
+  if(!init){
+    memset(&lytfull,0,sizeof(lytfull));
+    memset(&lytevent,0,sizeof(lytevent));
+    memcpy(&first,&start,sizeof(struct timespec));
+    init=1;
+    if(LYT_DEBUG) printf("LYT: Initialized\n");
+  }
+
+  //Measure exposure time
+  if(timespec_subtract(&delta,&start,&last))
+    printf("LYT: lyt_process_image --> timespec_subtract error!\n");
+  ts2double(&delta,&dt);
+  
   //Fill out event header
-  lytevent.frame_number = frame_number;
-  lytevent.exptime = 0;
-  lytevent.ontime = 0;
-  lytevent.temp = 0;
-  lytevent.imxsize = LYTXS;
-  lytevent.imysize = LYTYS;
-  lytevent.mode = 0;
-  lytevent.start_sec = start.tv_sec;
-  lytevent.start_nsec = start.tv_nsec;
+  lytevent.hed.packet_type  = LYTEVENT;
+  lytevent.hed.frame_number = frame_number;
+  lytevent.hed.exptime      = 0;
+  lytevent.hed.ontime       = dt;
+  lytevent.hed.temp         = 0;
+  lytevent.hed.imxsize      = LYTXS;
+  lytevent.hed.imysize      = LYTYS;
+  lytevent.hed.mode         = 0;
+  lytevent.hed.start_sec    = start.tv_sec;
+  lytevent.hed.start_nsec   = start.tv_nsec;
 
   //Copy image into event
   memcpy(&(lytevent.image.data[0][0]),buffer->pvAddress,sizeof(lytevent.image.data));
@@ -59,48 +83,68 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   
   //Apply update
 
-  //Write event
-  write_to_buffer(sm_p,(void *)&lytevent,LYTEVENT);
+  //Open circular buffer
+  lytevent_p=(lytevent_t *)open_buffer(sm_p,LYTEVENT);
 
-  //Full image code
+  //Copy data
+  memcpy(lytevent_p,&lytevent,sizeof(lytevent_t));;
+
+  //Get final timestamp
+  clock_gettime(CLOCK_REALTIME,&end);
+  lytevent_p->hed.end_sec = end.tv_sec;
+  lytevent_p->hed.end_nsec = end.tv_nsec;
+
+  //Close buffer
+  close_buffer(sm_p,LYTEVENT);
+
+  //Save time
+  memcpy(&last,&start,sizeof(struct timespec));
+
+  /*******************  Full Image Code  *****************/
   if(timespec_subtract(&delta,&start,&first))
     printf("LYT: lyt_process_image --> timespec_subtract error!\n");
   ts2double(&delta,&dt);
   if(dt > LYT_FULL_IMAGE_TIME){
-    //Fill out full image header
-    lytfull.packet_type  = LYTFULL;
-    lytfull.frame_number = frame_number;
-    lytfull.exptime = 0;
-    lytfull.ontime = 0;
-    lytfull.temp = 0;
-    lytfull.imxsize = LYTXS;
-    lytfull.imysize = LYTYS;
-    lytfull.mode = 0;
-    lytfull.start_sec = start.tv_sec;
-    lytfull.start_nsec = start.tv_nsec;
-
-    //Copy full image
-    memcpy(&(lytfull.image.data[0][0]),buffer->pvAddress,sizeof(lytfull.image.data));
-
+    //Copy packet header
+    memcpy(&lytfull.hed,&lytevent.hed,sizeof(pkthed_t));
+    lytfull.hed.packet_type = LYTFULL;
+ 
     //Fake data
-    if(sm_p->lyt_fake_mode == 1){
-      for(i=0;i<LYTXS;i++)
-	for(j=0;j<LYTYS;j++)
-	  lytfull.image.data[i][j]=fakepx++;
+    if(sm_p->lyt_fake_mode > 0){
+      if(sm_p->lyt_fake_mode == 1){
+	for(i=0;i<LYTXS;i++)
+	  for(j=0;j<LYTYS;j++)
+	    lytfull.image.data[i][j]=fakepx++;
+      }
+      if(sm_p->lyt_fake_mode == 2){
+	for(i=0;i<LYTXS;i++)
+	  for(j=0;j<LYTYS;j++)
+	    lytfull.image.data[i][j]=2*fakepx++;
+      }
+      if(sm_p->lyt_fake_mode == 3){
+	for(i=0;i<LYTXS;i++)
+	  for(j=0;j<LYTYS;j++)
+	    lytfull.image.data[i][j]=3*fakepx++;
+      }
     }
-    if(sm_p->lyt_fake_mode == 2){
-      for(i=0;i<LYTXS;i++)
-	for(j=0;j<LYTYS;j++)
-	  lytfull.image.data[i][j]=2*fakepx++;
-    }
-    if(sm_p->lyt_fake_mode == 3){
-      for(i=0;i<LYTXS;i++)
-	for(j=0;j<LYTYS;j++)
-	  lytfull.image.data[i][j]=3*fakepx++;
+    else{
+      //Copy full image
+      memcpy(&(lytfull.image.data[0][0]),buffer->pvAddress,sizeof(lytfull.image.data));
     }
     
-    //Write full image
-    write_to_buffer(sm_p,(void *)&lytfull,LYTFULL);
+    //Open circular buffer
+    lytfull_p=(lytfull_t *)open_buffer(sm_p,LYTFULL);
+
+    //Copy data
+    memcpy(lytfull_p,&lytfull,sizeof(lytfull_t));;
+
+    //Get final timestamp
+    clock_gettime(CLOCK_REALTIME,&end);
+    lytfull_p->hed.end_sec  = end.tv_sec;
+    lytfull_p->hed.end_nsec = end.tv_nsec;
+
+    //Close buffer
+    close_buffer(sm_p,LYTFULL);
 
     //Reset time
     memcpy(&first,&start,sizeof(struct timespec));

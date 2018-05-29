@@ -322,10 +322,8 @@ int xin_zero(signed short hDevice){
 /**************************************************************/
 /*                      XIN_WRITE                             */
 /**************************************************************/
-int xin_write(signed short hDevice, iwc_t *iwc, dm_t *dm, pez_t *pez){
+int xin_write(signed short hDevice, iwc_t *iwc, dm_t *dm){
   #include "iwc_map.h"
-  int pez1_map[PEZ_NACT]={0};
-  int pez2_map[PEZ_NACT]={0};
   int dm_map[DM_NACT]={0};
   uint16 output[XIN_NCHANNELS]={0};
   int i;
@@ -342,16 +340,6 @@ int xin_write(signed short hDevice, iwc_t *iwc, dm_t *dm, pez_t *pez){
     //Map TTP
     for(i=0;i<IWC_NTTP;i++)
       output[ttp_map[i]] = 0;//iwc->ttp[i]; set back when proper checks are in place
-#endif
-
-#if PEZ_ENABLE
-    //Map Piezo Mirror #1
-    for(i=0;i<PEZ_NACT;i++)
-      output[pez1_map[i]] = pez->fm1[i];
-
-    //Map Piezo Mirror #2
-    for(i=0;i<PEZ_NACT;i++)
-      output[pez2_map[i]] = pez->fm2[i];
 #endif
 
 #if DM_ENABLE

@@ -111,7 +111,7 @@ void write_block(char *hed,char *buf, uint32 num, int invert_buf){
     /*Write presync to socket */
     write_to_socket(ethfd,&presync,sizeof(presync));
     /*Write header to socket */
-    write_to_socket(ethfd,hed,sizeof(tlmheader_t));
+    write_to_socket(ethfd,hed,sizeof(pkthed_t));
     /*Write image to socket */
     write_to_socket(ethfd,buf,num);
     /*Write postsync to socket */
@@ -128,7 +128,7 @@ void write_block(char *hed,char *buf, uint32 num, int invert_buf){
 	/*Write presync to dma */
 	rtd_write_dma((char *)&presync,sizeof(presync),1);
 	/*Write header to dma */
-	rtd_write_dma(hed,sizeof(tlmheader_t),1);
+	rtd_write_dma(hed,sizeof(pkthed_t),1);
 	/*Write image to dma */
 	rtd_write_dma(buf,num,1);
 	/*Write postsync to dma */
@@ -138,7 +138,7 @@ void write_block(char *hed,char *buf, uint32 num, int invert_buf){
 	/*Write presync to fifo */
 	rtd_write_fifo((char *)&presync,sizeof(presync),1);
 	/*Write header to fifo */
-	rtd_write_fifo(hed,sizeof(tlmheader_t),1);
+	rtd_write_fifo(hed,sizeof(pkthed_t),1);
 	/*Write image to fifo */
 	rtd_write_fifo(buf,num,1);
 	/*Write postsync to fifo */
@@ -191,7 +191,7 @@ void tlm_proc(void){
   static shkevent_t shk;
   static lytevent_t lyt;
   static acqevent_t acq;
-  static tlmheader_t tlmHED;
+  static pkthed_t   pkthed;
   
   
   /* Open Shared Memory */
@@ -311,16 +311,16 @@ void tlm_proc(void){
 	  //save science data 
 	  if(SAVE_SCI){
 	    sprintf(tag,"sci");
-	      save_data(&sci, sizeof(sci),tag,sci.frame_number,folderindex);
+	      save_data(&sci, sizeof(sci),tag,sci.hed.frame_number,folderindex);
 	  }
 	  /*Fill out packet header*/
-	  tlmHED.packet_type  = TLM_SCI;
+	  pkthed.packet_type  = TLM_SCI;
 	  
 	  if(SEND_SCI){
 	    //write data
-	    write_block((char *)&tlmHED, (char *)&sci.image, sizeof(sci.image),0);
+	    write_block((char *)&pkthed, (char *)&sci.image, sizeof(sci.image),0);
 	    if(TLM_DEBUG)
-	      printf("TLM: Frame %d - SCI\n",tlmHED.frame_number);
+	      printf("TLM: Frame %d - SCI\n",pkthed.frame_number);
 	  }
 	}
 

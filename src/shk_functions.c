@@ -738,7 +738,6 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   shkfull_t *shkfull_p;
   shkevent_t *shkevent_p;
   dm_t dm;
-  pez_t pez;
   static struct timespec first,start,end,delta,last;
   static int init=0;
   double dt;
@@ -763,7 +762,6 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     memset(&shkfull,0,sizeof(shkfull));
     memset(&shkevent,0,sizeof(shkevent));
     memset(&dm,0,sizeof(dm_t));
-    memset(&pez,0,sizeof(pez_t));
     shk_init_cells(&shkevent);
     alp_init(&shkevent.alp);
     hex_init(&shkevent.hex);
@@ -795,15 +793,19 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   // printf("hex calmode: %i\n", sm_p->hex_calmode);
 
   //Fill out event header
-  shkevent.frame_number = frame_number;
-  shkevent.exptime = 0;
-  shkevent.ontime = dt;
-  shkevent.imxsize = SHKXS;
-  shkevent.imysize = SHKYS;
-  shkevent.mode = 0;
-  shkevent.boxsize = sm_p->shk_boxsize;
-  shkevent.start_sec = start.tv_sec;
-  shkevent.start_nsec = start.tv_nsec;
+  shkevent.hed.packet_type  = SHKEVENT;
+  shkevent.hed.frame_number = frame_number;
+  shkevent.hed.exptime      = 0;
+  shkevent.hed.ontime       = dt;
+  shkevent.hed.temp         = 0;
+  shkevent.hed.imxsize      = SHKXS;
+  shkevent.hed.imysize      = SHKYS;
+  shkevent.hed.mode         = 0;
+  shkevent.hed.start_sec    = start.tv_sec;
+  shkevent.hed.start_nsec   = start.tv_nsec;
+
+  //Save modes and gains
+  shkevent.boxsize     = sm_p->shk_boxsize;
   shkevent.alp.calmode = alp_calmode;
   shkevent.hex.calmode = hex_calmode;
   shkevent.kP = sm_p->shk_kP;
@@ -907,7 +909,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     countA++;
   }
 
-  //diagnostic to make sure all motions are recorded, regardless of calmode
+  //Diagnostic to make sure all motions are recorded, regardless of calmode
   for(i=0;i<HEX_NAXES;i++){
     shkevent.hex.axs[i] = sm_p->hex[i];
   }
@@ -920,8 +922,8 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
 
   //Get final timestamp
   clock_gettime(CLOCK_REALTIME,&end);
-  shkevent_p->end_sec = end.tv_sec;
-  shkevent_p->end_nsec = end.tv_nsec;
+  shkevent_p->hed.end_sec  = end.tv_sec;
+  shkevent_p->hed.end_nsec = end.tv_nsec;
 
   //Close buffer
   close_buffer(sm_p,SHKEVENT);
@@ -935,16 +937,9 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     printf("SHK: shk_process_image --> timespec_subtract error!\n");
   ts2double(&delta,&dt);
   if(dt > SHK_FULL_IMAGE_TIME){
-    //Fill out full image header
-    shkfull.packet_type  = SHKFULL;
-    shkfull.frame_number = shkevent.frame_number;
-    shkfull.exptime = shkevent.exptime;
-    shkfull.ontime = shkevent.ontime;
-    shkfull.imxsize = SHKXS;
-    shkfull.imysize = SHKYS;
-    shkfull.mode = shkevent.mode;
-    shkfull.start_sec = shkevent.start_sec;
-    shkfull.start_nsec = shkevent.start_nsec;
+    //Copy packet header
+    memcpy(&shkfull.hed,&shkevent.hed,sizeof(pkthed_t));
+    shkfull.hed.packet_type = SHKFULL;
 
     //Fake data
     if(sm_p->shk_fake_mode > 0){
@@ -969,8 +964,6 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     }
 
     //Copy event
-    shkevent.end_sec = end.tv_sec;
-    shkevent.end_nsec = end.tv_nsec;
     memcpy(&shkfull.shkevent,&shkevent,sizeof(shkevent));
 
     //Open circular buffer
@@ -981,8 +974,8 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
 
     //Get final timestamp
     clock_gettime(CLOCK_REALTIME,&end);
-    shkfull_p->end_sec = end.tv_sec;
-    shkfull_p->end_nsec = end.tv_nsec;
+    shkfull_p->hed.end_sec  = end.tv_sec;
+    shkfull_p->hed.end_nsec = end.tv_nsec;
 
     //Close buffer
     close_buffer(sm_p,SHKFULL);

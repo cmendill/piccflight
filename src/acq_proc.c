@@ -94,14 +94,16 @@ void cb(uvc_frame_t *frame, void *ptr) {
   ts2double(&delta,&dt);
 
   /* Fill out event header */
-  acqevent.frame_number = frame->sequence;
-  acqevent.exptime = 0;
-  acqevent.ontime = dt;
-  acqevent.imxsize = ACQXS;
-  acqevent.imysize = ACQYS;
-  acqevent.mode = 0;
-  acqevent.start_sec = start.tv_sec;
-  acqevent.start_nsec = start.tv_nsec;
+  acqevent.hed.packet_type  = ACQEVENT;
+  acqevent.hed.frame_number = frame->sequence;
+  acqevent.hed.exptime      = 0;
+  acqevent.hed.ontime       = dt;
+  acqevent.hed.temp         = 0;
+  acqevent.hed.imxsize      = ACQXS;
+  acqevent.hed.imysize      = ACQYS;
+  acqevent.hed.mode         = 0;
+  acqevent.hed.start_sec    = start.tv_sec;
+  acqevent.hed.start_nsec   = start.tv_nsec;
 
   /* Open circular buffer */
   acqevent_p=(acqevent_t *)open_buffer(sm_p,ACQEVENT);
@@ -111,8 +113,8 @@ void cb(uvc_frame_t *frame, void *ptr) {
 
   /* Get final timestamp */
   clock_gettime(CLOCK_REALTIME,&end);
-  acqevent_p->end_sec = end.tv_sec;
-  acqevent_p->end_nsec = end.tv_nsec;
+  acqevent_p->hed.end_sec = end.tv_sec;
+  acqevent_p->hed.end_nsec = end.tv_nsec;
 
   /* Close buffer */
   close_buffer(sm_p,ACQEVENT);
@@ -125,21 +127,14 @@ void cb(uvc_frame_t *frame, void *ptr) {
     printf("ACQ: acq_process_image --> timespec_subtract error!\n");
   ts2double(&delta,&dt);
   if(dt > ACQ_FULL_IMAGE_TIME){
-    if(ACQ_DEBUG) printf("ACQ: Full Image: %d\n",frame->sequence);
-    //Fill out full image header
-    acqfull.packet_type  = ACQFULL;
-    acqfull.frame_number = acqevent.frame_number;
-    acqfull.exptime = acqevent.exptime;
-    acqfull.ontime = acqevent.ontime;
-    acqfull.imxsize = acqevent.imxsize;
-    acqfull.imysize = acqevent.imysize;
-    acqfull.mode = acqevent.mode;
-    acqfull.start_sec = acqevent.start_sec;
-    acqfull.start_nsec = acqevent.start_nsec;
- 
     /* Debugging */
+    if(ACQ_DEBUG) printf("ACQ: Full Image: %d\n",frame->sequence);
     if(ACQ_DEBUG) printf("ACQ: Frame Size: %lu  Buffer Size: %lu\n",frame->data_bytes,sizeof(acq_t));  
-
+    
+    /* Copy packet header */
+    memcpy(&acqfull.hed,&acqevent.hed,sizeof(pkthed_t));
+    acqfull.hed.packet_type = ACQFULL;
+    
     /* Copy image */
     memcpy(&(acqfull.image.data[0][0]),frame->data,sizeof(acq_t));
 
@@ -151,8 +146,8 @@ void cb(uvc_frame_t *frame, void *ptr) {
 
     /* Get final timestamp */
     clock_gettime(CLOCK_REALTIME,&end);
-    acqfull_p->end_sec = end.tv_sec;
-    acqfull_p->end_nsec = end.tv_nsec;
+    acqfull_p->hed.end_sec = end.tv_sec;
+    acqfull_p->hed.end_nsec = end.tv_nsec;
 
     /* Close buffer */
     close_buffer(sm_p,ACQFULL);

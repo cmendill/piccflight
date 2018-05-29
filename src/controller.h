@@ -73,11 +73,10 @@ enum procids {WATID, SCIID, SHKID, LYTID, TLMID, ACQID, MOTID, THMID, SRVID, HEX
 /*************************************************
 * Hardware Switches
 *************************************************/
-#define XIN_ENABLE      0 // Xinetics Controller (Master IWC,DM,PEZ)
+#define XIN_ENABLE      0 // Xinetics Controller
 #define IWC_ENABLE      0 // IWC
 #define ALP_ENABLE      0 // ALPAO DM
 #define DM_ENABLE       0 // DM
-#define PEZ_ENABLE      0 // PIEZO Mirrors
 #define HEX_ENABLE      1 // Hexapod
 
 /*************************************************
@@ -130,7 +129,10 @@ enum procids {WATID, SCIID, SHKID, LYTID, TLMID, ACQID, MOTID, THMID, SRVID, HEX
 /*************************************************
  * Circular Buffer Info
  *************************************************/
-enum bufids {SCIEVENT, SCIFULL, SHKEVENT, SHKFULL, LYTEVENT, LYTFULL, ACQEVENT, ACQFULL, NCIRCBUF};
+enum bufids {SCIEVENT, SCIFULL,
+	     SHKEVENT, SHKFULL,
+	     LYTEVENT, LYTFULL,
+	     ACQEVENT, ACQFULL, NCIRCBUF};
 #define SCIEVENTSIZE     3
 #define SHKEVENTSIZE     3
 #define LYTEVENTSIZE     3
@@ -248,11 +250,6 @@ enum bufids {SCIEVENT, SCIFULL, SHKEVENT, SHKFULL, LYTEVENT, LYTFULL, ACQEVENT, 
 #define ALP_BIAS     0.0
 #define ALP_POKE     0.05
 #define ALP_NCALIM   25  //number of calibration images to take per step
-
-/*************************************************
- * PIEZO Mirror Parameters
- *************************************************/
-#define PEZ_NACT 2
 
 /*************************************************
  * HEXAPOD Parameters
@@ -399,7 +396,7 @@ typedef struct alp_struct{
   double zern_now[LOWFS_N_ZERNIKE];
   double zern_cmd[LOWFS_N_ZERNIKE];
   double zern_trg[LOWFS_N_ZERNIKE];
-  uint16 calmode;
+  uint64 calmode;
 } alp_t;
 
 typedef struct hex_struct{
@@ -411,13 +408,8 @@ typedef struct dm_struct{
   uint16 act[DM_NACT];
 } dm_t;
 
-typedef struct pez_struct{
-  uint16 fm1[PEZ_NACT];
-  uint16 fm2[PEZ_NACT];
-} pez_t;
-
 typedef struct shk_zmatrix_inv_struct{
-  uint32 beam_ncells;
+  uint64 beam_ncells;
   double matrix_inv[SHK_NCELLS*LOWFS_N_ZERNIKE*2];
 } shk_zmatrix_t;
 
@@ -437,41 +429,20 @@ typedef struct pktheader_struct{
   int64   start_nsec;
   int64   end_sec;
   int64   end_nsec;
-} pktheader_t;
+} pkthed_t;
 
 /*************************************************
  * Event Structures
  *************************************************/
 typedef struct scievent_struct{
-  uint32  packet_type;
-  uint32  frame_number;
-  float   exptime;
-  float   ontime;
-  float   temp;
-  uint32  imxsize;
-  uint32  imysize;
-  uint32  mode;
-  int64   start_sec;
-  int64   start_nsec;
-  int64   end_sec;
-  int64   end_nsec;
-  sci_t   image;
+  pkthed_t hed;
+  sci_t    image;
 } scievent_t;
 
 typedef struct shkevent_struct{
-  uint32    packet_type;
-  uint32    frame_number;
-  float     exptime;
-  float     ontime;
+  pkthed_t  hed;
   uint32    beam_ncells;
-  uint32    imxsize;
-  uint32    imysize;
-  uint16    mode;
-  uint16    boxsize;
-  int64     start_sec;
-  int64     start_nsec;
-  int64     end_sec;
-  int64     end_nsec;
+  uint32    boxsize;
   double    xtilt;
   double    ytilt;
   double    kP;
@@ -489,104 +460,38 @@ typedef struct shkevent_struct{
 } shkevent_t;
 
 typedef struct lytevent_struct{
-  uint32  packet_type;
-  uint32  frame_number;
-  float   exptime;
-  float   ontime;
-  float   temp;
-  uint32  imxsize;
-  uint32  imysize;
-  uint32  mode;
-  int64   start_sec;
-  int64   start_nsec;
-  int64   end_sec;
-  int64   end_nsec;
-  double  zernikes[LOWFS_N_ZERNIKE];
-  iwc_t   iwc;
-  lyt_t   image;
+  pkthed_t  hed;
+  double    zernikes[LOWFS_N_ZERNIKE];
+  iwc_t     iwc;
+  lyt_t     image;
 } lytevent_t;
 
 typedef struct acqevent_struct{
-  uint32  packet_type;
-  uint32  frame_number;
-  float   exptime;
-  float   ontime;
-  float   temp;
-  uint32  imxsize;
-  uint32  imysize;
-  uint32  mode;
-  int64   start_sec;
-  int64   start_nsec;
-  int64   end_sec;
-  int64   end_nsec;
+  pkthed_t hed;
 } acqevent_t;
 
 /*************************************************
  * Full Frame Structures
  *************************************************/
 typedef struct scifull_struct{
-  uint32  packet_type;
-  uint32  frame_number;
-  float   exptime;
-  float   ontime;
-  float   temp;
-  uint32  imxsize;
-  uint32  imysize;
-  uint32  mode;
-  int64   start_sec;
-  int64   start_nsec;
-  int64   end_sec;
-  int64   end_nsec;
-  sci_t   image;
+  pkthed_t hed;
+  sci_t    image;
 } scifull_t;
 
 typedef struct shkfull_struct{
-  uint32  packet_type;
-  uint32  frame_number;
-  float   exptime;
-  float   ontime;
-  float   temp;
-  uint32  imxsize;
-  uint32  imysize;
-  uint32  mode;
-  int64   start_sec;
-  int64   start_nsec;
-  int64   end_sec;
-  int64   end_nsec;
-  shk_t   image;
+  pkthed_t   hed;
+  shk_t      image;
   shkevent_t shkevent;
 } shkfull_t;
 
 typedef struct lytfull_struct{
-  uint32  packet_type;
-  uint32  frame_number;
-  float   exptime;
-  float   ontime;
-  float   temp;
-  uint32  imxsize;
-  uint32  imysize;
-  uint32  mode;
-  int64   start_sec;
-  int64   start_nsec;
-  int64   end_sec;
-  int64   end_nsec;
-  lyt_t   image;
+  pkthed_t hed;
+  lyt_t    image;
 } lytfull_t;
 
 typedef struct acqfull_struct{
-  uint32  packet_type;
-  uint32  frame_number;
-  float   exptime;
-  float   ontime;
-  float   temp;
-  uint32  imxsize;
-  uint32  imysize;
-  uint32  mode;
-  int64   start_sec;
-  int64   start_nsec;
-  int64   end_sec;
-  int64   end_nsec;
-  acq_t   image;
+  pkthed_t hed;
+  acq_t    image;
 } acqfull_t;
 
 
