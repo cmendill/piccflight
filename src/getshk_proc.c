@@ -40,7 +40,6 @@ void getshk_proc(void){
   /* Open Shared Memory */
   sm_t *sm_p;
   if((sm_p = openshm(&getshk_shmfd)) == NULL){
-    printf(WARNING);
     printf("openshm fail: main\n");
     close(getshk_shmfd);
     exit(0);
