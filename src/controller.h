@@ -61,7 +61,12 @@ typedef int8_t int8;
 #define PHASE_RAD2NM (LAMBDA*1000./TWOPI)
 
 /*************************************************
- * General
+ * Process ID Numbers
+ *************************************************/
+enum procids {WATID, SCIID, SHKID, LYTID, TLMID, ACQID, MOTID, THMID, SRVID, HEXID, DIAID, NCLIENTS};
+
+/*************************************************
+ * Commands
  *************************************************/
 #define CMD_SENDDATA  0x0ABACABB
 
@@ -121,16 +126,6 @@ typedef int8_t int8;
  *************************************************/
 #define GSE_ADDR  "192.168.0.6"
 #define GSE_PORT  "1337"
-
-/*************************************************
- * System Settings & Messages
- *************************************************/
-#define WARNING   "WARNING...WARNING...WARNING...WARNING\nWARNING...WARNING...WARNING...WARNING\nWARNING...WARNING...WARNING...WARNING\nWARNING...WARNING...WARNING...WARNING\n"
-#define REBOOT   "REBOOT...REBOOT...REBOOT...REBOOT\nREBOOT...REBOOT...REBOOT...REBOOT\nREBOOT...REBOOT...REBOOT...REBOOT\nREBOOT...REBOOT...REBOOT...REBOOT\n"
-#define EXIT_TIMEOUT    25  //procwait exit timeout
-#define PROC_TIMEOUT    5   //procwait process timeout
-#define ERASE_TIMEOUT   25  //Time to wait for TLM to exit on command: erase flight data
-
 
 /*************************************************
  * Circular Buffer Info
@@ -198,7 +193,6 @@ enum bufids {SCIEVENT, SCIFULL, SHKEVENT, SHKFULL, LYTEVENT, LYTFULL, ACQEVENT, 
  *************************************************/
 #define MSG_SAVEDATA    0 // print data saving messages
 #define MSG_CTRLC       0 // print SIGINT messages
-
 
 /*************************************************
  * Limits
@@ -291,15 +285,8 @@ enum bufids {SCIEVENT, SCIFULL, SHKEVENT, SHKFULL, LYTEVENT, LYTFULL, ACQEVENT, 
 #define SIN_Y             sin(THETA_Y)
 #define COS_Z             cos(THETA_Z)
 #define SIN_Z             sin(THETA_Z)
-
-
-
 #define HEX_REF_TIMEOUT   20 //seconds
 
-/*************************************************
- * Process ID Numbers
- *************************************************/
-enum procids {WATID, SCIID, SHKID, LYTID, TLMID, ACQID, MOTID, THMID, SRVID, HEXID, DIAID, NCLIENTS};
 
 /*************************************************
  * Shack-Hartmann (SHK) Settings
@@ -334,21 +321,6 @@ enum procids {WATID, SCIID, SHKID, LYTID, TLMID, ACQID, MOTID, THMID, SRVID, HEX
  *************************************************/
 #define ACQ_FULL_IMAGE_TIME   0.5  //[seconds] period that full images are written to circbuf
 
-/*************************************************
- * Packets
- *************************************************/
-typedef struct tlmheader_struct{
-  uint32  packet_type;
-  uint32  frame_number;
-  float   exptime;
-  float   ontime;
-  float   temp;
-  uint32  imxsize;
-  uint32  imysize;
-  uint32  state;
-  uint32  mode;
-  struct timespec time;
-} tlmheader_t;
 
 
 /*************************************************
@@ -448,6 +420,24 @@ typedef struct shk_zmatrix_inv_struct{
   uint32 beam_ncells;
   double matrix_inv[SHK_NCELLS*LOWFS_N_ZERNIKE*2];
 } shk_zmatrix_t;
+
+/*************************************************
+ * Packet Header
+ *************************************************/
+typedef struct pktheader_struct{
+  uint32  packet_type;
+  uint32  frame_number;
+  float   exptime;
+  float   ontime;
+  float   temp;
+  uint32  imxsize;
+  uint32  imysize;
+  uint32  mode;
+  int64   start_sec;
+  int64   start_nsec;
+  int64   end_sec;
+  int64   end_nsec;
+} pktheader_t;
 
 /*************************************************
  * Event Structures

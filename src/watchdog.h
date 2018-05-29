@@ -33,3 +33,14 @@
 #define HEX_KP_DEFAULT 0.05
 
 
+
+
+
+/*************************************************
+ * System Settings & Messages
+ *************************************************/
+#define WARNING   "WARNING...WARNING...WARNING...WARNING\nWARNING...WARNING...WARNING...WARNING\nWARNING...WARNING...WARNING...WARNING\nWARNING...WARNING...WARNING...WARNING\n"
+#define REBOOT   "REBOOT...REBOOT...REBOOT...REBOOT\nREBOOT...REBOOT...REBOOT...REBOOT\nREBOOT...REBOOT...REBOOT...REBOOT\nREBOOT...REBOOT...REBOOT...REBOOT\n"
+#define EXIT_TIMEOUT    25  //procwait exit timeout
+#define PROC_TIMEOUT    5   //procwait process timeout
+#define ERASE_TIMEOUT   25  //Time to wait for TLM to exit on command: erase flight data
