@@ -226,19 +226,22 @@ int hex_calibrate(int calmode, hex_t *hex, int reset){
   if(calmode == 3){
     double u_step;
     double v_step;
-    int max_step = 1000;
+    int max_step = 5000;
     double spiral_radius = 0.00001;
     double start[HEX_NAXES] = HEX_POS_DEFAULT;
-    for(i=0;i<HEX_NAXES;i++){
-      hex->axs[i] = start[i];
-    }
-    if((countC/5) <= max_step){
+
+    if((countC) <= max_step){
       u_step = countC * spiral_radius * cos(countC * (PI/180.0));
       v_step = countC * spiral_radius * sin(countC * (PI/180.0));
-      hex->axs[3] = start[3] + u_step;
-      hex->axs[4] = start[4] + v_step;
+      hex->axs[3] = start[3] + 0.005 + u_step;
+      hex->axs[4] = start[4] + 0.005 + v_step;
+      if(countC == 0){
+        sleep(1);
+      }
+      if((countC % 20)==0){
+        printf("Searching... %i\n", countC/20);
+      }
       countC++;
-
     }else{
         //Turn off calibration
         printf("HEX: Stopping HEX calmode 3\n");

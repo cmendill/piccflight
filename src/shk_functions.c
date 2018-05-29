@@ -850,11 +850,36 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   //Apply update to HEX
 
   //For calibration (temporary, while testing parts below)
-  if(hex_calmode >= 2){
+  if(hex_calmode == 2){
     for(i=0;i<HEX_NAXES;i++){
       sm_p->hex[i] = shkevent.hex.axs[i];
     }
   }
+
+  double intensity_ave = 0;
+  double background_ave = 0;
+  int intensity_thresh = 130000;
+  if(hex_calmode == 3){
+    for(i=0;i<HEX_NAXES;i++){
+      sm_p->hex[i] = shkevent.hex.axs[i];
+    }
+    for(i=0;i<SHK_NCELLS;i++){
+      intensity_ave += shkevent.cells[i].intensity;
+      background_ave += shkevent.cells[i].background;
+    }
+    intensity_ave /= SHK_NCELLS;
+    background_ave /= SHK_NCELLS;
+    // printf("[SHK] average intensity: %lf\n", intensity_ave);
+    // printf("[SHK] average background: %lf\n", background_ave);
+    if(intensity_ave >= intensity_thresh){
+      printf("Hex calmode 3 window reached (%lf).\n", intensity_ave);
+      sm_p->hex_calmode = 0;
+      sleep(1);
+      sm_p->hex_calmode = 1;
+      printf("Hex calmode set to 1.\n");
+    }
+  }
+
 
   //Use calmode 1 for control loop
   if(hex_calmode == 1){
