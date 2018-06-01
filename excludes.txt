@@ -4,6 +4,7 @@ sync.sh
 .gitignore
 *~
 *.o
+*.a
 *.ko
 #executables
 bin/watchdog
