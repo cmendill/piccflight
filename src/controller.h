@@ -1,9 +1,12 @@
 /***********************************************
  * Main Header for PICTURE-C Flight Software
  ***********************************************/
-//
 #include <stdint.h>
 #include <time.h>
+#include "states.h"
+
+#ifndef _CONTROLLER
+#define _CONTROLLER
 
 /*************************************************
  * Macros
@@ -71,13 +74,13 @@ enum procids {WATID, SCIID, SHKID, LYTID, TLMID, ACQID, MOTID, THMID, SRVID, HEX
 #define CMD_SENDDATA  0x0ABACABB
 
 /*************************************************
-* Hardware Switches
+* Actuator Enable Switches
 *************************************************/
-#define XIN_ENABLE      0 // Xinetics Controller
-#define IWC_ENABLE      0 // IWC
 #define ALP_ENABLE      0 // ALPAO DM
-#define DM_ENABLE       0 // DM
+#define BMC_ENABLE      0 // BMC DM
 #define HEX_ENABLE      1 // Hexapod
+#define LED_ENABLE      0 // LED
+#define WASP_ENABLE     0 // WASP
 
 /*************************************************
 * Software Switches
@@ -111,7 +114,8 @@ enum procids {WATID, SCIID, SHKID, LYTID, TLMID, ACQID, MOTID, THMID, SRVID, HEX
 #define HOSTPORT          "ANY:24924"
 #define DATAPATH          "data/flight_data/folder_%5.5d/"
 #define DATANAME          "data/flight_data/folder_%5.5d/picture.%s.%8.8d.dat"
-#define SHKMATRIX_FILE    "data/shk/shk2alp.dat"
+#define CELLS2ALP_FILE    "data/shk/shk2alp.dat"
+#define CELLS2HEX_FILE    "data/shk/shk2hex.dat"
 #define ZERNIKE2HEX_FILE  "data/shk/zern2hex.dat"
 #define ZERNIKE2SPA_FILE  "data/shk/zern2spa.dat"
 #define ZERNIKE2ALP_FILE  "data/shk/zern2alp.dat"
@@ -160,8 +164,6 @@ enum bufids {SCIEVENT, SCIFULL,
 #define ZERNIKE_ERRORS_FILE   "data/zernike/zernike_errors.dat"
 #define ZERNIKE_ERRORS_NUMBER 15000
 #define ZERNIKE_ERRORS_PERIOD 0.00200000
-#define ZERNIKE_ERRORS_SHORT_FILE "data/zernike/zernike_errors_short.dat"
-#define ZERNIKE_ERRORS_SHORT_NUMBER 600
 
 /*************************************************
  * Camera Settings -- Keep sizes divisible by 4 (packets)
@@ -175,11 +177,20 @@ enum bufids {SCIEVENT, SCIFULL,
 #define ACQXS           1280
 #define ACQYS           960
 
+
+/*************************************************
+ * Camera Full Image Times
+ *************************************************/
+#define SHK_FULL_IMAGE_TIME   0.5    //[seconds] period that full images are written to circbuf
+#define LYT_FULL_IMAGE_TIME   0.5    //[seconds] period that full images are written to circbuf
+#define SCI_FULL_IMAGE_TIME   0.5    //[seconds] period that full images are written to circbuf
+#define ACQ_FULL_IMAGE_TIME   0.5    //[seconds] period that full images are written to circbuf
+
 /*************************************************
  * Debug Messaging
  *************************************************/
 #define WAT_DEBUG       0 // print wat messages
-#define SCI_DEBUG       0 // print sci messages
+#define SCI_DEBUG       1 // print sci messages
 #define SHK_DEBUG       0 // print shk messages
 #define LYT_DEBUG       0 // print lyt messages
 #define TLM_DEBUG       0 // print tlm messages
@@ -207,39 +218,20 @@ enum bufids {SCIEVENT, SCIFULL,
 #define GAIN_D_MAX      0        //(.)   Maximum D gain
 
 /*************************************************
- * Xinetics Controller Parameters
+ * BMC DM Parameters
  *************************************************/
-#define XIN_NCHANNELS   96 //288 causes actuator glitch
+#define BMC_NACT    952  
+#define BMC_STROKE  1.5
+#define BMCXS        34
+#define BMCYS        34
+#define BMC_DMAX     ((1<<14) - 1)
+#define BMC_DMIN     0
+#define BMC_DMID     ((DM_DMIN+DM_DMAX)/2)
 
 /*************************************************
- * DM Parameters
+ * ALPAO DM Parameters
  *************************************************/
-#define DM_NACT     1024
-#define DM_STROKE   0.5
-#define DMXS        32
-#define DMYS        32
-#define DM_DMAX     ((1<<14) - 1)
-#define DM_DMIN     0
-#define DM_DMID     ((DM_DMIN+DM_DMAX)/2)
-
-/*************************************************
- * IWC Parameters
- *************************************************/
-#define IWC_NSPA     76
-#define IWC_NTTP     3
-#define IWC_STROKE   2.0
-#define IWCXS        10
-#define IWCYS        10
-#define IWC_DMAX     ((1<<14) - 1)
-#define IWC_DMIN     0
-#define IWC_DMID     ((IWC_DMIN+IWC_DMAX)/2)
-#define IWC_SPA_BIAS 9502
-#define IWC_SPA_POKE 3000
-#define IWC_NCALIM   25  //number of calibration images to take per step
-
-/*************************************************
- * ALPAO Parameters
- *************************************************/
+#define ALP_NAME     "BAX197"
 #define ALP_NACT     97
 #define ALP_STROKE   2.0
 #define ALPXS        10
@@ -259,6 +251,12 @@ enum bufids {SCIEVENT, SCIFULL,
 #define HEX_NAXES        6
 #define HEX_AXES_ALL     "X Y Z U V W"
 #define HEX_AXES_PIV     "R S T"
+#define HEX_AXIS_X       0
+#define HEX_AXIS_Y       1
+#define HEX_AXIS_Z       2
+#define HEX_AXIS_U       3
+#define HEX_AXIS_V       4
+#define HEX_AXIS_W       5
 #define HEX_POS_HOME     {0,0,0,0,0,0}
 // #define HEX_POS_DEFAULT  {-1.213708, 3.527789, -0.203860, 0.238664, 0.438938, 0.001710} // Scope coords  68 deg
 #define HEX_POS_DEFAULT  {-1.213708, 3.527789, -0.157457, 0.235558, 0.439130, 0.00171} // Scope coords  68 deg (minimum measured focus zern via SH)
@@ -283,13 +281,12 @@ enum bufids {SCIEVENT, SCIFULL,
 #define COS_Z             cos(THETA_Z)
 #define SIN_Z             sin(THETA_Z)
 #define HEX_REF_TIMEOUT   20 //seconds
-
+#define HEX_PER_SHKEVENT  5 //number of shk images per HEX update
 
 /*************************************************
  * Shack-Hartmann (SHK) Settings
  *************************************************/
 #define SHK_CONFIG_FILE       "phx_config/shk.cfg"
-#define SHK_FULL_IMAGE_TIME   0.5    //[seconds] period that full images are written to circbuf
 #define SHK_PX_PITCH_UM       5.5
 #define SHK_XCELLS            16
 #define SHK_YCELLS            16
@@ -311,14 +308,7 @@ enum bufids {SCIEVENT, SCIFULL,
 #define SHK_XMAX              (SHKXS-1)
 #define SHK_YMIN              0
 #define SHK_YMAX              (SHKYS-1)
-
-
-/*************************************************
- * Acquisition Camera (ACQ) Settings
- *************************************************/
-#define ACQ_FULL_IMAGE_TIME   0.5  //[seconds] period that full images are written to circbuf
-
-
+#define SHK_READ_MATRIX       1     //Read Zernike fitting matrix instead of building it
 
 /*************************************************
  * Config Structures
@@ -383,35 +373,29 @@ typedef struct {
   double deviation[2];
   double command[2];
 } shkcell_t;
-
-typedef struct iwc_struct{
-  uint16 spa[IWC_NSPA];
-  uint16 ttp[IWC_NTTP];
-  uint16 calmode;
-} iwc_t;
-
+ 
+/*************************************************
+ * Device Command Structures
+ *************************************************/
 typedef struct alp_struct{
   double act_cmd[ALP_NACT];
-  double act_now[ALP_NACT];
-  double zern_now[LOWFS_N_ZERNIKE];
-  double zern_cmd[LOWFS_N_ZERNIKE];
-  double zern_trg[LOWFS_N_ZERNIKE];
-  uint64 calmode;
+  double zernike_cmd[LOWFS_N_ZERNIKE];
 } alp_t;
 
 typedef struct hex_struct{
-  double axs[HEX_NAXES];
-  uint64 calmode;
+  double axis_cmd[HEX_NAXES];
+  double zernike_cmd[LOWFS_N_ZERNIKE];
 } hex_t;
 
-typedef struct dm_struct{
-  uint16 act[DM_NACT];
-} dm_t;
+typedef struct bmc_struct{
+  uint16 act_cmd[BMC_NACT];
+} bmc_t;
 
-typedef struct shk_zmatrix_inv_struct{
-  uint64 beam_ncells;
-  double matrix_inv[SHK_NCELLS*LOWFS_N_ZERNIKE*2];
-} shk_zmatrix_t;
+typedef struct wasp_struct{
+  double pitch_cmd;
+  double yaw_cmd;
+} wasp_t;
+
 
 /*************************************************
  * Packet Header
@@ -419,16 +403,18 @@ typedef struct shk_zmatrix_inv_struct{
 typedef struct pktheader_struct{
   uint32  packet_type;
   uint32  frame_number;
-  float   exptime;
-  float   ontime;
-  float   temp;
-  uint32  imxsize;
-  uint32  imysize;
-  uint32  mode;
-  int64   start_sec;
-  int64   start_nsec;
-  int64   end_sec;
-  int64   end_nsec;
+  float   exptime;      //commanded exposure time
+  float   ontime;       //measured exposure time
+  float   temp;         //sensor temperature, if available
+  uint32  imxsize;      //image x size [px]
+  uint32  imysize;      //image y size [px]
+  uint32  mode;         //camera mode
+  uint32  state;        //system state
+  uint32  dummy;        //8-byte alignment
+  int64   start_sec;    //event start time
+  int64   start_nsec;   //event start time
+  int64   end_sec;      //event end time
+  int64   end_nsec;     //event end time
 } pkthed_t;
 
 /*************************************************
@@ -443,32 +429,45 @@ typedef struct shkevent_struct{
   pkthed_t  hed;
   uint32    beam_ncells;
   uint32    boxsize;
+  uint32    hex_calmode;
+  uint32    alp_calmode;
   double    xtilt;
   double    ytilt;
-  double    kP;
-  double    kI;
-  double    kD;
-  double    kH;
+  double    kP_cell;
+  double    kI_cell;
+  double    kD_cell;
+  double    kP_zern;
+  double    kI_zern;
+  double    kD_zern;
   shkcell_t cells[SHK_NCELLS];
-  double    zernikes[LOWFS_N_ZERNIKE];
-  double    iwc_spa_matrix[IWC_NSPA];
-  double    alp_act_matrix[ALP_NACT];
-  double    hex_axs_matrix[HEX_NAXES];
-  iwc_t     iwc;
+  double    zernike_command[LOWFS_N_ZERNIKE];
+  double    zernike_measured[LOWFS_N_ZERNIKE];
+  double    zernike_target[LOWFS_N_ZERNIKE];
+  uint64    zernike_control[LOWFS_N_ZERNIKE];
   hex_t     hex;
   alp_t     alp;
+  wasp_t    wasp;
 } shkevent_t;
 
 typedef struct lytevent_struct{
   pkthed_t  hed;
-  double    zernikes[LOWFS_N_ZERNIKE];
-  iwc_t     iwc;
+  double    kP_zernike;
+  double    kI_zernike;
+  double    kD_zernike;
+  double    measured_zernikes[LOWFS_N_ZERNIKE];
+  double    command_zernikes[LOWFS_N_ZERNIKE];
   lyt_t     image;
+  hex_t     hex;
+  alp_t     alp;
+  wasp_t    wasp;
 } lytevent_t;
 
 typedef struct acqevent_struct{
-  pkthed_t hed;
+  pkthed_t  hed;
+  hex_t     hex;
+  wasp_t    wasp;
 } acqevent_t;
+
 
 /*************************************************
  * Full Frame Structures
@@ -519,6 +518,10 @@ typedef volatile struct {
   //Process information
   procinfo_t w[NCLIENTS];
 
+  //State
+  int state;                    //Current operational state
+  state_t state_array[NSTATES]; //Array of states
+  
   //Fake modes
   int tlm_fake_mode;        //Telemetry fake mode
   int sci_fake_mode;        //Science camera fake mode
@@ -533,14 +536,9 @@ typedef volatile struct {
   int acq_mode;        //Acquisition camera mode
 
   //Devices
-  signed short xin_dev;   //Xinetics Quickusb device handle
-  int xin_commander;   //Process in control of the Xinetics controller
   int alp_dev;           //ALPAO DM device handle
 
-  //Actuators
-  double hex[HEX_NAXES];
-
-  //ALPCalibration Mode
+  //ALP Calibration Mode
   int alp_calmode;
 
   //HEX Calibration Mode
@@ -548,21 +546,33 @@ typedef volatile struct {
 
   //Shack-Hartmann Settings
   int shk_boxsize;        //SHK centroid boxsize
-  int shk_fit_zernike;    //Turn SHK Zernike fitting ON/OFF
-  double shk_kP;
-  double shk_kI;
-  double shk_kD;
-  double hex_kP;
+  double shk_kP_cell;     //SHK cell gains
+  double shk_kI_cell;     //SHK cell gains
+  double shk_kD_cell;     //SHK cell gains
+  double shk_kP_zern;     //SHK zernike gains
+  double shk_kI_zern;     //SHK zernike gains
+  double shk_kD_zern;     //SHK zernike gains
 
-  //Commands
+  //Reset Commands
+  int shk_reset;
+  int acq_reset;
+  int sci_reset;
+  int lyt_reset;
+
+  //Other Commands
   int hex_getpos;
   int hex_gohome;
   int hex_godef;
-  int shk_reset;
   int shk_setorigin;
-  double zern_targ[LOWFS_N_ZERNIKE];
-  int acq_reset;
 
+  //Zernike Targets
+  double zernike_target[LOWFS_N_ZERNIKE];
+
+  //Hexapod Commanding
+  uint64 hex_last_sent;
+  uint64 hex_last_recv;
+  double hex_command[HEX_NAXES];
+  
   //Events circular buffers
   scievent_t scievent[SCIEVENTSIZE];
   shkevent_t shkevent[SHKEVENTSIZE];
@@ -579,3 +589,6 @@ typedef volatile struct {
   circbuf_t circbuf[NCIRCBUF];
 
 } sm_t;
+
+
+#endif

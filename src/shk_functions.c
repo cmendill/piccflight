@@ -6,19 +6,20 @@
 #include <string.h>
 #include <fcntl.h>
 #include <ctype.h>
+#include <acedev5.h>
 
 
 /* piccflight headers */
 #include "controller.h"
 #include "common_functions.h"
 #include "numeric.h"
-#include "xin_functions.h"
 #include "hex_functions.h"
 #include "alp_functions.h"
 #include "phx_config.h"
 
 /**************************************************************/
-/*                      SHK_INIT_CELLS                        */
+/* SHK_INIT_CELLS                                             */
+/*  - Set cell origins and beam select flags                  */
 /**************************************************************/
 void shk_init_cells(shkevent_t *shkevent){
   #include "shk_beam_select.h"
@@ -48,9 +49,10 @@ void shk_init_cells(shkevent_t *shkevent){
   }
 }
 
-/**************************************************************/
-/*                      SHK_SETORIGIN                         */
-/**************************************************************/
+/***************************************************************/
+/* SHK_SETORIGIN                                               */
+/*  - Set centroid box center of each cell to current centroid */
+/***************************************************************/
 int shk_setorigin(shkevent_t *shkevent){
   int i;
   static double cx[SHK_NCELLS]={0}, cy[SHK_NCELLS]={0};
@@ -86,7 +88,8 @@ int shk_setorigin(shkevent_t *shkevent){
   }
 }
 /**************************************************************/
-/*                      SHK_CENTROID_CELL                     */
+/* SHK_CENTROID_CELL                                          */
+/*  - Measure the centroid of a single SHK cell               */
 /**************************************************************/
 void shk_centroid_cell(uint16 *image, shkcell_t *cell, int shk_boxsize, int calmode){
   double xnum=0, ynum=0, total=0;
@@ -209,7 +212,8 @@ void shk_centroid_cell(uint16 *image, shkcell_t *cell, int shk_boxsize, int calm
 }
 
 /**************************************************************/
-/*                      SHK_CENTROID_ALP                      */
+/* SHK_CENTROID                                               */
+/*  - Measure centroids of all SHK cells                      */
 /**************************************************************/
 void shk_centroid(uint16 *image, shkevent_t *shkevent){
   int i;
@@ -218,17 +222,13 @@ void shk_centroid(uint16 *image, shkevent_t *shkevent){
   shkevent->xtilt=0;
   shkevent->ytilt=0;
 
-  //Set boxsize
-  // if(shkevent->alp.calmode > 0) //NEED TO MAKE THIS MORE CLEAR
-  //   shkevent->boxsize = SHK_MAX_BOXSIZE;
-
   //Get background
-  shk_centroid_cell(image,&shkevent->cells[0],shkevent->boxsize,shkevent->alp.calmode);
+  shk_centroid_cell(image,&shkevent->cells[0],shkevent->boxsize,shkevent->alp_calmode);
 
   //Centroid cells
   for(i=0;i<SHK_NCELLS;i++){
     if(shkevent->cells[i].beam_select){
-      shk_centroid_cell(image,&shkevent->cells[i],shkevent->boxsize,shkevent->alp.calmode);
+      shk_centroid_cell(image,&shkevent->cells[i],shkevent->boxsize,shkevent->alp_calmode);
       shkevent->xtilt += shkevent->cells[i].deviation[0];
       shkevent->ytilt += shkevent->cells[i].deviation[1];
     }
@@ -237,19 +237,11 @@ void shk_centroid(uint16 *image, shkevent_t *shkevent){
   //Average tilts
   shkevent->xtilt /= shkevent->beam_ncells;
   shkevent->ytilt /= shkevent->beam_ncells;
-
-  //Subtract tilts
-  // for(i=0;i<SHK_NCELLS;i++){
-  //   if(shkevent->cells[i].beam_select){
-  //     shkevent->cells[i].deviation[0] -= shkevent->xtilt;
-  //     shkevent->cells[i].deviation[1] -= shkevent->ytilt;
-  //   }
-  // }
-
 }
 
 /**************************************************************/
-/*                   SHK_ZERNIKE_MATRIX                       */
+/* SHK_ZERNIKE_MATRIX                                         */
+/*  - Build SHK Zernike fitting matrix                        */
 /**************************************************************/
 void shk_zernike_matrix(shkevent_t *shkevent, double *matrix_inv){
   int i, beam_ncells=0;
@@ -358,46 +350,70 @@ void shk_zernike_matrix(shkevent_t *shkevent, double *matrix_inv){
 
 /**************************************************************/
 /*                      SHK_ZERNIKE_FIT                       */
+/*  - Fit Zernikes to SHK centroids                           */
 /**************************************************************/
 void shk_zernike_fit(shkevent_t *shkevent){
-
   FILE *matrix=NULL;
   char matrix_file[MAX_FILENAME];
   static double shk2zern[2*SHK_NCELLS*LOWFS_N_ZERNIKE]={0};
-  static double matrix_inv[SHK_NCELLS*LOWFS_N_ZERNIKE*2] = {0};
   static double dphi_dxdy[2*SHK_NCELLS] = {0};
   double shk_xydev[2*SHK_NCELLS];
   uint64 fsize,rsize;
-  int i, c, beam_ncells=0, beam_ncells_2=0, regen_matrix=0;
+  int i, c, regen_matrix=0;
   int beam_cell_index[SHK_NCELLS] = {0};
   static int beam_cell_used[SHK_NCELLS] = {0};
   const double px2slope = SHK_PX_PITCH_UM/SHK_FOCAL_LENGTH_UM;
 
+  /* Read Fitting Matrix From File */
+  if(SHK_READ_MATRIX){
+    //Set up file names
+    sprintf(matrix_file, SHK2ZERNIKE_FILE);
+    //Open file
+    if((matrix = fopen(matrix_file, "r")) == NULL){
+      perror("fopen");
+      printf("shk2zernike_file\n");
+    }
+    //Check file size
+    fseek(matrix, 0L, SEEK_END);
+    fsize = ftell(matrix);
+    rewind(matrix);
+    rsize = 2*shkevent->beam_ncells*LOWFS_N_ZERNIKE*sizeof(double);
+    if(fsize != rsize){
+      printf("SHK: incorrect shk2zern matrix file size %lu != %lu\n", fsize, rsize);
+    }
+    //Read matrix
+    if(fread(shk2zern,2*shkevent->beam_ncells*LOWFS_N_ZERNIKE*sizeof(double),1,matrix) !=1){
+      perror("fread");
+      printf("shk2zern file\r");
+    }
+    //Close file
+    fclose(matrix);
+  }
+  else{
+    /* Build Fitting Matrix */
+    //Determine if we need to regenerate the fitting matrix
+    for(i=0; i<SHK_NCELLS; i++) {
+      if (shkevent->cells[i].beam_select) {
+	//If the cell is used this time, but not last time, regenerate
+	if(!beam_cell_used[i]) regen_matrix=1;
+	beam_cell_used[i]=1;
+      }
+      else{
+	if(beam_cell_used[i]){
+	  //If the cell was used last time, but not this time, regenerate
+	  regen_matrix=1;
+	  beam_cell_used[i]=0;
+	}
+      }
+    }
+    
+    //Generate the zernike matrix
+    if(regen_matrix) 
+      shk_zernike_matrix(shkevent, shk2zern);
+  }
+  
 
-  //set up file names
-  sprintf(matrix_file, SHK2ZERNIKE_FILE);
-  //open file
-  if((matrix = fopen(matrix_file, "r")) == NULL){
-    perror("fopen");
-    printf("shk2zernike_file\n");
-  }
-  //check file size
-  fseek(matrix, 0L, SEEK_END);
-  fsize = ftell(matrix);
-  rewind(matrix);
-  rsize = 2*shkevent->beam_ncells*LOWFS_N_ZERNIKE*sizeof(double);
-  if(fsize != rsize){
-    printf("SHK: incorrect shk2zern matrix file size %lu != %lu\n", fsize, rsize);
-  }
-  //read matrix
-  if(fread(shk2zern,2*shkevent->beam_ncells*LOWFS_N_ZERNIKE*sizeof(double),1,matrix) !=1){
-    perror("fread");
-    printf("shk2zern file\r");
-  }
-  //close file
-  fclose(matrix);
-
-  //format displacement array
+  //Format displacement array
   c=0;
   for(i=0;i<SHK_NCELLS;i++){
     if(shkevent->cells[i].beam_select){
@@ -406,125 +422,54 @@ void shk_zernike_fit(shkevent_t *shkevent){
       c++;
     }
   }
-  beam_ncells_2 = 2*shkevent->beam_ncells;
 
   //Do matrix multiply
-  num_dgemv(shk2zern, shk_xydev, shkevent->zernikes, LOWFS_N_ZERNIKE, beam_ncells_2);
-
-  //Record measured zernikes
-  for(i=0; i<LOWFS_N_ZERNIKE;i++){
-    shkevent->alp.zern_now[i] = shkevent->zernikes[i];
-  }
-
-  for(i=0; i<SHK_NCELLS; i++) {
-    if (shkevent->cells[i].beam_select) {
-      //save the spot index
-      beam_cell_index[beam_ncells] = i;
-      //check if we should regenerate the matrix
-      if(!beam_cell_used[i]) regen_matrix=1;
-      beam_cell_used[i]=1;
-      beam_ncells++;
-    }else{
-      if(beam_cell_used[i]){
-	//if the spot was used last time, regenerate
-	regen_matrix=1;
-	beam_cell_used[i]=0;
-      }
-    }
-  }
-  beam_ncells_2 = 2*beam_ncells;
-
-  //generate the zernike matrix
-  if(regen_matrix) {
-    shk_zernike_matrix(shkevent, matrix_inv);
-    printf("SHK: matrix inverted\n");
-  }
-
-  for(i=0; i<beam_ncells; i++) {
-    // multiplying vector is in slopes
-    dphi_dxdy[i]             = shkevent->cells[beam_cell_index[i]].deviation[0]*px2slope;
-    dphi_dxdy[i+beam_ncells] = shkevent->cells[beam_cell_index[i]].deviation[1]*px2slope;
-  }
+  num_dgemv(shk2zern, shk_xydev, shkevent->zernike_measured, LOWFS_N_ZERNIKE, 2*shkevent->beam_ncells);
 
 }
 
 /**************************************************************/
-/*                        SHK_SHK2ALP                         */
+/* SHK_CELLS2ALP                                              */
+/*  - Convert SHK cell commands to ALPAO DM commands          */
 /**************************************************************/
-int shk_shk2alp(shkevent_t *shkevent, sm_t *sm_p, int reset){
+int shk_cells2alp(shkevent_t *shkevent){
   FILE *matrix=NULL;
-  FILE *zern_matrix=NULL;
   char matrix_file[MAX_FILENAME];
-  char zern_matrix_file[MAX_FILENAME];
-  static int init=0;
-  static double shk2alp[2*SHK_NCELLS*ALP_NACT]={0};
-  static double zern2alp[LOWFS_N_ZERNIKE*ALP_NACT]={0};
-  double shk_xydev[2*SHK_NCELLS];
-  double shk_zern[LOWFS_N_ZERNIKE];
-  double zern_trg[LOWFS_N_ZERNIKE];
-  double total = 0;
-  double low_zern_tot  = 0;
-  double high_zern_tot = 0;
   uint64 fsize,rsize;
-  uint64 zfsize, zrsize;
-  int c,i,beam_ncells_2;
+  static int init=0;
+  static double cells2alp_matrix[2*SHK_NCELLS*ALP_NACT]={0};
+  double shk_xydev[2*SHK_NCELLS];
+  int i,c;
 
-
-  if(!init || reset){
-    /* Open matrix files */
-    //--setup filenames
-    sprintf(matrix_file,SHKMATRIX_FILE);
-    //--open files
+  /* Initialize */
+  if(!init){
+    /* Open matrix file */
+    //--setup filename
+    sprintf(matrix_file,CELLS2ALP_FILE);
+    //--open file
     if((matrix = fopen(matrix_file,"r")) == NULL){
-      printf("shk2alp file\r");
+      printf("cells2alp file\r");
       perror("fopen");
       return 1;
     }
-    sprintf(zern_matrix_file, ZERNIKE2ALP_FILE);
-    if((zern_matrix = fopen(zern_matrix_file,"r")) == NULL){
-      printf("zern2alp file\r");
-      perror("fopen");
-      return 1;
-    }
-
     //--check file size
     fseek(matrix, 0L, SEEK_END);
     fsize = ftell(matrix);
     rewind(matrix);
     rsize = 2*shkevent->beam_ncells*ALP_NACT*sizeof(double);
     if(fsize != rsize){
-      printf("SHK: incorrect spot2alp matrix file size %lu != %lu\n",fsize,rsize);
+      printf("SHK: incorrect cells2alp matrix file size %lu != %lu\n",fsize,rsize);
       return 1;
     }
-    fseek(zern_matrix, 0L, SEEK_END);
-    zfsize = ftell(zern_matrix);
-    rewind(zern_matrix);
-    zrsize = LOWFS_N_ZERNIKE*ALP_NACT*sizeof(double);
-    if(zfsize != zrsize){
-      printf("SHK: incorrect zern2alp matrix file size %lu != %lu\n",zfsize,zrsize);
-      return 1;
-    }
-
-      //--read matrix
-      if(fread(zern2alp,LOWFS_N_ZERNIKE*ALP_NACT*sizeof(double),1,zern_matrix) != 1){
-        printf("zern2alp file\r");
-        perror("fread");
-        return 1;
-      }
-      //--close file
-      fclose(zern_matrix);
-
-      //--set init flag
-      init=1;
-
-    if(fread(shk2alp,2*shkevent->beam_ncells*ALP_NACT*sizeof(double),1,matrix) != 1){
+    //--read matrix
+    if(fread(cells2alp_matrix,2*shkevent->beam_ncells*ALP_NACT*sizeof(double),1,matrix) != 1){
       perror("fread");
-      printf("shk2alp file\r");
+      printf("cells2alp file\r");
       return 1;
     }
     //--close file
     fclose(matrix);
-
+    
     //--set init flag
     init=1;
   }
@@ -538,75 +483,34 @@ int shk_shk2alp(shkevent_t *shkevent, sm_t *sm_p, int reset){
       c++;
     }
   }
-  beam_ncells_2 = 2*shkevent->beam_ncells;
-
-  //Calculate total of low/high zernikes
-  for(i=0;i<5;i++){
-    low_zern_tot += shkevent->zernikes[i];
-  }
-  for(i=5;i<LOWFS_N_ZERNIKE;i++){
-    high_zern_tot += shkevent->zernikes[i];
-  }
-
-  if(low_zern_tot > 1.0){
-    init=0;
-    sm_p->shk_reset=1;
-  }
-  //Apply target / Zernike thresholding
-  for(i=0;i<LOWFS_N_ZERNIKE;i++){
-    sm_p->zern_targ[i] = shkevent->alp.zern_trg[i];
-    shk_zern[i] = shkevent->zernikes[i] - shkevent->alp.zern_trg[i];
-    if(low_zern_tot > 0.05){
-      if(i > 4){
-        shk_zern[i] = 0.0;
-      }
-    }
-  }
-
-  //Do Matrix Multiply set actuator commands
-  if(sm_p->shk_fit_zernike){
-    num_dgemv(zern2alp,shk_zern,shkevent->alp_act_matrix, ALP_NACT, LOWFS_N_ZERNIKE);
-    for(i=0;i<ALP_NACT;i++){
-      shkevent->alp.act_cmd[i] += (double)(shkevent->alp_act_matrix[i]*shkevent->kP);
-      total += shkevent->alp.act_cmd[i];
-    }
-
-  }else{
-    num_dgemv(shk2alp,shk_xydev,shkevent->alp_act_matrix, ALP_NACT, beam_ncells_2);
-    for(i=0;i<ALP_NACT;i++){
-      shkevent->alp.act_cmd[i] += (double)(shkevent->alp_act_matrix[i]*shkevent->kP);
-      total += shkevent->alp.act_cmd[i];
-    }
-  }
-
+  
+  //Do Matrix Multiply
+  num_dgemv(cells2alp_matrix,shk_xydev,shkevent->alp.act_cmd, ALP_NACT, 2*shkevent->beam_ncells);
+  
   return 0;
 }
 
 /**************************************************************/
-/*                        SHK_SHK2HEX                         */
+/* SHK_CELLS2HEX                                              */
+/*  - Convert SHK cell commands to hexapod commands           */
 /**************************************************************/
-int shk_shk2hex(shkevent_t *shkevent, sm_t *sm_p, int reset){
+int shk_cells2hex(shkevent_t *shkevent){
   FILE *matrix=NULL;
   char matrix_file[MAX_FILENAME];
-  static int init=0;
-  static double zern2hex[LOWFS_N_HEX_ZERNIKE*HEX_NAXES]={0};
-  static double astig2tilt[LOWFS_N_HEX_ZERNIKE*HEX_NAXES]={0};
-  double shk_zern[LOWFS_N_HEX_ZERNIKE];
-  double shk_tilt[2];
-  double ttarray[2] = {0};
-  double ttgain = -0.02;
-  double step = 0.0005;
   uint64 fsize,rsize;
-  int c,i,beam_ncells_2;
+  static int init=0;
+  static double cells2hex_matrix[2*SHK_NCELLS*HEX_NAXES]={0};
+  double shk_xydev[2*SHK_NCELLS];
+  int i,c;
 
-
-  if(!init || reset){
-    /* Open zern2hex matrix file */
+  /* Initialize */
+  if(!init){
+    /* Open matrix file */
     //--setup filename
-    sprintf(matrix_file,ZERNIKE2HEX_FILE);
+    sprintf(matrix_file,CELLS2HEX_FILE);
     //--open file
     if((matrix = fopen(matrix_file,"r")) == NULL){
-      printf("zern2hex file\n");
+      printf("cells2hex file\r");
       perror("fopen");
       return 1;
     }
@@ -614,82 +518,43 @@ int shk_shk2hex(shkevent_t *shkevent, sm_t *sm_p, int reset){
     fseek(matrix, 0L, SEEK_END);
     fsize = ftell(matrix);
     rewind(matrix);
-    rsize = (LOWFS_N_HEX_ZERNIKE)*HEX_NAXES*sizeof(double);
+    rsize = 2*shkevent->beam_ncells*HEX_NAXES*sizeof(double);
     if(fsize != rsize){
-      printf("SHK: incorrect HEX matrix file size %lu != %lu\n",fsize,rsize);
+      printf("SHK: incorrect cells2hex matrix file size %lu != %lu\n",fsize,rsize);
       return 1;
     }
     //--read matrix
-    if(fread(zern2hex,(LOWFS_N_HEX_ZERNIKE)*HEX_NAXES*sizeof(double),1,matrix) != 1){
-      printf("zern2hex file\r");
+    if(fread(cells2hex_matrix,2*shkevent->beam_ncells*HEX_NAXES*sizeof(double),1,matrix) != 1){
       perror("fread");
+      printf("cells2hex file\r");
       return 1;
     }
     //--close file
     fclose(matrix);
-
-    /* Open astig2tilt matrix file */
-    //--setup filename
-    sprintf(matrix_file,ASTIG2TILT_FILE);
-    //--open file
-    if((matrix = fopen(matrix_file,"r")) == NULL){
-      printf("astig2tilt file\n");
-      perror("fopen");
-      return 1;
-    }
-    //--check file size
-    fseek(matrix, 0L, SEEK_END);
-    fsize = ftell(matrix);
-    rewind(matrix);
-    rsize = (LOWFS_N_HEX_ZERNIKE)*HEX_NAXES*sizeof(double);
-    if(fsize != rsize){
-      printf("SHK: incorrect astig2tilt matrix file size %lu != %lu\n",fsize,rsize);
-      return 1;
-    }
-    //--read matrix
-    if(fread(astig2tilt,(LOWFS_N_HEX_ZERNIKE)*HEX_NAXES*sizeof(double),1,matrix) != 1){
-      printf("astig2tilt file\r");
-      perror("fread");
-      return 1;
-    }
-    //--close file
-    fclose(matrix);
-
+    
     //--set init flag
     init=1;
   }
-  for(i=0;i<LOWFS_N_HEX_ZERNIKE;i++){
-    shk_zern[i] = shkevent->zernikes[i];
-  }
 
-  //Do Matrix Multiply
-  num_dgemv(zern2hex, shk_zern, shkevent->hex_axs_matrix, HEX_NAXES, LOWFS_N_HEX_ZERNIKE);
-
-  //Recast to doubles
-  if(sm_p->shk_fit_zernike  && sm_p->hex_calmode){
-    for(i=0;i<HEX_NAXES;i++){
-      shkevent->hex.axs[i] += (double)(shkevent->hex_axs_matrix[i])*sm_p->hex_kP;
+  //Format displacement array
+  c=0;
+  for(i=0;i<SHK_NCELLS;i++){
+    if(shkevent->cells[i].beam_select){
+      shk_xydev[2*c + 0] = shkevent->cells[i].command[0];
+      shk_xydev[2*c + 1] = shkevent->cells[i].command[1];
+      c++;
     }
-
-    //TESTING
-    // num_dgemv(astig2tilt, shkevent->zernikes[1:LOWFS_N_HEX_ZERNIKE], &shk_tilt, 2, LOWFS_N_HEX_ZERNIKE);
-
-    // for(i=0;i<30;i++){
-    //   printf("matrix element %i: %lf\r\n", i, zern2hex[i]);
-    // }
-    // printf("zern[2]: %lf\n", shk_zern[2]);
-    // printf("HEX[3] matrix moves: %lf\n", (shkevent->hex_axs_matrix[3])*sm_p->hex_kP);
-    // printf("--\n");
-    // ttarray[0] = 4.0;
-    // ttarray[1] = 5.0;
-    // shkevent->hex.axs[3] += shk_zern[1]*(step/ttarray[0]) * ttgain;
-    // shkevent->hex.axs[4] += shk_zern[2]*(step/ttarray[1]) * ttgain;
   }
+  
+  //Do Matrix Multiply
+  num_dgemv(cells2hex_matrix,shk_xydev,shkevent->hex.axis_cmd, HEX_NAXES, 2*shkevent->beam_ncells);
+  
   return 0;
 }
 
 /**************************************************************/
-/*                        SHK_CELLPID                         */
+/* SHK_CELLPID                                                */
+/*  - Run PID controller on centroid deviations               */
 /**************************************************************/
 void shk_cellpid(shkevent_t *shkevent, int reset){
   static int init = 0;
@@ -710,47 +575,75 @@ void shk_cellpid(shkevent_t *shkevent, int reset){
   }
 
   //Run PID
-  int alp_calmode = shkevent->alp.calmode;
-  if(alp_calmode != 5){
-    for(i=0;i<SHK_NCELLS;i++){
-      if(shkevent->cells[i].beam_select){
-        //Calculate integrals
-        xint[i] += shkevent->cells[i].deviation[0];
-        yint[i] += shkevent->cells[i].deviation[1];
-        //Calculate command
-        shkevent->cells[i].command[0] = shkevent->kP * shkevent->cells[i].deviation[0] + shkevent->kI * xint[i];
-        shkevent->cells[i].command[1] = shkevent->kP * shkevent->cells[i].deviation[1] + shkevent->kI * yint[i];
-      }
+  for(i=0;i<SHK_NCELLS;i++){
+    if(shkevent->cells[i].beam_select){
+      //Calculate integrals
+      xint[i] += shkevent->cells[i].deviation[0];
+      yint[i] += shkevent->cells[i].deviation[1];
+      //Calculate command
+      shkevent->cells[i].command[0] = shkevent->kP_cell * shkevent->cells[i].deviation[0] + shkevent->kI_cell * xint[i];
+      shkevent->cells[i].command[1] = shkevent->kP_cell * shkevent->cells[i].deviation[1] + shkevent->kI_cell * yint[i];
     }
   }
-  for(i=0; i<LOWFS_N_ZERNIKE; i++){
-    shkevent->alp.zern_cmd[i] = shkevent->zernikes[i] * shkevent->kP;
-  }
-
 }
 
 /**************************************************************/
-/*                      SHK_PROCESS_IMAGE                     */
+/* SHK_ZERNPID                                                */
+/*  - Run PID controller on measured Zernikes                 */
+/**************************************************************/
+void shk_zernpid(shkevent_t *shkevent, int reset){
+  static int init = 0;
+  static double zint[LOWFS_N_ZERNIKE] = {0};
+  double error;
+  int i;
+  
+  //Initialize
+  if(!init || reset){
+    memset(zint,0,sizeof(zint));
+    memset(shkevent->zernike_command,0,sizeof(shkevent->zernike_command));
+    init=1;
+    if(reset) return;
+  }
+  
+  //Run PID
+  for(i=0;i<LOWFS_N_ZERNIKE;i++){
+    if(shkevent->zernike_control[i]){
+      //Calculate error
+      error = shkevent->zernike_measured[i] - shkevent->zernike_target[i];
+      //Calculate integral
+      zint[i] += error;
+      //Calculate command
+      shkevent->zernike_command[i] = shkevent->kP_zern * error + shkevent->kI_zern * zint[i];
+    }
+  }
+}
+
+/**************************************************************/
+/* SHK_PROCESS_IMAGE                                          */
+/*  - Main image processing function for SHK                  */
 /**************************************************************/
 void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   static shkfull_t shkfull;
   static shkevent_t shkevent;
   shkfull_t *shkfull_p;
   shkevent_t *shkevent_p;
-  dm_t dm;
   static struct timespec first,start,end,delta,last;
   static int init=0;
   double dt;
   int32 i,j;
   uint16 fakepx=0;
-  int alp_calmode=0;
-  int hex_calmode=0;
   static int countA=0;
-
+  int state;
+  uint64 hex_command_count;
+  alp_t alp;
+  hex_t hex;
 
   //Get time immidiately
   clock_gettime(CLOCK_REALTIME,&start);
 
+  //Get state
+  state = sm_p->state;
+  
   //Check reset
   if(sm_p->shk_reset){
     init=0;
@@ -759,39 +652,33 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
 
   //Initialize
   if(!init){
+    //Zero out events
     memset(&shkfull,0,sizeof(shkfull));
     memset(&shkevent,0,sizeof(shkevent));
-    memset(&dm,0,sizeof(dm_t));
+    //Init cells
     shk_init_cells(&shkevent);
+    //Init actuator commands
     alp_init(&shkevent.alp);
     hex_init(&shkevent.hex);
-    alp_calibrate(alp_calmode,&shkevent.alp,1);
-    hex_calibrate(hex_calmode,&shkevent.hex,1);
-    shk_cellpid(&shkevent, 1);
-    shk_shk2alp(&shkevent,sm_p, 1);
-    shk_shk2hex(&shkevent,sm_p, 1);
+    //Reset calibration routines
+    alp_calibrate(0,&shkevent.alp,1);
+    hex_calibrate(0,&shkevent.hex,1);
+    //Reset PID controllers
+    shk_cellpid(&shkevent,1);
+    shk_zernpid(&shkevent,1);
+    //Reset start time
     memcpy(&first,&start,sizeof(struct timespec));
+    //Set init flag
     init=1;
+    //Debugging
     if(SHK_DEBUG) printf("SHK: Initialized\n");
-  }
-
-  //Write current act positions
-  for(i=0; i<ALP_NACT; i++){
-    shkevent.alp.act_now[i] = shkevent.alp.act_cmd[i];
   }
 
   //Measure exposure time
   if(timespec_subtract(&delta,&start,&last))
     printf("SHK: shk_process_image --> timespec_subtract error!\n");
   ts2double(&delta,&dt);
-
-  //Set alp_calmode
-  alp_calmode = sm_p->alp_calmode;
-
-  //Set hex_calmode
-  hex_calmode = sm_p->hex_calmode;
-  // printf("hex calmode: %i\n", sm_p->hex_calmode);
-
+  
   //Fill out event header
   shkevent.hed.packet_type  = SHKEVENT;
   shkevent.hed.frame_number = frame_number;
@@ -805,115 +692,146 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   shkevent.hed.start_nsec   = start.tv_nsec;
 
   //Save modes and gains
-  shkevent.boxsize     = sm_p->shk_boxsize;
-  shkevent.alp.calmode = alp_calmode;
-  shkevent.hex.calmode = hex_calmode;
-  shkevent.kP = sm_p->shk_kP;
-  shkevent.kI = sm_p->shk_kI;
-  shkevent.kD = sm_p->shk_kD;
-  shkevent.kH = sm_p->hex_kP;
+  shkevent.boxsize          = sm_p->shk_boxsize;
+  shkevent.alp_calmode      = sm_p->alp_calmode;
+  shkevent.hex_calmode      = sm_p->hex_calmode;
+  shkevent.kP_cell          = sm_p->shk_kP_cell;
+  shkevent.kI_cell          = sm_p->shk_kI_cell;
+  shkevent.kD_cell          = sm_p->shk_kD_cell;
+  shkevent.kP_zern          = sm_p->shk_kP_zern;
+  shkevent.kI_zern          = sm_p->shk_kI_zern;
+  shkevent.kD_zern          = sm_p->shk_kD_zern;
 
   //Calculate centroids
   shk_centroid(buffer->pvAddress,&shkevent);
 
-  //Set origin
-  if(sm_p->shk_setorigin) sm_p->shk_setorigin = shk_setorigin(&shkevent);
+  //Set cell origins
+  if(sm_p->shk_setorigin)
+    sm_p->shk_setorigin = shk_setorigin(&shkevent);
 
   //Fit Zernikes
-  if(sm_p->shk_fit_zernike) shk_zernike_fit(&shkevent);
-
-  //Run PID
-  if(!alp_calmode) shk_cellpid(&shkevent, 0);
-
-  //Convert cells to HEX
-  shk_shk2hex(&shkevent,sm_p,0);
-
+  if(sm_p->state_array[state].shk.fit_zernikes)
+    shk_zernike_fit(&shkevent);
+  
+  //Run PIDs (need to fix with control code below)
+  if(sm_p->state_array[state].shk.pid_zernikes)
+    shk_zernpid(&shkevent, 0);
+  if(sm_p->state_array[state].shk.pid_cells)
+    shk_cellpid(&shkevent, 0);
+  
   //Calibrate ALP
-  if(alp_calmode) sm_p->alp_calmode = alp_calibrate(alp_calmode,&shkevent.alp,0);
-
+  if(sm_p->state_array[state].shk.calibrate_alp)
+    sm_p->alp_calmode = alp_calibrate(shkevent.alp_calmode,&shkevent.alp,0);
+  
   //Calibrate HEX
-  if(hex_calmode) sm_p->hex_calmode = hex_calibrate(hex_calmode,&shkevent.hex,0);
+  if(sm_p->state_array[state].shk.calibrate_hex)
+    sm_p->hex_calmode = hex_calibrate(shkevent.hex_calmode,&shkevent.hex,0);
 
-  // Apply update to ALP
-  if(ALP_ENABLE){
-    shk_shk2alp(&shkevent, sm_p, 0);
-    for(i=0; i<LOWFS_N_ZERNIKE; i++){
-      shkevent.alp.zern_cmd[i] = shkevent.zernikes[i] * shkevent.kP;
-    }
-    if(sm_p->hex_godef == 1){
-      if(alp_calmode != 5){
-        int alp_dev;
-        alp_dev = sm_p->alp_dev;
-        alp_write(&alp_dev, &shkevent.alp);
-      }
-    }
+  //Offload tilt to hexapod
+  if(sm_p->state_array[state].shk.offload_tilt_to_hex){
+    //How to deal with latency?
   }
 
-  //Apply update to HEX
-
-  //For calibration (temporary, while testing parts below)
-  if(hex_calmode == 2){
-    for(i=0;i<HEX_NAXES;i++){
-      sm_p->hex[i] = shkevent.hex.axs[i];
-    }
+  //Offload tilt to WASP
+  if(sm_p->state_array[state].shk.offload_tilt_to_wasp){
+    //How to deal with latency?
+  }
+  
+  //Apply cell commands to ALPAO DM
+  if(sm_p->state_array[state].shk.all_cells_to_alp){
+    // - convert cells to actuators
+    if(shk_cells2alp(&shkevent))
+      printf("SHK: shk_cells2alp failed!\n");
+    // - send command
+    if(ALP_ENABLE && sm_p->alp_dev >= 0)
+      if(alp_write(sm_p->alp_dev,&shkevent.alp))
+	printf("SHK: alp_write failed!\n");
   }
 
-  double intensity_ave = 0;
-  double background_ave = 0;
-  int intensity_thresh = 130000;
-  if(hex_calmode == 3){
-    for(i=0;i<HEX_NAXES;i++){
-      sm_p->hex[i] = shkevent.hex.axs[i];
-    }
-    for(i=0;i<SHK_NCELLS;i++){
-      intensity_ave += shkevent.cells[i].intensity;
-      background_ave += shkevent.cells[i].background;
-    }
-    intensity_ave /= SHK_NCELLS;
-    background_ave /= SHK_NCELLS;
-    // printf("[SHK] average intensity: %lf\n", intensity_ave);
-    // printf("[SHK] average background: %lf\n", background_ave);
-    if(intensity_ave >= intensity_thresh){
-      printf("Hex calmode 3 window reached (%lf).\n", intensity_ave);
-      sm_p->hex_calmode = 0;
-      sleep(1);
-      sm_p->hex_calmode = 1;
-      printf("Hex calmode set to 1.\n");
-    }
+  //Apply all zernike commands to ALPAO DM
+  if(sm_p->state_array[state].shk.all_zernikes_to_alp){
+    // - erase alp command
+    memset(&shkevent.alp,0,sizeof(alp_t));
+    // - copy zernike commands to alp structure
+    for(i=0;i<LOWFS_N_ZERNIKE;i++)
+      shkevent.alp.zernike_cmd[i] = shkevent.zernike_command[i];
+    // - convert zernikes to actuators
+    if(alp_zern2alp(&shkevent.alp))
+      printf("SHK: alp_zern2alp failed!\n");
+    // - send command to ALP
+    if(ALP_ENABLE && sm_p->alp_dev >= 0)
+      if(alp_write(sm_p->alp_dev,&shkevent.alp))
+	printf("SHK: alp_write failed!\n");
   }
 
+  //Apply only tilt to ALPAO DM
+  if(sm_p->state_array[state].shk.only_tilt_to_alp){
+    // - erase alp command
+    memset(&shkevent.alp,0,sizeof(alp_t));
+    // - copy zernike commands to alp structure
+    shkevent.alp.zernike_cmd[1] = shkevent.zernike_command[1];
+    shkevent.alp.zernike_cmd[2] = shkevent.zernike_command[2];;
+    // - convert zernikes to actuators
+    if(alp_zern2alp(&shkevent.alp))
+      printf("SHK: alp_zern2alp failed!\n");
+    // - send command to ALP
+    if(ALP_ENABLE && sm_p->alp_dev >= 0)
+      if(alp_write(sm_p->alp_dev,&alp))
+	printf("SHK: alp_write failed!\n");
+  }
 
-  //Use calmode 1 for control loop
-  if(hex_calmode == 1){
-    if(countA % 5 == 0){
-      if((countA/5) % 2 == 0){
-        //tilts
-        sm_p->hex[3] += (shkevent.zernikes[2] *  0.00005) *   -0.3;
-        sm_p->hex[4] += (shkevent.zernikes[1] * -0.00005) *   -0.3;
-      }else{
-        //astigs with associated tilts
-        // if(abs(shkevent.zernikes[5]) > 0.3){
-          sm_p->hex[0] += (shkevent.zernikes[5] *  0.01)    *   -0.1;
-          sm_p->hex[4] += (shkevent.zernikes[5] * -0.001)   *   -0.1;
-        // }
-        // if(abs(shkevent.zernikes[4]) > 0.3){
-          sm_p->hex[1] += (shkevent.zernikes[4] * -0.01)    *   -0.1;
-          sm_p->hex[3] += (shkevent.zernikes[4] * -0.001)   *   -0.1;
-        // }
-        //focus
-        // if(abs(shkevent.zernikes[3]) > 0.3){
-          sm_p->hex[2] += (shkevent.zernikes[3] *  0.006)   *   -0.1;
-        // }
-      }
+  //Apply all zernike commands to hexapod
+  if(sm_p->state_array[state].shk.all_zernikes_to_hex){
+    if(sm_p->hex_last_recv == sm_p->hex_last_sent){
+      // - erase hex command
+      memset(&shkevent.hex,0,sizeof(hex_t));
+      // - copy zernike commands to hex structure
+      for(i=0;i<LOWFS_N_HEX_ZERNIKE;i++)
+	shkevent.hex.zernike_cmd[i] = shkevent.zernike_command[i];
+      // - convert zernikes to hexapod commands
+      if(hex_zern2hex(&shkevent.hex))
+	printf("SHK: hex_zern2hex failed!\n");
+      // - send command to HEX
+      memcpy(&sm_p->hex_command,&shkevent.hex.axis_cmd,sizeof(double)*HEX_NAXES);
+      sm_p->hex_last_sent++;
     }
-    countA++;
   }
-
-  //Diagnostic to make sure all motions are recorded, regardless of calmode
-  for(i=0;i<HEX_NAXES;i++){
-    shkevent.hex.axs[i] = sm_p->hex[i];
+  
+  //Apply only tilt to hexapod
+  if(sm_p->state_array[state].shk.only_tilt_to_hex){
+    if(sm_p->hex_last_recv == sm_p->hex_last_sent){
+      // - erase hex command
+      memset(&shkevent.hex,0,sizeof(hex_t));
+      // - copy zernike commands to hex structure
+      shkevent.hex.zernike_cmd[1] = shkevent.zernike_command[1];
+      shkevent.hex.zernike_cmd[2] = shkevent.zernike_command[2];;
+      // - convert zernikes to hexapod commands
+      if(hex_zern2hex(&shkevent.hex))
+	printf("SHK: hex_zern2hex failed!\n");
+      // - send command to HEX
+      memcpy(&sm_p->hex_command,&shkevent.hex.axis_cmd,sizeof(double)*HEX_NAXES);
+      sm_p->hex_last_sent++;
+    }
   }
-
+  
+  //Apply only astig and focus to hex
+  if(sm_p->state_array[state].shk.only_astig_and_focus_to_hex){
+    if(sm_p->hex_last_recv == sm_p->hex_last_sent){
+      // - erase hex command
+      memset(&shkevent.hex,0,sizeof(hex_t));
+      // - copy zernike commands to hex structure
+      shkevent.hex.zernike_cmd[3] = shkevent.zernike_command[3];
+      shkevent.hex.zernike_cmd[4] = shkevent.zernike_command[4];
+      shkevent.hex.zernike_cmd[5] = shkevent.zernike_command[5];
+      // - convert zernikes to hexapod commands
+      if(hex_zern2hex(&shkevent.hex))
+	printf("SHK: hex_zern2hex failed!\n");
+      // - send command to HEX
+      memcpy(&sm_p->hex_command,&shkevent.hex.axis_cmd,sizeof(double)*HEX_NAXES);
+      sm_p->hex_last_sent++;
+    }
+  }
+  
   //Open circular buffer
   shkevent_p=(shkevent_t *)open_buffer(sm_p,SHKEVENT);
 

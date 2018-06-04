@@ -14,31 +14,40 @@
 #include "controller.h"
 #include "common_functions.h"
 #include "numeric.h"
+#include "hex_functions.h"
 
 /**************************************************************/
-/*                      HEX_INIT                              */
+/* HEX_INIT                                                   */
+/*  - Set hex command to default                              */
 /**************************************************************/
 void hex_init(hex_t *hex){
   int i;
-  double hexdef[HEX_NAXES] = HEX_POS_DEFAULT;
+  const double hexdef[HEX_NAXES] = HEX_POS_DEFAULT;
   for(i=0;i<HEX_NAXES;i++)
-    hex->axs[i] = hexdef[i];
+    hex->axis_cmd[i] = hexdef[i];
 }
 
-//Connect to hexapod
+/**************************************************************/
+/* HEX_CONNECT                                                */
+/*  - Open connection to hexapod                              */
+/**************************************************************/
 int hex_connect(void){
   return PI_ConnectRS232ByDevName(HEX_DEVICE,HEX_BAUD);
 }
 
-//Disconnect from hexapod
-int hex_disconnect(hex_t *hex){
-  PI_CloseConnection(0);
-    printf("[hex]: Hexapod Disconnected.\r\n");
-    return 0;
+/**************************************************************/
+/* HEX_DISCONNECT                                             */
+/*  - Close connection to hexapod                              */
+/**************************************************************/
+void hex_disconnect(int id){
+  PI_CloseConnection(id);
 }
 
-//Convert from Hexapod coords to scope coords
-int hex2scope(double *position, double *result){
+/**************************************************************/
+/* HEX_HEX2SCOPE                                              */
+/*  - Convert from hexapod coords to scope coords             */
+/**************************************************************/
+int hex_hex2scope(double *position, double *result){
   int i,j,k;
   double rotation_matrix[9] = { COS_Y*COS_Z,                     -COS_Y*SIN_Z,                      SIN_Y,
                                 SIN_X*SIN_Y*COS_Z + COS_X*SIN_Z, -SIN_X*SIN_Y*SIN_Z + COS_X*COS_Z, -SIN_X*COS_Y,
@@ -59,7 +68,10 @@ int hex2scope(double *position, double *result){
   return 0;
 }
 
-//Convert from scope to hexapod coords
+/**************************************************************/
+/* HEX_SCOPE2HEX                                              */
+/*  - Convert from scope coords to hexapod coords             */
+/**************************************************************/
 int scope2hex(double *position, double *result){
   int i,j,k;
   double rotation_matrix[9] = { COS_Y*COS_Z,  SIN_X*SIN_Y*COS_Z + COS_X*SIN_Z, -COS_X*SIN_Y*COS_Z + SIN_X*SIN_Z,
@@ -81,7 +93,10 @@ int scope2hex(double *position, double *result){
   return 0;
 }
 
-//Move hexapod
+/**************************************************************/
+/* HEX_MOVE                                                   */
+/*  - Move hexapod                                            */
+/**************************************************************/
 int hex_move(int id, double *pos){
   double result[6] = {0};
   scope2hex(pos, result);
@@ -106,7 +121,10 @@ int hex_move(int id, double *pos){
   return 0;
 }
 
-//Check to see if the hexapod needs referencing, and do so if needed
+/**************************************************************/
+/* HEX_REFERENCE                                              */
+/*  - Reference hexapod, if needed                            */
+/**************************************************************/
 int hex_reference(int id,int force){
   int bReferenced;
   char axis[] = "X";
@@ -124,7 +142,10 @@ int hex_reference(int id,int force){
   return 0;
 }
 
-//Obtain positions of all axes
+/**************************************************************/
+/* HEX_GETPOS                                                 */
+/*  - Get position of all hexapod axes                        */
+/**************************************************************/
 int hex_getpos(int id, double *pos){
   const char axes_all[13] = HEX_AXES_ALL;
   if (!PI_qPOS(id,axes_all, pos))
@@ -135,7 +156,10 @@ int hex_getpos(int id, double *pos){
   return 0;
 }
 
-//Set pivot point
+/**************************************************************/
+/* HEX_SETPIVOT                                               */
+/*  - Set pivot point for hexapod rotation                    */
+/**************************************************************/
 int hex_setpivot(int id, double *pivot){
   const char axes_piv[7] = "R S T";
 
@@ -150,9 +174,93 @@ int hex_setpivot(int id, double *pivot){
 }
 
 /**************************************************************/
-/*                      HEX_CALIBRATE                         */
+/* HEX_ZERN2HEX                                               */
+/*  - Convert from zernike commands to hexapod commands       */
 /**************************************************************/
+int hex_zern2hex(hex_t *hex){
+  FILE *fp=NULL;
+  char matrix_file[MAX_FILENAME];
+  static int init=0;
+  static double zern2hex_matrix[LOWFS_N_HEX_ZERNIKE*HEX_NAXES]={0};
+  static double astig2tilt_matrix[LOWFS_N_HEX_ZERNIKE*HEX_NAXES]={0};
+  double zernike_cmd[LOWFS_N_HEX_ZERNIKE];
+  uint64 fsize,rsize;
+  int c,i;
 
+
+  if(!init){
+    /* Open zern2hex matrix file */
+    //--setup filename
+    sprintf(matrix_file,ZERNIKE2HEX_FILE);
+    //--open file
+    if((fp = fopen(matrix_file,"r")) == NULL){
+      printf("zern2hex file\n");
+      perror("fopen");
+      return 1;
+    }
+    //--check file size
+    fseek(fp, 0L, SEEK_END);
+    fsize = ftell(fp);
+    rewind(fp);
+    rsize = (LOWFS_N_HEX_ZERNIKE)*HEX_NAXES*sizeof(double);
+    if(fsize != rsize){
+      printf("HEX: incorrect HEX matrix file size %lu != %lu\n",fsize,rsize);
+      return 1;
+    }
+    //--read matrix
+    if(fread(zern2hex_matrix,(LOWFS_N_HEX_ZERNIKE)*HEX_NAXES*sizeof(double),1,fp) != 1){
+      printf("zern2hex file\r");
+      perror("fread");
+      return 1;
+    }
+    //--close file
+    fclose(fp);
+
+    /* Open astig2tilt matrix file */
+    //--setup filename
+    sprintf(matrix_file,ASTIG2TILT_FILE);
+    //--open file
+    if((fp = fopen(matrix_file,"r")) == NULL){
+      printf("astig2tilt file\n");
+      perror("fopen");
+      return 1;
+    }
+    //--check file size
+    fseek(fp, 0L, SEEK_END);
+    fsize = ftell(fp);
+    rewind(fp);
+    rsize = (LOWFS_N_HEX_ZERNIKE)*HEX_NAXES*sizeof(double);
+    if(fsize != rsize){
+      printf("HEX: incorrect astig2tilt matrix file size %lu != %lu\n",fsize,rsize);
+      return 1;
+    }
+    //--read matrix
+    if(fread(astig2tilt_matrix,(LOWFS_N_HEX_ZERNIKE)*HEX_NAXES*sizeof(double),1,fp) != 1){
+      printf("astig2tilt file\r");
+      perror("fread");
+      return 1;
+    }
+    //--close file
+    fclose(fp);
+
+    //--set init flag
+    init=1;
+  }
+
+  //Select HEX zernike commands
+  for(i=0;i<LOWFS_N_HEX_ZERNIKE;i++)
+    zernike_cmd[i] = hex->zernike_cmd[i];
+      
+  //Do Matrix Multiply
+  num_dgemv(zern2hex_matrix, zernike_cmd, hex->axis_cmd, HEX_NAXES, LOWFS_N_HEX_ZERNIKE);
+  
+  return 0;
+}
+
+/**************************************************************/
+/* HEX_CALIBRATE                                              */
+/*  - Run hexapod calibration routines                        */
+/**************************************************************/
 int hex_calibrate(int calmode, hex_t *hex, int reset){
   int i;
   double hexdef[6]  = HEX_POS_DEFAULT;
@@ -161,10 +269,10 @@ int hex_calibrate(int calmode, hex_t *hex, int reset){
   static int init=0;
   time_t t;
   double dt=0;
-  double axs[HEX_NAXES];
+  double axes[HEX_NAXES];
 
   /* Reset */
-  if(reset){
+  if(reset || (calmode == HEX_CALMODE_NONE)){
     countA=0;
     countB=0;
     countC=0;
@@ -180,31 +288,26 @@ int hex_calibrate(int calmode, hex_t *hex, int reset){
     clock_gettime(CLOCK_REALTIME, &start);
     init=1;
   }
-    /* Calculate times */
-    clock_gettime(CLOCK_REALTIME, &this);
-    if(timespec_subtract(&delta,&this,&start))
-      printf("SHK: shk_process_image --> timespec_subtract error!\n");
-    ts2double(&delta,&dt);
-
-    // printf("[HEX] Hex calmode %i\n", calmode);
-  /* CALMODE 1: Be not zero.*/
-
-
-  /* CALMODE 2: Move through axes one at a time.
-  *              Go home in between each move.
-  */
-  if(calmode == 2){
+  /* Calculate times */
+  clock_gettime(CLOCK_REALTIME, &this);
+  if(timespec_subtract(&delta,&this,&start))
+    printf("SHK: shk_process_image --> timespec_subtract error!\n");
+  ts2double(&delta,&dt);
+    
+  /* HEX_CALMODE_POKE: Move through axes one at a time. */
+  /*                   Go home in between each move.    */
+  if(calmode == HEX_CALMODE_POKE){
     if((countA >= 0 && countA < (2*HEX_NAXES*HEX_NCALIM)) || (countA/HEX_NCALIM) % 2 == 0){
       //move hexapod to default position.
       for(i=0;i<HEX_NAXES;i++){
-        hex->axs[i]=hexdef[i];
+        hex->axis_cmd[i]=hexdef[i];
       }
       //move one axis
       if((countA/HEX_NCALIM) % 2 == 1){
         if((countB/HEX_NCALIM) % HEX_NAXES <=2){
-          hex->axs[(countB/HEX_NCALIM) % HEX_NAXES] += HEX_TRL_POKE;
+          hex->axis_cmd[(countB/HEX_NCALIM) % HEX_NAXES] += HEX_TRL_POKE;
         }else{
-          hex->axs[(countB/HEX_NCALIM) % HEX_NAXES] += HEX_ROT_POKE;
+          hex->axis_cmd[(countB/HEX_NCALIM) % HEX_NAXES] += HEX_ROT_POKE;
         }
         countB++;
       }
@@ -212,18 +315,18 @@ int hex_calibrate(int calmode, hex_t *hex, int reset){
     }
     else{
       //Turn off calibration
-      printf("HEX: Stopping HEX calmode 2\n");
+      printf("HEX: Stopping HEX calmode %d\n",HEX_CALMODE_POKE);
       for(i=0;i<HEX_NAXES;i++)
-        hex->axs[i] = hexdef[i];
-      calmode = 0;
+        hex->axis_cmd[i] = hexdef[i];
+      calmode = HEX_CALMODE_NONE;
       init = 0;
     }
-  return calmode;
+    return calmode;
   }
 
-  /* CALMODE 3: Spiral Search. Tip/tilt hexapod axes in a spiral. */
+  /* HEX_CALMODE_SPIRAL: Spiral Search. Tip/tilt hexapod axes in a spiral. */
 
-  if(calmode == 3){
+  if(calmode == HEX_CALMODE_SPIRAL){
     double u_step;
     double v_step;
     int max_step = 5000;
@@ -233,21 +336,20 @@ int hex_calibrate(int calmode, hex_t *hex, int reset){
     if((countC) <= max_step){
       u_step = countC * spiral_radius * cos(countC * (PI/180.0));
       v_step = countC * spiral_radius * sin(countC * (PI/180.0));
-      hex->axs[3] = start[3] + 0.005 + u_step;
-      hex->axs[4] = start[4] + 0.005 + v_step;
+      hex->axis_cmd[3] = start[3] + 0.005 + u_step;
+      hex->axis_cmd[4] = start[4] + 0.005 + v_step;
       if(countC == 0){
         sleep(1);
       }
       if((countC % 20)==0){
-        printf("Searching... %i\n", countC/20);
+        printf("Searching... %lu\n", countC/20);
       }
       countC++;
     }else{
-        //Turn off calibration
-        printf("HEX: Stopping HEX calmode 3\n");
-        calmode = 0;
-        countC = 0;
-        // init = 0;
+      //Turn off calibration
+      printf("HEX: Stopping HEX calmode %d\n",HEX_CALMODE_SPIRAL);
+      calmode = HEX_CALMODE_SPIRAL;
+      countC = 0;
     }
   }
   return calmode;

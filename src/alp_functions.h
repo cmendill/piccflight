@@ -1,9 +1,22 @@
-#include "acedev5.h"
+#ifndef _ALP_FUNCTIONS
+#define _ALP_FUNCTIONS
 
-void alp_init(alp_t *iwc);
+//Function prototypes
+void alp_init(alp_t *alp);
+int alp_zern2alp(alp_t *alp);
 int alp_calibrate(int calmode, alp_t *alp, int reset);
 void alp_check(alp_t *alp);
-const int* alp_open(int*);
-int alp_closeDev(const int*);
-int alp_write(const int*, alp_t*);
-int alp_zero(const int*);
+int alp_open(char *name);
+int alp_write(int devId, alp_t* alp);
+int alp_close(int devId);
+int alp_zero(int devId);
+
+
+//Calibration Modes
+enum alpcalmodes {ALP_CALMODE_NONE,
+		  ALP_CALMODE_POKE,
+		  ALP_CALMODE_ZPOKE,
+		  ALP_CALMODE_FLIGHT,
+		  ALP_NCALMODE};
+
+#endif

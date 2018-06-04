@@ -79,7 +79,9 @@ int shk_proc(void){
   tContext shkContext;
   ui64 dwParamValue;
   etParamValue roiWidth, roiHeight, bufferWidth, bufferHeight;
+  int camera_running = 0;
 
+  
   /* Open Shared Memory */
   sm_t *sm_p;
   if((sm_p = openshm(&shk_shmfd)) == NULL){
@@ -100,7 +102,7 @@ int shk_proc(void){
     printf("SHK: Error PHX_Create\n");
     shkctrlC(0);
   }
-
+  
   /* Set the board number */
   eParamValue = PHX_BOARD_NUMBER_1;
   eStat = PHX_ParameterSet( shkCamera, PHX_BOARD_NUMBER, &eParamValue );
@@ -145,20 +147,35 @@ int shk_proc(void){
     eStat = BOBCAT_ParameterGet( shkCamera, BOBCAT_INFO_XYLENGTHS, &bParamValue );
     printf("SHK: Camera current size        : [%d x %d]\n", (bParamValue&0x0000FFFF), (bParamValue&0xFFFF0000)>>16 );
   }
-
-
-
-
-  /* -------------------- Now start our capture -------------------- */
-  eStat = PHX_StreamRead( shkCamera, PHX_START, (void*)shk_callback );
+    
+  /* STOP Capture to put camera in known state */
+  eStat = PHX_StreamRead( shkCamera, PHX_STOP, (void*)shk_callback );
   if ( PHX_OK != eStat ){
-    printf("SHK: PHX_StreamRead --> PHX_START\n");
+    printf("SHK: PHX_StreamRead --> PHX_STOP\n");
     shkctrlC(0);
   }
-
+  camera_running = 0;
 
   /* -------------------- Enter Waiting Loop -------------------- */
   while(1){
+    /* Check if camera should start/stop */
+    if(!camera_running && sm_p->state_array[sm_p->state].shk.run_camera){
+      eStat = PHX_StreamRead( shkCamera, PHX_START, (void*)shk_callback );
+      if ( PHX_OK != eStat ){
+	printf("SHK: PHX_StreamRead --> PHX_START\n");
+	shkctrlC(0);
+      }
+      camera_running = 1;
+    }
+    if(camera_running && !sm_p->state_array[sm_p->state].shk.run_camera){
+      eStat = PHX_StreamRead( shkCamera, PHX_STOP, (void*)shk_callback );
+      if ( PHX_OK != eStat ){
+	printf("SHK: PHX_StreamRead --> PHX_STOP\n");
+	shkctrlC(0);
+      }
+      camera_running = 0;
+    }
+    
     /* Check if we've been asked to exit */
     if(sm_p->w[SHKID].die)
       shkctrlC(0);
@@ -168,7 +185,6 @@ int shk_proc(void){
 
     /* Sleep */
     sleep(sm_p->w[SHKID].per);
-
   }
 
   shkctrlC(0);

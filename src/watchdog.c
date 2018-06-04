@@ -20,8 +20,8 @@
 #include "handle_command.h"
 #include "controller.h"
 #include "common_functions.h"
-#include "xin_functions.h"
 #include "alp_functions.h"
+#include "states.h"
 
 /* Constants */
 #define STDIN 0  // file descriptor for standard input
@@ -234,7 +234,7 @@ int main(int argc,char **argv){
   int i;
   int retval;
   int shutdown=0;
-  const double hex_pos[HEX_NAXES] = HEX_POS_DEFAULT;
+  const double hex_default[HEX_NAXES] = HEX_POS_DEFAULT;
 
   /* Open Shared Memory */
   sm_t *sm_p;
@@ -294,18 +294,24 @@ int main(int argc,char **argv){
   /* All shmem numbers are ZERO unless defined here */
   sm_p->memlock         = 0;
   sm_p->die             = 0;
+  sm_p->state           = STATE_STANDBY;
   sm_p->sci_mode        = SCI_MODE_DEFAULT;
   sm_p->shk_mode        = SHK_MODE_DEFAULT;
   sm_p->lyt_mode        = LYT_MODE_DEFAULT;
   sm_p->acq_mode        = ACQ_MODE_DEFAULT;
   sm_p->shk_boxsize     = SHK_BOXSIZE_DEFAULT;
-  sm_p->shk_fit_zernike = SHK_FIT_ZERNIKE_DEFAULT;
-  sm_p->shk_kP          = 0;//SHK_KP_DEFAULT;
-  sm_p->shk_kI          = SHK_KI_DEFAULT;
-  sm_p->shk_kD          = SHK_KD_DEFAULT;
-  sm_p->hex_kP          = 0;//HEX_KP_DEFAULT;
-  memcpy((void *)sm_p->hex,(void *)hex_pos,sizeof(hex_pos));
+  sm_p->shk_kP_cell     = SHK_KP_CELL_DEFAULT;
+  sm_p->shk_kI_cell     = SHK_KI_CELL_DEFAULT;
+  sm_p->shk_kD_cell     = SHK_KD_CELL_DEFAULT;
+  sm_p->shk_kP_zern     = SHK_KP_ZERN_DEFAULT;
+  sm_p->shk_kI_zern     = SHK_KI_ZERN_DEFAULT;
+  sm_p->shk_kD_zern     = SHK_KD_ZERN_DEFAULT;
+  memcpy((void *)sm_p->hex_command,(void *)hex_default,sizeof(hex_default));
 
+  /* Initialize States */
+  for(i=0;i<NSTATES;i++)
+    init_state(i,(state_t *)&sm_p->state_array[i]);
+  
   /* Configure Circular Buffers */
   //-- Event buffers
   sm_p->circbuf[SCIEVENT].buffer  = (void *)sm_p->scievent;
@@ -341,39 +347,17 @@ int main(int argc,char **argv){
   sm_p->circbuf[ACQFULL].nbytes  = sizeof(acqfull_t);
   sm_p->circbuf[ACQFULL].bufsize = ACQFULLSIZE;
   sprintf((char *)sm_p->circbuf[ACQFULL].name,"ACQFULL");
-
-  /* Open Xinetics Driver */
-  sm_p->xin_dev=-1;
-#if XIN_ENABLE
-  signed short xin_dev;
-  if((xin_dev = xin_open()) < 0){
-    printf("WAT: xin_open failed!\n");
-    xin_closeDev(xin_dev);
+  
+  /* Open ALPAO Driver */
+  if(ALP_ENABLE){
+    sm_p->alp_dev = alp_open(ALP_NAME);
+    if(sm_p->alp_dev < 0){
+      printf("WAT: alp_open failed!\n");
+      alp_close(sm_p->alp_dev);
+      sm_p->alp_dev=-1;
+    }
   }
-  else{
-    sm_p->xin_dev = xin_dev;
-  }
-#else
-  printf("WAT: XIN driver disabled\n");
-#endif
-
-/* Open ALPAO Driver */
-#if ALP_ENABLE
-  const int* alp_dev;
-  int dmIds[1];
-  alp_dev = alp_open(dmIds);
-  if(*alp_dev < 0){
-    printf("WAT: alp_open failed!\n");
-    alp_closeDev(alp_dev);
-  }
-  else{
-    sm_p->alp_dev = *alp_dev;
-  }
-#else
-  printf("WAT: ALP driver disabled\n");
-#endif
-
-
+  else printf("WAT: ALP driver disabled\n");
 
   /* Launch Watchdog */
   if(sm_p->w[WATID].run){

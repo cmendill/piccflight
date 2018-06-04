@@ -1,3 +1,6 @@
+#ifndef _TLM_PROC
+#define _TLM_PROC
+
 /*************************************************
  * TLM Parameters
  *************************************************/
@@ -29,3 +32,5 @@
 #define SAVE_ACQ    0
 #define SAVE_DM     0
 #define SAVE_IWC    0
+
+#endif
