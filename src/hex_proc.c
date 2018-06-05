@@ -164,7 +164,7 @@ void hex_proc(void){
     }
 
     /* Sleep */
-    sleep(sm_p->w[HEXID].per);
+    usleep(HEX_PERIOD_DSEC * 100000);
   }
   
   hexctrlC(0);

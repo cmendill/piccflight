@@ -258,9 +258,7 @@ enum bufids {SCIEVENT, SCIFULL,
 #define HEX_AXIS_V       4
 #define HEX_AXIS_W       5
 #define HEX_POS_HOME     {0,0,0,0,0,0}
-// #define HEX_POS_DEFAULT  {-1.213708, 3.527789, -0.203860, 0.238664, 0.438938, 0.001710} // Scope coords  68 deg
-#define HEX_POS_DEFAULT  {-1.213708, 3.527789, -0.157457, 0.235558, 0.439130, 0.00171} // Scope coords  68 deg (minimum measured focus zern via SH)
-// #define HEX_POS_DEFAULT  {-1.213686, 3.527814 ,-0.071349, 0.233803, 0.441126, 0.001688} // Scope coords  73 deg
+#define HEX_POS_DEFAULT  {-1.213708, 3.527789, -0.157457, 0.235558, 0.439130, 0.00171}
 #define HEX_TRL_POKE      0.01
 #define HEX_ROT_POKE      0.001
 #define HEX_NCALIM        50
@@ -281,7 +279,8 @@ enum bufids {SCIEVENT, SCIFULL,
 #define COS_Z             cos(THETA_Z)
 #define SIN_Z             sin(THETA_Z)
 #define HEX_REF_TIMEOUT   20 //seconds
-#define HEX_PER_SHKEVENT  5 //number of shk images per HEX update
+#define HEX_PER_SHKEVENT  5  //number of shk images per HEX update
+#define HEX_PERIOD_DSEC   5  //deciseconds
 
 /*************************************************
  * Shack-Hartmann (SHK) Settings
