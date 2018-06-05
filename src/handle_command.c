@@ -70,6 +70,18 @@ int handle_command(char *line, sm_t *sm_p){
     printf("CMD: Changed LYT fake mode to %d\n",sm_p->lyt_fake_mode);
     return(CMD_NORMAL);
   }
+  if(!strncasecmp(line,"sci fake",8)){
+    itemp = atoi(line+8);
+    sm_p->sci_fake_mode = itemp;
+    printf("CMD: Changed SCI fake mode to %d\n",sm_p->sci_fake_mode);
+    return(CMD_NORMAL);
+  }
+  if(!strncasecmp(line,"acq fake",8)){
+    itemp = atoi(line+8);
+    sm_p->acq_fake_mode = itemp;
+    printf("CMD: Changed ACQ fake mode to %d\n",sm_p->acq_fake_mode);
+    return(CMD_NORMAL);
+  }
 
   //ALP Calmodes
   if(!strncasecmp(line,"alp calmode",11)){
