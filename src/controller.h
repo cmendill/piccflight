@@ -190,7 +190,7 @@ enum bufids {SCIEVENT, SCIFULL,
  * Debug Messaging
  *************************************************/
 #define WAT_DEBUG       0 // print wat messages
-#define SCI_DEBUG       1 // print sci messages
+#define SCI_DEBUG       0 // print sci messages
 #define SHK_DEBUG       0 // print shk messages
 #define LYT_DEBUG       0 // print lyt messages
 #define TLM_DEBUG       0 // print tlm messages

@@ -9,31 +9,23 @@
 #include <signal.h>
 #include <fcntl.h>
 #include <ctype.h>
+#include <libfli.h>
 
 /* piccflight headers */
 #include "controller.h"
 #include "common_functions.h"
 
-/* Things to put in other places once code overhaul is finished */
-#include "libfli.h" //
-#define FLIDEVICE_CAMERA (0x100) //from libfli.h
-#define FLIDOMAIN_USB (0x02) //from libfli.h
-#define MICROLINE_DOMAIN FLIDOMAIN_USB | FLIDEVICE_CAMERA
-#define MAX_PATH 64
-#define SCI_EXP_TIME 1000  //Milliseconds
+#define SCI_EXP_TIME 2000  //Milliseconds
 #define SCI_TEMP 20        //Degrees C
-#define SCI_FRAME_NORM FLI_FRAME_TYPE_NORMAL
-#define SCI_FRAME_DARK FLI_FRAME_TYPE_DARK
 #define SCI_ROI_XSIZE SCIXS
 #define SCI_ROI_YSIZE SCIYS
-#define SCI_UL_X 500
-#define SCI_UL_Y 500
-#define SCI_LR_X (SCI_UL_X+SCI_ROI_XSIZE)
-#define SCI_LR_Y (SCI_UL_Y+SCI_ROI_YSIZE)
 #define SCI_HBIN 1
 #define SCI_VBIN 1
+#define SCI_UL_X 500
+#define SCI_UL_Y 500
+#define SCI_LR_X (SCI_UL_X+(SCI_ROI_XSIZE/SCI_HBIN))
+#define SCI_LR_Y (SCI_UL_Y+(SCI_ROI_YSIZE/SCI_VBIN))
 #define SCI_NFLUSHES 4
-#define SCI_BIT_DEPTH FLI_MODE_16BIT //from libfli.h
 
 
 /* Process File Descriptor */
@@ -46,9 +38,15 @@ flidev_t dev;
 void scictrlC(int sig){
   uint32 err = 0;
   if (MSG_CTRLC) printf("SCI: ctrlC! exiting.\n");
+  /* Cancel Exposure */
+  if((err = FLICancelExposure(dev))){
+    fprintf(stderr, "SCI: Error FLICancelExposure: %s\n", strerror((int)-err));
+  }else{
+    if(SCI_DEBUG) printf("SCI: Exposure stopped\n");
+  }
   /* Close FLI camera */
   if((err = FLIClose(dev))){
-    fprintf(stderr, "Error FLIClose: %s\n", strerror((int)-err));
+    fprintf(stderr, "SCI: Error FLIClose: %s\n", strerror((int)-err));
   }else{
     if(SCI_DEBUG) printf("SCI: FLI closed\n");
   }
@@ -61,23 +59,48 @@ void scictrlC(int sig){
 
 /* Exposure function */
 int sci_expose(flidev_t dev, uint16 *img_buffer){
-  int row;
-  uint32 err = 0;
-
-  /* Expose a frame */
+  int row,i;
+  uint32 err;
+  long int timeleft;
+  int exp_timeout = (SCI_EXP_TIME/1000)+2;
+  
+  /* Start exposure */
   if((err = FLIExposeFrame(dev))){
-    fprintf(stderr, "Error FLIExposeFrame: %s\n", strerror((int)-err));
+    fprintf(stderr, "SCI: Error FLIExposeFrame: %s\n", strerror((int)-err));
     return 1;
   }else{
-    if(SCI_DEBUG) printf("SCI: FLI frame exposed\n");
+    if(SCI_DEBUG) printf("SCI: Exposure started\n");
   }
 
-  for(row=0;row<SCI_ROI_YSIZE;row++){
-    err = err | FLIGrabRow(dev, img_buffer, SCI_ROI_XSIZE);
+  /* Wait for exposure to finish */
+  for(i=0;i<exp_timeout;i++){
+    //Checkin with watchdog
+    
+    //Sleep
+    sleep(1);
+    
+    //Get exposure status
+    if((err = FLIGetExposureStatus(dev,&timeleft))){
+      fprintf(stderr, "SCI: Error FLIGetExposureStatus: %s\n", strerror((int)-err));
+      return 1;
+    }
+    if(timeleft == 0){
+      if(SCI_DEBUG) printf("SCI: Exposure done after %d checks\n",i+1);
+      break;
+    }
   }
+  if(i==exp_timeout){
+    printf("SCI: Image timeout!\n");
+    return 1;
+  }
+  
+  /* Grab data one row at a time */
+  for(row=0;row<SCI_ROI_YSIZE;row++)
+    err = err | FLIGrabRow(dev, img_buffer+(row*SCI_ROI_XSIZE), SCI_ROI_XSIZE);
 
+  /* Error checking */
   if(err){
-    fprintf(stderr, "Error FLIGrabRow: %s\n", strerror((int)-err));
+    fprintf(stderr, "SCI: Error FLIGrabRow: %s\n", strerror((int)-err));
     return 1;
   }else{
     if(SCI_DEBUG) printf("SCI: FLI rows grabbed\n");
@@ -94,7 +117,9 @@ void sci_process_image(sm_t *sm_p,uint16 *img_buffer){
   static struct timespec first, start, end, delta, last;
   static int init = 0;
   double dt;
-  
+  uint16 fakepx=0;
+  uint32 i,j;
+
   /* Get time immidiately */
   clock_gettime(CLOCK_REALTIME,&start);
 
@@ -160,14 +185,33 @@ void sci_process_image(sm_t *sm_p,uint16 *img_buffer){
   ts2double(&delta,&dt);
   if(dt > SCI_FULL_IMAGE_TIME){
     /* Debugging */
-    if(SCI_DEBUG) printf("SCI: Frame Size: --  Buffer Size: %lu\n",sizeof(sci_t));  
+    if(SCI_DEBUG) printf("SCI: Buffer Size: %lu\n",sizeof(sci_t));  
     /* Copy packet header */
     memcpy(&scifull.hed,&scievent.hed,sizeof(pkthed_t));
     scifull.hed.packet_type = SCIFULL;
 
-    /* Copy image */
-    //memcpy(&(scifull.image.data[0][0]),img_buffer,sizeof(sci_t));
+    //Fake data
+    if(sm_p->sci_fake_mode > 0){
+      if(sm_p->sci_fake_mode == 1)
+	for(i=0;i<SCIXS;i++)
+	  for(j=0;j<SCIYS;j++)
+	    scifull.image.data[i][j]=fakepx++;
 
+      if(sm_p->sci_fake_mode == 2)
+	for(i=0;i<SCIXS;i++)
+	  for(j=0;j<SCIYS;j++)
+	    scifull.image.data[i][j]=2*fakepx++;
+
+      if(sm_p->sci_fake_mode == 3)
+	for(i=0;i<SCIXS;i++)
+	  for(j=0;j<SCIYS;j++)
+	    scifull.image.data[i][j]=3*fakepx++;
+    }
+    else{
+      /* Copy image */
+      memcpy(&(scifull.image.data[0][0]),img_buffer,sizeof(sci_t));
+    }
+    
     /* Open circular buffer */
     scifull_p=(scifull_t *)open_buffer(sm_p,SCIFULL);
 
@@ -190,16 +234,12 @@ void sci_process_image(sm_t *sm_p,uint16 *img_buffer){
 
 /* Main Process */
 void sci_proc(void){
-  char file[MAX_PATH], name[MAX_PATH];
-  double temperature_set = SCI_EXP_TIME;
-  long sci_exp_time = SCI_TEMP;
-  fliframe_t frame_dark = SCI_FRAME_DARK;
-  fliframe_t frame_norm = SCI_FRAME_NORM;
+  char file[MAX_FILENAME], name[MAX_FILENAME];
   uint32 err = 0;
   uint32 count = 0;
-  long domain = MICROLINE_DOMAIN;
+  long domain = (FLIDOMAIN_USB | FLIDEVICE_CAMERA);
   uint16 img_buffer[SCI_ROI_XSIZE * SCI_ROI_YSIZE];
-
+  
   /* Open Shared Memory */
   sm_t *sm_p;
   if((sm_p = openshm(&sci_shmfd)) == NULL){
@@ -211,16 +251,16 @@ void sci_proc(void){
   sigset(SIGINT, scictrlC);	/* usually ^C */
 
   /* Create Device List */
-  if((err = FLICreateList(MICROLINE_DOMAIN))){
-    fprintf(stderr, "Error FLICreateList: %s\n", strerror((int)-err));
+  if((err = FLICreateList(domain))){
+    fprintf(stderr, "SCI: Error FLICreateList: %s\n", strerror((int)-err));
     scictrlC(0);
   }else{
     if(SCI_DEBUG) printf("SCI: FLI list created\n");
     
     
     /* Create Device List */
-    if((err = FLIListFirst(&domain, file, MAX_PATH, name, MAX_PATH))){
-      fprintf(stderr, "Error FLIListFirst: %s\n", strerror((int)-err));
+    if((err = FLIListFirst(&domain, file, MAX_FILENAME, name, MAX_FILENAME))){
+      fprintf(stderr, "SCI: Error FLIListFirst: %s\n", strerror((int)-err));
     }else{
       if(SCI_DEBUG) printf("SCI: FLI first device found\n");
       FLIDeleteList();
@@ -229,62 +269,62 @@ void sci_proc(void){
   
   /* Open Device */
   if((err = FLIOpen(&dev, file, domain))){
-    fprintf(stderr, "Error FLIOpen: %s\n", strerror((int)-err));
+    fprintf(stderr, "SCI: Error FLIOpen: %s\n", strerror((int)-err));
   }else{
     if(SCI_DEBUG) printf("SCI: FLI device opened\n");
 
-    /* Open Device */
-    if((err = FLISetTemperature(dev, temperature_set))){
-      fprintf(stderr, "Error FLISetTemperature: %s\n", strerror((int)-err));
+    /* Set temperature */
+    if((err = FLISetTemperature(dev, SCI_TEMP))){
+      fprintf(stderr, "SCI: Error FLISetTemperature: %s\n", strerror((int)-err));
     }else{
       if(SCI_DEBUG) printf("SCI: FLI temperature set\n");
     }
 
     /* Set exposure time */
-    if((err = FLISetExposureTime(dev, sci_exp_time))){
-      fprintf(stderr, "Error FLISetExposureTime: %s\n", strerror((int)-err));
+    if((err = FLISetExposureTime(dev, SCI_EXP_TIME))){
+      fprintf(stderr, "SCI: Error FLISetExposureTime: %s\n", strerror((int)-err));
     }else{
       if(SCI_DEBUG) printf("SCI: FLI exposure time set\n");
     }
 
     /* Set frame type */
-    if((err = FLISetFrameType(dev, frame_norm))){
-      fprintf(stderr, "Error FLISetFrameType: %s\n", strerror((int)-err));
+    if((err = FLISetFrameType(dev, FLI_FRAME_TYPE_NORMAL))){
+      fprintf(stderr, "SCI: Error FLISetFrameType: %s\n", strerror((int)-err));
     }else{
       if(SCI_DEBUG) printf("SCI: FLI frame type set\n");
     }
 
     /* Set ROI */
     if((err = FLISetImageArea(dev, SCI_UL_X, SCI_UL_Y, SCI_LR_X, SCI_LR_Y))){
-      fprintf(stderr, "Error FLISetImageArea: %s\n", strerror((int)-err));
+      fprintf(stderr, "SCI: Error FLISetImageArea: %s\n", strerror((int)-err));
     }else{
       if(SCI_DEBUG) printf("SCI: FLI image area set\n");
     }
 
     /* Set horizontal binning */
     if((err = FLISetHBin(dev, SCI_HBIN))){
-      fprintf(stderr, "Error FLISetHBin: %s\n", strerror((int)-err));
+      fprintf(stderr, "SCI: Error FLISetHBin: %s\n", strerror((int)-err));
     }else{
       if(SCI_DEBUG) printf("SCI: FLI HBin set\n");
     }
 
     /* Set vertical binning */
     if((err = FLISetVBin(dev, SCI_VBIN))){
-      fprintf(stderr, "Error FLISetVBin: %s\n", strerror((int)-err));
+      fprintf(stderr, "SCI: Error FLISetVBin: %s\n", strerror((int)-err));
     }else{
       if(SCI_DEBUG) printf("SCI: FLI VBin set\n");
     }
 
     /* Set number of flushes */
     if((err = FLISetNFlushes(dev, SCI_NFLUSHES))){
-      fprintf(stderr, "Error FLISetNFlushes: %s\n", strerror((int)-err));
+      fprintf(stderr, "SCI: Error FLISetNFlushes: %s\n", strerror((int)-err));
     }else{
       if(SCI_DEBUG) printf("SCI: FLI NFlushes set\n");
     }
 
     /* Set bit depth (this causes an error for some reason) */
-    // if((err = FLISetBitDepth(dev, SCI_BITDEPTH))){
-    //   fprintf(stderr, "Error FLISetBitDepth: %s\n", strerror((int)-err)); //do we need this?
+    // if((err = FLISetBitDepth(dev, FLI_MODE_16BIT))){
+    //   fprintf(stderr, "SCI: Error FLISetBitDepth: %s\n", strerror((int)-err)); //do we need this?
     // }else{
     //   if(SCI_DEBUG) printf("SCI: FLI bit depth set\n");
     // }
