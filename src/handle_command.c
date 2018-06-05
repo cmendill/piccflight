@@ -292,7 +292,7 @@ int handle_command(char *line, sm_t *sm_p){
       printf("CMD: Moving hexapod to default positon\n");
       return(CMD_NORMAL);
     }
-    if(!strncasecmp(line,"hex move x",10)){
+    if(!strncasecmp(line,"hex move +x",11)){
       if(sm_p->hex_last_recv == sm_p->hex_last_sent){
 	sm_p->hex_command[HEX_AXIS_X] += trl_poke;
 	sm_p->hex_last_sent++;
@@ -308,7 +308,7 @@ int handle_command(char *line, sm_t *sm_p){
       } else printf("CMD: Hexapod busy...\n");
       return(CMD_NORMAL);
     }
-    if(!strncasecmp(line,"hex move y",10)){
+    if(!strncasecmp(line,"hex move +y",11)){
       if(sm_p->hex_last_recv == sm_p->hex_last_sent){
 	sm_p->hex_command[HEX_AXIS_Y] += trl_poke;
 	sm_p->hex_last_sent++;
@@ -324,7 +324,7 @@ int handle_command(char *line, sm_t *sm_p){
       } else printf("CMD: Hexapod busy...\n");
       return(CMD_NORMAL);
     }
-    if(!strncasecmp(line,"hex move z",10)){
+    if(!strncasecmp(line,"hex move +z",11)){
       if(sm_p->hex_last_recv == sm_p->hex_last_sent){
 	sm_p->hex_command[HEX_AXIS_Z] += trl_poke;
 	sm_p->hex_last_sent++;
@@ -340,7 +340,7 @@ int handle_command(char *line, sm_t *sm_p){
       } else printf("CMD: Hexapod busy...\n");
       return(CMD_NORMAL);
     }
-    if(!strncasecmp(line,"hex move u",10)){
+    if(!strncasecmp(line,"hex move +u",11)){
       if(sm_p->hex_last_recv == sm_p->hex_last_sent){
 	sm_p->hex_command[HEX_AXIS_U] += rot_poke;
 	sm_p->hex_last_sent++;
@@ -356,7 +356,7 @@ int handle_command(char *line, sm_t *sm_p){
       } else printf("CMD: Hexapod busy...\n");
       return(CMD_NORMAL);
     }
-    if(!strncasecmp(line,"hex move v",10)){
+    if(!strncasecmp(line,"hex move +v",11)){
       if(sm_p->hex_last_recv == sm_p->hex_last_sent){
 	sm_p->hex_command[HEX_AXIS_V] += rot_poke;
 	sm_p->hex_last_sent++;
@@ -372,7 +372,7 @@ int handle_command(char *line, sm_t *sm_p){
       } else printf("CMD: Hexapod busy...\n");
       return(CMD_NORMAL);
     }
-    if(!strncasecmp(line,"hex move w",10)){
+    if(!strncasecmp(line,"hex move +w",11)){
       if(sm_p->hex_last_recv == sm_p->hex_last_sent){
 	sm_p->hex_command[HEX_AXIS_W] += rot_poke;
 	sm_p->hex_last_sent++;
