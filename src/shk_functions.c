@@ -685,6 +685,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   shkevent.hed.exptime      = 0;
   shkevent.hed.ontime       = dt;
   shkevent.hed.temp         = 0;
+  shkevent.hed.state        = state;
   shkevent.hed.imxsize      = SHKXS;
   shkevent.hed.imysize      = SHKYS;
   shkevent.hed.mode         = 0;
