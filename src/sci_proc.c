@@ -57,6 +57,21 @@ void scictrlC(int sig){
   exit(sig);
 }
 
+/* Get CCD Temperature */
+double sci_get_temp(flidev_t dev){
+  double temp;
+  uint32 err;
+  
+  /* Get temperature */
+  if((err = FLIGetTemperature(dev, &temp))){
+    fprintf(stderr, "SCI: Error FLIGetTemperature: %s\n", strerror((int)-err));
+    return 99;
+  }else{
+    if(SCI_DEBUG) printf("SCI: FLI temperature: %f\n",temp);
+  }
+  return temp;
+}
+
 /* Exposure function */
 int sci_expose(sm_t *sm_p, flidev_t dev, uint16 *img_buffer){
   int row,i;
@@ -110,7 +125,7 @@ int sci_expose(sm_t *sm_p, flidev_t dev, uint16 *img_buffer){
 }
 
 /* SCI Process Image*/
-void sci_process_image(sm_t *sm_p,uint16 *img_buffer){
+void sci_process_image(sm_t *sm_p,uint16 *img_buffer,double ccdtemp){
   static scievent_t scievent;
   static scifull_t scifull;
   scifull_t* scifull_p;
@@ -155,7 +170,7 @@ void sci_process_image(sm_t *sm_p,uint16 *img_buffer){
   scievent.hed.frame_number = 0; //need to put something here
   scievent.hed.exptime      = 0;
   scievent.hed.ontime       = dt;
-  scievent.hed.temp         = 0;
+  scievent.hed.temp         = ccdtemp;
   scievent.hed.imxsize      = SCIXS;
   scievent.hed.imysize      = SCIYS;
   scievent.hed.mode         = 0;
@@ -240,6 +255,7 @@ void sci_proc(void){
   uint32 count = 0;
   long domain = (FLIDOMAIN_USB | FLIDEVICE_CAMERA);
   uint16 img_buffer[SCI_ROI_XSIZE * SCI_ROI_YSIZE];
+  double ccdtemp;
   
   /* Open Shared Memory */
   sm_t *sm_p;
@@ -322,13 +338,6 @@ void sci_proc(void){
     }else{
       if(SCI_DEBUG) printf("SCI: FLI NFlushes set\n");
     }
-
-    /* Set bit depth */
-    if((err = FLISetBitDepth(dev, FLI_MODE_16BIT))){
-      fprintf(stderr, "SCI: Error FLISetBitDepth: %s\n", strerror((int)-err)); 
-    }else{
-      if(SCI_DEBUG) printf("SCI: FLI bit depth set\n");
-    }
   }
 
 
@@ -337,13 +346,16 @@ void sci_proc(void){
     /* Check if we've been asked to exit */
     if(sm_p->w[SCIID].die)
       scictrlC(0);
+
+    /* Get CCD Temperature */
+    ccdtemp = sci_get_temp(dev);
     
     /* Run Exposure */
     if(sci_expose(sm_p,dev,img_buffer))
       printf("SCI: Exposure failed\n");
     else{
       /*Process Image*/
-      sci_process_image(sm_p,img_buffer);
+      sci_process_image(sm_p,img_buffer,ccdtemp);
     }
     
     /* Check in with the watchdog */
