@@ -58,7 +58,7 @@ void scictrlC(int sig){
 }
 
 /* Exposure function */
-int sci_expose(flidev_t dev, uint16 *img_buffer){
+int sci_expose(sm_t *sm_p, flidev_t dev, uint16 *img_buffer){
   int row,i;
   uint32 err;
   long int timeleft;
@@ -74,8 +74,9 @@ int sci_expose(flidev_t dev, uint16 *img_buffer){
 
   /* Wait for exposure to finish */
   for(i=0;i<exp_timeout;i++){
-    //Checkin with watchdog
-    
+    /* Check in with the watchdog */
+    checkin(sm_p,SCIID);
+       
     //Sleep
     sleep(1);
     
@@ -322,12 +323,12 @@ void sci_proc(void){
       if(SCI_DEBUG) printf("SCI: FLI NFlushes set\n");
     }
 
-    /* Set bit depth (this causes an error for some reason) */
-    // if((err = FLISetBitDepth(dev, FLI_MODE_16BIT))){
-    //   fprintf(stderr, "SCI: Error FLISetBitDepth: %s\n", strerror((int)-err)); //do we need this?
-    // }else{
-    //   if(SCI_DEBUG) printf("SCI: FLI bit depth set\n");
-    // }
+    /* Set bit depth */
+    if((err = FLISetBitDepth(dev, FLI_MODE_16BIT))){
+      fprintf(stderr, "SCI: Error FLISetBitDepth: %s\n", strerror((int)-err)); 
+    }else{
+      if(SCI_DEBUG) printf("SCI: FLI bit depth set\n");
+    }
   }
 
 
@@ -338,7 +339,7 @@ void sci_proc(void){
       scictrlC(0);
     
     /* Run Exposure */
-    if(sci_expose(dev,img_buffer))
+    if(sci_expose(sm_p,dev,img_buffer))
       printf("SCI: Exposure failed\n");
     else{
       /*Process Image*/
@@ -347,9 +348,6 @@ void sci_proc(void){
     
     /* Check in with the watchdog */
     checkin(sm_p,SCIID);
-
-    /* Sleep */
-    sleep(sm_p->w[SCIID].per);
   }
 
   scictrlC(0);
