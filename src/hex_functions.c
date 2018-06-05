@@ -28,6 +28,28 @@ void hex_init(hex_t *hex){
 }
 
 /**************************************************************/
+/* HEX_INIT_CALMODE                                           */
+/*  - Initialize HEX calmode structure                        */
+/**************************************************************/
+void hex_init_calmode(int calmode, calmode_t *hex){
+  //HEX_CALMODE_NONE
+  if(calmode == HEX_CALMODE_NONE){
+    sprintf(hex->name,"HEX_CALMODE_NONE");
+    sprintf(hex->cmd,"none");
+  }
+  //HEX_CALMODE_POKE
+  if(calmode == HEX_CALMODE_POKE){
+    sprintf(hex->name,"HEX_CALMODE_POKE");
+    sprintf(hex->cmd,"poke");
+  }
+  //HEX_CALMODE_SPIRAL
+  if(calmode == HEX_CALMODE_SPIRAL){
+    sprintf(hex->name,"HEX_CALMODE_SPIRAL");
+    sprintf(hex->cmd,"spiral");
+  }
+}
+
+/**************************************************************/
 /* HEX_CONNECT                                                */
 /*  - Open connection to hexapod                              */
 /**************************************************************/
@@ -272,7 +294,7 @@ int hex_calibrate(int calmode, hex_t *hex, int reset){
   double axes[HEX_NAXES];
 
   /* Reset */
-  if(reset || (calmode == HEX_CALMODE_NONE)){
+  if(reset){
     countA=0;
     countB=0;
     countC=0;
@@ -294,6 +316,14 @@ int hex_calibrate(int calmode, hex_t *hex, int reset){
     printf("SHK: shk_process_image --> timespec_subtract error!\n");
   ts2double(&delta,&dt);
     
+  /* HEX_CALMODE_NONE: Do nothing. Just reset counters  */
+  if(calmode == HEX_CALMODE_NONE){
+    countA=0;
+    countB=0;
+    countC=0;
+    return calmode;
+  }
+  
   /* HEX_CALMODE_POKE: Move through axes one at a time. */
   /*                   Go home in between each move.    */
   if(calmode == HEX_CALMODE_POKE){

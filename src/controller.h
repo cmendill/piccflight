@@ -311,7 +311,7 @@ enum bufids {SCIEVENT, SCIFULL,
 #define SHK_READ_MATRIX       1     //Read Zernike fitting matrix instead of building it
 
 /*************************************************
- * Config Structures
+ * Config Structure
  *************************************************/
 typedef struct procinfo_struct{
   int   pid;
@@ -330,6 +330,14 @@ typedef struct procinfo_struct{
   char  *mod;
   void (*launch)(void);
 } procinfo_t;
+
+/*************************************************
+ * Calmode Structure
+ *************************************************/
+typedef struct calmode_struct{
+  char name[128];
+  char cmd[128];
+} calmode_t;
 
 /*************************************************
  * Data Structures

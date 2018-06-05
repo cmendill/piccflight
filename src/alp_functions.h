@@ -3,6 +3,7 @@
 
 //Function prototypes
 void alp_init(alp_t *alp);
+void alp_init_calmode(int calmode, calmode_t *alp);
 int alp_zern2alp(alp_t *alp);
 int alp_calibrate(int calmode, alp_t *alp, int reset);
 void alp_check(alp_t *alp);
@@ -17,6 +18,6 @@ enum alpcalmodes {ALP_CALMODE_NONE,
 		  ALP_CALMODE_POKE,
 		  ALP_CALMODE_ZPOKE,
 		  ALP_CALMODE_FLIGHT,
-		  ALP_NCALMODE};
+		  ALP_NCALMODES};
 
 #endif

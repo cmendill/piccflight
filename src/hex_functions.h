@@ -3,6 +3,7 @@
 
 //Function prototypes
 void hex_init(hex_t *hex);
+void hex_init_calmode(int calmode, calmode_t *hex);
 int hex_connect(void);
 void hex_disconnect(int id);
 int hex_hex2scope(double *position, double *result);
@@ -20,6 +21,7 @@ int hex_calibrate(int calmode, hex_t *hex, int reset);
 enum hexcalmodes {HEX_CALMODE_NONE,
 		  HEX_CALMODE_POKE,
 		  HEX_CALMODE_SPIRAL,
-		  HEX_NCALMODE};
+		  HEX_NCALMODES};
+
 
 #endif

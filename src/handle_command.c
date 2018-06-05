@@ -28,9 +28,35 @@ void print_states(sm_t *sm_p){
   printf("************ Available States ************\n");
   printf("#    Command    Name\n");
   for(i=0;i<NSTATES;i++)
-    printf("%02d   %s        %s\n",i,sm_p->state_array[i].cmd,sm_p->state_array[i].name);
+    printf("%02d   %-6s     %s\n",i,sm_p->state_array[i].cmd,sm_p->state_array[i].name);
   printf("******************************************\n");
   
+}
+
+/**************************************************************/
+/* PRINT_ALP_CALMODES                                         */
+/*  - Print available ALP calmodes                          */
+/**************************************************************/
+void print_alp_calmodes(calmode_t *alp){
+  int i;
+  printf("************ Available ALP Calmodes  ************\n");
+  printf("#    Command    Name\n");
+  for(i=0;i<ALP_NCALMODES;i++)
+    printf("%02d   %-6s     %s\n",i,alp[i].cmd,alp[i].name);
+  printf("*************************************************\n");
+}
+
+/**************************************************************/
+/* PRINT_HEX_CALMODES                                         */
+/*  - Print available HEX calmodes                            */
+/**************************************************************/
+void print_hex_calmodes(calmode_t *hex){
+  int i;
+  printf("************ Available HEX Calmodes  ************\n");
+  printf("#    Command    Name\n");
+  for(i=0;i<HEX_NCALMODES;i++)
+    printf("%02d   %-6s     %s\n",i,hex[i].cmd,hex[i].name);
+  printf("*************************************************\n");
 }
 
 /**************************************************************/
@@ -41,10 +67,27 @@ int handle_command(char *line, sm_t *sm_p){
   float ftemp;
   int   itemp;
   char  stemp[CMD_MAX_LENGTH];
-  int   found_state=0;
+  int   cmdfound=0;
   int   i;
   static double trl_poke = HEX_TRL_POKE;//0.01;
   static double rot_poke = HEX_ROT_POKE;///0.01;
+  static calmode_t alpcalmodes[ALP_NCALMODES];
+  static calmode_t hexcalmodes[HEX_NCALMODES];
+  static int init=0;
+
+  /****************************************
+   * INITIALIZE
+   ***************************************/
+  if(!init){
+    //Init ALP calmodes
+    for(i=0;i<ALP_NCALMODES;i++)
+      alp_init_calmode(i,&alpcalmodes[i]);
+    //Init HEX calmodes
+    for(i=0;i<HEX_NCALMODES;i++)
+      hex_init_calmode(i,&hexcalmodes[i]);
+    //Set init flag
+    init=1;
+  }
   
   /****************************************
    * SYSTEM COMMANDS
@@ -85,14 +128,36 @@ int handle_command(char *line, sm_t *sm_p){
 
   //ALP Calmodes
   if(!strncasecmp(line,"alp calmode",11)){
-    itemp = atoi(line+11);
-    if(itemp >= 0 && itemp < ALP_NCALMODE){
-      sm_p->alp_calmode=itemp;
-      printf("CMD: Changed ALP calibration mode to %d\n",sm_p->alp_calmode);
-    }else printf("CMD: Invalid ALP calmode %d\n",itemp);
+    cmdfound = 0;
+    for(i=0;i<ALP_NCALMODES;i++){
+      if(!strncasecmp(line+12,alpcalmodes[i].cmd,strlen(alpcalmodes[i].cmd))){
+	sm_p->alp_calmode=i;
+	printf("CMD: Changed ALP calibration mode to %s\n",alpcalmodes[i].name);
+	cmdfound = 1;
+      }
+    }
+    if(!cmdfound)
+      print_alp_calmodes(alpcalmodes);
+    
     return(CMD_NORMAL);
   }
 
+  //HEX Calmodes
+  if(!strncasecmp(line,"hex calmode",11)){
+    cmdfound = 0;
+    for(i=0;i<HEX_NCALMODES;i++){
+      if(!strncasecmp(line+12,hexcalmodes[i].cmd,strlen(hexcalmodes[i].cmd))){
+	sm_p->hex_calmode=i;
+	printf("CMD: Changed HEX calibration mode to %s\n",hexcalmodes[i].name);
+	cmdfound = 1;
+      }
+    }
+    if(!cmdfound)
+      print_hex_calmodes(hexcalmodes);
+    
+    return(CMD_NORMAL);
+  }
+  
   //ALP Calibration
   if(!strncasecmp(line,"shk calibrate alp",17)){
     printf("CMD: Running SHK ALP calibration\n");
@@ -125,15 +190,15 @@ int handle_command(char *line, sm_t *sm_p){
 
   //States
   if(!strncasecmp(line,"state",5)){
-    found_state=0;
+    cmdfound=0;
     for(i=0;i<NSTATES;i++){
-      if(!strncasecmp(line+6,(char *)sm_p->state_array[i].cmd,3)){
+      if(!strncasecmp(line+6,(char *)sm_p->state_array[i].cmd,strlen((char *)sm_p->state_array[i].cmd))){
 	sm_p->state = i;
 	printf("CMD: Changing state to %s\n",sm_p->state_array[i].name);
-	found_state = 1;
+	cmdfound = 1;
       }
     }
-    if(!found_state) print_states(sm_p);
+    if(!cmdfound) print_states(sm_p);
     return(CMD_NORMAL);
   }
 
@@ -337,16 +402,6 @@ int handle_command(char *line, sm_t *sm_p){
     }
   }
   
-  //HEX Calmodes
-  if(!strncasecmp(line,"hex calmode",11)){
-    itemp = atoi(line+11);
-    if(itemp >= 0 && itemp < HEX_NCALMODE){
-      sm_p->hex_calmode=itemp;
-      printf("CMD: Changed HEX calibration mode to %d\n",sm_p->hex_calmode);
-    }else printf("CMD: Invalid HEX calmode %d\n",itemp);
-    return(CMD_NORMAL);
-  }
-
   //HEX Calibration
   if(!strncasecmp(line,"shk calibrate hex",17)){
     printf("CMD: Running HEX AXS calibration\n");

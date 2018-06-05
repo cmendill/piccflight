@@ -25,6 +25,34 @@ void alp_init(alp_t *alp){
 }
 
 /**************************************************************/
+/* ALP_INIT_CALMODE                                           */
+/*  - Initialize ALP calmode structure                        */
+/**************************************************************/
+void alp_init_calmode(int calmode, calmode_t *alp){
+  //ALP_CALMODE_NONE
+  if(calmode == ALP_CALMODE_NONE){
+    sprintf(alp->name,"ALP_CALMODE_NONE");
+    sprintf(alp->cmd,"none");
+  }
+  //ALP_CALMODE_POKE
+  if(calmode == ALP_CALMODE_POKE){
+    sprintf(alp->name,"ALP_CALMODE_POKE");
+    sprintf(alp->cmd,"poke");
+  }
+  //ALP_CALMODE_ZPOKE
+  if(calmode == ALP_CALMODE_ZPOKE){
+    sprintf(alp->name,"ALP_CALMODE_ZPOKE");
+    sprintf(alp->cmd,"zpoke");
+  }
+  //ALP_CALMODE_FLIGHT
+  if(calmode == ALP_CALMODE_FLIGHT){
+    sprintf(alp->name,"ALP_CALMODE_FLIGHT");
+    sprintf(alp->cmd,"flight");
+  }
+
+}
+
+/**************************************************************/
 /* ALP_ZERN2ALP                                               */
 /*  - Convert zernike commands to ALPAO DM commands           */
 /**************************************************************/
@@ -97,7 +125,7 @@ int alp_calibrate(int calmode, alp_t *alp, int reset){
   double act[ALP_NACT];
  
   /* Reset */
-  if(reset || (calmode==ALP_CALMODE_NONE)){
+  if(reset){
     countA=0;
     countB=0;
     init=0;
@@ -164,6 +192,13 @@ int alp_calibrate(int calmode, alp_t *alp, int reset){
   if(timespec_subtract(&delta,&this,&start))
     printf("SHK: shk_process_image --> timespec_subtract error!\n");
   ts2double(&delta,&dt);
+
+  /* ALP_CALMODE_NONE: Do nothing. Just reset counters.            */
+  if(calmode==ALP_CALMODE_NONE){
+    countA=0;
+    countB=0;
+    return calmode;
+  }
 
   /* ALP_CALMODE_POKE: Scan through acuators poking one at a time. */
   /*                   Set flat in between each poke.              */
