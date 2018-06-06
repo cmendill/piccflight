@@ -216,7 +216,7 @@ int alp_calibrate(int calmode, alp_t *alp, int reset){
       countA++;
     }else{
       //Turn off calibration
-      printf("ALP: Stopping ALP calmode %d\n",ALP_CALMODE_POKE);
+      printf("ALP: Stopping ALP calmode ALP_CALMODE_POKE\n");
       calmode = ALP_CALMODE_NONE;
       init = 0;
     }
@@ -246,7 +246,7 @@ int alp_calibrate(int calmode, alp_t *alp, int reset){
       }
       countA++;
     }else{
-      printf("ALP: Stopping calmode %d\n",ALP_CALMODE_ZPOKE);
+      printf("ALP: Stopping calmode ALP_CALMODE_ZPOKE\n");
       calmode = ALP_CALMODE_NONE;
       init = 0;
     }
@@ -274,7 +274,7 @@ int alp_calibrate(int calmode, alp_t *alp, int reset){
       countA++;
     }else{
       //Turn off calibration
-      printf("ALP: Stopping ALP calmode %d\n",ALP_CALMODE_FLIGHT);
+      printf("ALP: Stopping ALP calmode ALP_CALMODE_FLIGHT\n");
       calmode = ALP_CALMODE_NONE;
       init = 0;
       return calmode;

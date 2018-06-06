@@ -345,7 +345,7 @@ int hex_calibrate(int calmode, hex_t *hex, int reset){
     }
     else{
       //Turn off calibration
-      printf("HEX: Stopping HEX calmode %d\n",HEX_CALMODE_POKE);
+      printf("HEX: Stopping HEX calmode HEX_CALMODE_POKE\n");
       for(i=0;i<HEX_NAXES;i++)
         hex->axis_cmd[i] = hexdef[i];
       calmode = HEX_CALMODE_NONE;
@@ -377,7 +377,7 @@ int hex_calibrate(int calmode, hex_t *hex, int reset){
       countC++;
     }else{
       //Turn off calibration
-      printf("HEX: Stopping HEX calmode %d\n",HEX_CALMODE_SPIRAL);
+      printf("HEX: Stopping HEX calmode HEX_CALMODE_SPIRAL\n");
       calmode = HEX_CALMODE_SPIRAL;
       countC = 0;
     }
