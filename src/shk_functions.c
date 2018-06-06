@@ -721,12 +721,10 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     shk_cellpid(&shkevent, 0);
   
   //Calibrate ALP
-  if(sm_p->state_array[state].shk.calibrate_alp)
-    sm_p->alp_calmode = alp_calibrate(shkevent.alp_calmode,&shkevent.alp,0);
+  sm_p->alp_calmode = alp_calibrate(shkevent.alp_calmode,&shkevent.alp,0);
   
   //Calibrate HEX
-  if(sm_p->state_array[state].shk.calibrate_hex)
-    sm_p->hex_calmode = hex_calibrate(shkevent.hex_calmode,&shkevent.hex,0);
+  sm_p->hex_calmode = hex_calibrate(shkevent.hex_calmode,&shkevent.hex,0);
 
   //Offload tilt to hexapod
   if(sm_p->state_array[state].shk.offload_tilt_to_hex){
