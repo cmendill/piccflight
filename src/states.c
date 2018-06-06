@@ -71,7 +71,7 @@ void init_state(int state_number, state_t *state){
     //Set name
     sprintf(state->name,"STATE_HEX_MANUAL_CONTROL");
     //Set cmd
-    sprintf(state->cmd,"hmn");
+    sprintf(state->cmd,"hmc");
     //Config Cameras
     state->shk.run_camera = 1;
     state->lyt.run_camera = 1;
@@ -79,6 +79,8 @@ void init_state(int state_number, state_t *state){
     state->acq.run_camera = 1;
     //Define user as hex controller
     state->usr.control_hex = 1;
+    //Enable SHk zernike fitting
+    state->shk.fit_zernikes = 1;
     return;
   }
 
@@ -158,17 +160,10 @@ void init_state(int state_number, state_t *state){
     state->lyt.run_camera = 1;
     state->sci.run_camera = 1;
     state->acq.run_camera = 1;
-    //All cameras ON
-    state->shk.run_camera = 1;
-    state->lyt.run_camera = 1;
-    state->sci.run_camera = 1;
-    state->acq.run_camera = 1;
     //SHK Settings
     state->shk.fit_zernikes = 1;
     state->shk.pid_zernikes = 1;
-    state->shk.only_tilt_to_alp  = 1;
-    state->shk.only_astig_and_focus_to_hex = 1;
-    state->shk.offload_tilt_to_hex = 1;
+    state->shk.all_zernikes_to_hex = 1;
     return;
   }
 

@@ -121,6 +121,8 @@ enum procids {WATID, SCIID, SHKID, LYTID, TLMID, ACQID, MOTID, THMID, SRVID, HEX
 #define ZERNIKE2ALP_FILE  "data/shk/zern2alp.dat"
 #define SHK2ZERNIKE_FILE  "data/shk/shk2zern.dat"
 #define ASTIG2TILT_FILE   "data/shk/astig2tilt.dat"
+#define SHK_HEX_CALFILE   "data/test_data/shk_hex_caldata.dat"
+#define SHK_ALP_CALFILE   "data/test_data/shk_alp_caldata.dat"
 #define MAX_FILENAME      128
 
 
@@ -550,6 +552,9 @@ typedef volatile struct {
 
   //HEX Calibration Mode
   int hex_calmode;
+
+  //Calibration file name
+  char calfile[MAX_FILENAME];
 
   //Shack-Hartmann Settings
   int shk_boxsize;        //SHK centroid boxsize

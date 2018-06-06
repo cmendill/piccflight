@@ -24,8 +24,6 @@ enum states { STATE_STANDBY,
 // Shack-Hartmann Control (shk_proc.c)
 typedef struct shkctrl_struct{
   int run_camera;
-  int calibrate_alp;
-  int calibrate_hex;
   int fit_zernikes;
   int pid_cells;
   int pid_zernikes;
@@ -42,8 +40,6 @@ typedef struct shkctrl_struct{
 // Lyot Sensor Control (lyt_proc.c)
 typedef struct lytctrl_struct{
   int run_camera;
-  int calibrate_alp;
-  int calibrate_hex;
   int all_zernikes_to_alp;
   int offload_tilt_to_hex;
   int offload_tilt_to_wasp;
@@ -51,9 +47,6 @@ typedef struct lytctrl_struct{
 // Science Camera Control (sci_proc.c)
 typedef struct scictrl_struct{
   int run_camera;
-  int calibrate_alp;
-  int calibrate_hex;
-  int calibrate_bmc;
   int sensing_bmc;
   int dig_dark_hole;
 } scictrl_t;
@@ -61,7 +54,6 @@ typedef struct scictrl_struct{
 typedef struct acqctrl_struct{
   int run_camera;
   int locate_led;
-  int calibrate_hex;
   int hex_spiral_search;
   int hex_capture_target;
   int hex_thermal_home;

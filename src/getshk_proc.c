@@ -18,6 +18,7 @@ int getshk_shmfd;
 FILE *out=NULL;
 int getshk_run=1;
 unsigned long int getshk_count=0;
+char outfile[MAX_FILENAME];
 
 /* CTRL-C Function */
 void getshkctrlC(int sig)
@@ -27,14 +28,13 @@ void getshkctrlC(int sig)
 #endif
   getshk_run = 0;
   sleep(1);
-  printf("GETSHK: Collected %lu shkevents\n",getshk_count);
+  printf("GETSHK: Wrote %lu shkevents to %s\n",getshk_count,outfile);
   close(getshk_shmfd);
   fclose(out);
   exit(sig);
 }
 
 void getshk_proc(void){
-  char outfile[256];
   static shkevent_t shkevent;
   
   /* Open Shared Memory */
@@ -50,7 +50,7 @@ void getshk_proc(void){
 
   /* Open output file */
   //--setup filename
-  sprintf(outfile,"data/test_data/getshk_output.dat");
+  sprintf(outfile,(char *)sm_p->calfile);
   //--open file
   out = fopen(outfile,"w");
   if(out==NULL){

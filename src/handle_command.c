@@ -161,8 +161,10 @@ int handle_command(char *line, sm_t *sm_p){
   //ALP Calibration
   if(!strncasecmp(line,"shk calibrate alp",17)){
     printf("CMD: Running SHK ALP calibration\n");
-    printf("  -- Disabling PID\n");
+    //Change calibration output filename
+    sprintf((char *)sm_p->calfile,SHK_HEX_CALFILE);
     //Turn off gains
+    printf("  -- Disabling PID\n");
     sm_p->shk_kP_cell = 0;
     sm_p->shk_kI_cell = 0;
     sm_p->shk_kD_cell = 0;
@@ -177,14 +179,14 @@ int handle_command(char *line, sm_t *sm_p){
     sleep(3);
     //Start probe pattern
     sm_p->alp_calmode = ALP_CALMODE_POKE;
-    printf("  -- Changing ALP calibration mode to %d\n",sm_p->alp_calmode);
+    printf("  -- Changing ALP calibration mode to %s\n",alpcalmodes[sm_p->alp_calmode].name);
     while(sm_p->alp_calmode == ALP_CALMODE_POKE)
       sleep(1);
     //Stop data recording
     printf("  -- Stopping data recording\n");
     sm_p->w[DIAID].run    = 0;
     printf("  -- Done\n");
-
+    
     return(CMD_NORMAL);
   }
 
@@ -202,37 +204,6 @@ int handle_command(char *line, sm_t *sm_p){
     return(CMD_NORMAL);
   }
 
-  
-
-  //SHK Zernike Calibration
-  if(!strncasecmp(line,"shk calibrate zern",18)){
-    printf("CMD: Running SHK Zern calibration\n");
-    printf("  -- Disabling PID\n");
-    //Turn off gains
-    sm_p->shk_kP_cell = 0;
-    sm_p->shk_kI_cell = 0;
-    sm_p->shk_kD_cell = 0;
-    sm_p->shk_kP_zern = 0;
-    sm_p->shk_kI_zern = 0;
-    sm_p->shk_kD_zern = 0;
-    sleep(1);
-    //Start data recording
-    printf("  -- Starting data recording\n");
-    sm_p->w[DIAID].launch = getshk_proc;
-    sm_p->w[DIAID].run    = 1;
-    sleep(3);
-    //Start probe pattern
-    sm_p->alp_calmode=ALP_CALMODE_ZPOKE;
-    printf("  -- Changing ALP calibration mode to %d\n",sm_p->alp_calmode);
-    while(sm_p->alp_calmode == ALP_CALMODE_ZPOKE)
-      sleep(1);
-    //Stop data recording
-    printf("  -- Stopping data recording\n");
-    sm_p->w[DIAID].run    = 0;
-    printf("  -- Done\n");
-    
-    return(CMD_NORMAL);
-  }
   
   //SHK Flight Test
   if(!strncasecmp(line,"shk flight test",15)){
@@ -405,8 +376,10 @@ int handle_command(char *line, sm_t *sm_p){
   //HEX Calibration
   if(!strncasecmp(line,"shk calibrate hex",17)){
     printf("CMD: Running HEX AXS calibration\n");
-    printf("  -- Disabling PID\n");
+    //Change calibration output filename
+    sprintf((char *)sm_p->calfile,SHK_ALP_CALFILE);
     //Turn off gains
+    printf("  -- Disabling PID\n");
     sm_p->shk_kP_cell = 0;
     sm_p->shk_kI_cell = 0;
     sm_p->shk_kD_cell = 0;
@@ -422,7 +395,7 @@ int handle_command(char *line, sm_t *sm_p){
     sleep(3);
     //Start probe pattern
     sm_p->hex_calmode = HEX_CALMODE_POKE;
-    printf("  -- Changing HEX calibration mode to %d\n",sm_p->hex_calmode);
+    printf("  -- Changing HEX calibration mode to %s\n",hexcalmodes[sm_p->hex_calmode].name);
     while(sm_p->hex_calmode == HEX_CALMODE_POKE)
       sleep(1);
     printf("  -- Stopping data recording\n");
