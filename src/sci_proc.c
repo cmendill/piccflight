@@ -360,6 +360,9 @@ void sci_proc(void){
     
     /* Check in with the watchdog */
     checkin(sm_p,SCIID);
+
+    /* Sleep */
+    sleep(sm_p->w[SCIID].per);
   }
 
   scictrlC(0);
