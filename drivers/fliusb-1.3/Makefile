@@ -14,6 +14,12 @@ all: module cleanup
 module:
 	$(MAKE) -C $(KDIR) SUBDIRS=$(PWD) modules
 
+install: 
+	-/sbin/modprobe -r fliusb > /dev/null 2>&1
+	install -D -gwheel -oroot -m744 fliusb.ko /lib/modules/$(shell uname -r)/kernel/drivers/usb/fli/fliusb.ko
+	/sbin/depmod -a
+	/sbin/modprobe fliusb
+
 cleanup:
 	rm -f *.o .*.cmd *.mod.c; rm -rf .tmp_versions
 
