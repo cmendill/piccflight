@@ -47,7 +47,7 @@ LIST OF PROCESSES
 LIST OF DRIVERS
  - RTD DM7820
  - Active Silicon Pheonix (phx) Framegrabber
- - QuickUsb
+ - FLI USB
  
 LIST OF LIBRARIES
  - PI C887 Hexapod
@@ -68,6 +68,7 @@ REQUIRED PACKAGES
 BUILD INSTRUCTIONS
  - type: make
  - binaries are written into the bin folder
+ - After installing the drivers to /lib/modules insert driver names into /etc/modules for auto-loading
 
 RUN INSTRUCTIONS
  - cd bin/
