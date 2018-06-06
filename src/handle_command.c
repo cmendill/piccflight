@@ -169,7 +169,7 @@ int handle_command(char *line, sm_t *sm_p){
     sm_p->shk_kP_zern = 0;
     sm_p->shk_kI_zern = 0;
     sm_p->shk_kD_zern = 0;
-    sleep(1);
+    sleep(3);
     //Start data recording
     printf("  -- Starting data recording\n");
     sm_p->w[DIAID].launch = getshk_proc;
