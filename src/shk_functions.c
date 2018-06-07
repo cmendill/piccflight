@@ -91,7 +91,7 @@ int shk_setorigin(shkevent_t *shkevent){
 /* SHK_CENTROID_CELL                                          */
 /*  - Measure the centroid of a single SHK cell               */
 /**************************************************************/
-void shk_centroid_cell(uint16 *image, shkcell_t *cell, int shk_boxsize, int calmode){
+void shk_centroid_cell(uint16 *image, shkcell_t *cell, int shk_boxsize){
   double xnum=0, ynum=0, total=0;
   static double background = 0;
   uint32 maxpix=0,maxval=0;
@@ -223,12 +223,12 @@ void shk_centroid(uint16 *image, shkevent_t *shkevent){
   shkevent->ytilt=0;
 
   //Get background
-  shk_centroid_cell(image,&shkevent->cells[0],shkevent->boxsize,shkevent->alp_calmode);
+  shk_centroid_cell(image,&shkevent->cells[0],shkevent->boxsize);
 
   //Centroid cells
   for(i=0;i<SHK_NCELLS;i++){
     if(shkevent->cells[i].beam_select){
-      shk_centroid_cell(image,&shkevent->cells[i],shkevent->boxsize,shkevent->alp_calmode);
+      shk_centroid_cell(image,&shkevent->cells[i],shkevent->boxsize);
       shkevent->xtilt += shkevent->cells[i].deviation[0];
       shkevent->ytilt += shkevent->cells[i].deviation[1];
     }
@@ -243,7 +243,7 @@ void shk_centroid(uint16 *image, shkevent_t *shkevent){
 /* SHK_ZERNIKE_MATRIX                                         */
 /*  - Build SHK Zernike fitting matrix                        */
 /**************************************************************/
-void shk_zernike_matrix(shkevent_t *shkevent, double *matrix_inv){
+void shk_zernike_matrix(shkcell_t cells, double *matrix_inv){
   int i, beam_ncells=0;
   int beam_cell_index[SHK_NCELLS] = {0};
   double max_x = 0, max_y = 0, min_x = SHKXS, min_y = SHKYS;
@@ -254,13 +254,12 @@ void shk_zernike_matrix(shkevent_t *shkevent, double *matrix_inv){
   // beam_center = [mean(x), mean(y)] of beam cell origins
   // beam_radius = [(max(x)-min(x))/2, (max(y)-min(y))/2] of beam cell origins
   for(i=0; i<SHK_NCELLS; i++) {
-    if (shkevent->cells[i].beam_select) {
-      beam_cell_index[beam_ncells] = i;
-      max_x = (shkevent->cells[i].origin[0] > max_x) ? shkevent->cells[i].origin[0] : max_x; // hold on to max x
-      max_y = (shkevent->cells[i].origin[1] > max_y) ? shkevent->cells[i].origin[1] : max_y; // hold on to max y
-      min_x = (shkevent->cells[i].origin[0] < min_x) ? shkevent->cells[i].origin[0] : min_x; // hold on to min x
-      min_y = (shkevent->cells[i].origin[1] < min_y) ? shkevent->cells[i].origin[1] : min_y; // hold on to min y
-      beam_ncells++;
+    if (cells[i].beam_select) {
+      beam_cell_index[beam_ncells++] = i;
+      max_x = (cells[i].origin[0] > max_x) ? cells[i].origin[0] : max_x; // hold on to max x
+      max_y = (cells[i].origin[1] > max_y) ? cells[i].origin[1] : max_y; // hold on to max y
+      min_x = (cells[i].origin[0] < min_x) ? cells[i].origin[0] : min_x; // hold on to min x
+      min_y = (cells[i].origin[1] < min_y) ? cells[i].origin[1] : min_y; // hold on to min y
     }
   }
 
@@ -284,12 +283,12 @@ void shk_zernike_matrix(shkevent_t *shkevent, double *matrix_inv){
   double x_1 = 0, x_2 = 0, x_3 = 0, x_4 = 0, x_5=0;
   double y_1 = 0, y_2 = 0, y_3 = 0, y_4 = 0, y_5=0;
   for(i=0; i<beam_ncells; i++) {
-    x_1 = (shkevent->cells[beam_cell_index[i]].origin[0] - beam_center[0])/beam_radius[0];    //unitless [px/px] (-1 to +1)
+    x_1 = (cells[beam_cell_index[i]].origin[0] - beam_center[0])/beam_radius[0];    //unitless [px/px] (-1 to +1)
     x_2 = pow(x_1,2);
     x_3 = pow(x_1,3);
     x_4 = pow(x_1,4);
     x_5 = pow(x_1,5);
-    y_1 = (shkevent->cells[beam_cell_index[i]].origin[1] - beam_center[1])/beam_radius[1];    //unitless [px/px] (-1 to +1)
+    y_1 = (cells[beam_cell_index[i]].origin[1] - beam_center[1])/beam_radius[1];    //unitless [px/px] (-1 to +1)
     y_2 = pow(y_1,2);
     y_3 = pow(y_1,3);
     y_4 = pow(y_1,4);
@@ -416,7 +415,7 @@ void shk_zernike_fit(shkevent_t *shkevent){
     
     //Generate the zernike matrix
     if(regen_matrix) 
-      shk_zernike_matrix(shkevent, shk2zern);
+      shk_zernike_matrix(shkevent->cells, shk2zern);
   }
   
 
