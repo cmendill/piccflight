@@ -199,15 +199,14 @@ int hex_setpivot(int id, double *pivot){
 /* HEX_ZERN2HEX                                               */
 /*  - Convert from zernike commands to hexapod commands       */
 /**************************************************************/
-int hex_zern2hex(hex_t *hex){
+int hex_zern2hex(double *zernikes, double *axes){
   FILE *fp=NULL;
   char matrix_file[MAX_FILENAME];
   static int init=0;
   static double zern2hex_matrix[LOWFS_N_HEX_ZERNIKE*HEX_NAXES]={0};
-  static double astig2tilt_matrix[LOWFS_N_HEX_ZERNIKE*HEX_NAXES]={0};
-  double zernike_cmd[LOWFS_N_HEX_ZERNIKE];
   uint64 fsize,rsize;
   int c,i;
+  double hex_zernikes[LOWFS_N_HEX_ZERNIKES]={0};
 
 
   if(!init){
@@ -238,43 +237,16 @@ int hex_zern2hex(hex_t *hex){
     //--close file
     fclose(fp);
 
-    /* Open astig2tilt matrix file */
-    //--setup filename
-    sprintf(matrix_file,ASTIG2TILT_FILE);
-    //--open file
-    if((fp = fopen(matrix_file,"r")) == NULL){
-      printf("astig2tilt file\n");
-      perror("fopen");
-      return 1;
-    }
-    //--check file size
-    fseek(fp, 0L, SEEK_END);
-    fsize = ftell(fp);
-    rewind(fp);
-    rsize = (LOWFS_N_HEX_ZERNIKE)*HEX_NAXES*sizeof(double);
-    if(fsize != rsize){
-      printf("HEX: incorrect astig2tilt matrix file size %lu != %lu\n",fsize,rsize);
-      return 1;
-    }
-    //--read matrix
-    if(fread(astig2tilt_matrix,(LOWFS_N_HEX_ZERNIKE)*HEX_NAXES*sizeof(double),1,fp) != 1){
-      printf("astig2tilt file\r");
-      perror("fread");
-      return 1;
-    }
-    //--close file
-    fclose(fp);
-
     //--set init flag
     init=1;
   }
 
   //Select HEX zernike commands
   for(i=0;i<LOWFS_N_HEX_ZERNIKE;i++)
-    zernike_cmd[i] = hex->zernike_cmd[i];
+    hex_zernikes[i] = zernikes[i];
       
   //Do Matrix Multiply
-  num_dgemv(zern2hex_matrix, zernike_cmd, hex->axis_cmd, HEX_NAXES, LOWFS_N_HEX_ZERNIKE);
+  num_dgemv(zern2hex_matrix, hex_zernikes, axes, HEX_NAXES, LOWFS_N_HEX_ZERNIKE);
   
   return 0;
 }
@@ -283,12 +255,13 @@ int hex_zern2hex(hex_t *hex){
 /* HEX_CALIBRATE                                              */
 /*  - Run hexapod calibration routines                        */
 /**************************************************************/
-int hex_calibrate(int calmode, hex_t *hex, int reset){
+int hex_calibrate(int calmode, hex_t *hex, int reset, uint64 counter){
   int i;
   double hexdef[6]  = HEX_POS_DEFAULT;
   static struct timespec start,this,last,delta;
-  static unsigned long int countA=0, countB=0, countC=0;
+  static uint64 countA=0, countB=0, countC=0, last_counter=0;
   static int init=0;
+  static uint64
   time_t t;
   double dt=0;
   double axes[HEX_NAXES];
@@ -298,6 +271,7 @@ int hex_calibrate(int calmode, hex_t *hex, int reset){
     countA=0;
     countB=0;
     countC=0;
+    last_counter=0;
     init=0;
     return calmode;
   }
@@ -307,80 +281,88 @@ int hex_calibrate(int calmode, hex_t *hex, int reset){
     countA=0;
     countB=0;
     countC=0;
+    last_counter=0;
     clock_gettime(CLOCK_REALTIME, &start);
     init=1;
   }
-  /* Calculate times */
-  clock_gettime(CLOCK_REALTIME, &this);
-  if(timespec_subtract(&delta,&this,&start))
-    printf("SHK: shk_process_image --> timespec_subtract error!\n");
-  ts2double(&delta,&dt);
+
+  /* Proceede if counter has increased */
+  if(counter > last_counter){
+    /* Calculate times */
+    clock_gettime(CLOCK_REALTIME, &this);
+    if(timespec_subtract(&delta,&this,&start))
+      printf("SHK: shk_process_image --> timespec_subtract error!\n");
+    ts2double(&delta,&dt);
     
-  /* HEX_CALMODE_NONE: Do nothing. Just reset counters  */
-  if(calmode == HEX_CALMODE_NONE){
-    countA=0;
-    countB=0;
-    countC=0;
-    return calmode;
-  }
+    /* HEX_CALMODE_NONE: Do nothing. Just reset counters  */
+    if(calmode == HEX_CALMODE_NONE){
+      countA=0;
+      countB=0;
+      countC=0;
+      return calmode;
+    }
   
-  /* HEX_CALMODE_POKE: Move through axes one at a time. */
-  /*                   Go home in between each move.    */
-  if(calmode == HEX_CALMODE_POKE){
-    if((countA >= 0 && countA < (2*HEX_NAXES*HEX_NCALIM)) || (countA/HEX_NCALIM) % 2 == 0){
-      //move hexapod to default position.
-      for(i=0;i<HEX_NAXES;i++){
-        hex->axis_cmd[i]=hexdef[i];
+    /* HEX_CALMODE_POKE: Move through axes one at a time. */
+    /*                   Go home in between each move.    */
+    if(calmode == HEX_CALMODE_POKE){
+      if((countA >= 0 && countA < (2*HEX_NAXES*HEX_NCALIM)) || (countA/HEX_NCALIM) % 2 == 0){
+	//move hexapod to default position.
+	for(i=0;i<HEX_NAXES;i++){
+	  hex->axis_cmd[i]=hexdef[i];
+	}
+	//move one axis
+	if((countA/HEX_NCALIM) % 2 == 1){
+	  if((countB/HEX_NCALIM) % HEX_NAXES <=2){
+	    hex->axis_cmd[(countB/HEX_NCALIM) % HEX_NAXES] += HEX_TRL_POKE;
+	  }else{
+	    hex->axis_cmd[(countB/HEX_NCALIM) % HEX_NAXES] += HEX_ROT_POKE;
+	  }
+	  countB++;
+	}
+	countA++;
       }
-      //move one axis
-      if((countA/HEX_NCALIM) % 2 == 1){
-        if((countB/HEX_NCALIM) % HEX_NAXES <=2){
-          hex->axis_cmd[(countB/HEX_NCALIM) % HEX_NAXES] += HEX_TRL_POKE;
-        }else{
-          hex->axis_cmd[(countB/HEX_NCALIM) % HEX_NAXES] += HEX_ROT_POKE;
-        }
-        countB++;
+      else{
+	//Turn off calibration
+	printf("HEX: Stopping HEX calmode HEX_CALMODE_POKE\n");
+	for(i=0;i<HEX_NAXES;i++)
+	  hex->axis_cmd[i] = hexdef[i];
+	calmode = HEX_CALMODE_NONE;
+	init = 0;
       }
-      countA++;
+      return calmode;
     }
-    else{
-      //Turn off calibration
-      printf("HEX: Stopping HEX calmode HEX_CALMODE_POKE\n");
-      for(i=0;i<HEX_NAXES;i++)
-        hex->axis_cmd[i] = hexdef[i];
-      calmode = HEX_CALMODE_NONE;
-      init = 0;
+
+    /* HEX_CALMODE_SPIRAL: Spiral Search. Tip/tilt hexapod axes in a spiral. */
+
+    if(calmode == HEX_CALMODE_SPIRAL){
+      double u_step;
+      double v_step;
+      int max_step = 5000;
+      double spiral_radius = 0.00001;
+      double start[HEX_NAXES] = HEX_POS_DEFAULT;
+
+      if((countC) <= max_step){
+	u_step = countC * spiral_radius * cos(countC * (PI/180.0));
+	v_step = countC * spiral_radius * sin(countC * (PI/180.0));
+	hex->axis_cmd[3] = start[3] + 0.005 + u_step;
+	hex->axis_cmd[4] = start[4] + 0.005 + v_step;
+	if(countC == 0){
+	  sleep(1);
+	}
+	if((countC % 20)==0){
+	  printf("Searching... %lu\n", countC/20);
+	}
+	countC++;
+      }else{
+	//Turn off calibration
+	printf("HEX: Stopping HEX calmode HEX_CALMODE_SPIRAL\n");
+	calmode = HEX_CALMODE_SPIRAL;
+	countC = 0;
+      }
     }
-    return calmode;
+    //Save counter
+    last_counter = counter;
   }
-
-  /* HEX_CALMODE_SPIRAL: Spiral Search. Tip/tilt hexapod axes in a spiral. */
-
-  if(calmode == HEX_CALMODE_SPIRAL){
-    double u_step;
-    double v_step;
-    int max_step = 5000;
-    double spiral_radius = 0.00001;
-    double start[HEX_NAXES] = HEX_POS_DEFAULT;
-
-    if((countC) <= max_step){
-      u_step = countC * spiral_radius * cos(countC * (PI/180.0));
-      v_step = countC * spiral_radius * sin(countC * (PI/180.0));
-      hex->axis_cmd[3] = start[3] + 0.005 + u_step;
-      hex->axis_cmd[4] = start[4] + 0.005 + v_step;
-      if(countC == 0){
-        sleep(1);
-      }
-      if((countC % 20)==0){
-        printf("Searching... %lu\n", countC/20);
-      }
-      countC++;
-    }else{
-      //Turn off calibration
-      printf("HEX: Stopping HEX calmode HEX_CALMODE_SPIRAL\n");
-      calmode = HEX_CALMODE_SPIRAL;
-      countC = 0;
-    }
-  }
+  //Return calmode
   return calmode;
 }

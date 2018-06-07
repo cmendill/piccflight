@@ -28,6 +28,7 @@
 
 /* Prototypes */
 int handle_command(char *line, sm_t *sm_p);
+void init_state(int state_number, state_t *state);
 
 //Flight Processes
 extern void sci_proc(void); //science camera

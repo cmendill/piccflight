@@ -56,7 +56,7 @@ void alp_init_calmode(int calmode, calmode_t *alp){
 /* ALP_ZERN2ALP                                               */
 /*  - Convert zernike commands to ALPAO DM commands           */
 /**************************************************************/
-int alp_zern2alp(alp_t *alp){
+int alp_zern2alp(double *zernikes,double *actuators){
   FILE *matrix=NULL;
   char matrix_file[MAX_FILENAME];
   static int init=0;
@@ -99,7 +99,7 @@ int alp_zern2alp(alp_t *alp){
   }
 
   //Do Matrix Multiply
-  num_dgemv(zern2alp_matrix,alp->zernike_cmd,alp->act_cmd, ALP_NACT, LOWFS_N_ZERNIKE);
+  num_dgemv(zern2alp_matrix,zernikes,actuators, ALP_NACT, LOWFS_N_ZERNIKE);
   
   return 0;
 }
@@ -108,11 +108,10 @@ int alp_zern2alp(alp_t *alp){
 /* ALP_CALIBRATE                                              */
 /* - Run calibration routines for ALPAO DM                    */
 /**************************************************************/
-int alp_calibrate(int calmode, alp_t *alp, int reset){
+int alp_calibrate(int calmode, alp_t *alp, int reset, uint64 counter){
   int i,j,index;
   static struct timespec start,this,last,delta;
-  static unsigned long int countA=0,countB=0;
-  static double zernike2alp[LOWFS_N_ZERNIKE*ALP_NACT]={0};
+  static uint64 countA=0,countB=0,last_counter=0;
   static double zernike_errors[LOWFS_N_ZERNIKE][ZERNIKE_ERRORS_NUMBER]={{0}};
   const double zernike_timestep = ZERNIKE_ERRORS_PERIOD;
   const int flight_zuse[LOWFS_N_ZERNIKE]={0,0,0,1,1,1, 1,1,1,1,1,1, 0,0,0,0,0,0, 0,0,0,0,0,0};
@@ -128,6 +127,7 @@ int alp_calibrate(int calmode, alp_t *alp, int reset){
   if(reset){
     countA=0;
     countB=0;
+    last_counter=0;
     init=0;
     return calmode;
   }
@@ -136,29 +136,8 @@ int alp_calibrate(int calmode, alp_t *alp, int reset){
   if(!init){
     countA=0;
     countB=0;
+    last_counter=0;
     clock_gettime(CLOCK_REALTIME, &start);
-
-    /* Open ZERNIKE2ALP matrix file */
-    //--setup filename
-    sprintf(filename,ZERNIKE2ALP_FILE);
-    //--open file
-    if((fileptr = fopen(filename,"r")) == NULL){
-      printf("Zernike2alp file\r\n");
-      perror("fopen");
-      goto endofinit;
-    }
-    //--check file size
-    fseek(fileptr, 0L, SEEK_END);
-    if(ftell(fileptr) != sizeof(zernike2alp)){
-      printf("SHK: incorrect ALP matrix file size %lu != %lu\n",ftell(fileptr),sizeof(zernike2alp));
-      goto endofinit;
-    }
-    rewind(fileptr);
-    //--read matrix
-    if(fread(zernike2alp,sizeof(zernike2alp),1,fileptr) != 1){
-      perror("fread");
-      goto endofinit;
-    }
 
     /* Open zernike errors file */
     //--setup filename
@@ -176,7 +155,7 @@ int alp_calibrate(int calmode, alp_t *alp, int reset){
       goto endofinit;
     }
     rewind(fileptr);
-    //--read matrix
+    //--read data
     if(fread(zernike_errors,sizeof(zernike_errors),1,fileptr) != 1){
       perror("fread");
       goto endofinit;
@@ -187,100 +166,105 @@ int alp_calibrate(int calmode, alp_t *alp, int reset){
     init=1;
   }
 
-  /* Calculate times */
-  clock_gettime(CLOCK_REALTIME, &this);
-  if(timespec_subtract(&delta,&this,&start))
-    printf("SHK: shk_process_image --> timespec_subtract error!\n");
-  ts2double(&delta,&dt);
-
-  /* ALP_CALMODE_NONE: Do nothing. Just reset counters.            */
-  if(calmode==ALP_CALMODE_NONE){
-    countA=0;
-    countB=0;
-    return calmode;
-  }
-
-  /* ALP_CALMODE_POKE: Scan through acuators poking one at a time. */
-  /*                   Set flat in between each poke.              */
-  if(calmode == ALP_CALMODE_POKE){
-    if(countA >= 0 && countA < (2*ALP_NACT*ALP_NCALIM)){
-      //set all ALP actuators to bias
-      for(i=0;i<ALP_NACT;i++)
-	alp->act_cmd[i]=ALP_BIAS;
-
-      //poke one actuator
-      if((countA/ALP_NCALIM) % 2 == 1){
-	alp->act_cmd[(countB/ALP_NCALIM) % ALP_NACT] = ALP_BIAS + ALP_POKE;
-	countB++;
-      }
-      countA++;
-    }else{
-      //Turn off calibration
-      printf("ALP: Stopping ALP calmode ALP_CALMODE_POKE\n");
-      calmode = ALP_CALMODE_NONE;
-      init = 0;
-    }
-    return calmode;
-
-  }
-
-  /* ALP_CALMODE_ZPOKE: Poke Zernikes one at a time    */
-  /*                    Set flat in between each poke. */
-  if(calmode == ALP_CALMODE_ZPOKE){
-    if(countA >= 0 && countA < (2*LOWFS_N_ZERNIKE*ALP_NCALIM)){
-      //set all Zernikes to zero
-      for(i=0;i<LOWFS_N_ZERNIKE;i++)
-        alp->zernike_cmd[i] = 0.0;
-      
-      //set all ALP actuators to bias
-      for(i=0;i<ALP_NACT;i++)
-	alp->act_cmd[i]=ALP_BIAS;
-      
-      //poke one zernike
-      if((countA/ALP_NCALIM) % 2 == 1){
-	alp->zernike_cmd[(countB/ALP_NCALIM) % LOWFS_N_ZERNIKE] = 0.1;
-	num_dgemv(zernike2alp, alp->zernike_cmd, act, ALP_NACT, LOWFS_N_ZERNIKE);
-        for(i=0; i<ALP_NACT; i++)
-          alp->act_cmd[i] += act[i];
-       	countB++;
-      }
-      countA++;
-    }else{
-      printf("ALP: Stopping calmode ALP_CALMODE_ZPOKE\n");
-      calmode = ALP_CALMODE_NONE;
-      init = 0;
-    }
-    return calmode;
-  }
-
-  /* ALP_CALMODE_FLIGHT: Flight Simulator */
-  if(calmode == ALP_CALMODE_FLIGHT){
-    if(countA == 0)
-      dt0 = dt;
-    if(countA == 1)
-      period = dt-dt0;
-    //Set index
-    index = (int)((dt-dt0)/zernike_timestep);
-    if(index < ZERNIKE_ERRORS_NUMBER){
-      //Get zernikes for this timestep
-      for(i=0;i<LOWFS_N_ZERNIKE;i++)
-	if(flight_zuse[i])
-	  zernikes[i] = zernike_errors[i][index % ZERNIKE_ERRORS_NUMBER];
-      //Convert to ALP DAC codes
-      num_dgemv(zernike2alp, zernikes, act, ALP_NACT, LOWFS_N_ZERNIKE);
-      //Add offsets to ALP position
-      for(i=0;i<ALP_NACT;i++)
-	alp->act_cmd[i] += act[i];
-      countA++;
-    }else{
-      //Turn off calibration
-      printf("ALP: Stopping ALP calmode ALP_CALMODE_FLIGHT\n");
-      calmode = ALP_CALMODE_NONE;
-      init = 0;
+  /* Proceede if counter has increased */
+  if(counter > last_counter){
+    
+    /* Calculate times */
+    clock_gettime(CLOCK_REALTIME, &this);
+    if(timespec_subtract(&delta,&this,&start))
+      printf("SHK: shk_process_image --> timespec_subtract error!\n");
+    ts2double(&delta,&dt);
+  
+    /* ALP_CALMODE_NONE: Do nothing. Just reset counters.            */
+    if(calmode==ALP_CALMODE_NONE){
+      countA=0;
+      countB=0;
       return calmode;
     }
+
+    /* ALP_CALMODE_POKE: Scan through acuators poking one at a time. */
+    /*                   Set flat in between each poke.              */
+    if(calmode == ALP_CALMODE_POKE){
+      if(countA >= 0 && countA < (2*ALP_NACT*ALP_NCALIM)){
+	//set all ALP actuators to bias
+	for(i=0;i<ALP_NACT;i++)
+	  alp->act_cmd[i]=ALP_BIAS;
+
+	//poke one actuator
+	if((countA/ALP_NCALIM) % 2 == 1){
+	  alp->act_cmd[(countB/ALP_NCALIM) % ALP_NACT] = ALP_BIAS + ALP_POKE;
+	  countB++;
+	}
+	countA++;
+      }else{
+	//Turn off calibration
+	printf("ALP: Stopping ALP calmode ALP_CALMODE_POKE\n");
+	calmode = ALP_CALMODE_NONE;
+	init = 0;
+      }
+      return calmode;
+
+    }
+
+    /* ALP_CALMODE_ZPOKE: Poke Zernikes one at a time    */
+    /*                    Set flat in between each poke. */
+    if(calmode == ALP_CALMODE_ZPOKE){
+      if(countA >= 0 && countA < (2*LOWFS_N_ZERNIKE*ALP_NCALIM)){
+	//set all Zernikes to zero
+	for(i=0;i<LOWFS_N_ZERNIKE;i++)
+	  alp->zernike_cmd[i] = 0.0;
+      
+	//set all ALP actuators to bias
+	for(i=0;i<ALP_NACT;i++)
+	  alp->act_cmd[i]=ALP_BIAS;
+      
+	//poke one zernike by adding it on top of the bias
+	if((countA/ALP_NCALIM) % 2 == 1){
+	  alp->zernike_cmd[(countB/ALP_NCALIM) % LOWFS_N_ZERNIKE] = 0.1;
+	  alp_zern2alp(alp->zernike_cmd,act);
+	  for(i=0; i<ALP_NACT; i++)
+	    alp->act_cmd[i] += act[i];
+	  countB++;
+	}
+	countA++;
+      }else{
+	printf("ALP: Stopping calmode ALP_CALMODE_ZPOKE\n");
+	calmode = ALP_CALMODE_NONE;
+	init = 0;
+      }
+      return calmode;
+    }
+
+    /* ALP_CALMODE_FLIGHT: Flight Simulator */
+    if(calmode == ALP_CALMODE_FLIGHT){
+      if(countA == 0)
+	dt0 = dt;
+      if(countA == 1)
+	period = dt-dt0;
+      //Set index
+      index = (int)((dt-dt0)/zernike_timestep);
+      if(index < ZERNIKE_ERRORS_NUMBER){
+	//Get zernikes for this timestep
+	for(i=0;i<LOWFS_N_ZERNIKE;i++)
+	  if(flight_zuse[i])
+	    zernikes[i] = zernike_errors[i][index % ZERNIKE_ERRORS_NUMBER];
+	//Convert zernikes to actuators
+	alp_zern2alp(zernikes,act);
+	//Add offsets to ALP position
+	for(i=0;i<ALP_NACT;i++)
+	  alp->act_cmd[i] += act[i];
+	countA++;
+      }else{
+	//Turn off calibration
+	printf("ALP: Stopping ALP calmode ALP_CALMODE_FLIGHT\n");
+	calmode = ALP_CALMODE_NONE;
+	init = 0;
+	return calmode;
+      }
+    }
+    //Save counter
+    last_counter = counter;
   }
-  
   //Return calmode
   return calmode;
 }

@@ -3,7 +3,6 @@
  ***********************************************/
 #include <stdint.h>
 #include <time.h>
-#include "states.h"
 
 #ifndef _CONTROLLER
 #define _CONTROLLER
@@ -69,6 +68,23 @@ typedef int8_t int8;
 enum procids {WATID, SCIID, SHKID, LYTID, TLMID, ACQID, MOTID, THMID, SRVID, HEXID, DIAID, NCLIENTS};
 
 /*************************************************
+ * States
+ *************************************************/
+enum states { STATE_STANDBY,
+	      STATE_LOW_POWER,
+	      STATE_LED_LOCATE,
+	      STATE_HEX_MANUAL_CONTROL,
+	      STATE_HEX_DEFAULT_HOME,
+	      STATE_HEX_THERMAL_HOME,
+	      STATE_HEX_SPIRAL_SEARCH,
+	      STATE_HEX_CAPTURE_TARGET,
+	      STATE_M2_ALIGN,
+	      STATE_SHK_LOWFC,
+	      STATE_LYT_LOWFC,
+	      STATE_SCI_DARK_HOLE,
+	      NSTATES};
+  
+/*************************************************
  * Commands
  *************************************************/
 #define CMD_SENDDATA  0x0ABACABB
@@ -79,8 +95,21 @@ enum procids {WATID, SCIID, SHKID, LYTID, TLMID, ACQID, MOTID, THMID, SRVID, HEX
 #define ALP_ENABLE      0 // ALPAO DM
 #define BMC_ENABLE      0 // BMC DM
 #define HEX_ENABLE      1 // Hexapod
+#define WSP_ENABLE      0 // WASP
 #define LED_ENABLE      0 // LED
-#define WASP_ENABLE     0 // WASP
+#define HTR_ENABLE      0 // Heaters
+#define MOT_ENABLE      0 // Motors
+
+/*************************************************
+ * Actuator IDs
+ *************************************************/
+#define ACTUATOR_ALP 1
+#define ACTUATOR_HEX 2
+#define ACTUATOR_BMC 3
+#define ACTUATOR_WSP 4
+#define ACTUATOR_LED 5
+#define ACTUATOR_HTR 6
+#define ACTUATOR_MOT 7
 
 /*************************************************
 * Software Switches
@@ -341,6 +370,62 @@ typedef struct calmode_struct{
 } calmode_t;
 
 /*************************************************
+ * State Control Structures
+ *************************************************/
+// Shack-Hartmann Control (shk_proc.c)
+typedef struct shkctrl_struct{
+  int run_camera;
+  int fit_zernikes;
+  int pid_cells;
+  int pid_zernikes;
+  int zernike_control[LOWFS_N_ZERNIKE];
+  int cell_control;
+  int offload_tilt_to_hex;
+  int offload_tilt_to_wasp;
+} shkctrl_t;
+
+// Lyot Sensor Control (lyt_proc.c)
+typedef struct lytctrl_struct{
+  int run_camera;
+  int zernike_control[LOWFS_N_ZERNIKE];
+  int offload_tilt_to_hex;
+  int offload_tilt_to_wasp;
+} lytctrl_t;
+
+// Science Camera Control (sci_proc.c)
+typedef struct scictrl_struct{
+  int run_camera;
+  int sensing_bmc;
+  int dig_dark_hole;
+} scictrl_t;
+
+// Acquisition Camera Control (acq_proc.c)
+typedef struct acqctrl_struct{
+  int run_camera;
+  int locate_led;
+  int hex_spiral_search;
+  int hex_capture_target;
+  int hex_thermal_home;
+  int hex_default_home;
+} acqctrl_t;
+
+// User Command Control (handle_command.c)
+typedef struct usrctrl_struct{
+  int control_hex;
+} usrctrl_t;
+
+//State Structure
+typedef struct state_struct{
+  char      name[128]; 
+  char      cmd[128];  
+  shkctrl_t shk;        
+  lytctrl_t lyt;
+  scictrl_t sci;
+  acqctrl_t acq;
+  usrctrl_t usr;
+} state_t;
+
+/*************************************************
  * Data Structures
  *************************************************/
 typedef struct sci_struct{
@@ -400,10 +485,10 @@ typedef struct bmc_struct{
   uint16 act_cmd[BMC_NACT];
 } bmc_t;
 
-typedef struct wasp_struct{
+typedef struct wsp_struct{
   double pitch_cmd;
   double yaw_cmd;
-} wasp_t;
+} wsp_t;
 
 
 /*************************************************
@@ -455,7 +540,7 @@ typedef struct shkevent_struct{
   uint64    zernike_control[LOWFS_N_ZERNIKE];
   hex_t     hex;
   alp_t     alp;
-  wasp_t    wasp;
+  wsp_t     wsp;
 } shkevent_t;
 
 typedef struct lytevent_struct{
@@ -468,13 +553,13 @@ typedef struct lytevent_struct{
   lyt_t     image;
   hex_t     hex;
   alp_t     alp;
-  wasp_t    wasp;
+  wsp_t     wsp;
 } lytevent_t;
 
 typedef struct acqevent_struct{
   pkthed_t  hed;
   hex_t     hex;
-  wasp_t    wasp;
+  wsp_t     wsp;
 } acqevent_t;
 
 
