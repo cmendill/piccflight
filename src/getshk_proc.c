@@ -50,7 +50,7 @@ void getshk_proc(void){
 
   /* Open output file */
   //--setup filename
-  sprintf(outfile,(char *)sm_p->calfile);
+  sprintf(outfile,"%s",(char *)sm_p->calfile);
   //--open file
   out = fopen(outfile,"w");
   if(out==NULL){

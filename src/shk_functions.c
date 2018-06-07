@@ -243,7 +243,7 @@ void shk_centroid(uint16 *image, shkevent_t *shkevent){
 /* SHK_ZERNIKE_MATRIX                                         */
 /*  - Build SHK Zernike fitting matrix                        */
 /**************************************************************/
-void shk_zernike_matrix(shkcell_t cells, double *matrix_inv){
+void shk_zernike_matrix(shkcell_t *cells, double *matrix_inv){
   int i, beam_ncells=0;
   int beam_cell_index[SHK_NCELLS] = {0};
   double max_x = 0, max_y = 0, min_x = SHKXS, min_y = SHKYS;
@@ -366,69 +366,57 @@ void shk_zernike_fit(shkevent_t *shkevent){
   static double dphi_dxdy[2*SHK_NCELLS] = {0};
   double shk_xydev[2*SHK_NCELLS];
   uint64 fsize,rsize;
-  int i, c, regen_matrix=0;
-  int beam_cell_index[SHK_NCELLS] = {0};
+  static int beam_cell_index[SHK_NCELLS] = {0};
   static int beam_cell_used[SHK_NCELLS] = {0};
+  static int beam_ncells=0;
+  static int init=0;
+  int i;
 
-  /* Read Fitting Matrix From File */
-  if(SHK_READ_MATRIX){
-    //Set up file names
-    sprintf(matrix_file, SHK2ZERNIKE_FILE);
-    //Open file
-    if((matrix = fopen(matrix_file, "r")) == NULL){
-      perror("fopen");
-      printf("shk2zernike_file\n");
-    }
-    //Check file size
-    fseek(matrix, 0L, SEEK_END);
-    fsize = ftell(matrix);
-    rewind(matrix);
-    rsize = 2*shkevent->beam_ncells*LOWFS_N_ZERNIKE*sizeof(double);
-    if(fsize != rsize){
-      printf("SHK: incorrect shk2zern matrix file size %lu != %lu\n", fsize, rsize);
-    }
-    //Read matrix
-    if(fread(shk2zern,2*shkevent->beam_ncells*LOWFS_N_ZERNIKE*sizeof(double),1,matrix) !=1){
-      perror("fread");
-      printf("shk2zern file\r");
-    }
-    //Close file
-    fclose(matrix);
-  }
-  else{
-    /* Build Fitting Matrix */
-    //Determine if we need to regenerate the fitting matrix
-    for(i=0; i<SHK_NCELLS; i++) {
-      if (shkevent->cells[i].beam_select) {
-	//If the cell is used this time, but not last time, regenerate
-	if(!beam_cell_used[i]) regen_matrix=1;
-	beam_cell_used[i]=1;
+  /* Initialize Fitting Matrix */
+  if(!init){
+    /* Get number of cells in the beam */
+    for(i=0;i<SHK_NCELLS;i++)
+      if(shkevent->cells[i].beam_select)
+	beam_cell_index[beam_ncells++]=i;
+    /* Read Fitting Matrix From File */
+    if(SHK_READ_MATRIX){
+      //Set up file names
+      sprintf(matrix_file, SHK2ZERNIKE_FILE);
+      //Open file
+      if((matrix = fopen(matrix_file, "r")) == NULL){
+	perror("fopen");
+	printf("shk2zernike_file\n");
       }
-      else{
-	if(beam_cell_used[i]){
-	  //If the cell was used last time, but not this time, regenerate
-	  regen_matrix=1;
-	  beam_cell_used[i]=0;
-	}
+      //Check file size
+      fseek(matrix, 0L, SEEK_END);
+      fsize = ftell(matrix);
+      rewind(matrix);
+      rsize = 2*shkevent->beam_ncells*LOWFS_N_ZERNIKE*sizeof(double);
+      if(fsize != rsize){
+	printf("SHK: incorrect shk2zern matrix file size %lu != %lu\n", fsize, rsize);
       }
+      //Read matrix
+      if(fread(shk2zern,2*shkevent->beam_ncells*LOWFS_N_ZERNIKE*sizeof(double),1,matrix) !=1){
+	perror("fread");
+	printf("shk2zern file\r");
+      }
+      //Close file
+      fclose(matrix);
     }
-    
-    //Generate the zernike matrix
-    if(regen_matrix) 
+    else{
+      //Generate the zernike matrix
       shk_zernike_matrix(shkevent->cells, shk2zern);
+    }
+    //Set init flag
+    init = 1;
   }
-  
 
   //Format displacement array
-  c=0;
-  for(i=0;i<SHK_NCELLS;i++){
-    if(shkevent->cells[i].beam_select){
-      shk_xydev[2*c + 0] = shkevent->cells[i].deviation[0]; //pixels
-      shk_xydev[2*c + 1] = shkevent->cells[i].deviation[1]; //pixels
-      c++;
-    }
+  for(i=0;i<beam_ncells;i++){
+    shk_xydev[2*i + 0] = shkevent->cells[i].deviation[0]; //pixels
+    shk_xydev[2*i + 1] = shkevent->cells[i].deviation[1]; //pixels
   }
-
+  
   //Do matrix multiply
   num_dgemv(shk2zern, shk_xydev, shkevent->zernike_measured, LOWFS_N_ZERNIKE, 2*shkevent->beam_ncells);
 
@@ -447,14 +435,14 @@ int shk_cells2alp(shkcell_t *cells, double *actuators){
   double shk_xydev[2*SHK_NCELLS];
   int i;
   static int beam_ncells = 0;
-  static int cell_index[SHK_NCELLS]={0};
+  static int beam_cell_index[SHK_NCELLS]={0};
   
   /* Initialize */
   if(!init){
     /* Get number of cells in the beam */
     for(i=0;i<SHK_NCELLS;i++)
       if(cells[i].beam_select)
-	cell_index[beam_ncells++]=i;
+	beam_cell_index[beam_ncells++]=i;
     
     /* Open matrix file */
     //--setup filename
@@ -489,8 +477,8 @@ int shk_cells2alp(shkcell_t *cells, double *actuators){
 
   //Format displacement array
   for(i=0;i<beam_ncells;i++){
-    shk_xydev[2*i + 0] = cells[cell_index[i]].command[0];
-    shk_xydev[2*i + 1] = cells[cell_index[i]].command[1];
+    shk_xydev[2*i + 0] = cells[beam_cell_index[i]].command[0];
+    shk_xydev[2*i + 1] = cells[beam_cell_index[i]].command[1];
   }
   
   //Do Matrix Multiply
@@ -512,14 +500,14 @@ int shk_cells2hex(shkcell_t *cells, double *axes){
   double shk_xydev[2*SHK_NCELLS];
   int i;
   static int beam_ncells = 0;
-  static int cell_index[SHK_NCELLS]={0};
+  static int beam_cell_index[SHK_NCELLS]={0};
 
   /* Initialize */
   if(!init){
     /* Get number of cells in the beam */
     for(i=0;i<SHK_NCELLS;i++)
       if(cells[i].beam_select)
-	cell_index[beam_ncells++]=i;
+	beam_cell_index[beam_ncells++]=i;
     /* Open matrix file */
     //--setup filename
     sprintf(matrix_file,CELLS2HEX_FILE);
@@ -553,8 +541,8 @@ int shk_cells2hex(shkcell_t *cells, double *axes){
 
   //Format displacement array
   for(i=0;i<beam_ncells;i++){
-    shk_xydev[2*c + 0] = cells[cell_index[i]].command[0];
-    shk_xydev[2*c + 1] = cells[cell_index[i]].command[1];
+    shk_xydev[2*i + 0] = cells[beam_cell_index[i]].command[0];
+    shk_xydev[2*i + 1] = cells[beam_cell_index[i]].command[1];
   }
   
   //Do Matrix Multiply
@@ -634,8 +622,8 @@ void shk_zernpid(shkevent_t *shkevent, int reset){
 /*  - Main image processing function for SHK                  */
 /**************************************************************/
 void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
-  static shkfull_t shkfull = {0};
-  static shkevent_t shkevent = {0};
+  static shkfull_t shkfull;
+  static shkevent_t shkevent;
   shkfull_t *shkfull_p;
   shkevent_t *shkevent_p;
   static struct timespec first,start,end,delta,last;
@@ -645,8 +633,8 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   uint16 fakepx=0;
   static int countA=0;
   int state;
-  static alp_t alp = {0};
-  static hex_t hex = {0};
+  static alp_t alp;
+  static hex_t hex;
   int move_hex=0,move_alp=0,found_zernike=0;
   double temp_alp[ALP_NACT]={0};
   double temp_hex[HEX_NAXES]={0};

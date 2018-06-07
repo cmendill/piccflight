@@ -21,7 +21,6 @@
 #include "controller.h"
 #include "common_functions.h"
 #include "alp_functions.h"
-#include "states.h"
 
 /* Constants */
 #define STDIN 0  // file descriptor for standard input
@@ -308,6 +307,7 @@ int main(int argc,char **argv){
   sm_p->shk_kI_zern     = SHK_KI_ZERN_DEFAULT;
   sm_p->shk_kD_zern     = SHK_KD_ZERN_DEFAULT;
   memcpy((void *)sm_p->hex_command,(void *)hex_default,sizeof(hex_default));
+  sm_p->hex_last_sent++;
 
   /* Initialize States */
   for(i=0;i<NSTATES;i++)

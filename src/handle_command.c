@@ -14,7 +14,6 @@
 #include "controller.h"
 #include "hex_functions.h"
 #include "alp_functions.h"
-#include "states.h"
 
 /* Prototypes */
 void getshk_proc(void); //get shkevents

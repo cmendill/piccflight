@@ -206,7 +206,7 @@ int hex_zern2hex(double *zernikes, double *axes){
   static double zern2hex_matrix[LOWFS_N_HEX_ZERNIKE*HEX_NAXES]={0};
   uint64 fsize,rsize;
   int c,i;
-  double hex_zernikes[LOWFS_N_HEX_ZERNIKES]={0};
+  double hex_zernikes[LOWFS_N_HEX_ZERNIKE]={0};
 
 
   if(!init){
@@ -257,14 +257,16 @@ int hex_zern2hex(double *zernikes, double *axes){
 /**************************************************************/
 int hex_calibrate(int calmode, hex_t *hex, int reset, uint64 counter){
   int i;
-  double hexdef[6]  = HEX_POS_DEFAULT;
+  const double hexdef[HEX_NAXES] = HEX_POS_DEFAULT;
   static struct timespec start,this,last,delta;
   static uint64 countA=0, countB=0, countC=0, last_counter=0;
   static int init=0;
-  static uint64
+  static int mode_init[HEX_NCALMODE]={0};
+  static hex_t hex_start[HEX_NCALMODE];
   time_t t;
   double dt=0;
   double axes[HEX_NAXES];
+  
 
   /* Reset */
   if(reset){
@@ -273,15 +275,19 @@ int hex_calibrate(int calmode, hex_t *hex, int reset, uint64 counter){
     countC=0;
     last_counter=0;
     init=0;
+    memset(mode_init,0,sizeof(mode_init));
+    memset(hex_start,0,sizeof(hex_start));
     return calmode;
   }
-
+  
   /* Initialize */
   if(!init){
     countA=0;
     countB=0;
     countC=0;
     last_counter=0;
+    memset(mode_init,0,sizeof(mode_init));
+    memset(hex_start,0,sizeof(hex_start));
     clock_gettime(CLOCK_REALTIME, &start);
     init=1;
   }
@@ -305,13 +311,18 @@ int hex_calibrate(int calmode, hex_t *hex, int reset, uint64 counter){
     /* HEX_CALMODE_POKE: Move through axes one at a time. */
     /*                   Go home in between each move.    */
     if(calmode == HEX_CALMODE_POKE){
-      if((countA >= 0 && countA < (2*HEX_NAXES*HEX_NCALIM)) || (countA/HEX_NCALIM) % 2 == 0){
-	//move hexapod to default position.
-	for(i=0;i<HEX_NAXES;i++){
-	  hex->axis_cmd[i]=hexdef[i];
-	}
-	//move one axis
+      //Save hex starting position
+      if(!mode_init[HEX_CALMODE_POKE]){
+	memcpy(&hex_start[HEX_CALMODE_POKE],&hex,sizeof(hex_t));
+	mode_init[HEX_CALMODE_POKE]=1;
+      }
+      //Proceed with calibration
+      if(countA >= 0 && countA < (2*HEX_NAXES*HEX_NCALIM)){
+	//Set hex to starting position
+	memcpy(&hex,&hex_start[HEX_CALMODE_POKE],sizeof(hex_t));
+	
 	if((countA/HEX_NCALIM) % 2 == 1){
+	  //move one axis
 	  if((countB/HEX_NCALIM) % HEX_NAXES <=2){
 	    hex->axis_cmd[(countB/HEX_NCALIM) % HEX_NAXES] += HEX_TRL_POKE;
 	  }else{
@@ -324,10 +335,10 @@ int hex_calibrate(int calmode, hex_t *hex, int reset, uint64 counter){
       else{
 	//Turn off calibration
 	printf("HEX: Stopping HEX calmode HEX_CALMODE_POKE\n");
-	for(i=0;i<HEX_NAXES;i++)
-	  hex->axis_cmd[i] = hexdef[i];
 	calmode = HEX_CALMODE_NONE;
 	init = 0;
+	//Set hex back to starting position
+	memcpy(&hex,&hex_start[HEX_CALMODE_POKE],sizeof(hex_t));
       }
       return calmode;
     }
@@ -339,13 +350,17 @@ int hex_calibrate(int calmode, hex_t *hex, int reset, uint64 counter){
       double v_step;
       int max_step = 5000;
       double spiral_radius = 0.00001;
-      double start[HEX_NAXES] = HEX_POS_DEFAULT;
-
+      //Save hex starting position
+      if(!mode_init[HEX_CALMODE_SPIRAL]){
+	memcpy(&hex_start[HEX_CALMODE_SPIRAL],&hex,sizeof(hex_t));
+	mode_init[HEX_CALMODE_SPIRAL]=1;
+      }
+      
       if((countC) <= max_step){
 	u_step = countC * spiral_radius * cos(countC * (PI/180.0));
 	v_step = countC * spiral_radius * sin(countC * (PI/180.0));
-	hex->axis_cmd[3] = start[3] + 0.005 + u_step;
-	hex->axis_cmd[4] = start[4] + 0.005 + v_step;
+	hex->axis_cmd[3] = hex_start.axis_cmd[3] + 0.005 + u_step;
+	hex->axis_cmd[4] = hex_start.axis_cmd[4] + 0.005 + v_step;
 	if(countC == 0){
 	  sleep(1);
 	}
@@ -357,7 +372,9 @@ int hex_calibrate(int calmode, hex_t *hex, int reset, uint64 counter){
 	//Turn off calibration
 	printf("HEX: Stopping HEX calmode HEX_CALMODE_SPIRAL\n");
 	calmode = HEX_CALMODE_SPIRAL;
-	countC = 0;
+	init=0;
+	//Set hex back to starting position
+	memcpy(&hex,&hex_start[HEX_CALMODE_SPIRAL],sizeof(hex_t));
       }
     }
     //Save counter
