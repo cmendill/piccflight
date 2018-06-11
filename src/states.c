@@ -17,7 +17,13 @@
 void init_state(int state_number, state_t *state){
   //Clear state
   memset(state,0,sizeof(state_t));
-	 
+
+  //Set defaults
+  state->hex_commander = -1;
+  state->alp_commander = -1;
+  state->bmc_commander = -1;
+  state->wsp_commander = -1;
+  
   //STATE_STANDBY
   if(state_number == STATE_STANDBY){
     //Set name
@@ -31,7 +37,8 @@ void init_state(int state_number, state_t *state){
     state->acq.run_camera = 1;
     //SHK Settings
     state->shk.fit_zernikes = 1;
-    
+    //HEX Commander
+    state->hex_commander = WATID;
     return;
   }
 
@@ -76,8 +83,8 @@ void init_state(int state_number, state_t *state){
     state->lyt.run_camera = 1;
     state->sci.run_camera = 1;
     state->acq.run_camera = 1;
-    //Set HEXID as hex commander
-    state->hex_commander = HEXID;
+    //Set WATID as hex commander
+    state->hex_commander = WATID;
     //Enable SHK zernike fitting
     state->shk.fit_zernikes = 1;
     return;
@@ -175,6 +182,24 @@ void init_state(int state_number, state_t *state){
     state->shk.zernike_control[3] = ACTUATOR_HEX;
     state->shk.zernike_control[4] = ACTUATOR_HEX;
     state->shk.zernike_control[5] = ACTUATOR_HEX;
+    //Set SHKID as hex commander
+    state->hex_commander = SHKID;
+    return;
+  }
+  
+  //STATE_SHK_HEX_CALIBRATE
+  if(state_number == STATE_SHK_HEX_CALIBRATE){
+    //Set name
+    sprintf(state->name,"STATE_SHK_HEX_CALIBRATE");
+    //Set cmd
+    sprintf(state->cmd,"shc");
+    //Config Cameras
+    state->shk.run_camera = 1;
+    state->lyt.run_camera = 1;
+    state->sci.run_camera = 1;
+    state->acq.run_camera = 1;
+    //SHK Settings
+    state->shk.fit_zernikes = 1;
     //Set SHKID as hex commander
     state->hex_commander = SHKID;
     return;

@@ -640,6 +640,8 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   double temp_hex[HEX_NAXES]={0};
   double temp_zernike[LOWFS_N_ZERNIKE]={0};
   static uint64 alp_counter=1,hex_counter=1;
+  static uint64 hex_last_send=0,hex_last_recv=0;
+  hexevent_t hexevent;
   
   //Get time immidiately
   clock_gettime(CLOCK_REALTIME,&start);
@@ -667,7 +669,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     hex_init(&hex);
     //Reset calibration routines
     alp_calibrate(0,&alp,1,0);
-    hex_calibrate(0,&hex,1,0);
+    hex_calibrate(0,&hex,NULL,1,0);
     //Reset PID controllers
     shk_cellpid(&shkevent,1);
     shk_zernpid(&shkevent,1);
@@ -676,6 +678,8 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     //Reset command counters
     alp_counter = 1;
     hex_counter = 1;
+    hex_last_send = 0;
+    hex_last_recv = 0;
     //Set init flag
     init=1;
     //Debugging
@@ -689,13 +693,15 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   
   //Read current hexapod position
   while(read_from_buffer(sm_p,&hexevent,HEXRECV,SHKID)){
-    if(hexevent.command_status == HEX_CMD_ACCEPTED){
+    if(hexevent.status == HEX_CMD_ACCEPTED){
       //Copy accepted command to current position
       memcpy(&hex,&hexevent.hex,sizeof(hex_t));
       if(hexevent.clientid == SHKID){
 	//If this was a SHK command:
 	// - copy to shkevent
 	memcpy(&shkevent.hex,&hexevent.hex,sizeof(hex_t));
+	// - set recv index
+	hex_last_recv = hexevent.command_number;
 	// - increment command counter
 	hex_counter++;
       }
@@ -751,7 +757,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   
   //Calibrate HEX
   if(sm_p->hex_calmode != HEX_CALMODE_NONE){
-    sm_p->hex_calmode = hex_calibrate(shkevent.hex_calmode,&hex,0,hex_counter);
+    sm_p->hex_calmode = hex_calibrate(shkevent.hex_calmode,&hex,&shkevent.cal_step,0,hex_counter);
     move_hex = 1;
   }
 
@@ -824,7 +830,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   //Send command to ALP
   if(ALP_ENABLE && sm_p->alp_dev >= 0 && move_alp){
     // - send command
-    if(sm_p->state_array[sm_p->state].hex_commander = SHKID){
+    if(sm_p->state_array[state].alp_commander == SHKID){
       if(alp_write(sm_p->alp_dev,&alp))
 	printf("SHK: alp_write failed!\n");
       // - copy command to shkevent
@@ -836,13 +842,19 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   
   //Send command to HEX
   if(HEX_ENABLE && move_hex){
-    //Check if there is still a command in the buffer
-    check_buffer(sm_p,SHK_HEXSEND,HEXID)){
-    // - send command
-    hexevent.clientid = SHKID;
-    write_to_buffer(sm_p,&hexevent,SHK_HEXSEND);
+    //Check if the last command was received 
+    if(hex_last_send == hex_last_recv){
+      // - send command
+      if(sm_p->state_array[state].hex_commander == SHKID){
+	hexevent.clientid = SHKID;
+	hexevent.status   = 0;
+	hexevent.command_number = ++hex_last_send;
+	memcpy(&hexevent.hex,&hex,sizeof(hex_t));
+	write_to_buffer(sm_p,&hexevent,SHK_HEXSEND);
+      }
+    }
   }
-    
+  
   //Open circular buffer
   shkevent_p=(shkevent_t *)open_buffer(sm_p,SHKEVENT);
 

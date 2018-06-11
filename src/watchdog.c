@@ -306,9 +306,7 @@ int main(int argc,char **argv){
   sm_p->shk_kP_zern     = SHK_KP_ZERN_DEFAULT;
   sm_p->shk_kI_zern     = SHK_KI_ZERN_DEFAULT;
   sm_p->shk_kD_zern     = SHK_KD_ZERN_DEFAULT;
-  memcpy((void *)sm_p->hex_command,(void *)hex_default,sizeof(hex_default));
-  sm_p->hex_last_sent++;
-
+  
   /* Initialize States */
   for(i=0;i<NSTATES;i++)
     init_state(i,(state_t *)&sm_p->state_array[i]);
@@ -332,25 +330,26 @@ int main(int argc,char **argv){
   sm_p->circbuf[ACQEVENT].bufsize = ACQEVENTSIZE;
   sprintf((char *)sm_p->circbuf[ACQEVENT].name,"ACQEVENT");
   sm_p->circbuf[HEXRECV].buffer  = (void *)sm_p->hexrecv;
-  sm_p->circbuf[HEXRECV].nbytes  = sizeof(hexrecv_t);
+  sm_p->circbuf[HEXRECV].nbytes  = sizeof(hexevent_t);
   sm_p->circbuf[HEXRECV].bufsize = HEXRECVSIZE;
   sprintf((char *)sm_p->circbuf[HEXRECV].name,"HEXRECV");
   sm_p->circbuf[SHK_HEXSEND].buffer  = (void *)sm_p->shk_hexsend;
-  sm_p->circbuf[SHK_HEXSEND].nbytes  = sizeof(hexsend_t);
+  sm_p->circbuf[SHK_HEXSEND].nbytes  = sizeof(hexevent_t);
   sm_p->circbuf[SHK_HEXSEND].bufsize = HEXSENDSIZE;
   sprintf((char *)sm_p->circbuf[SHK_HEXSEND].name,"SHK_HEXSEND");
   sm_p->circbuf[LYT_HEXSEND].buffer  = (void *)sm_p->lyt_hexsend;
-  sm_p->circbuf[LYT_HEXSEND].nbytes  = sizeof(hexsend_t);
+  sm_p->circbuf[LYT_HEXSEND].nbytes  = sizeof(hexevent_t);
   sm_p->circbuf[LYT_HEXSEND].bufsize = HEXSENDSIZE;
-  sprintf((char *)sm_p->circbuf[ACQ_HEXSEND].name,"ACQ_HEXSEND");
+  sprintf((char *)sm_p->circbuf[LYT_HEXSEND].name,"LYT_HEXSEND");
   sm_p->circbuf[ACQ_HEXSEND].buffer  = (void *)sm_p->acq_hexsend;
-  sm_p->circbuf[ACQ_HEXSEND].nbytes  = sizeof(hexsend_t);
+  sm_p->circbuf[ACQ_HEXSEND].nbytes  = sizeof(hexevent_t);
   sm_p->circbuf[ACQ_HEXSEND].bufsize = HEXSENDSIZE;
-  sprintf((char *)sm_p->circbuf[HEX_HEXSEND].name,"HEX_HEXSEND");
-  sm_p->circbuf[HEX_HEXSEND].buffer  = (void *)sm_p->hex_hexsend;
-  sm_p->circbuf[HEX_HEXSEND].nbytes  = sizeof(hexsend_t);
-  sm_p->circbuf[HEX_HEXSEND].bufsize = HEXSENDSIZE;
-  sprintf((char *)sm_p->circbuf[HEX_HEXSEND].name,"HEX_HEXSEND");
+  sprintf((char *)sm_p->circbuf[ACQ_HEXSEND].name,"ACQ_HEXSEND");
+  sm_p->circbuf[WAT_HEXSEND].buffer  = (void *)sm_p->wat_hexsend;
+  sm_p->circbuf[WAT_HEXSEND].nbytes  = sizeof(hexevent_t);
+  sm_p->circbuf[WAT_HEXSEND].bufsize = HEXSENDSIZE;
+  sprintf((char *)sm_p->circbuf[WAT_HEXSEND].name,"WAT_HEXSEND");
+
   //-- Full frame buffers
   sm_p->circbuf[SCIFULL].buffer  = (void *)sm_p->scifull;
   sm_p->circbuf[SCIFULL].nbytes  = sizeof(scifull_t);
@@ -423,21 +422,6 @@ int main(int argc,char **argv){
   printf("WAT: cleaning up...\n");
   //tell all subthreads to die
   sm_p->die = 1;
-
-  //Send hexapod home
-    #if HEX_ENABLE
-      sm_p->hex_gohome = 1;
-      sleep(1);
-    #endif
-
-  //close Xinetics driver
-#if XIN_ENABLE
-  if(xin_dev >= 0){
-    xin_zero(xin_dev);
-    xin_closeDev(xin_dev);
-  }
-#endif
-
 
   //Wait for watchdog to exit
   if(procwait(sm_p->w[WATID].pid,EXIT_TIMEOUT))

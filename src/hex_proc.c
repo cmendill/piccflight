@@ -40,12 +40,11 @@ void hex_proc(void){
   int bFlag,i,state;
   double hexpos[6]={0};
   double scopepos[6] = {0};
-  double hexhome[6] = HEX_POS_HOME;
-  double hexdef[6]  = HEX_POS_DEFAULT;
   double pivot[3]   = {HEX_PIVOT_X,HEX_PIVOT_Y,HEX_PIVOT_Z};
   hexevent_t hexevent;
-  int buffer[4] = {SHK_HEXSEND,LYT_HEXSEND,ACQ_HEXSEND,HEX_HEXSEND};
+  int  buffer[4] = {SHK_HEXSEND,LYT_HEXSEND,ACQ_HEXSEND,WAT_HEXSEND};
   int nbuffers  = 4;
+  int commander;
   
   /* Open Shared Memory */
   sm_t *sm_p;
@@ -113,24 +112,6 @@ void hex_proc(void){
 
     /************** If Hexapod is Enabled **************/
     if(HEX_ENABLE){
-       /**** USER COMMANDS ****/
-
-      /* Command: Go to home position */
-      if(sm_p->hex_gohome){
-	memcpy((double *)hexevent.hex.axis_cmd,hexhome,sizeof(hexhome));
-	hexevent.clientid = HEXID;
-	write_to_buffer(sm_p,&hexvent,HEX_HEXSEND);
-	sm_p->hex_gohome=0;
-      }
-
-      /* Command: Go to default position */
-      if(sm_p->hex_godef){
-	memcpy((double *)hexevent.hex.axis_cmd,hexdef,sizeof(hexdef));
-	hexevent.clientid = HEXID;
-	write_to_buffer(sm_p,&hexvent,HEX_HEXSEND);
-	sm_p->hex_godef=0;
-      }
-    
       /* Command: Get Hexapod Position */
       if(sm_p->hex_getpos){
 	if(hex_getpos(hexfd,hexpos)){
@@ -152,7 +133,7 @@ void hex_proc(void){
 	sm_p->hex_getpos = 0;
       }
 
-      /**** WRITE COMMANDS TO HEXAPOD ****/
+      /**** GET BUFFERED HEXAPOD COMMANDS ****/
       
       /* Get State */
       state = sm_p->state;
@@ -167,7 +148,7 @@ void hex_proc(void){
 	  
 	  /* If this is the commanding process */
 	  if(commander == hexevent.clientid){
-	    
+
 	    /* Move Hexapod */
 	    if(hex_move(hexfd,hexevent.hex.axis_cmd)){
 	      printf("HEX: hex_move error!\n");
@@ -175,11 +156,13 @@ void hex_proc(void){
 	    }
 	    
 	    /* Accept Command */
-	    hexevent.command_status = HEX_CMD_ACCEPTED;
+	    hexevent.status = HEX_CMD_ACCEPTED;
+	    if(HEX_DEBUG) printf("HEX: Accepted command from: %d\n",hexevent.clientid);
 	  }
 	  else{
 	    /* Reject Command */
-	    hexevent.command_status = HEX_CMD_REJECTED;
+	    hexevent.status = HEX_CMD_REJECTED;
+	    if(HEX_DEBUG) printf("HEX: Rejected command from: %d\n",hexevent.clientid);
 	  }
 	  
 	  /* Write event to recv buffer */

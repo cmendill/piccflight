@@ -79,6 +79,7 @@ enum states { STATE_STANDBY,
 	      STATE_HEX_SPIRAL_SEARCH,
 	      STATE_HEX_CAPTURE_TARGET,
 	      STATE_M2_ALIGN,
+	      STATE_SHK_HEX_CALIBRATE,
 	      STATE_SHK_LOWFC,
 	      STATE_LYT_LOWFC,
 	      STATE_SCI_DARK_HOLE,
@@ -169,7 +170,7 @@ enum bufids {SCIEVENT, SCIFULL,
 	     LYTEVENT, LYTFULL,
 	     ACQEVENT, ACQFULL,
 	     SHK_HEXSEND,  LYT_HEXSEND,
-	     ACQ_HEXSEND,  HEX_HEXSEND,
+	     ACQ_HEXSEND,  WAT_HEXSEND,
 	     HEXRECV, NCIRCBUF};
 #define SCIEVENTSIZE     3
 #define SHKEVENTSIZE     3
@@ -297,7 +298,7 @@ enum bufids {SCIEVENT, SCIFULL,
 #define HEX_POS_DEFAULT  {-1.213708, 3.527789, -0.157457, 0.235558, 0.439130, 0.00171}
 #define HEX_TRL_POKE      0.01
 #define HEX_ROT_POKE      0.001
-#define HEX_NCALIM        50
+#define HEX_NCALIM        10
 #define HEX_PIVOT_X       0//122.32031250
 #define HEX_PIVOT_Y       0//206.61012268
 #define HEX_PIVOT_Z       0//74.0
@@ -428,7 +429,6 @@ typedef struct state_struct{
   lytctrl_t lyt;
   scictrl_t sci;
   acqctrl_t acq;
-  usrctrl_t usr;
 } state_t;
 
 /*************************************************
@@ -544,6 +544,7 @@ typedef struct shkevent_struct{
   double    zernike_measured[LOWFS_N_ZERNIKE];
   double    zernike_target[LOWFS_N_ZERNIKE];
   uint64    zernike_control[LOWFS_N_ZERNIKE];
+  uint64    cal_step;
   hex_t     hex;
   alp_t     alp;
   wsp_t     wsp;
@@ -570,10 +571,10 @@ typedef struct acqevent_struct{
 
 typedef struct hexevent_struct{
   int    clientid;
+  int    status;
   uint64 command_number;
-  int    command_status;
   hex_t  hex;
-} hexevent_t
+} hexevent_t;
 
 /*************************************************
  * Full Frame Structures
@@ -670,8 +671,6 @@ typedef volatile struct {
 
   //Other Commands
   int hex_getpos;
-  int hex_gohome;
-  int hex_godef;
   int shk_setorigin;
 
   //Zernike Targets
@@ -686,7 +685,7 @@ typedef volatile struct {
   hexevent_t shk_hexsend[HEXSENDSIZE];
   hexevent_t lyt_hexsend[HEXSENDSIZE];
   hexevent_t acq_hexsend[HEXSENDSIZE];
-  hexevent_t hex_hexsend[HEXSENDSIZE];
+  hexevent_t wat_hexsend[HEXSENDSIZE];
   
   //Full frame circular buffers
   scifull_t scifull[SCIFULLSIZE];
