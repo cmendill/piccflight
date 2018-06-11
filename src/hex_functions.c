@@ -259,7 +259,9 @@ int hex_calibrate(int calmode, hex_t *hex, int reset, uint64 counter){
   int i;
   const double hexdef[HEX_NAXES] = HEX_POS_DEFAULT;
   static struct timespec start,this,last,delta;
-  static uint64 countA=0, countB=0, countC=0, last_counter=0;
+  static uint64 countA[HEX_NCALMODE] = {0};
+  static uint64 countB[HEX_NCALMODE] = {0};
+  static uint64 last_counter=0;
   static int init=0;
   static int mode_init[HEX_NCALMODE]={0};
   static hex_t hex_start[HEX_NCALMODE];
@@ -270,22 +272,20 @@ int hex_calibrate(int calmode, hex_t *hex, int reset, uint64 counter){
 
   /* Reset */
   if(reset){
-    countA=0;
-    countB=0;
-    countC=0;
     last_counter=0;
-    init=0;
+    memset(countA,0,sizeof(countA));
+    memset(countB,0,sizeof(countB));
     memset(mode_init,0,sizeof(mode_init));
     memset(hex_start,0,sizeof(hex_start));
+    init=0;
     return calmode;
   }
   
   /* Initialize */
   if(!init){
-    countA=0;
-    countB=0;
-    countC=0;
     last_counter=0;
+    memset(countA,0,sizeof(countA));
+    memset(countB,0,sizeof(countB));
     memset(mode_init,0,sizeof(mode_init));
     memset(hex_start,0,sizeof(hex_start));
     clock_gettime(CLOCK_REALTIME, &start);
@@ -300,11 +300,8 @@ int hex_calibrate(int calmode, hex_t *hex, int reset, uint64 counter){
       printf("SHK: shk_process_image --> timespec_subtract error!\n");
     ts2double(&delta,&dt);
     
-    /* HEX_CALMODE_NONE: Do nothing. Just reset counters  */
+    /* HEX_CALMODE_NONE: Do nothing. */
     if(calmode == HEX_CALMODE_NONE){
-      countA=0;
-      countB=0;
-      countC=0;
       return calmode;
     }
   
@@ -317,20 +314,20 @@ int hex_calibrate(int calmode, hex_t *hex, int reset, uint64 counter){
 	mode_init[HEX_CALMODE_POKE]=1;
       }
       //Proceed with calibration
-      if(countA >= 0 && countA < (2*HEX_NAXES*HEX_NCALIM)){
+      if(countA[calmode] >= 0 && countA[calmode] < (2*HEX_NAXES*HEX_NCALIM)){
 	//Set hex to starting position
 	memcpy(&hex,&hex_start[HEX_CALMODE_POKE],sizeof(hex_t));
 	
-	if((countA/HEX_NCALIM) % 2 == 1){
+	if((countA[calmode]/HEX_NCALIM) % 2 == 1){
 	  //move one axis
-	  if((countB/HEX_NCALIM) % HEX_NAXES <=2){
-	    hex->axis_cmd[(countB/HEX_NCALIM) % HEX_NAXES] += HEX_TRL_POKE;
+	  if((countB[calmode]/HEX_NCALIM) % HEX_NAXES <=2){
+	    hex->axis_cmd[(countB[calmode]/HEX_NCALIM) % HEX_NAXES] += HEX_TRL_POKE;
 	  }else{
-	    hex->axis_cmd[(countB/HEX_NCALIM) % HEX_NAXES] += HEX_ROT_POKE;
+	    hex->axis_cmd[(countB[calmode]/HEX_NCALIM) % HEX_NAXES] += HEX_ROT_POKE;
 	  }
-	  countB++;
+	  countB[calmode]++;
 	}
-	countA++;
+	countA[calmode]++;
       }
       else{
 	//Turn off calibration
@@ -356,18 +353,18 @@ int hex_calibrate(int calmode, hex_t *hex, int reset, uint64 counter){
 	mode_init[HEX_CALMODE_SPIRAL]=1;
       }
       
-      if((countC) <= max_step){
-	u_step = countC * spiral_radius * cos(countC * (PI/180.0));
-	v_step = countC * spiral_radius * sin(countC * (PI/180.0));
+      if((countA[calmode]) <= max_step){
+	u_step = countA[calmode] * spiral_radius * cos(countA[calmode] * (PI/180.0));
+	v_step = countA[calmode] * spiral_radius * sin(countA[calmode] * (PI/180.0));
 	hex->axis_cmd[3] = hex_start.axis_cmd[3] + 0.005 + u_step;
 	hex->axis_cmd[4] = hex_start.axis_cmd[4] + 0.005 + v_step;
-	if(countC == 0){
+	if(countA[calmode] == 0){
 	  sleep(1);
 	}
-	if((countC % 20)==0){
-	  printf("Searching... %lu\n", countC/20);
+	if((countA[calmode] % 20)==0){
+	  printf("Searching... %lu\n", countA[calmode]/20);
 	}
-	countC++;
+	countA[calmode]++;
       }else{
 	//Turn off calibration
 	printf("HEX: Stopping HEX calmode HEX_CALMODE_SPIRAL\n");

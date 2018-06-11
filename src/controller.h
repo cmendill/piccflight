@@ -167,7 +167,10 @@ enum states { STATE_STANDBY,
 enum bufids {SCIEVENT, SCIFULL,
 	     SHKEVENT, SHKFULL,
 	     LYTEVENT, LYTFULL,
-	     ACQEVENT, ACQFULL, NCIRCBUF};
+	     ACQEVENT, ACQFULL,
+	     SHK_HEXSEND,  LYT_HEXSEND,
+	     ACQ_HEXSEND,  HEX_HEXSEND,
+	     HEXRECV, NCIRCBUF};
 #define SCIEVENTSIZE     3
 #define SHKEVENTSIZE     3
 #define LYTEVENTSIZE     3
@@ -176,6 +179,8 @@ enum bufids {SCIEVENT, SCIFULL,
 #define SHKFULLSIZE      3
 #define LYTFULLSIZE      3
 #define ACQFULLSIZE      3
+#define HEXSENDSIZE      3
+#define HEXRECVSIZE      3
 
 /*************************************************
  * Define Errors
@@ -311,7 +316,9 @@ enum bufids {SCIEVENT, SCIFULL,
 #define SIN_Z             sin(THETA_Z)
 #define HEX_REF_TIMEOUT   20 //seconds
 #define HEX_PER_SHKEVENT  5  //number of shk images per HEX update
-#define HEX_PERIOD_DSEC   5  //deciseconds
+#define HEX_CMD_PER_SEC   2  //commands per second by hex_proc
+#define HEX_CMD_REJECTED  1
+#define HEX_CMD_ACCEPTED  2
 
 /*************************************************
  * Shack-Hartmann (SHK) Settings
@@ -409,15 +416,14 @@ typedef struct acqctrl_struct{
   int hex_default_home;
 } acqctrl_t;
 
-// User Command Control (handle_command.c)
-typedef struct usrctrl_struct{
-  int control_hex;
-} usrctrl_t;
-
 //State Structure
 typedef struct state_struct{
   char      name[128]; 
-  char      cmd[128];  
+  char      cmd[128];
+  int       hex_commander;
+  int       alp_commander;
+  int       bmc_commander;
+  int       wsp_commander;
   shkctrl_t shk;        
   lytctrl_t lyt;
   scictrl_t sci;
@@ -562,6 +568,12 @@ typedef struct acqevent_struct{
   wsp_t     wsp;
 } acqevent_t;
 
+typedef struct hexevent_struct{
+  int    clientid;
+  uint64 command_number;
+  int    command_status;
+  hex_t  hex;
+} hexevent_t
 
 /*************************************************
  * Full Frame Structures
@@ -664,18 +676,18 @@ typedef volatile struct {
 
   //Zernike Targets
   double zernike_target[LOWFS_N_ZERNIKE];
-
-  //Hexapod Commanding
-  uint64 hex_last_sent;
-  uint64 hex_last_recv;
-  double hex_command[HEX_NAXES];
   
   //Events circular buffers
   scievent_t scievent[SCIEVENTSIZE];
   shkevent_t shkevent[SHKEVENTSIZE];
   lytevent_t lytevent[LYTEVENTSIZE];
   acqevent_t acqevent[ACQEVENTSIZE];
-
+  hexevent_t hexrecv[HEXRECVSIZE];
+  hexevent_t shk_hexsend[HEXSENDSIZE];
+  hexevent_t lyt_hexsend[HEXSENDSIZE];
+  hexevent_t acq_hexsend[HEXSENDSIZE];
+  hexevent_t hex_hexsend[HEXSENDSIZE];
+  
   //Full frame circular buffers
   scifull_t scifull[SCIFULLSIZE];
   shkfull_t shkfull[SHKFULLSIZE];

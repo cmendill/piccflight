@@ -331,6 +331,26 @@ int main(int argc,char **argv){
   sm_p->circbuf[ACQEVENT].nbytes  = sizeof(acqevent_t);
   sm_p->circbuf[ACQEVENT].bufsize = ACQEVENTSIZE;
   sprintf((char *)sm_p->circbuf[ACQEVENT].name,"ACQEVENT");
+  sm_p->circbuf[HEXRECV].buffer  = (void *)sm_p->hexrecv;
+  sm_p->circbuf[HEXRECV].nbytes  = sizeof(hexrecv_t);
+  sm_p->circbuf[HEXRECV].bufsize = HEXRECVSIZE;
+  sprintf((char *)sm_p->circbuf[HEXRECV].name,"HEXRECV");
+  sm_p->circbuf[SHK_HEXSEND].buffer  = (void *)sm_p->shk_hexsend;
+  sm_p->circbuf[SHK_HEXSEND].nbytes  = sizeof(hexsend_t);
+  sm_p->circbuf[SHK_HEXSEND].bufsize = HEXSENDSIZE;
+  sprintf((char *)sm_p->circbuf[SHK_HEXSEND].name,"SHK_HEXSEND");
+  sm_p->circbuf[LYT_HEXSEND].buffer  = (void *)sm_p->lyt_hexsend;
+  sm_p->circbuf[LYT_HEXSEND].nbytes  = sizeof(hexsend_t);
+  sm_p->circbuf[LYT_HEXSEND].bufsize = HEXSENDSIZE;
+  sprintf((char *)sm_p->circbuf[ACQ_HEXSEND].name,"ACQ_HEXSEND");
+  sm_p->circbuf[ACQ_HEXSEND].buffer  = (void *)sm_p->acq_hexsend;
+  sm_p->circbuf[ACQ_HEXSEND].nbytes  = sizeof(hexsend_t);
+  sm_p->circbuf[ACQ_HEXSEND].bufsize = HEXSENDSIZE;
+  sprintf((char *)sm_p->circbuf[HEX_HEXSEND].name,"HEX_HEXSEND");
+  sm_p->circbuf[HEX_HEXSEND].buffer  = (void *)sm_p->hex_hexsend;
+  sm_p->circbuf[HEX_HEXSEND].nbytes  = sizeof(hexsend_t);
+  sm_p->circbuf[HEX_HEXSEND].bufsize = HEXSENDSIZE;
+  sprintf((char *)sm_p->circbuf[HEX_HEXSEND].name,"HEX_HEXSEND");
   //-- Full frame buffers
   sm_p->circbuf[SCIFULL].buffer  = (void *)sm_p->scifull;
   sm_p->circbuf[SCIFULL].nbytes  = sizeof(scifull_t);

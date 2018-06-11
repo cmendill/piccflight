@@ -60,7 +60,7 @@ void init_state(int state_number, state_t *state){
     state->lyt.run_camera = 1;
     state->sci.run_camera = 1;
     state->acq.run_camera = 1;
-    //Tell ACQ to set hex to locate LED
+    //Tell ACQ to locate LED
     state->acq.locate_led = 1;
     return;
   }
@@ -76,9 +76,9 @@ void init_state(int state_number, state_t *state){
     state->lyt.run_camera = 1;
     state->sci.run_camera = 1;
     state->acq.run_camera = 1;
-    //Define user as hex controller
-    state->usr.control_hex = 1;
-    //Enable SHk zernike fitting
+    //Set HEXID as hex commander
+    state->hex_commander = HEXID;
+    //Enable SHK zernike fitting
     state->shk.fit_zernikes = 1;
     return;
   }
@@ -94,6 +94,8 @@ void init_state(int state_number, state_t *state){
     state->lyt.run_camera = 1;
     state->sci.run_camera = 1;
     state->acq.run_camera = 1;
+    //Set ACQID as hex commander
+    state->hex_commander = ACQID;
     //Tell ACQ to set hex to default home
     state->acq.hex_default_home = 1;
     
@@ -111,6 +113,8 @@ void init_state(int state_number, state_t *state){
     state->lyt.run_camera = 1;
     state->sci.run_camera = 1;
     state->acq.run_camera = 1;
+    //Set ACQID as hex commander
+    state->hex_commander = ACQID;
     //Tell ACQ to set hex to thermal home
     state->acq.hex_thermal_home = 1;
     return;
@@ -127,6 +131,8 @@ void init_state(int state_number, state_t *state){
     state->lyt.run_camera = 1;
     state->sci.run_camera = 1;
     state->acq.run_camera = 1;
+    //Set ACQID as hex commander
+    state->hex_commander = ACQID;
     //Tell ACQ to run hex spiral search
     state->acq.hex_spiral_search = 1;
     return;
@@ -143,6 +149,8 @@ void init_state(int state_number, state_t *state){
     state->lyt.run_camera = 1;
     state->sci.run_camera = 1;
     state->acq.run_camera = 1;
+    //Define ACQID as hex controller
+    state->hex_commander = ACQID;
     //Tell ACQ to capture target
     state->acq.hex_capture_target = 1;
     return;
@@ -167,6 +175,8 @@ void init_state(int state_number, state_t *state){
     state->shk.zernike_control[3] = ACTUATOR_HEX;
     state->shk.zernike_control[4] = ACTUATOR_HEX;
     state->shk.zernike_control[5] = ACTUATOR_HEX;
+    //Set SHKID as hex commander
+    state->hex_commander = SHKID;
     return;
   }
 

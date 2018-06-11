@@ -652,7 +652,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     init=0;
     sm_p->shk_reset=0;
   }
-
+  
   //Initialize
   if(!init){
     //Zero out events & commands
@@ -686,6 +686,21 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   if(timespec_subtract(&delta,&start,&last))
     printf("SHK: shk_process_image --> timespec_subtract error!\n");
   ts2double(&delta,&dt);
+  
+  //Read current hexapod position
+  while(read_from_buffer(sm_p,&hexevent,HEXRECV,SHKID)){
+    if(hexevent.command_status == HEX_CMD_ACCEPTED){
+      //Copy accepted command to current position
+      memcpy(&hex,&hexevent.hex,sizeof(hex_t));
+      if(hexevent.clientid == SHKID){
+	//If this was a SHK command:
+	// - copy to shkevent
+	memcpy(&shkevent.hex,&hexevent.hex,sizeof(hex_t));
+	// - increment command counter
+	hex_counter++;
+      }
+    }
+  }
   
   //Fill out event header
   shkevent.hed.packet_type  = SHKEVENT;
@@ -809,27 +824,25 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   //Send command to ALP
   if(ALP_ENABLE && sm_p->alp_dev >= 0 && move_alp){
     // - send command
-    if(alp_write(sm_p->alp_dev,&alp))
-      printf("SHK: alp_write failed!\n");
-    // - copy command to shkevent
-    memcpy(&shkevent.alp,&alp,sizeof(alp_t));
-    // - increment command counter
-    alp_counter++;
+    if(sm_p->state_array[sm_p->state].hex_commander = SHKID){
+      if(alp_write(sm_p->alp_dev,&alp))
+	printf("SHK: alp_write failed!\n");
+      // - copy command to shkevent
+      memcpy(&shkevent.alp,&alp,sizeof(alp_t));
+      // - increment command counter
+      alp_counter++;
+    }
   }
   
   //Send command to HEX
   if(HEX_ENABLE && move_hex){
-    if(sm_p->hex_last_recv == sm_p->hex_last_sent){
-      // - send command
-      memcpy((double *)sm_p->hex_command,&shkevent.hex.axis_cmd,sizeof(sm_p->hex_command));
-      sm_p->hex_last_sent++;
-      // - copy command to shkevent
-      memcpy(&shkevent.hex,&hex,sizeof(hex_t));
-      // - increment command counter
-      hex_counter++;
-    }
+    //Check if there is still a command in the buffer
+    check_buffer(sm_p,SHK_HEXSEND,HEXID)){
+    // - send command
+    hexevent.clientid = SHKID;
+    write_to_buffer(sm_p,&hexevent,SHK_HEXSEND);
   }
-  
+    
   //Open circular buffer
   shkevent_p=(shkevent_t *)open_buffer(sm_p,SHKEVENT);
 

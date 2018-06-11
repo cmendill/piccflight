@@ -37,13 +37,15 @@ void hexctrlC(int sig)
 
 /* Main Process */
 void hex_proc(void){
-  uint32 count = 0;
-  int bFlag,i;
+  int bFlag,i,state;
   double hexpos[6]={0};
   double scopepos[6] = {0};
   double hexhome[6] = HEX_POS_HOME;
   double hexdef[6]  = HEX_POS_DEFAULT;
   double pivot[3]   = {HEX_PIVOT_X,HEX_PIVOT_Y,HEX_PIVOT_Z};
+  hexevent_t hexevent;
+  int buffer[4] = {SHK_HEXSEND,LYT_HEXSEND,ACQ_HEXSEND,HEX_HEXSEND};
+  int nbuffers  = 4;
   
   /* Open Shared Memory */
   sm_t *sm_p;
@@ -111,20 +113,22 @@ void hex_proc(void){
 
     /************** If Hexapod is Enabled **************/
     if(HEX_ENABLE){
-      /* USER COMMANDS: Command collisiion protected by state permissions */
+       /**** USER COMMANDS ****/
 
       /* Command: Go to home position */
       if(sm_p->hex_gohome){
-	memcpy((double *)sm_p->hex_command,hexhome,sizeof(hexhome));
+	memcpy((double *)hexevent.hex.axis_cmd,hexhome,sizeof(hexhome));
+	hexevent.clientid = HEXID;
+	write_to_buffer(sm_p,&hexvent,HEX_HEXSEND);
 	sm_p->hex_gohome=0;
-	sm_p->hex_last_sent++;
       }
 
       /* Command: Go to default position */
       if(sm_p->hex_godef){
-	memcpy((double *)sm_p->hex_command,hexdef,sizeof(hexdef));
+	memcpy((double *)hexevent.hex.axis_cmd,hexdef,sizeof(hexdef));
+	hexevent.clientid = HEXID;
+	write_to_buffer(sm_p,&hexvent,HEX_HEXSEND);
 	sm_p->hex_godef=0;
-	sm_p->hex_last_sent++;
       }
     
       /* Command: Get Hexapod Position */
@@ -134,9 +138,9 @@ void hex_proc(void){
 	  sleep(1);
 	  hexctrlC(0);
 	}
-	for(i=0;i<HEX_NAXES;i++){
+	for(i=0;i<HEX_NAXES;i++)
 	  scopepos[i] = 0;
-	}
+	
 	hex_hex2scope(hexpos, scopepos);
 	//Print position
 	printf("HEX: X = %f \n",scopepos[0]);
@@ -148,23 +152,44 @@ void hex_proc(void){
 	sm_p->hex_getpos = 0;
       }
 
-      /**** Write Commands to Hexapod ****/
-      /* Read Newest Command */
-      if(sm_p->hex_last_sent > sm_p->hex_last_recv){ 
-	
-	/* Move Hexapod */
-	if(hex_move(hexfd,(double *)sm_p->hex_command)){
-	  printf("HEX: hex_move error!\n");
-	  hexctrlC(0);
+      /**** WRITE COMMANDS TO HEXAPOD ****/
+      
+      /* Get State */
+      state = sm_p->state;
+      
+      /* Get HEX Commander */
+      commander = sm_p->state_array[state].hex_commander;
+      
+      /* Read Command Buffers */
+      for(i=0;i<nbuffers;i++){
+
+	while(read_from_buffer(sm_p,&hexevent,buffer[i],HEXID)){ 
+	  
+	  /* If this is the commanding process */
+	  if(commander == hexevent.clientid){
+	    
+	    /* Move Hexapod */
+	    if(hex_move(hexfd,hexevent.hex.axis_cmd)){
+	      printf("HEX: hex_move error!\n");
+	      hexctrlC(0);
+	    }
+	    
+	    /* Accept Command */
+	    hexevent.command_status = HEX_CMD_ACCEPTED;
+	  }
+	  else{
+	    /* Reject Command */
+	    hexevent.command_status = HEX_CMD_REJECTED;
+	  }
+	  
+	  /* Write event to recv buffer */
+	  write_to_buffer(sm_p,&hexevent,HEXRECV);
 	}
-
-	/* Acknowledge Command */
-	sm_p->hex_last_recv = sm_p->hex_last_sent;
       }
+	
+      /* Sleep */
+      usleep(ONE_MILLION/HEX_CMD_PER_SEC);
     }
-
-    /* Sleep */
-    usleep(HEX_PERIOD_DSEC * 100000);
   }
   
   hexctrlC(0);

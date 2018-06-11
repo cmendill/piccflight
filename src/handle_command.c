@@ -246,7 +246,7 @@ int handle_command(char *line, sm_t *sm_p){
   }
 
   //User Hexapod Control
-  if(sm_p->state_array[sm_p->state].usr.control_hex){
+  if(sm_p->state_array[sm_p->state].hex_commander = HEXID){
     if(!strncasecmp(line,"hex getpos",10)){
       sm_p->hex_getpos=1;
       printf("CMD: Getting hexapod position\n");
@@ -370,7 +370,7 @@ int handle_command(char *line, sm_t *sm_p){
       printf("CMD: Decreasing HEX movement to %f mm and %f deg\n", trl_poke, rot_poke);
       return(CMD_NORMAL);
     }
-  }
+  }else printf("CMD: Manual hexapod control disabled in this state.\n");
   
   //HEX Calibration
   if(!strncasecmp(line,"shk calibrate hex",17)){
