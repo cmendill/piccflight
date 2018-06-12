@@ -76,6 +76,7 @@ int handle_command(char *line, sm_t *sm_p){
   static calmode_t hexcalmodes[HEX_NCALMODES];
   static int init=0;
   static hexevent_t hexrecv = {0},hexsend = {0};
+  static uint64 hex_last_send = 0; hex_last_recv = 0;
   const char hex_str_axes[HEX_NAXES][5] = {"X","Y","Z","U","V","W"};
   const char hex_str_unit[HEX_NAXES][5] = {"mm","mm","mm","deg","deg","deg"};
   const double hexhome[6] = HEX_POS_HOME;
@@ -284,23 +285,27 @@ int handle_command(char *line, sm_t *sm_p){
       }
       //Read current hexapod position
       while(read_from_buffer(sm_p,&hexrecv,HEXRECV,WATID)){
-	if(hexrecv.status == HEX_CMD_ACCEPTED){
+	if(hexrecv.clientid == WATID)
+	  hex_last_recv = hexrecv.command_number;
+ 	if(hexrecv.status == HEX_CMD_ACCEPTED){
 	  //Copy accepted command to current position
 	  memcpy(&hexsend,&hexrecv,sizeof(hexevent_t));
 	  hexsend.clientid = WATID;
 	}
       }
-      //Check if there is still a command in the buffer
-      if(!check_buffer(sm_p,WAT_HEXSEND,HEXID)){
+      //Check if hex_proc is ready for commands
+      if(hex_last_send = hex_last_recv){
       	//Commands to Move Hexapod
 	if(!strncasecmp(line,"hex gohome",10)){
 	  memcpy(hexsend.hex.axis_cmd,hexhome,sizeof(hexhome));
+	  hexsend.command_number = ++hex_last_send;
 	  printf("CMD: Moving hexapod to home positon\n");
 	  write_to_buffer(sm_p,&hexsend,WAT_HEXSEND);
 	  return(CMD_NORMAL);
 	}
 	if(!strncasecmp(line,"hex godef",9)){
 	  memcpy(hexsend.hex.axis_cmd,hexdef,sizeof(hexdef));
+	  hexsend.command_number = ++hex_last_send;
 	  printf("CMD: Moving hexapod to default positon\n");
 	  write_to_buffer(sm_p,&hexsend,WAT_HEXSEND);
 	  return(CMD_NORMAL);
@@ -371,6 +376,7 @@ int handle_command(char *line, sm_t *sm_p){
 	move_hex:
 	  printf("CMD: Moving hexapod axis %s by %f %s\n",hex_str_axes[hex_axis],hex_poke,hex_str_unit[hex_axis]);
 	  hexsend.hex.axis_cmd[hex_axis] += hex_poke;
+	  hexsend.command_number = ++hex_last_send;
 	  write_to_buffer(sm_p,&hexsend,WAT_HEXSEND);
 	}
       }
