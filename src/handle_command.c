@@ -76,7 +76,7 @@ int handle_command(char *line, sm_t *sm_p){
   static calmode_t hexcalmodes[HEX_NCALMODES];
   static int init=0;
   static hexevent_t hexrecv = {0},hexsend = {0};
-  static uint64 hex_last_send = 0; hex_last_recv = 0;
+  static uint64 hex_last_send = 0, hex_last_recv = 0;
   const char hex_str_axes[HEX_NAXES][5] = {"X","Y","Z","U","V","W"};
   const char hex_str_unit[HEX_NAXES][5] = {"mm","mm","mm","deg","deg","deg"};
   const double hexhome[6] = HEX_POS_HOME;
@@ -294,7 +294,7 @@ int handle_command(char *line, sm_t *sm_p){
 	}
       }
       //Check if hex_proc is ready for commands
-      if(hex_last_send = hex_last_recv){
+      if(hex_last_send == hex_last_recv){
       	//Commands to Move Hexapod
 	if(!strncasecmp(line,"hex gohome",10)){
 	  memcpy(hexsend.hex.axis_cmd,hexhome,sizeof(hexhome));
