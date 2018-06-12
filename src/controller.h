@@ -147,12 +147,13 @@ enum states { STATE_STANDBY,
 #define CELLS2ALP_FILE    "data/shk/shk2alp.dat"
 #define CELLS2HEX_FILE    "data/shk/shk2hex.dat"
 #define ZERNIKE2HEX_FILE  "data/shk/zern2hex.dat"
-#define ZERNIKE2SPA_FILE  "data/shk/zern2spa.dat"
 #define ZERNIKE2ALP_FILE  "data/shk/zern2alp.dat"
 #define SHK2ZERNIKE_FILE  "data/shk/shk2zern.dat"
 #define ASTIG2TILT_FILE   "data/shk/astig2tilt.dat"
 #define SHK_HEX_CALFILE   "data/test_data/shk_hex_caldata.dat"
 #define SHK_ALP_CALFILE   "data/test_data/shk_alp_caldata.dat"
+#define SHK2ZERN_OUTFILE  "data/shk/shk2zern_flight_output.dat"
+#define ZERN2SHK_OUTFILE  "data/shk/zern2shk_flight_output.dat"
 #define MAX_FILENAME      128
 
 
@@ -192,8 +193,8 @@ enum bufids {SCIEVENT, SCIFULL,
 /*************************************************
  * LOWFS Settings
  *************************************************/
-#define LOWFS_N_ZERNIKE         24
-#define LOWFS_N_HEX_ZERNIKE     5
+#define LOWFS_N_ZERNIKE         23 //no piston
+#define LOWFS_N_HEX_ZERNIKE     5  //no piston
 
 /*************************************************
  * Zernike Errors
@@ -201,6 +202,7 @@ enum bufids {SCIEVENT, SCIFULL,
 #define ZERNIKE_ERRORS_FILE   "data/zernike/zernike_errors.dat"
 #define ZERNIKE_ERRORS_NUMBER 15000
 #define ZERNIKE_ERRORS_PERIOD 0.00200000
+#define ZERNIKE_ERRORS_NZERN  24
 
 /*************************************************
  * Camera Settings -- Keep sizes divisible by 4 (packets)
@@ -295,9 +297,15 @@ enum bufids {SCIEVENT, SCIFULL,
 #define HEX_AXIS_V       4
 #define HEX_AXIS_W       5
 #define HEX_POS_HOME     {0,0,0,0,0,0}
-#define HEX_POS_DEFAULT  {-1.213708, 3.527789, -0.157457, 0.235558, 0.439130, 0.00171}
+#define HEX_POS_DEFAULT  {-1.213673,3.527778,-0.157447,0.228300,0.437629,0.001699}
 #define HEX_TRL_POKE      0.01
 #define HEX_ROT_POKE      0.001
+#define HEX_X_CAL_POKE    0.01
+#define HEX_Y_CAL_POKE    0.01
+#define HEX_Z_CAL_POKE    0.05
+#define HEX_U_CAL_POKE    0.001
+#define HEX_V_CAL_POKE    0.001
+#define HEX_W_CAL_POKE    0.005
 #define HEX_NCALIM        10
 #define HEX_PIVOT_X       0//122.32031250
 #define HEX_PIVOT_Y       0//206.61012268
@@ -346,7 +354,7 @@ enum bufids {SCIEVENT, SCIFULL,
 #define SHK_XMAX              (SHKXS-1)
 #define SHK_YMIN              0
 #define SHK_YMAX              (SHKYS-1)
-#define SHK_READ_MATRIX       0     //Read Zernike fitting matrix instead of building it
+#define SHK_READ_MATRIX       1      //Read Zernike fitting matrix instead of building it
 
 /*************************************************
  * Config Structure

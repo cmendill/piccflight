@@ -267,7 +267,8 @@ int hex_calibrate(int calmode, hex_t *hex, uint64 *step, int reset, uint64 count
   static hex_t hex_start[HEX_NCALMODES];
   time_t t;
   double dt=0;
-  double axes[HEX_NAXES];
+  const double poke[HEX_NAXES]={HEX_X_CAL_POKE,HEX_Y_CAL_POKE,HEX_Z_CAL_POKE,HEX_U_CAL_POKE,HEX_V_CAL_POKE,HEX_W_CAL_POKE};
+  int iax;
   
 
   /* Reset */
@@ -324,11 +325,8 @@ int hex_calibrate(int calmode, hex_t *hex, uint64 *step, int reset, uint64 count
 	
 	if((countA[calmode]/HEX_NCALIM) % 2 == 1){
 	  //move one axis
-	  if((countB[calmode]/HEX_NCALIM) % HEX_NAXES <=2){
-	    hex->axis_cmd[(countB[calmode]/HEX_NCALIM) % HEX_NAXES] += HEX_TRL_POKE;
-	  }else{
-	    hex->axis_cmd[(countB[calmode]/HEX_NCALIM) % HEX_NAXES] += HEX_ROT_POKE;
-	  }
+	  iax = (countB[calmode]/HEX_NCALIM) % HEX_NAXES;
+	  hex->axis_cmd[iax] += poke[iax];
 	  countB[calmode]++;
 	}
 	countA[calmode]++;

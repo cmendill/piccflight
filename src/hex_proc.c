@@ -109,7 +109,7 @@ void hex_proc(void){
 
     /* Check in with the watchdog */
     checkin(sm_p,HEXID);
-
+    
     /************** If Hexapod is Enabled **************/
     if(HEX_ENABLE){
       /* Command: Get Hexapod Position */
@@ -130,6 +130,7 @@ void hex_proc(void){
 	printf("HEX: U = %f \n",scopepos[3]);
 	printf("HEX: V = %f \n",scopepos[4]);
 	printf("HEX: W = %f \n",scopepos[5]);
+	printf("HEX: {%f,%f,%f,%f,%f,%f}\n",scopepos[0],scopepos[1],scopepos[2],scopepos[3],scopepos[4],scopepos[5]);
 	sm_p->hex_getpos = 0;
       }
 
@@ -141,9 +142,10 @@ void hex_proc(void){
       /* Get HEX Commander */
       commander = sm_p->state_array[state].hex_commander;
       
-      /* Read Command Buffers */
+      /* Loop Through Command Buffers */
       for(i=0;i<nbuffers;i++){
-
+	
+	/* Read command buffer */
 	while(read_from_buffer(sm_p,&hexevent,buffer[i],HEXID)){ 
 	  
 	  /* If this is the commanding process */
@@ -161,6 +163,9 @@ void hex_proc(void){
 
 	    /* Write event to recv buffer */
 	    write_to_buffer(sm_p,&hexevent,HEXRECV);
+	    
+	    /* Check in with the watchdog */
+	    checkin(sm_p,HEXID);
 	    
 	    /* Sleep */
 	    usleep(ONE_MILLION/HEX_CMD_PER_SEC);

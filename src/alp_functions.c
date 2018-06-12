@@ -114,7 +114,7 @@ int alp_calibrate(int calmode, alp_t *alp, int reset, uint64 counter){
   static uint64 countA=0,countB=0,last_counter=0;
   static double zernike_errors[LOWFS_N_ZERNIKE][ZERNIKE_ERRORS_NUMBER]={{0}};
   const double zernike_timestep = ZERNIKE_ERRORS_PERIOD;
-  const int flight_zuse[LOWFS_N_ZERNIKE]={0,0,0,1,1,1, 1,1,1,1,1,1, 0,0,0,0,0,0, 0,0,0,0,0,0};
+  const int flight_zuse[LOWFS_N_ZERNIKE]={0,0,1,1,1, 1,1,1,1,1,1, 0,0,0,0,0,0, 0,0,0,0,0,0};
   static int init=0;
   time_t t;
   FILE *fileptr=NULL;

@@ -30,8 +30,8 @@
 #define SHK_KP_CELL_DEFAULT  -0.5
 #define SHK_KI_CELL_DEFAULT  -0.2
 #define SHK_KD_CELL_DEFAULT   0.0
-#define SHK_KP_ZERN_DEFAULT  -0.5
-#define SHK_KI_ZERN_DEFAULT  -0.2
+#define SHK_KP_ZERN_DEFAULT  -0.1
+#define SHK_KI_ZERN_DEFAULT  -0.0
 #define SHK_KD_ZERN_DEFAULT   0.0
 
 /*************************************************

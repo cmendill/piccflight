@@ -251,7 +251,12 @@ void shk_zernike_matrix(shkcell_t *cells, double *matrix_inv){
   double max_x = 0, max_y = 0, min_x = SHKXS, min_y = SHKYS;
   double beam_center[2] = {0}, beam_radius[2]={0}, beam_radius_m[2]={0};
   double unit_conversion[2];
-  
+  double dz_dxdy[2*SHK_NCELLS*LOWFS_N_ZERNIKE] = {0};
+  double x_1 = 0, x_2 = 0, x_3 = 0, x_4 = 0, x_5=0;
+  double y_1 = 0, y_2 = 0, y_3 = 0, y_4 = 0, y_5=0;
+  FILE *matrix=NULL;
+  char matrix_file[MAX_FILENAME];
+ 
   // collect beam cell indices on to beam_cell_index[SHK_NCELLS]
   // beam_center = [mean(x), mean(y)] of beam cell origins
   // beam_radius = [(max(x)-min(x))/2, (max(y)-min(y))/2] of beam cell origins
@@ -269,21 +274,17 @@ void shk_zernike_matrix(shkcell_t *cells, double *matrix_inv){
   beam_center[1] = (max_y+min_y)/2.0; // beam center y
   beam_radius[0] = (max_x-min_x)/2.0; // beam radius x
   beam_radius[1] = (max_y-min_y)/2.0; // beam radius y
+  //bake in the conversion from pixels to wavefront slope
+  unit_conversion[0] = (SHK_FOCAL_LENGTH_UM/SHK_PX_PITCH_UM) * (1./(beam_radius[0]*SHK_PX_PITCH_UM));
+  unit_conversion[1] = (SHK_FOCAL_LENGTH_UM/SHK_PX_PITCH_UM) * (1./(beam_radius[1]*SHK_PX_PITCH_UM));
   printf("SHK: Rebuilding Zernike Matrix\n");
   printf("SHK: (MinX,MaxX): (%f, %f) [px]\n",min_x,max_x);
   printf("SHK: (MinY,MaxY): (%f, %f) [px]\n",min_y,max_y);
   printf("SHK: Beam center: (%f, %f) [px]\n",beam_center[0],beam_center[1]);
   printf("SHK: Beam radius: (%f, %f) [px]\n",beam_radius[0],beam_radius[1]);
+  printf("SHK: Unit conver: (%f, %f)     \n",unit_conversion[0],unit_conversion[1]);
   printf("SHK: Beam ncells: %d\n", beam_ncells);
 
-  //bake in the conversion from pixels to wavefront slope
-  unit_conversion[0] = (SHK_FOCAL_LENGTH_UM/SHK_PX_PITCH_UM) * (1./(beam_radius[0]*SHK_PX_PITCH_UM));
-  unit_conversion[1] = (SHK_FOCAL_LENGTH_UM/SHK_PX_PITCH_UM) * (1./(beam_radius[1]*SHK_PX_PITCH_UM));
-
-  printf("SHK: building the zernike fitting matrix\n");
-  double dz_dxdy[2*SHK_NCELLS*LOWFS_N_ZERNIKE] = {0};
-  double x_1 = 0, x_2 = 0, x_3 = 0, x_4 = 0, x_5=0;
-  double y_1 = 0, y_2 = 0, y_3 = 0, y_4 = 0, y_5=0;
   for(i=0; i<beam_ncells; i++) {
     x_1 = (cells[beam_cell_index[i]].origin[0] - beam_center[0])/beam_radius[0];    //unitless [px/px] (-1 to +1)
     x_2 = pow(x_1,2);
@@ -303,65 +304,96 @@ void shk_zernike_matrix(shkcell_t *cells, double *matrix_inv){
     //Inverse * wavefront slope = Inverse * (displacment [um] / focal length [um]) = Zernike coefficent
     //Inverse * (dispacement [px] * pixel size [um] / focal length [um]) = Zernike Coeff
     //unit_conversion also cotains (focal_length / pixel_size) which, when inverted will convert pixel displacements to wavefront slopes
-    dz_dxdy[i+( 0*beam_ncells)] =      1.0 * (0)                                                                    *unit_conversion[0];
-    dz_dxdy[i+( 2*beam_ncells)] =      2.0 * (1)                                                                    *unit_conversion[0];
-    dz_dxdy[i+( 4*beam_ncells)] =      2.0 * (0)                                                                    *unit_conversion[0];
-    dz_dxdy[i+( 6*beam_ncells)] =  sqrt(3) * (4*x_1)                                                                *unit_conversion[0];
+    dz_dxdy[i+( 0*beam_ncells)] =      2.0 * (1)                                                                    *unit_conversion[0];
+    dz_dxdy[i+( 2*beam_ncells)] =      2.0 * (0)                                                                    *unit_conversion[0];
+    dz_dxdy[i+( 4*beam_ncells)] =  sqrt(3) * (4*x_1)                                                                *unit_conversion[0];
+    dz_dxdy[i+( 6*beam_ncells)] =  sqrt(6) * (2*x_1)                                                                *unit_conversion[0];
     dz_dxdy[i+( 8*beam_ncells)] =  sqrt(6) * (2*y_1)                                                                *unit_conversion[0];
-    dz_dxdy[i+(10*beam_ncells)] =  sqrt(6) * (2*x_1)                                                                *unit_conversion[0];
-    dz_dxdy[i+(12*beam_ncells)] =  sqrt(8) * (9*x_2 + 3*y_2 - 2)                                                    *unit_conversion[0];
-    dz_dxdy[i+(14*beam_ncells)] =  sqrt(8) * (6*x_1*y_1)                                                            *unit_conversion[0];
-    dz_dxdy[i+(16*beam_ncells)] =  sqrt(8) * (3*x_2 - 3*y_2)                                                        *unit_conversion[0];
-    dz_dxdy[i+(18*beam_ncells)] =  sqrt(8) * (6*x_1*y_1)                                                            *unit_conversion[0];
-    dz_dxdy[i+(20*beam_ncells)] = sqrt( 5) * (24*x_3 - 12*x_1 + 24*x_1*y_2)                                         *unit_conversion[0];
-    dz_dxdy[i+(22*beam_ncells)] = sqrt(10) * (16*x_3 - 6*x_1)                                                       *unit_conversion[0];
-    dz_dxdy[i+(24*beam_ncells)] = sqrt(10) * (24*x_2*y_1 - 6*y_1 + 8*y_3)                                           *unit_conversion[0];
-    dz_dxdy[i+(26*beam_ncells)] = sqrt(10) * (4*x_3 - 12*x_1*y_2)                                                   *unit_conversion[0];
-    dz_dxdy[i+(28*beam_ncells)] = sqrt(10) * (12*x_2*y_1 - 4*y_3)                                                   *unit_conversion[0];
-    dz_dxdy[i+(30*beam_ncells)] = sqrt(12) * (50*x_4 - 36*x_2 + 60*x_2*y_2 - 12*y_2 + 10*y_4 + 3)                   *unit_conversion[0];
-    dz_dxdy[i+(32*beam_ncells)] = sqrt(12) * (40*x_3*y_1 - 24*x_1*y_1 + 40*x_1*y_3)                                 *unit_conversion[0];
-    dz_dxdy[i+(34*beam_ncells)] = sqrt(12) * (25*x_4 - 12*x_2 - 30*x_2*y_2 + 12*y_2 - 15*y_4)                       *unit_conversion[0];
-    dz_dxdy[i+(36*beam_ncells)] = sqrt(12) * (60*x_3*y_1 - 24*x_1*y_1 + 20*x_1*y_3)                                 *unit_conversion[0];
-    dz_dxdy[i+(38*beam_ncells)] = sqrt(12) * (5*x_4 - 30*x_2*y_2 + 5*y_4)                                           *unit_conversion[0];
-    dz_dxdy[i+(40*beam_ncells)] = sqrt(12) * (20*x_3*y_1 - 20*x_1*y_3)                                              *unit_conversion[0];
-    dz_dxdy[i+(42*beam_ncells)] = sqrt( 7) * (120*x_5 - 120*x_3 + 240*x_3*y_2 + 24*x_1 - 120*x_1*y_2 + 120*x_1*y_4) *unit_conversion[0];
-    dz_dxdy[i+(44*beam_ncells)] = sqrt(14) * (90*x_5 + 60*x_3*y_2 - 80*x_3 + 12*x_1 - 30*x_1*y_4)                   *unit_conversion[0];
-    dz_dxdy[i+(46*beam_ncells)] = sqrt(14) * (150*x_4*y_1 + 180*x_2*y_3 - 120*x_2*y_1 + 12*y_1 - 40*y_3 + 30*y_5)   *unit_conversion[0];
+    dz_dxdy[i+(10*beam_ncells)] =  sqrt(8) * (9*x_2 + 3*y_2 - 2)                                                    *unit_conversion[0];
+    dz_dxdy[i+(12*beam_ncells)] =  sqrt(8) * (6*x_1*y_1)                                                            *unit_conversion[0];
+    dz_dxdy[i+(14*beam_ncells)] =  sqrt(8) * (3*x_2 - 3*y_2)                                                        *unit_conversion[0];
+    dz_dxdy[i+(16*beam_ncells)] =  sqrt(8) * (6*x_1*y_1)                                                            *unit_conversion[0];
+    dz_dxdy[i+(18*beam_ncells)] = sqrt( 5) * (24*x_3 - 12*x_1 + 24*x_1*y_2)                                         *unit_conversion[0];
+    dz_dxdy[i+(20*beam_ncells)] = sqrt(10) * (16*x_3 - 6*x_1)                                                       *unit_conversion[0];
+    dz_dxdy[i+(22*beam_ncells)] = sqrt(10) * (24*x_2*y_1 - 6*y_1 + 8*y_3)                                           *unit_conversion[0];
+    dz_dxdy[i+(24*beam_ncells)] = sqrt(10) * (4*x_3 - 12*x_1*y_2)                                                   *unit_conversion[0];
+    dz_dxdy[i+(26*beam_ncells)] = sqrt(10) * (12*x_2*y_1 - 4*y_3)                                                   *unit_conversion[0];
+    dz_dxdy[i+(28*beam_ncells)] = sqrt(12) * (50*x_4 - 36*x_2 + 60*x_2*y_2 - 12*y_2 + 10*y_4 + 3)                   *unit_conversion[0];
+    dz_dxdy[i+(30*beam_ncells)] = sqrt(12) * (40*x_3*y_1 - 24*x_1*y_1 + 40*x_1*y_3)                                 *unit_conversion[0];
+    dz_dxdy[i+(32*beam_ncells)] = sqrt(12) * (25*x_4 - 12*x_2 - 30*x_2*y_2 + 12*y_2 - 15*y_4)                       *unit_conversion[0];
+    dz_dxdy[i+(34*beam_ncells)] = sqrt(12) * (60*x_3*y_1 - 24*x_1*y_1 + 20*x_1*y_3)                                 *unit_conversion[0];
+    dz_dxdy[i+(36*beam_ncells)] = sqrt(12) * (5*x_4 - 30*x_2*y_2 + 5*y_4)                                           *unit_conversion[0];
+    dz_dxdy[i+(38*beam_ncells)] = sqrt(12) * (20*x_3*y_1 - 20*x_1*y_3)                                              *unit_conversion[0];
+    dz_dxdy[i+(40*beam_ncells)] = sqrt( 7) * (120*x_5 - 120*x_3 + 240*x_3*y_2 + 24*x_1 - 120*x_1*y_2 + 120*x_1*y_4) *unit_conversion[0];
+    dz_dxdy[i+(42*beam_ncells)] = sqrt(14) * (90*x_5 + 60*x_3*y_2 - 80*x_3 + 12*x_1 - 30*x_1*y_4)                   *unit_conversion[0];
+    dz_dxdy[i+(44*beam_ncells)] = sqrt(14) * (150*x_4*y_1 + 180*x_2*y_3 - 120*x_2*y_1 + 12*y_1 - 40*y_3 + 30*y_5)   *unit_conversion[0];
 
-    dz_dxdy[i+( 1*beam_ncells)] =      1.0 * (0)                                                                    *unit_conversion[1];
-    dz_dxdy[i+( 3*beam_ncells)] =      2.0 * (0)                                                                    *unit_conversion[1];
-    dz_dxdy[i+( 5*beam_ncells)] =      2.0 * (1)                                                                    *unit_conversion[1];
-    dz_dxdy[i+( 7*beam_ncells)] =  sqrt(3) * (4*y_1)                                                                *unit_conversion[1];
+    dz_dxdy[i+( 1*beam_ncells)] =      2.0 * (0)                                                                    *unit_conversion[1];
+    dz_dxdy[i+( 3*beam_ncells)] =      2.0 * (1)                                                                    *unit_conversion[1];
+    dz_dxdy[i+( 5*beam_ncells)] =  sqrt(3) * (4*y_1)                                                                *unit_conversion[1];
+    dz_dxdy[i+( 7*beam_ncells)] =  sqrt(6) * (-2*y_1)                                                               *unit_conversion[1];
     dz_dxdy[i+( 9*beam_ncells)] =  sqrt(6) * (2*x_1)                                                                *unit_conversion[1];
-    dz_dxdy[i+(11*beam_ncells)] =  sqrt(6) * (-2*y_1)                                                               *unit_conversion[1];
-    dz_dxdy[i+(13*beam_ncells)] =  sqrt(8) * (6*x_1*y_1)                                                            *unit_conversion[1];
-    dz_dxdy[i+(15*beam_ncells)] =  sqrt(8) * (3*x_2 + 9*y_2 - 2)                                                    *unit_conversion[1];
-    dz_dxdy[i+(17*beam_ncells)] =  sqrt(8) * (-6*x_1*y_1)                                                           *unit_conversion[1];
-    dz_dxdy[i+(19*beam_ncells)] =  sqrt(8) * (3*x_2 - 3*y_2)                                                        *unit_conversion[1];
-    dz_dxdy[i+(21*beam_ncells)] = sqrt( 5) * (24*x_2*y_1 - 12*y_1 + 24*y_3)                                         *unit_conversion[1];
-    dz_dxdy[i+(23*beam_ncells)] = sqrt(10) * (6*y_1 - 16*y_3)                                                       *unit_conversion[1];
-    dz_dxdy[i+(25*beam_ncells)] = sqrt(10) * (8*x_3 - 6*x_1 + 24*x_1*y_2)                                           *unit_conversion[1];
-    dz_dxdy[i+(27*beam_ncells)] = sqrt(10) * (-12*x_2*y_1 + 4*y_3)                                                  *unit_conversion[1];
-    dz_dxdy[i+(29*beam_ncells)] = sqrt(10) * (4*x_3 - 12*x_1*y_2)                                                   *unit_conversion[1];
-    dz_dxdy[i+(31*beam_ncells)] = sqrt(12) * (40*x_3*y_1 -24*x_1*y_1 + 40*x_1*y_3)                                  *unit_conversion[1];
-    dz_dxdy[i+(33*beam_ncells)] = sqrt(12) * (10*x_4 - 12*x_2 + 60*x_2*y_2 - 36*y_2 + 50*y_4 + 3)                   *unit_conversion[1];
-    dz_dxdy[i+(35*beam_ncells)] = sqrt(12) * (-20*x_3*y_1 + 24*x_1*y_1 - 60*x_1*y_3)                                *unit_conversion[1];
-    dz_dxdy[i+(37*beam_ncells)] = sqrt(12) * (15*x_4 - 12*x_2 + 30*x_2*y_2 + 12*y_2 - 25*y_4)                       *unit_conversion[1];
-    dz_dxdy[i+(39*beam_ncells)] = sqrt(12) * (-20*x_3*y_1 + 20*x_1*y_3)                                             *unit_conversion[1];
-    dz_dxdy[i+(41*beam_ncells)] = sqrt(12) * (5*x_4 - 30*x_2*y_2 + 5*y_4)                                           *unit_conversion[1];
-    dz_dxdy[i+(43*beam_ncells)] = sqrt( 7) * (120*x_4*y_1 - 120*x_2*y_1 + 240*x_2*y_3 + 24*y_1 - 120*y_3 + 120*y_5) *unit_conversion[1];
-    dz_dxdy[i+(45*beam_ncells)] = sqrt(14) * (30*x_4*y_1 - 60*x_2*y_3 - 12*y_1 + 80*y_3 - 90*y_5)                   *unit_conversion[1];
-    dz_dxdy[i+(47*beam_ncells)] = sqrt(14) * (30*x_5 - 40*x_3 + 180*x_3*y_2 + 12*x_1 - 120*x_1*y_2 + 150*x_1*y_4)   *unit_conversion[1];
+    dz_dxdy[i+(11*beam_ncells)] =  sqrt(8) * (6*x_1*y_1)                                                            *unit_conversion[1];
+    dz_dxdy[i+(13*beam_ncells)] =  sqrt(8) * (3*x_2 + 9*y_2 - 2)                                                    *unit_conversion[1];
+    dz_dxdy[i+(15*beam_ncells)] =  sqrt(8) * (-6*x_1*y_1)                                                           *unit_conversion[1];
+    dz_dxdy[i+(17*beam_ncells)] =  sqrt(8) * (3*x_2 - 3*y_2)                                                        *unit_conversion[1];
+    dz_dxdy[i+(19*beam_ncells)] = sqrt( 5) * (24*x_2*y_1 - 12*y_1 + 24*y_3)                                         *unit_conversion[1];
+    dz_dxdy[i+(21*beam_ncells)] = sqrt(10) * (6*y_1 - 16*y_3)                                                       *unit_conversion[1];
+    dz_dxdy[i+(23*beam_ncells)] = sqrt(10) * (8*x_3 - 6*x_1 + 24*x_1*y_2)                                           *unit_conversion[1];
+    dz_dxdy[i+(25*beam_ncells)] = sqrt(10) * (-12*x_2*y_1 + 4*y_3)                                                  *unit_conversion[1];
+    dz_dxdy[i+(27*beam_ncells)] = sqrt(10) * (4*x_3 - 12*x_1*y_2)                                                   *unit_conversion[1];
+    dz_dxdy[i+(29*beam_ncells)] = sqrt(12) * (40*x_3*y_1 -24*x_1*y_1 + 40*x_1*y_3)                                  *unit_conversion[1];
+    dz_dxdy[i+(31*beam_ncells)] = sqrt(12) * (10*x_4 - 12*x_2 + 60*x_2*y_2 - 36*y_2 + 50*y_4 + 3)                   *unit_conversion[1];
+    dz_dxdy[i+(33*beam_ncells)] = sqrt(12) * (-20*x_3*y_1 + 24*x_1*y_1 - 60*x_1*y_3)                                *unit_conversion[1];
+    dz_dxdy[i+(35*beam_ncells)] = sqrt(12) * (15*x_4 - 12*x_2 + 30*x_2*y_2 + 12*y_2 - 25*y_4)                       *unit_conversion[1];
+    dz_dxdy[i+(37*beam_ncells)] = sqrt(12) * (-20*x_3*y_1 + 20*x_1*y_3)                                             *unit_conversion[1];
+    dz_dxdy[i+(39*beam_ncells)] = sqrt(12) * (5*x_4 - 30*x_2*y_2 + 5*y_4)                                           *unit_conversion[1];
+    dz_dxdy[i+(41*beam_ncells)] = sqrt( 7) * (120*x_4*y_1 - 120*x_2*y_1 + 240*x_2*y_3 + 24*y_1 - 120*y_3 + 120*y_5) *unit_conversion[1];
+    dz_dxdy[i+(43*beam_ncells)] = sqrt(14) * (30*x_4*y_1 - 60*x_2*y_3 - 12*y_1 + 80*y_3 - 90*y_5)                   *unit_conversion[1];
+    dz_dxdy[i+(45*beam_ncells)] = sqrt(14) * (30*x_5 - 40*x_3 + 180*x_3*y_2 + 12*x_1 - 120*x_1*y_2 + 150*x_1*y_4)   *unit_conversion[1];
   }
   printf("SHK: inverting the zernike matrix\n");
   num_dgesvdi(dz_dxdy, matrix_inv, 2*beam_ncells, LOWFS_N_ZERNIKE);
+  
+  /* Write matricies to file */
+  //Set up file names
+  sprintf(matrix_file, ZERN2SHK_OUTFILE);
+  //Open file
+  if((matrix = fopen(matrix_file, "w")) == NULL){
+    perror("fopen");
+    printf("zern2shk file\n");
+  }
+  //Write matrix
+  if(fwrite(dz_dxdy,2*beam_ncells*LOWFS_N_ZERNIKE*sizeof(double),1,matrix) !=1){
+    perror("fwrite");
+    printf("zern2shk file\r");
+  }
+  //Close file
+  fclose(matrix);
+  printf("SHK: Wrote zernike matrix file: %s\n",matrix_file);
+  
+  //Set up file names
+  sprintf(matrix_file, SHK2ZERN_OUTFILE);
+  //Open file
+  if((matrix = fopen(matrix_file, "w")) == NULL){
+    perror("fopen");
+    printf("shk2zern file\n");
+  }
+  //Write matrix
+  if(fwrite(matrix_inv,2*beam_ncells*LOWFS_N_ZERNIKE*sizeof(double),1,matrix) !=1){
+    perror("fwrite");
+    printf("shk2zern file\r");
+  }
+  //Close file
+  fclose(matrix);
+  printf("SHK: Wrote zernike matrix file: %s\n",matrix_file);
 }
 
 /**************************************************************/
 /*                      SHK_ZERNIKE_FIT                       */
 /*  - Fit Zernikes to SHK centroids                           */
 /**************************************************************/
-void shk_zernike_fit(shkevent_t *shkevent){
+void shk_zernike_fit(shkcell_t *cells, double *zernikes){
   FILE *matrix=NULL;
   char matrix_file[MAX_FILENAME];
   static double shk2zern[2*SHK_NCELLS*LOWFS_N_ZERNIKE]={0};
@@ -378,7 +410,7 @@ void shk_zernike_fit(shkevent_t *shkevent){
   if(!init){
     /* Get number of cells in the beam */
     for(i=0;i<SHK_NCELLS;i++)
-      if(shkevent->cells[i].beam_select)
+      if(cells[i].beam_select)
 	beam_cell_index[beam_ncells++]=i;
     /* Read Fitting Matrix From File */
     if(SHK_READ_MATRIX){
@@ -393,21 +425,22 @@ void shk_zernike_fit(shkevent_t *shkevent){
       fseek(matrix, 0L, SEEK_END);
       fsize = ftell(matrix);
       rewind(matrix);
-      rsize = 2*shkevent->beam_ncells*LOWFS_N_ZERNIKE*sizeof(double);
+      rsize = 2*beam_ncells*LOWFS_N_ZERNIKE*sizeof(double);
       if(fsize != rsize){
 	printf("SHK: incorrect shk2zern matrix file size %lu != %lu\n", fsize, rsize);
       }
       //Read matrix
-      if(fread(shk2zern,2*shkevent->beam_ncells*LOWFS_N_ZERNIKE*sizeof(double),1,matrix) !=1){
+      if(fread(shk2zern,2*beam_ncells*LOWFS_N_ZERNIKE*sizeof(double),1,matrix) !=1){
 	perror("fread");
 	printf("shk2zern file\r");
       }
       //Close file
       fclose(matrix);
+      printf("SHK: Read zernike matrix file: %s\n",matrix_file);
     }
     else{
       //Generate the zernike matrix
-      shk_zernike_matrix(shkevent->cells, shk2zern);
+      shk_zernike_matrix(cells, shk2zern);
     }
     //Set init flag
     init = 1;
@@ -415,12 +448,12 @@ void shk_zernike_fit(shkevent_t *shkevent){
 
   //Format displacement array
   for(i=0;i<beam_ncells;i++){
-    shk_xydev[2*i + 0] = shkevent->cells[i].deviation[0]; //pixels
-    shk_xydev[2*i + 1] = shkevent->cells[i].deviation[1]; //pixels
+    shk_xydev[2*i + 0] = cells[i].deviation[0]; //pixels
+    shk_xydev[2*i + 1] = cells[i].deviation[1]; //pixels
   }
   
   //Do matrix multiply
-  num_dgemv(shk2zern, shk_xydev, shkevent->zernike_measured, LOWFS_N_ZERNIKE, 2*shkevent->beam_ncells);
+  num_dgemv(shk2zern, shk_xydev, zernikes, LOWFS_N_ZERNIKE, 2*beam_ncells);
 
 }
 
@@ -743,7 +776,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   
   //Fit Zernikes
   if(sm_p->state_array[state].shk.fit_zernikes)
-    shk_zernike_fit(&shkevent);
+    shk_zernike_fit(shkevent.cells,shkevent.zernike_measured);
   
   //Run PIDs
   if(sm_p->state_array[state].shk.pid_zernikes)
