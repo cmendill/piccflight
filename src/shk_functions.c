@@ -208,6 +208,8 @@ void shk_centroid_cell(uint16 *image, shkcell_t *cell, int shk_boxsize){
     cell->spot_captured=0;
     cell->deviation[0] = 0;
     cell->deviation[1] = 0;
+    cell->centroid[0] = cell->origin[0];
+    cell->centroid[1] = cell->origin[1];
   }
 }
 
@@ -301,7 +303,7 @@ void shk_zernike_matrix(shkcell_t *cells, double *matrix_inv){
     //Inverse * wavefront slope = Inverse * (displacment [um] / focal length [um]) = Zernike coefficent
     //Inverse * (dispacement [px] * pixel size [um] / focal length [um]) = Zernike Coeff
     //unit_conversion also cotains (focal_length / pixel_size) which, when inverted will convert pixel displacements to wavefront slopes
-    dz_dxdy[i                 ] =      1.0 * (0)                                                                    *unit_conversion[0];
+    dz_dxdy[i+( 0*beam_ncells)] =      1.0 * (0)                                                                    *unit_conversion[0];
     dz_dxdy[i+( 2*beam_ncells)] =      2.0 * (1)                                                                    *unit_conversion[0];
     dz_dxdy[i+( 4*beam_ncells)] =      2.0 * (0)                                                                    *unit_conversion[0];
     dz_dxdy[i+( 6*beam_ncells)] =  sqrt(3) * (4*x_1)                                                                *unit_conversion[0];
@@ -326,7 +328,7 @@ void shk_zernike_matrix(shkcell_t *cells, double *matrix_inv){
     dz_dxdy[i+(44*beam_ncells)] = sqrt(14) * (90*x_5 + 60*x_3*y_2 - 80*x_3 + 12*x_1 - 30*x_1*y_4)                   *unit_conversion[0];
     dz_dxdy[i+(46*beam_ncells)] = sqrt(14) * (150*x_4*y_1 + 180*x_2*y_3 - 120*x_2*y_1 + 12*y_1 - 40*y_3 + 30*y_5)   *unit_conversion[0];
 
-    dz_dxdy[i+(   beam_ncells)] =      1.0 * (0)                                                                    *unit_conversion[1];
+    dz_dxdy[i+( 1*beam_ncells)] =      1.0 * (0)                                                                    *unit_conversion[1];
     dz_dxdy[i+( 3*beam_ncells)] =      2.0 * (0)                                                                    *unit_conversion[1];
     dz_dxdy[i+( 5*beam_ncells)] =      2.0 * (1)                                                                    *unit_conversion[1];
     dz_dxdy[i+( 7*beam_ncells)] =  sqrt(3) * (4*y_1)                                                                *unit_conversion[1];
