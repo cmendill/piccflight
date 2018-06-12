@@ -158,15 +158,21 @@ void hex_proc(void){
 	    /* Accept Command */
 	    hexevent.status = HEX_CMD_ACCEPTED;
 	    if(HEX_DEBUG) printf("HEX: Accepted command from: %d\n",hexevent.clientid);
+
+	    /* Write event to recv buffer */
+	    write_to_buffer(sm_p,&hexevent,HEXRECV);
+	    
+	    /* Sleep */
+	    usleep(ONE_MILLION/HEX_CMD_PER_SEC);
 	  }
 	  else{
 	    /* Reject Command */
 	    hexevent.status = HEX_CMD_REJECTED;
 	    if(HEX_DEBUG) printf("HEX: Rejected command from: %d\n",hexevent.clientid);
+
+	    /* Write event to recv buffer */
+	    write_to_buffer(sm_p,&hexevent,HEXRECV);
 	  }
-	  
-	  /* Write event to recv buffer */
-	  write_to_buffer(sm_p,&hexevent,HEXRECV);
 	}
       }
 	
