@@ -159,8 +159,15 @@ void hex_proc(void){
 	    
 	    /* Accept Command */
 	    hexevent.status = HEX_CMD_ACCEPTED;
-	    if(HEX_DEBUG) printf("HEX: Accepted command from: %d\n",hexevent.clientid);
-
+	    if(HEX_DEBUG){
+	      printf("HEX: Accepted command from: %d\n",hexevent.clientid);
+	      printf("HEX: ZERN: %f, %f, %f, %f, %f, %f\n",
+		     hexevent.hex.zernike_cmd[0],hexevent.hex.zernike_cmd[1],hexevent.hex.zernike_cmd[2],
+		     hexevent.hex.zernike_cmd[3],hexevent.hex.zernike_cmd[4],hexevent.hex.zernike_cmd[5]);
+	      printf("HEX: AXES: %f, %f, %f, %f, %f, %f\n",
+		     hexevent.hex.axis_cmd[0],hexevent.hex.axis_cmd[1],hexevent.hex.axis_cmd[2],
+		     hexevent.hex.axis_cmd[3],hexevent.hex.axis_cmd[4],hexevent.hex.axis_cmd[5]);
+	    }
 	    /* Write event to recv buffer */
 	    write_to_buffer(sm_p,&hexevent,HEXRECV);
 	    
