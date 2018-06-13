@@ -177,11 +177,11 @@ void init_state(int state_number, state_t *state){
     //SHK Settings
     state->shk.fit_zernikes = 1;
     state->shk.pid_zernikes = 1;
+    state->shk.zernike_control[0] = ACTUATOR_HEX;
     state->shk.zernike_control[1] = ACTUATOR_HEX;
     state->shk.zernike_control[2] = ACTUATOR_HEX;
     state->shk.zernike_control[3] = ACTUATOR_HEX;
     state->shk.zernike_control[4] = ACTUATOR_HEX;
-    state->shk.zernike_control[5] = ACTUATOR_HEX;
     //Set SHKID as hex commander
     state->hex_commander = SHKID;
     return;
