@@ -325,7 +325,7 @@ enum bufids {SCIEVENT, SCIFULL,
 #define SIN_Z             sin(THETA_Z)
 #define HEX_REF_TIMEOUT   20 //seconds
 #define HEX_PER_SHKEVENT  5  //number of shk images per HEX update
-#define HEX_CMD_PER_SEC   1  //commands per second by hex_proc
+#define HEX_CMD_PER_SEC   2  //commands per second by hex_proc
 
 /*************************************************
  * Shack-Hartmann (SHK) Settings

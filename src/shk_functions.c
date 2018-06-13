@@ -668,7 +668,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   int state;
   static alp_t alp;
   static hex_t hex;
-  int move_hex=0,move_alp=0,found_zernike=0;
+  int hex_ready=0,move_hex=0,move_alp=0,found_zernike=0;
   double temp_alp[ALP_NACT]={0};
   double temp_hex[HEX_NAXES]={0};
   double temp_zernike[LOWFS_N_ZERNIKE]={0};
@@ -724,6 +724,9 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     memcpy(&hex,&hexevent.hex,sizeof(hex_t));
   }
   
+  //Check if hexapod is ready for next command
+  hex_ready = !check_buffer(sm_p,SHK_HEXSEND,HEXID);
+
   //Fill out event header
   shkevent.hed.packet_type  = SHKEVENT;
   shkevent.hed.frame_number = frame_number;
@@ -823,24 +826,26 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   }
 
   //Apply zernike commands to HEX
-  // - zero out temporary variables
-  memset(temp_hex,0,sizeof(temp_hex));
-  memset(temp_zernike,0,sizeof(temp_zernike));
-  found_zernike = 0;
-  for(i=0;i<LOWFS_N_ZERNIKE;i++){
-    if(sm_p->state_array[state].shk.zernike_control[i] == ACTUATOR_HEX){
-      temp_zernike[i]     = shkevent.zernike_command[i];
-      hex.zernike_cmd[i] += temp_zernike[i];
-      found_zernike = 1;
+  if(hex_ready){
+    // - zero out temporary variables
+    memset(temp_hex,0,sizeof(temp_hex));
+    memset(temp_zernike,0,sizeof(temp_zernike));
+    found_zernike = 0;
+    for(i=0;i<LOWFS_N_ZERNIKE;i++){
+      if(sm_p->state_array[state].shk.zernike_control[i] == ACTUATOR_HEX){
+	temp_zernike[i]     = shkevent.zernike_command[i];
+	hex.zernike_cmd[i] += temp_zernike[i];
+	found_zernike = 1;
+      }
     }
-  }
-  // - convert zernikes to axes and add to current command
-  if(found_zernike){
-    hex_zern2hex(temp_zernike,temp_hex);
-    for(i=0;i<HEX_NAXES;i++)
-      hex.axis_cmd[i] += temp_hex[i];
-    // - trigger hex command
-    move_hex = 1;
+    // - convert zernikes to axes and add to current command
+    if(found_zernike){
+      hex_zern2hex(temp_zernike,temp_hex);
+      for(i=0;i<HEX_NAXES;i++)
+	hex.axis_cmd[i] += temp_hex[i];
+      // - trigger hex command
+      move_hex = 1;
+    }
   }
   
   //Send command to ALP
@@ -857,21 +862,19 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   }
   
   //Send command to HEX
-  if(HEX_ENABLE && move_hex){
-    //Check if the last command was received 
-    if(!check_buffer(sm_p,SHK_HEXSEND,HEXID)){
-      // - send command
-      if(sm_p->state_array[state].hex_commander == SHKID){
-	hexevent.clientid = SHKID;
-	memcpy(&hexevent.hex,&hex,sizeof(hex_t));
-	write_to_buffer(sm_p,&hexevent,SHK_HEXSEND);
-        // - copy to shkevent
-	memcpy(&shkevent.hex,&hexevent.hex,sizeof(hex_t));
-	// - increment command counter
-	hex_counter++;
-      }
+  if(HEX_ENABLE && move_hex && hex_ready){
+    // - send command
+    if(sm_p->state_array[state].hex_commander == SHKID){
+      hexevent.clientid = SHKID;
+      memcpy(&hexevent.hex,&hex,sizeof(hex_t));
+      write_to_buffer(sm_p,&hexevent,SHK_HEXSEND);
+      // - copy to shkevent
+      memcpy(&shkevent.hex,&hex,sizeof(hex_t));
+      // - increment command counter
+      hex_counter++;
     }
   }
+  
   
   //Open circular buffer
   shkevent_p=(shkevent_t *)open_buffer(sm_p,SHKEVENT);
