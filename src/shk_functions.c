@@ -673,7 +673,6 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   double temp_hex[HEX_NAXES]={0};
   double temp_zernike[LOWFS_N_ZERNIKE]={0};
   static uint64 alp_counter=1,hex_counter=1;
-  static uint64 hex_last_send=0,hex_last_recv=0;
   hexevent_t hexevent;
   
   //Get time immidiately
@@ -697,9 +696,6 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     memset(&hex,0,sizeof(hex_t));
     //Init cells
     shk_init_cells(&shkevent);
-    //Init actuator commands
-    alp_init(&alp);
-    hex_init(&hex);
     //Reset calibration routines
     alp_calibrate(0,&alp,1,0);
     hex_calibrate(0,&hex,NULL,1,0);
@@ -711,8 +707,6 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     //Reset command counters
     alp_counter = 1;
     hex_counter = 1;
-    hex_last_send = 0;
-    hex_last_recv = 0;
     //Set init flag
     init=1;
     //Debugging
@@ -726,19 +720,8 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   
   //Read current hexapod position
   while(read_from_buffer(sm_p,&hexevent,HEXRECV,SHKID)){
-    if(hexevent.status == HEX_CMD_ACCEPTED){
-      //Copy accepted command to current position
-      memcpy(&hex,&hexevent.hex,sizeof(hex_t));
-      if(hexevent.clientid == SHKID){
-	//If this was a SHK command:
-	// - copy to shkevent
-	memcpy(&shkevent.hex,&hexevent.hex,sizeof(hex_t));
-	// - set recv index
-	hex_last_recv = hexevent.command_number;
-	// - increment command counter
-	hex_counter++;
-      }
-    }
+    //Copy accepted command to current position
+    memcpy(&hex,&hexevent.hex,sizeof(hex_t));
   }
   
   //Fill out event header
@@ -876,14 +859,16 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   //Send command to HEX
   if(HEX_ENABLE && move_hex){
     //Check if the last command was received 
-    if(hex_last_send == hex_last_recv){
+    if(!check_buffer(sm_p,SHK_HEXSEND,HEXID)){
       // - send command
       if(sm_p->state_array[state].hex_commander == SHKID){
 	hexevent.clientid = SHKID;
-	hexevent.status   = 0;
-	hexevent.command_number = ++hex_last_send;
 	memcpy(&hexevent.hex,&hex,sizeof(hex_t));
 	write_to_buffer(sm_p,&hexevent,SHK_HEXSEND);
+        // - copy to shkevent
+	memcpy(&shkevent.hex,&hexevent.hex,sizeof(hex_t));
+	// - increment command counter
+	hex_counter++;
       }
     }
   }

@@ -2,7 +2,6 @@
 #define _HEX_FUNCTIONS
 
 //Function prototypes
-void hex_init(hex_t *hex);
 void hex_init_calmode(int calmode, calmode_t *hex);
 int hex_connect(void);
 void hex_disconnect(int id);

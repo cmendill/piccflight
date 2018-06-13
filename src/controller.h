@@ -237,7 +237,7 @@ enum bufids {SCIEVENT, SCIFULL,
 #define MOT_DEBUG       0 // print mot messages
 #define THM_DEBUG       0 // print thm messages
 #define SRV_DEBUG       0 // print srv messages
-#define HEX_DEBUG       0 // print hex messages
+#define HEX_DEBUG       1 // print hex messages
 #define DIA_DEBUG       0 // print dia messages
 
 /*************************************************
@@ -325,9 +325,7 @@ enum bufids {SCIEVENT, SCIFULL,
 #define SIN_Z             sin(THETA_Z)
 #define HEX_REF_TIMEOUT   20 //seconds
 #define HEX_PER_SHKEVENT  5  //number of shk images per HEX update
-#define HEX_CMD_PER_SEC   2  //commands per second by hex_proc
-#define HEX_CMD_REJECTED  1
-#define HEX_CMD_ACCEPTED  2
+#define HEX_CMD_PER_SEC   1  //commands per second by hex_proc
 
 /*************************************************
  * Shack-Hartmann (SHK) Settings
@@ -579,8 +577,6 @@ typedef struct acqevent_struct{
 
 typedef struct hexevent_struct{
   int    clientid;
-  int    status;
-  uint64 command_number;
   hex_t  hex;
 } hexevent_t;
 

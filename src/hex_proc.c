@@ -34,17 +34,16 @@ void hexctrlC(int sig)
   exit(sig);
 }
 
-
 /* Main Process */
 void hex_proc(void){
-  int bFlag,i,state;
+  int bFlag,i,state,commander;
   double hexpos[6]={0};
   double scopepos[6] = {0};
   double pivot[3]   = {HEX_PIVOT_X,HEX_PIVOT_Y,HEX_PIVOT_Z};
-  hexevent_t hexevent;
-  int  buffer[4] = {SHK_HEXSEND,LYT_HEXSEND,ACQ_HEXSEND,WAT_HEXSEND};
+  hexevent_t hexbuf,hexcmd;
+  int gotcmd=0;
+  int buffer[4] = {SHK_HEXSEND,LYT_HEXSEND,ACQ_HEXSEND,WAT_HEXSEND};
   int nbuffers  = 4;
-  int commander;
   
   /* Open Shared Memory */
   sm_t *sm_p;
@@ -103,16 +102,23 @@ void hex_proc(void){
   }
 
   while(1){
+
     /* Check if we've been asked to exit */
     if(sm_p->w[HEXID].die)
       hexctrlC(0);
 
     /* Check in with the watchdog */
     checkin(sm_p,HEXID);
+
+    /* Get State */
+    state = sm_p->state;
     
+    /* Get HEX Commander */
+    commander = sm_p->state_array[state].hex_commander;
+
     /************** If Hexapod is Enabled **************/
     if(HEX_ENABLE){
-      /* Command: Get Hexapod Position */
+      /* User Command: Get Hexapod Position */
       if(sm_p->hex_getpos){
 	if(hex_getpos(hexfd,hexpos)){
 	  printf("HEX: hex_getpos error!\n");
@@ -135,62 +141,50 @@ void hex_proc(void){
       }
 
       /**** GET BUFFERED HEXAPOD COMMANDS ****/
-      
-      /* Get State */
-      state = sm_p->state;
-      
-      /* Get HEX Commander */
-      commander = sm_p->state_array[state].hex_commander;
-      
-      /* Loop Through Command Buffers */
+      gotcmd=0;
+      /* Loop through all command buffers */
       for(i=0;i<nbuffers;i++){
 	
-	/* Read command buffer */
-	while(read_from_buffer(sm_p,&hexevent,buffer[i],HEXID)){ 
+	/* Read all commands from buffer*/
+	while(read_from_buffer(sm_p,&hexbuf,buffer[i],HEXID)){ 
 	  
 	  /* If this is the commanding process */
-	  if(commander == hexevent.clientid){
-
-	    /* Move Hexapod */
-	    if(hex_move(hexfd,hexevent.hex.axis_cmd)){
-	      printf("HEX: hex_move error!\n");
-	      hexctrlC(0);
-	    }
+	  if(commander == hexbuf.clientid){
 	    
-	    /* Accept Command */
-	    hexevent.status = HEX_CMD_ACCEPTED;
-	    if(HEX_DEBUG){
-	      printf("HEX: Accepted command from: %d\n",hexevent.clientid);
-	      printf("HEX: ZERN: %f, %f, %f, %f, %f, %f\n",
-		     hexevent.hex.zernike_cmd[0],hexevent.hex.zernike_cmd[1],hexevent.hex.zernike_cmd[2],
-		     hexevent.hex.zernike_cmd[3],hexevent.hex.zernike_cmd[4],hexevent.hex.zernike_cmd[5]);
-	      printf("HEX: AXES: %f, %f, %f, %f, %f, %f\n",
-		     hexevent.hex.axis_cmd[0],hexevent.hex.axis_cmd[1],hexevent.hex.axis_cmd[2],
-		     hexevent.hex.axis_cmd[3],hexevent.hex.axis_cmd[4],hexevent.hex.axis_cmd[5]);
-	    }
-	    /* Write event to recv buffer */
-	    write_to_buffer(sm_p,&hexevent,HEXRECV);
-	    
-	    /* Check in with the watchdog */
-	    checkin(sm_p,HEXID);
-	    
-	    /* Sleep */
-	    usleep(ONE_MILLION/HEX_CMD_PER_SEC);
-	  }
-	  else{
-	    /* Reject Command */
-	    hexevent.status = HEX_CMD_REJECTED;
-	    if(HEX_DEBUG) printf("HEX: Rejected command from: %d\n",hexevent.clientid);
-
-	    /* Write event to recv buffer */
-	    write_to_buffer(sm_p,&hexevent,HEXRECV);
+	    /* Copy to cmd event and set command trigger */
+	    memcpy(&hexcmd,&hexbuf,sizeof(hexevent_t));
+	    gotcmd = 1;
 	  }
 	}
       }
+
+      /* Execute command */
+      if(gotcmd){
 	
-      /* Sleep */
-      usleep(ONE_MILLION/HEX_CMD_PER_SEC);
+	/* Move Hexapod */
+	if(hex_move(hexfd,hexcmd.hex.axis_cmd)){
+	  printf("HEX: hex_move error!\n");
+	  hexctrlC(0);
+	}
+	
+	/* Write event to recv buffer */
+	write_to_buffer(sm_p,&hexcmd,HEXRECV);
+	
+	/* Debugging */
+	if(HEX_DEBUG){
+	  printf("HEX: Accepted command from: %d\n",hexcmd.clientid);
+	  printf("HEX: ZERN: %f, %f, %f, %f, %f, %f\n",
+		 hexcmd.hex.zernike_cmd[0],hexcmd.hex.zernike_cmd[1],hexcmd.hex.zernike_cmd[2],
+		 hexcmd.hex.zernike_cmd[3],hexcmd.hex.zernike_cmd[4],hexcmd.hex.zernike_cmd[5]);
+	  printf("HEX: AXES: %f, %f, %f, %f, %f, %f\n",
+		 hexcmd.hex.axis_cmd[0],hexcmd.hex.axis_cmd[1],hexcmd.hex.axis_cmd[2],
+		 hexcmd.hex.axis_cmd[3],hexcmd.hex.axis_cmd[4],hexcmd.hex.axis_cmd[5]);
+	}
+      }
     }
+
+    /* Sleep */
+    usleep(ONE_MILLION/HEX_CMD_PER_SEC);
   }
   
   hexctrlC(0);

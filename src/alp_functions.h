@@ -2,7 +2,6 @@
 #define _ALP_FUNCTIONS
 
 //Function prototypes
-void alp_init(alp_t *alp);
 void alp_init_calmode(int calmode, calmode_t *alp);
 int alp_zern2alp(double *zernikes,double *actuators);
 int alp_calibrate(int calmode, alp_t *alp, int reset, uint64 counter);

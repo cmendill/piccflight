@@ -15,14 +15,6 @@
 #include "numeric.h"
 #include "alp_functions.h"
 
-/**************************************************************/
-/* ALP_INIT                                                   */
-/*  - Initialize ALPAO command structure                      */
-/**************************************************************/
-void alp_init(alp_t *alp){
-  //Set everything to zero
-  memset(alp,0,sizeof(alp_t));
-}
 
 /**************************************************************/
 /* ALP_INIT_CALMODE                                           */

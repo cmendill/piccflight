@@ -17,17 +17,6 @@
 #include "hex_functions.h"
 
 /**************************************************************/
-/* HEX_INIT                                                   */
-/*  - Set hex command to default                              */
-/**************************************************************/
-void hex_init(hex_t *hex){
-  int i;
-  const double hexdef[HEX_NAXES] = HEX_POS_DEFAULT;
-  for(i=0;i<HEX_NAXES;i++)
-    hex->axis_cmd[i] = hexdef[i];
-}
-
-/**************************************************************/
 /* HEX_INIT_CALMODE                                           */
 /*  - Initialize HEX calmode structure                        */
 /**************************************************************/
