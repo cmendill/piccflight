@@ -12,6 +12,7 @@ int hex_reference(int id,int force);
 int hex_getpos(int id, double *pos);
 int hex_setpivot(int id, double *pivot);
 int hex_zern2hex(double *zernikes, double *axes);
+int hex_zern2hex_alt(double *zernikes, double *axes);
 int hex_calibrate(int calmode, hex_t *hex,uint64 *step, int reset);
 
 

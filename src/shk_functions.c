@@ -693,6 +693,10 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   uint16 fakepx=0;
   static int countA=0;
   int state;
+  static uint64 alp_last_sent=0;
+  static uint64 alp_last_recv=0;
+  static uint64 hex_last_sent=0;
+  static uint64 hex_last_recv=0;
   static alp_t last_alp;
   static hex_t last_hex;
   hex_t hex;
@@ -731,6 +735,11 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     shk_alp_cellpid(&shkevent,1);
     shk_alp_zernpid(&shkevent,1);
     shk_hex_zernpid(&shkevent,1);
+    //Reset command counters
+    hex_last_sent = 0;
+    alp_last_sent = 0;
+    hex_last_recv = 0;
+    alp_last_recv = 0;
     //Reset start time
     memcpy(&first,&start,sizeof(struct timespec));
     //Set init flag
@@ -751,12 +760,16 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   }
   memcpy(&hex,&last_hex,sizeof(hex_t));
 
+  //Check if last command was executed
+  while(read_from_buffer(sm_p,&hexevent,SHK_HEXRECV,SHKID))
+    hex_last_recv = hexevent.command_number;
+  
   //Read current alp position
   //--need buffer code here
   memcpy(&alp,&last_alp,sizeof(alp_t));
   
   //Check if hex is ready for next command and we are commander
-  hex_ready = !check_buffer(sm_p,SHK_HEXSEND,HEXID) && (sm_p->state_array[state].hex_commander == SHKID);
+  hex_ready = (hex_last_sent == hex_last_recv) && (sm_p->state_array[state].hex_commander == SHKID);
   
   //Check if alp is ready for next command and we are commander
   alp_ready = 1 && (sm_p->state_array[state].alp_commander == SHKID);
@@ -909,7 +922,9 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   if(HEX_ENABLE && move_hex){
     // - send command
     hexevent.clientid = SHKID;
+    hexevent.command_number = ++hex_last_sent;
     memcpy(&hexevent.hex,&hex,sizeof(hex_t));
+    fprintf(stderr,"SHK: Writing HEX command %lu\n",hex_last_sent);
     write_to_buffer(sm_p,&hexevent,SHK_HEXSEND);
     // - copy to shkevent
     memcpy(&shkevent.hex,&hex,sizeof(hex_t));

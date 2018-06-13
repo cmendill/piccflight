@@ -147,6 +147,7 @@ enum states { STATE_STANDBY,
 #define CELLS2ALP_FILE    "data/shk/shk2alp.dat"
 #define CELLS2HEX_FILE    "data/shk/shk2hex.dat"
 #define ZERNIKE2HEX_FILE  "data/shk/zern2hex.dat"
+#define HEX2ZERNIKE_FILE  "data/shk/hex2zern.dat"
 #define ZERNIKE2ALP_FILE  "data/shk/zern2alp.dat"
 #define SHK2ZERNIKE_FILE  "data/shk/shk2zern.dat"
 #define ASTIG2TILT_FILE   "data/shk/astig2tilt.dat"
@@ -172,6 +173,8 @@ enum bufids {SCIEVENT, SCIFULL,
 	     ACQEVENT, ACQFULL,
 	     SHK_HEXSEND,  LYT_HEXSEND,
 	     ACQ_HEXSEND,  WAT_HEXSEND,
+	     SHK_HEXRECV,  LYT_HEXRECV,
+	     ACQ_HEXRECV,  WAT_HEXRECV,
 	     HEXRECV, NCIRCBUF};
 #define SCIEVENTSIZE     3
 #define SHKEVENTSIZE     3
@@ -580,6 +583,7 @@ typedef struct acqevent_struct{
 
 typedef struct hexevent_struct{
   int    clientid;
+  uint64 command_number;
   hex_t  hex;
 } hexevent_t;
 
@@ -699,6 +703,10 @@ typedef volatile struct {
   hexevent_t lyt_hexsend[HEXSENDSIZE];
   hexevent_t acq_hexsend[HEXSENDSIZE];
   hexevent_t wat_hexsend[HEXSENDSIZE];
+  hexevent_t shk_hexrecv[HEXRECVSIZE];
+  hexevent_t lyt_hexrecv[HEXRECVSIZE];
+  hexevent_t acq_hexrecv[HEXRECVSIZE];
+  hexevent_t wat_hexrecv[HEXRECVSIZE];
   
   //Full frame circular buffers
   scifull_t scifull[SCIFULLSIZE];

@@ -34,6 +34,19 @@ void hexctrlC(int sig)
   exit(sig);
 }
 
+
+/* Return to Sender */
+void return_to_sender(sm_t *sm_p, hexevent_t *hexevent_p){
+  if(hexevent_p->clientid == SHKID)
+    write_to_buffer(sm_p,hexevent_p,SHK_HEXRECV);
+  if(hexevent_p->clientid == LYTID)
+    write_to_buffer(sm_p,hexevent_p,LYT_HEXRECV);
+  if(hexevent_p->clientid == ACQID)
+    write_to_buffer(sm_p,hexevent_p,ACQ_HEXRECV);
+  if(hexevent_p->clientid == WATID)
+    write_to_buffer(sm_p,hexevent_p,WAT_HEXRECV);
+}
+
 /* Main Process */
 void hex_proc(void){
   int bFlag,i,state,commander;
@@ -102,7 +115,6 @@ void hex_proc(void){
   }
 
   while(1){
-
     /* Check if we've been asked to exit */
     if(sm_p->w[HEXID].die)
       hexctrlC(0);
@@ -115,7 +127,7 @@ void hex_proc(void){
     
     /* Get HEX Commander */
     commander = sm_p->state_array[state].hex_commander;
-
+    
     /************** If Hexapod is Enabled **************/
     if(HEX_ENABLE){
       /* User Command: Get Hexapod Position */
@@ -143,6 +155,8 @@ void hex_proc(void){
       /**** GET BUFFERED HEXAPOD COMMANDS ****/
       gotcmd=0;
       /* Loop through all command buffers */
+      /*  - Goal is to return all commands to sender immediately, */
+      /*    except the one we will execute.                       */
       for(i=0;i<nbuffers;i++){
 	
 	/* Read all commands from buffer*/
@@ -150,10 +164,17 @@ void hex_proc(void){
 	  
 	  /* If this is the commanding process */
 	  if(commander == hexbuf.clientid){
-	    
+	    /* If we already got a command, return last one to sender */
+	    if(gotcmd)
+	      return_to_sender(sm_p,&hexcmd);
+
 	    /* Copy to cmd event and set command trigger */
 	    memcpy(&hexcmd,&hexbuf,sizeof(hexevent_t));
 	    gotcmd = 1;
+	  }
+	  else{
+	    /* Return to sender */
+	    return_to_sender(sm_p,&hexbuf);
 	  }
 	}
       }
@@ -167,22 +188,25 @@ void hex_proc(void){
 	  hexctrlC(0);
 	}
 	
-	/* Write event to recv buffer */
+	/* Write event to main recv buffer */
 	write_to_buffer(sm_p,&hexcmd,HEXRECV);
+
+	/* Return executed command to sender */
+	return_to_sender(sm_p,&hexcmd);
 	
 	/* Debugging */
 	if(HEX_DEBUG){
-	  printf("HEX: Accepted command from: %d\n",hexcmd.clientid);
-	  printf("HEX: ZERN: %f, %f, %f, %f, %f, %f\n",
+	  fprintf(stderr,"HEX: Accepted command %lu from: %d\n",hexcmd.command_number,hexcmd.clientid);
+	  fprintf(stderr,"HEX: ZERN: %f, %f, %f, %f, %f, %f\n",
 		 hexcmd.hex.zernike_cmd[0],hexcmd.hex.zernike_cmd[1],hexcmd.hex.zernike_cmd[2],
 		 hexcmd.hex.zernike_cmd[3],hexcmd.hex.zernike_cmd[4],hexcmd.hex.zernike_cmd[5]);
-	  printf("HEX: AXES: %f, %f, %f, %f, %f, %f\n",
+	  fprintf(stderr,"HEX: AXES: %f, %f, %f, %f, %f, %f\n",
 		 hexcmd.hex.axis_cmd[0],hexcmd.hex.axis_cmd[1],hexcmd.hex.axis_cmd[2],
 		 hexcmd.hex.axis_cmd[3],hexcmd.hex.axis_cmd[4],hexcmd.hex.axis_cmd[5]);
 	}
       }
     }
-
+    
     /* Sleep */
     usleep(ONE_MILLION/HEX_CMD_PER_SEC);
   }

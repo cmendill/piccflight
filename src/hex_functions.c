@@ -241,6 +241,132 @@ int hex_zern2hex(double *zernikes, double *axes){
 }
 
 /**************************************************************/
+/* HEX_ZERN2HEX_ALT                                           */
+/*  - Convert from zernike commands to hexapod commands       */
+/*  - Alternate Version                                       */
+/**************************************************************/
+int hex_zern2hex_alt(double *zernikes, double *axes){
+  FILE *fp=NULL;
+  char matrix_file[MAX_FILENAME];
+  static int init=0;
+  static double zern2hex_matrix[LOWFS_N_HEX_ZERNIKE*HEX_NAXES]={0};
+  static double hex2zern_matrix[LOWFS_N_HEX_ZERNIKE*HEX_NAXES]={0};
+  uint64 fsize,rsize;
+  int c,i;
+  double hex_zernikes[LOWFS_N_HEX_ZERNIKE]={0};
+  double input_zernikes[LOWFS_N_HEX_ZERNIKE]={0};
+  double dX=0,dY=0,dZ=0,dU=0,dV=0,dW=0;
+  double hex_axes[HEX_NAXES];
+  
+  if(!init){
+    /* Open zern2hex matrix file */
+    //--setup filename
+    sprintf(matrix_file,ZERNIKE2HEX_FILE);
+    //--open file
+    if((fp = fopen(matrix_file,"r")) == NULL){
+      printf("zern2hex file\n");
+      perror("fopen");
+      return 1;
+    }
+    //--check file size
+    fseek(fp, 0L, SEEK_END);
+    fsize = ftell(fp);
+    rewind(fp);
+    rsize = (LOWFS_N_HEX_ZERNIKE)*HEX_NAXES*sizeof(double);
+    if(fsize != rsize){
+      printf("HEX: incorrect HEX matrix file size %lu != %lu\n",fsize,rsize);
+      return 1;
+    }
+    //--read matrix
+    if(fread(zern2hex_matrix,(LOWFS_N_HEX_ZERNIKE)*HEX_NAXES*sizeof(double),1,fp) != 1){
+      printf("zern2hex file\r");
+      perror("fread");
+      return 1;
+    }
+    //--close file
+    fclose(fp);
+
+    /* Open hex2zern matrix file */
+    //--setup filename
+    sprintf(matrix_file,ZERNIKE2HEX_FILE);
+    //--open file
+    if((fp = fopen(matrix_file,"r")) == NULL){
+      printf("hex2zern file\n");
+      perror("fopen");
+      return 1;
+    }
+    //--check file size
+    fseek(fp, 0L, SEEK_END);
+    fsize = ftell(fp);
+    rewind(fp);
+    rsize = (LOWFS_N_HEX_ZERNIKE)*HEX_NAXES*sizeof(double);
+    if(fsize != rsize){
+      printf("HEX: incorrect HEX matrix file size %lu != %lu\n",fsize,rsize);
+      return 1;
+    }
+    //--read matrix
+    if(fread(hex2zern_matrix,(LOWFS_N_HEX_ZERNIKE)*HEX_NAXES*sizeof(double),1,fp) != 1){
+      printf("hex2zern file\r");
+      perror("fread");
+      return 1;
+    }
+    //--close file
+    fclose(fp);
+
+    //--set init flag
+    init=1;
+  }
+
+  //Copy input zernikes
+  for(i=0;i<LOWFS_N_HEX_ZERNIKE;i++)
+    input_zernikes[i] = zernikes[i];
+  fprintf(stderr,"HEX: Input Zernikes: %f, %f, %f %f, %f\n",input_zernikes[0],input_zernikes[1],input_zernikes[2],input_zernikes[3],input_zernikes[4]);
+  //Convert astig to HEX dX & dY
+  //memset(hex_zernikes,0,sizeof(hex_zernikes));
+  //memset(hex_axes,0,sizeof(hex_axes));
+  //hex_zernikes[3] = input_zernikes[3];
+  //hex_zernikes[4] = input_zernikes[4];
+  //num_dgemv(zern2hex_matrix, hex_zernikes, hex_axes, HEX_NAXES, LOWFS_N_HEX_ZERNIKE);
+  //dX = hex_axes[HEX_AXIS_X];
+  //dY = hex_axes[HEX_AXIS_Y];
+ 
+  //Subtract the tilt from dX and dY to the input error
+  //memset(hex_zernikes,0,sizeof(hex_zernikes));
+  //memset(hex_axes,0,sizeof(hex_axes));
+  //hex_axes[HEX_AXIS_X] = dX;
+  //hex_axes[HEX_AXIS_Y] = dY;
+  //num_dgemv(hex2zern_matrix, hex_axes, hex_zernikes, LOWFS_N_HEX_ZERNIKE, HEX_NAXES);
+  //input_zernikes[0] -= hex_zernikes[0];
+  //input_zernikes[1] -= hex_zernikes[1];
+
+  //Convert input tip and tilt to HEX dU & dV
+  memset(hex_zernikes,0,sizeof(hex_zernikes));
+  memset(hex_axes,0,sizeof(hex_axes));
+  hex_zernikes[0] = input_zernikes[0];
+  hex_zernikes[1] = input_zernikes[1];
+  num_dgemv(zern2hex_matrix, hex_zernikes, hex_axes, HEX_NAXES, LOWFS_N_HEX_ZERNIKE);
+  dU = hex_axes[HEX_AXIS_U];
+  dV = hex_axes[HEX_AXIS_V];
+
+  //Convert power to HEX dZ
+  //memset(hex_zernikes,0,sizeof(hex_zernikes));
+  //memset(hex_axes,0,sizeof(hex_axes));
+  //hex_zernikes[2] = input_zernikes[2];
+  //num_dgemv(zern2hex_matrix, hex_zernikes, hex_axes, HEX_NAXES, LOWFS_N_HEX_ZERNIKE);
+  //dZ = hex_axes[HEX_AXIS_Z];
+
+  //Set final command
+  axes[HEX_AXIS_X] = dX;
+  axes[HEX_AXIS_Y] = dY;
+  axes[HEX_AXIS_Z] = dZ;
+  axes[HEX_AXIS_U] = dU;
+  axes[HEX_AXIS_V] = dV;
+  axes[HEX_AXIS_W] = dW;
+  
+  return 0;
+}
+
+/**************************************************************/
 /* HEX_CALIBRATE                                              */
 /*  - Run hexapod calibration routines                        */
 /**************************************************************/
