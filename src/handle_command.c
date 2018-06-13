@@ -293,94 +293,90 @@ int handle_command(char *line, sm_t *sm_p){
 	  hexsend.clientid = WATID;
 	}
       }
-      //Check if hex_proc is ready for commands
-      if(hex_last_send == hex_last_recv){
-      	//Commands to Move Hexapod
-	if(!strncasecmp(line,"hex gohome",10)){
-	  memcpy(hexsend.hex.axis_cmd,hexhome,sizeof(hexhome));
-	  hexsend.command_number = ++hex_last_send;
-	  printf("CMD: Moving hexapod to home positon\n");
-	  write_to_buffer(sm_p,&hexsend,WAT_HEXSEND);
-	  return(CMD_NORMAL);
-	}
-	if(!strncasecmp(line,"hex godef",9)){
-	  memcpy(hexsend.hex.axis_cmd,hexdef,sizeof(hexdef));
-	  hexsend.command_number = ++hex_last_send;
-	  printf("CMD: Moving hexapod to default positon\n");
-	  write_to_buffer(sm_p,&hexsend,WAT_HEXSEND);
-	  return(CMD_NORMAL);
-	}
-	if(!strncasecmp(line,"hex move",8)){
-	  if(!strncasecmp(line+9,"+x",2)){
-	    hex_poke = trl_poke;
-	    hex_axis = HEX_AXIS_X;
-	    goto move_hex;
-	  }
-	  if(!strncasecmp(line+9,"-x",2)){
-	    hex_poke = -trl_poke;
-	    hex_axis = HEX_AXIS_X;
-	    goto move_hex;
-	  }
-	  if(!strncasecmp(line+9,"+y",2)){
-	    hex_poke = trl_poke;
-	    hex_axis = HEX_AXIS_Y;
-	    goto move_hex;
-	  }
-	  if(!strncasecmp(line+9,"-y",2)){
-	    hex_poke = -trl_poke;
-	    hex_axis = HEX_AXIS_Y;
-	    goto move_hex;
-	  }
-	  if(!strncasecmp(line+9,"+z",2)){
-	    hex_poke = trl_poke;
-	    hex_axis = HEX_AXIS_Z;
-	    goto move_hex;
-	  }
-	  if(!strncasecmp(line+9,"-z",2)){
-	    hex_poke = -trl_poke;
-	    hex_axis = HEX_AXIS_Z;
-	    goto move_hex;
-	  }
-	  if(!strncasecmp(line+9,"+u",2)){
-	    hex_poke = rot_poke;
-	    hex_axis = HEX_AXIS_U;
-	    goto move_hex;
-	  }
-	  if(!strncasecmp(line+9,"-u",2)){
-	    hex_poke = -rot_poke;
-	    hex_axis = HEX_AXIS_U;
-	    goto move_hex;
-	  }
-	  if(!strncasecmp(line+9,"+v",2)){
-	    hex_poke = rot_poke;
-	    hex_axis = HEX_AXIS_V;
-	    goto move_hex;
-	  }
-	  if(!strncasecmp(line+9,"-v",2)){
-	    hex_poke = -rot_poke;
-	    hex_axis = HEX_AXIS_V;
-	    goto move_hex;
-	  }
-	  if(!strncasecmp(line+9,"+w",2)){
-	    hex_poke = rot_poke;
-	    hex_axis = HEX_AXIS_W;
-	    goto move_hex;
-	  }
-	  if(!strncasecmp(line+9,"-w",2)){
-	    hex_poke = -rot_poke;
-	    hex_axis = HEX_AXIS_W;
-	    goto move_hex;
-	  }
-	  printf("CMD: Bad hex move command.\n");
-	  return(CMD_NORMAL);
-	move_hex:
-	  printf("CMD: Moving hexapod axis %s by %f %s\n",hex_str_axes[hex_axis],hex_poke,hex_str_unit[hex_axis]);
-	  hexsend.hex.axis_cmd[hex_axis] += hex_poke;
-	  hexsend.command_number = ++hex_last_send;
-	  write_to_buffer(sm_p,&hexsend,WAT_HEXSEND);
-	}
+      //Commands to Move Hexapod
+      if(!strncasecmp(line,"hex gohome",10)){
+	memcpy(hexsend.hex.axis_cmd,hexhome,sizeof(hexhome));
+	hexsend.command_number = ++hex_last_send;
+	printf("CMD: Moving hexapod to home positon\n");
+	write_to_buffer(sm_p,&hexsend,WAT_HEXSEND);
+	return(CMD_NORMAL);
       }
-      else printf("CMD: Hexapod busy...\n");
+      if(!strncasecmp(line,"hex godef",9)){
+	memcpy(hexsend.hex.axis_cmd,hexdef,sizeof(hexdef));
+	hexsend.command_number = ++hex_last_send;
+	printf("CMD: Moving hexapod to default positon\n");
+	write_to_buffer(sm_p,&hexsend,WAT_HEXSEND);
+	return(CMD_NORMAL);
+      }
+      if(!strncasecmp(line,"hex move",8)){
+	if(!strncasecmp(line+9,"+x",2)){
+	  hex_poke = trl_poke;
+	  hex_axis = HEX_AXIS_X;
+	  goto move_hex;
+	}
+	if(!strncasecmp(line+9,"-x",2)){
+	  hex_poke = -trl_poke;
+	  hex_axis = HEX_AXIS_X;
+	  goto move_hex;
+	}
+	if(!strncasecmp(line+9,"+y",2)){
+	  hex_poke = trl_poke;
+	  hex_axis = HEX_AXIS_Y;
+	  goto move_hex;
+	}
+	if(!strncasecmp(line+9,"-y",2)){
+	  hex_poke = -trl_poke;
+	  hex_axis = HEX_AXIS_Y;
+	  goto move_hex;
+	}
+	if(!strncasecmp(line+9,"+z",2)){
+	  hex_poke = trl_poke;
+	  hex_axis = HEX_AXIS_Z;
+	  goto move_hex;
+	}
+	if(!strncasecmp(line+9,"-z",2)){
+	  hex_poke = -trl_poke;
+	  hex_axis = HEX_AXIS_Z;
+	  goto move_hex;
+	}
+	if(!strncasecmp(line+9,"+u",2)){
+	  hex_poke = rot_poke;
+	  hex_axis = HEX_AXIS_U;
+	  goto move_hex;
+	}
+	if(!strncasecmp(line+9,"-u",2)){
+	  hex_poke = -rot_poke;
+	  hex_axis = HEX_AXIS_U;
+	  goto move_hex;
+	}
+	if(!strncasecmp(line+9,"+v",2)){
+	  hex_poke = rot_poke;
+	  hex_axis = HEX_AXIS_V;
+	  goto move_hex;
+	}
+	if(!strncasecmp(line+9,"-v",2)){
+	  hex_poke = -rot_poke;
+	  hex_axis = HEX_AXIS_V;
+	  goto move_hex;
+	}
+	if(!strncasecmp(line+9,"+w",2)){
+	  hex_poke = rot_poke;
+	  hex_axis = HEX_AXIS_W;
+	  goto move_hex;
+	}
+	if(!strncasecmp(line+9,"-w",2)){
+	  hex_poke = -rot_poke;
+	  hex_axis = HEX_AXIS_W;
+	  goto move_hex;
+	}
+	printf("CMD: Bad hex move command.\n");
+	return(CMD_NORMAL);
+      move_hex:
+	printf("CMD: Moving hexapod axis %s by %f %s\n",hex_str_axes[hex_axis],hex_poke,hex_str_unit[hex_axis]);
+	hexsend.hex.axis_cmd[hex_axis] += hex_poke;
+	hexsend.command_number = ++hex_last_send;
+	write_to_buffer(sm_p,&hexsend,WAT_HEXSEND);
+      }
       return(CMD_NORMAL);
       
     }
