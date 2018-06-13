@@ -641,14 +641,12 @@ void shk_zernpid(shkevent_t *shkevent, int reset){
   
   //Run PID
   for(i=0;i<LOWFS_N_ZERNIKE;i++){
-    if(shkevent->zernike_control[i]){
-      //Calculate error
-      error = shkevent->zernike_measured[i] - shkevent->zernike_target[i];
-      //Calculate integral
-      zint[i] += error;
-      //Calculate command
-      shkevent->zernike_command[i] = shkevent->kP_zern * error + shkevent->kI_zern * zint[i];
-    }
+    //Calculate error
+    error = shkevent->zernike_measured[i] - shkevent->zernike_target[i];
+    //Calculate integral
+    zint[i] += error;
+    //Calculate command
+    shkevent->zernike_command[i] = shkevent->kP_zern * error + shkevent->kI_zern * zint[i];
   }
 }
 
