@@ -667,7 +667,8 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   static int countA=0;
   int state;
   static alp_t alp;
-  static hex_t hex;
+  static hex_t last_hex;
+  hex_t hex;
   int hex_ready=0,move_hex=0,move_alp=0,found_zernike=0;
   double temp_alp[ALP_NACT]={0};
   double temp_hex[HEX_NAXES]={0};
@@ -693,7 +694,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     memset(&shkfull,0,sizeof(shkfull_t));
     memset(&shkevent,0,sizeof(shkevent_t));
     memset(&alp,0,sizeof(alp_t));
-    memset(&hex,0,sizeof(hex_t));
+    memset(&last_hex,0,sizeof(hex_t));
     //Init cells
     shk_init_cells(&shkevent);
     //Reset calibration routines
@@ -721,8 +722,9 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   //Read current hexapod position
   while(read_from_buffer(sm_p,&hexevent,HEXRECV,SHKID)){
     //Copy accepted command to current position
-    memcpy(&hex,&hexevent.hex,sizeof(hex_t));
+    memcpy(&last_hex,&hexevent.hex,sizeof(hex_t));
   }
+  memcpy(&hex,&last_hex,sizeof(hex_t));
   
   //Check if hexapod is ready for next command
   hex_ready = !check_buffer(sm_p,SHK_HEXSEND,HEXID);
