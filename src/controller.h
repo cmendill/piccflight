@@ -539,17 +539,20 @@ typedef struct shkevent_struct{
   uint32    alp_calmode;
   double    xtilt;
   double    ytilt;
-  double    kP_cell;
-  double    kI_cell;
-  double    kD_cell;
-  double    kP_zern;
-  double    kI_zern;
-  double    kD_zern;
+  double    kP_alp_cell;
+  double    kI_alp_cell;
+  double    kD_alp_cell;
+  double    kP_alp_zern;
+  double    kI_alp_zern;
+  double    kD_alp_zern;
+  double    kP_hex_zern;
+  double    kI_hex_zern;
+  double    kD_hex_zern;
   shkcell_t cells[SHK_NCELLS];
-  double    zernike_command[LOWFS_N_ZERNIKE];
   double    zernike_measured[LOWFS_N_ZERNIKE];
   double    zernike_target[LOWFS_N_ZERNIKE];
-  uint64    zernike_control[LOWFS_N_ZERNIKE];
+  double    alp_zernike_delta[LOWFS_N_ZERNIKE];
+  double    hex_zernike_delta[LOWFS_N_ZERNIKE];
   uint64    cal_step;
   hex_t     hex;
   alp_t     alp;
@@ -561,8 +564,8 @@ typedef struct lytevent_struct{
   double    kP_zernike;
   double    kI_zernike;
   double    kD_zernike;
-  double    measured_zernikes[LOWFS_N_ZERNIKE];
-  double    command_zernikes[LOWFS_N_ZERNIKE];
+  double    zernike_measured[LOWFS_N_ZERNIKE];
+  double    zernike_target[LOWFS_N_ZERNIKE];
   lyt_t     image;
   hex_t     hex;
   alp_t     alp;
@@ -659,13 +662,19 @@ typedef volatile struct {
   char calfile[MAX_FILENAME];
 
   //Shack-Hartmann Settings
-  int shk_boxsize;        //SHK centroid boxsize
-  double shk_kP_cell;     //SHK cell gains
-  double shk_kI_cell;     //SHK cell gains
-  double shk_kD_cell;     //SHK cell gains
-  double shk_kP_zern;     //SHK zernike gains
-  double shk_kI_zern;     //SHK zernike gains
-  double shk_kD_zern;     //SHK zernike gains
+  int shk_boxsize;            //SHK centroid boxsize
+  double shk_kP_alp_cell;     //SHK ALP cell gains
+  double shk_kI_alp_cell;     //SHK ALP cell gains
+  double shk_kD_alp_cell;     //SHK ALP cell gains
+  double shk_kP_alp_zern;     //SHK ALP zernike gains
+  double shk_kI_alp_zern;     //SHK ALP zernike gains
+  double shk_kD_alp_zern;     //SHK ALP zernike gains
+  double shk_kP_hex_cell;     //SHK HEX cell gains
+  double shk_kI_hex_cell;     //SHK HEX cell gains
+  double shk_kD_hex_cell;     //SHK HEX cell gains
+  double shk_kP_hex_zern;     //SHK HEX zernike gains
+  double shk_kI_hex_zern;     //SHK HEX zernike gains
+  double shk_kD_hex_zern;     //SHK HEX zernike gains
 
   //Reset Commands
   int shk_reset;

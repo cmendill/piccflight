@@ -27,12 +27,16 @@
 
 //Shack-Hartmann Settings
 #define SHK_BOXSIZE_DEFAULT     7
-#define SHK_KP_CELL_DEFAULT  -0.5
-#define SHK_KI_CELL_DEFAULT  -0.2
-#define SHK_KD_CELL_DEFAULT   0.0
-#define SHK_KP_ZERN_DEFAULT  -0.1
-#define SHK_KI_ZERN_DEFAULT  -0.0
-#define SHK_KD_ZERN_DEFAULT   0.0
+#define SHK_KP_ALP_CELL_DEFAULT  -0.5
+#define SHK_KI_ALP_CELL_DEFAULT  -0.2
+#define SHK_KD_ALP_CELL_DEFAULT   0.0
+#define SHK_KP_ALP_ZERN_DEFAULT  -0.5
+#define SHK_KI_ALP_ZERN_DEFAULT  -0.2
+#define SHK_KD_ALP_ZERN_DEFAULT   0.0
+#define SHK_KP_HEX_ZERN_DEFAULT  -0.1
+#define SHK_KI_HEX_ZERN_DEFAULT   0.0
+#define SHK_KD_HEX_ZERN_DEFAULT   0.0
+
 
 /*************************************************
  * System Settings & Messages

@@ -587,10 +587,10 @@ int shk_cells2hex(shkcell_t *cells, double *axes){
 }
 
 /**************************************************************/
-/* SHK_CELLPID                                                */
-/*  - Run PID controller on centroid deviations               */
+/* SHK_ALP_CELLPID                                            */
+/*  - Run PID controller on centroid deviations for ALP       */
 /**************************************************************/
-void shk_cellpid(shkevent_t *shkevent, int reset){
+void shk_alp_cellpid(shkevent_t *shkevent, int reset){
   static int init = 0;
   static double xint[SHK_NCELLS] = {0};
   static double yint[SHK_NCELLS] = {0};
@@ -615,17 +615,17 @@ void shk_cellpid(shkevent_t *shkevent, int reset){
       xint[i] += shkevent->cells[i].deviation[0];
       yint[i] += shkevent->cells[i].deviation[1];
       //Calculate command
-      shkevent->cells[i].command[0] = shkevent->kP_cell * shkevent->cells[i].deviation[0] + shkevent->kI_cell * xint[i];
-      shkevent->cells[i].command[1] = shkevent->kP_cell * shkevent->cells[i].deviation[1] + shkevent->kI_cell * yint[i];
+      shkevent->cells[i].command[0] = shkevent->kP_alp_cell * shkevent->cells[i].deviation[0] + shkevent->kI_alp_cell * xint[i];
+      shkevent->cells[i].command[1] = shkevent->kP_alp_cell * shkevent->cells[i].deviation[1] + shkevent->kI_alp_cell * yint[i];
     }
   }
 }
 
 /**************************************************************/
-/* SHK_ZERNPID                                                */
-/*  - Run PID controller on measured Zernikes                 */
+/* SHK_ALP_ZERNPID                                            */
+/*  - Run PID controller on measured Zernikes for ALP         */
 /**************************************************************/
-void shk_zernpid(shkevent_t *shkevent, int reset){
+void shk_alp_zernpid(shkevent_t *shkevent, int reset){
   static int init = 0;
   static double zint[LOWFS_N_ZERNIKE] = {0};
   double error;
@@ -634,7 +634,6 @@ void shk_zernpid(shkevent_t *shkevent, int reset){
   //Initialize
   if(!init || reset){
     memset(zint,0,sizeof(zint));
-    memset(shkevent->zernike_command,0,sizeof(shkevent->zernike_command));
     init=1;
     if(reset) return;
   }
@@ -646,7 +645,35 @@ void shk_zernpid(shkevent_t *shkevent, int reset){
     //Calculate integral
     zint[i] += error;
     //Calculate command
-    shkevent->zernike_command[i] = shkevent->kP_zern * error + shkevent->kI_zern * zint[i];
+    shkevent->alp_zernike_delta[i] = shkevent->kP_alp_zern * error + shkevent->kI_alp_zern * zint[i];
+  }
+}
+
+/**************************************************************/
+/* SHK_HEX_ZERNPID                                            */
+/*  - Run PID controller on measured Zernikes for HEX         */
+/**************************************************************/
+void shk_hex_zernpid(shkevent_t *shkevent, int reset){
+  static int init = 0;
+  static double zint[LOWFS_N_ZERNIKE] = {0};
+  double error;
+  int i;
+  
+  //Initialize
+  if(!init || reset){
+    memset(zint,0,sizeof(zint));
+    init=1;
+    if(reset) return;
+  }
+  
+  //Run PID
+  for(i=0;i<LOWFS_N_ZERNIKE;i++){
+    //Calculate error
+    error = shkevent->zernike_measured[i] - shkevent->zernike_target[i];
+    //Calculate integral
+    zint[i] += error;
+    //Calculate command
+    shkevent->hex_zernike_delta[i] = shkevent->kP_hex_zern * error + shkevent->kI_hex_zern * zint[i];
   }
 }
 
@@ -666,14 +693,14 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   uint16 fakepx=0;
   static int countA=0;
   int state;
-  static alp_t alp;
+  static alp_t last_alp;
   static hex_t last_hex;
   hex_t hex;
-  int hex_ready=0,move_hex=0,move_alp=0,found_zernike=0;
-  double temp_alp[ALP_NACT]={0};
-  double temp_hex[HEX_NAXES]={0};
-  double temp_zernike[LOWFS_N_ZERNIKE]={0};
-  static uint64 alp_counter=1,hex_counter=1;
+  alp_t alp;
+  int hex_ready=0,move_hex=0,alp_ready=0,move_alp=0,found_zernike=0;
+  double alp_delta[ALP_NACT]={0};
+  double hex_delta[HEX_NAXES]={0};
+  double zernike_delta[LOWFS_N_ZERNIKE]={0};
   hexevent_t hexevent;
   
   //Get time immidiately
@@ -698,16 +725,14 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     //Init cells
     shk_init_cells(&shkevent);
     //Reset calibration routines
-    alp_calibrate(0,&alp,1,0);
-    hex_calibrate(0,&hex,NULL,1,0);
+    alp_calibrate(0,&alp,1);
+    hex_calibrate(0,&hex,NULL,1);
     //Reset PID controllers
-    shk_cellpid(&shkevent,1);
-    shk_zernpid(&shkevent,1);
+    shk_alp_cellpid(&shkevent,1);
+    shk_alp_zernpid(&shkevent,1);
+    shk_hex_zernpid(&shkevent,1);
     //Reset start time
     memcpy(&first,&start,sizeof(struct timespec));
-    //Reset command counters
-    alp_counter = 1;
-    hex_counter = 1;
     //Set init flag
     init=1;
     //Debugging
@@ -719,16 +744,23 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     printf("SHK: shk_process_image --> timespec_subtract error!\n");
   ts2double(&delta,&dt);
   
-  //Read current hexapod position
+  //Read current hex position
   while(read_from_buffer(sm_p,&hexevent,HEXRECV,SHKID)){
     //Copy accepted command to current position
     memcpy(&last_hex,&hexevent.hex,sizeof(hex_t));
   }
   memcpy(&hex,&last_hex,sizeof(hex_t));
-  
-  //Check if hexapod is ready for next command
-  hex_ready = !check_buffer(sm_p,SHK_HEXSEND,HEXID);
 
+  //Read current alp position
+  //--need buffer code here
+  memcpy(&alp,&last_alp,sizeof(alp_t));
+  
+  //Check if hex is ready for next command and we are commander
+  hex_ready = !check_buffer(sm_p,SHK_HEXSEND,HEXID) && (sm_p->state_array[state].hex_commander == SHKID);
+  
+  //Check if alp is ready for next command and we are commander
+  alp_ready = 1 && (sm_p->state_array[state].alp_commander == SHKID);
+  
   //Fill out event header
   shkevent.hed.packet_type  = SHKEVENT;
   shkevent.hed.frame_number = frame_number;
@@ -746,12 +778,15 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   shkevent.boxsize          = sm_p->shk_boxsize;
   shkevent.alp_calmode      = sm_p->alp_calmode;
   shkevent.hex_calmode      = sm_p->hex_calmode;
-  shkevent.kP_cell          = sm_p->shk_kP_cell;
-  shkevent.kI_cell          = sm_p->shk_kI_cell;
-  shkevent.kD_cell          = sm_p->shk_kD_cell;
-  shkevent.kP_zern          = sm_p->shk_kP_zern;
-  shkevent.kI_zern          = sm_p->shk_kI_zern;
-  shkevent.kD_zern          = sm_p->shk_kD_zern;
+  shkevent.kP_alp_cell      = sm_p->shk_kP_alp_cell;
+  shkevent.kI_alp_cell      = sm_p->shk_kI_alp_cell;
+  shkevent.kD_alp_cell      = sm_p->shk_kD_alp_cell;
+  shkevent.kP_alp_zern      = sm_p->shk_kP_alp_zern;
+  shkevent.kI_alp_zern      = sm_p->shk_kI_alp_zern;
+  shkevent.kD_alp_zern      = sm_p->shk_kD_alp_zern;
+  shkevent.kP_hex_zern      = sm_p->shk_kP_hex_zern;
+  shkevent.kI_hex_zern      = sm_p->shk_kI_hex_zern;
+  shkevent.kD_hex_zern      = sm_p->shk_kD_hex_zern;
 
   //Calculate centroids
   shk_centroid(buffer->pvAddress,&shkevent);
@@ -765,21 +800,28 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     shk_zernike_fit(shkevent.cells,shkevent.zernike_measured);
   
   //Run PIDs
-  if(sm_p->state_array[state].shk.pid_zernikes)
-    shk_zernpid(&shkevent, 0);
-  if(sm_p->state_array[state].shk.pid_cells)
-    shk_cellpid(&shkevent, 0);
+  if(sm_p->state_array[state].shk.pid_zernikes){
+    shk_alp_zernpid(&shkevent, 0);
+    shk_hex_zernpid(&shkevent, 0);
+  }
+  if(sm_p->state_array[state].shk.pid_cells){
+    shk_alp_cellpid(&shkevent, 0);
+  }
   
   //Calibrate ALP
   if(sm_p->alp_calmode != ALP_CALMODE_NONE){
-    sm_p->alp_calmode = alp_calibrate(shkevent.alp_calmode,&alp,0,alp_counter);
-    move_alp = 1;
+    if(alp_ready){
+      sm_p->alp_calmode = alp_calibrate(shkevent.alp_calmode,&alp,0);
+      move_alp = 1;
+    }
   }
   
   //Calibrate HEX
   if(sm_p->hex_calmode != HEX_CALMODE_NONE){
-    sm_p->hex_calmode = hex_calibrate(shkevent.hex_calmode,&hex,&shkevent.cal_step,0,hex_counter);
-    move_hex = 1;
+    if(hex_ready){
+      sm_p->hex_calmode = hex_calibrate(shkevent.hex_calmode,&hex,&shkevent.cal_step,0);
+      move_hex = 1;
+    }
   }
 
   //Offload tilt to hexapod
@@ -793,58 +835,62 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   }
   
   //Apply cell commands to ALPAO DM
-  if(sm_p->state_array[state].shk.cell_control == ACTUATOR_ALP){
-    // - zero out temporary variables
-    memset(temp_alp,0,sizeof(temp_alp));
-    // - convert cells to actuators
-    if(shk_cells2alp(shkevent.cells,temp_alp))
-      printf("SHK: shk_cells2alp failed!\n");
-    // - add command deltas
-    for(i=0;i<ALP_NACT;i++)
-      alp.act_cmd[i] += temp_alp[i];
-    // - trigger alp command
-    move_alp = 1;
+  if(alp_ready){
+    if(sm_p->state_array[state].shk.cell_control == ACTUATOR_ALP){
+      // - zero out deltas
+      memset(alp_delta,0,sizeof(alp_delta));
+      // - convert cells to actuators
+      if(shk_cells2alp(shkevent.cells,alp_delta))
+	printf("SHK: shk_cells2alp failed!\n");
+      // - add command deltas
+      for(i=0;i<ALP_NACT;i++)
+	alp.act_cmd[i] += alp_delta[i];
+      // - trigger alp command
+      move_alp = 1;
+    }
   }
   
   //Apply zernike commands to ALP
-  // - zero out temporary variables
-  memset(temp_alp,0,sizeof(temp_alp));
-  memset(temp_zernike,0,sizeof(temp_zernike));
-  found_zernike = 0;
-  for(i=0;i<LOWFS_N_ZERNIKE;i++){
-    if(sm_p->state_array[state].shk.zernike_control[i] == ACTUATOR_ALP){
-      temp_zernike[i]     = shkevent.zernike_command[i];
-      alp.zernike_cmd[i] += temp_zernike[i];
-      found_zernike = 1;
+  if(alp_ready){
+    // - zero out deltas
+    memset(alp_delta,0,sizeof(alp_delta));
+    memset(zernike_delta,0,sizeof(zernike_delta));
+    found_zernike = 0;
+    for(i=0;i<LOWFS_N_ZERNIKE;i++){
+      if(sm_p->state_array[state].shk.zernike_control[i] == ACTUATOR_ALP){
+	zernike_delta[i]    = shkevent.alp_zernike_delta[i];
+	alp.zernike_cmd[i] += zernike_delta[i];
+	found_zernike = 1;
+      }
     }
-  }
-  // - convert zernikes to actuators and add to current command
-  if(found_zernike){
-    alp_zern2alp(temp_zernike,temp_alp);
-    for(i=0;i<ALP_NACT;i++)
-      alp.act_cmd[i] += temp_alp[i];
-    // - trigger alp command
-    move_alp = 1;
+    // - convert zernike deltas to actuators and add to current command
+    if(found_zernike){
+      alp_zern2alp(zernike_delta,alp_delta);
+      for(i=0;i<ALP_NACT;i++)
+	alp.act_cmd[i] += alp_delta[i];
+      // - trigger alp command
+      move_alp = 1;
+    }
   }
 
   //Apply zernike commands to HEX
   if(hex_ready){
-    // - zero out temporary variables
-    memset(temp_hex,0,sizeof(temp_hex));
-    memset(temp_zernike,0,sizeof(temp_zernike));
+    // - zero out deltas
+    memset(hex_delta,0,sizeof(hex_delta));
+    memset(zernike_delta,0,sizeof(zernike_delta));
     found_zernike = 0;
     for(i=0;i<LOWFS_N_ZERNIKE;i++){
       if(sm_p->state_array[state].shk.zernike_control[i] == ACTUATOR_HEX){
-	temp_zernike[i]     = shkevent.zernike_command[i];
-	hex.zernike_cmd[i] += temp_zernike[i];
+	zernike_delta[i]    = shkevent.hex_zernike_delta[i];
+	hex.zernike_cmd[i] += zernike_delta[i];
 	found_zernike = 1;
       }
     }
     // - convert zernikes to axes and add to current command
     if(found_zernike){
-      hex_zern2hex(temp_zernike,temp_hex);
+      hex_zern2hex(zernike_delta,hex_delta);
       for(i=0;i<HEX_NAXES;i++)
-	hex.axis_cmd[i] += temp_hex[i];
+	hex.axis_cmd[i] += hex_delta[i];
       // - trigger hex command
       move_hex = 1;
     }
@@ -853,30 +899,21 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   //Send command to ALP
   if(ALP_ENABLE && sm_p->alp_dev >= 0 && move_alp){
     // - send command
-    if(sm_p->state_array[state].alp_commander == SHKID){
-      if(alp_write(sm_p->alp_dev,&alp))
-	printf("SHK: alp_write failed!\n");
-      // - copy command to shkevent
-      memcpy(&shkevent.alp,&alp,sizeof(alp_t));
-      // - increment command counter
-      alp_counter++;
-    }
+    if(alp_write(sm_p->alp_dev,&alp))
+      printf("SHK: alp_write failed!\n");
+    // - copy command to shkevent
+    memcpy(&shkevent.alp,&alp,sizeof(alp_t));
   }
   
   //Send command to HEX
-  if(HEX_ENABLE && move_hex && hex_ready){
+  if(HEX_ENABLE && move_hex){
     // - send command
-    if(sm_p->state_array[state].hex_commander == SHKID){
-      hexevent.clientid = SHKID;
-      memcpy(&hexevent.hex,&hex,sizeof(hex_t));
-      write_to_buffer(sm_p,&hexevent,SHK_HEXSEND);
-      // - copy to shkevent
-      memcpy(&shkevent.hex,&hex,sizeof(hex_t));
-      // - increment command counter
-      hex_counter++;
-    }
+    hexevent.clientid = SHKID;
+    memcpy(&hexevent.hex,&hex,sizeof(hex_t));
+    write_to_buffer(sm_p,&hexevent,SHK_HEXSEND);
+    // - copy to shkevent
+    memcpy(&shkevent.hex,&hex,sizeof(hex_t));
   }
-  
   
   //Open circular buffer
   shkevent_p=(shkevent_t *)open_buffer(sm_p,SHKEVENT);

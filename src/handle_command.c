@@ -169,15 +169,6 @@ int handle_command(char *line, sm_t *sm_p){
     printf("CMD: Running SHK ALP calibration\n");
     //Change calibration output filename
     sprintf((char *)sm_p->calfile,SHK_HEX_CALFILE);
-    //Turn off gains
-    printf("  -- Disabling PID\n");
-    sm_p->shk_kP_cell = 0;
-    sm_p->shk_kI_cell = 0;
-    sm_p->shk_kD_cell = 0;
-    sm_p->shk_kP_zern = 0;
-    sm_p->shk_kI_zern = 0;
-    sm_p->shk_kD_zern = 0;
-    sleep(3);
     //Start data recording
     printf("  -- Starting data recording\n");
     sm_p->w[DIAID].launch = getshk_proc;
@@ -384,16 +375,6 @@ int handle_command(char *line, sm_t *sm_p){
     printf("CMD: Running HEX AXS calibration\n");
     //Change calibration output filename
     sprintf((char *)sm_p->calfile,SHK_HEX_CALFILE);
-    //Turn off gains
-    printf("  -- Disabling PID\n");
-    sm_p->shk_kP_cell = 0;
-    sm_p->shk_kI_cell = 0;
-    sm_p->shk_kD_cell = 0;
-    sm_p->shk_kP_zern = 0;
-    sm_p->shk_kI_zern = 0;
-    sm_p->shk_kD_zern = 0;
-    sleep(3);
-
     //Start data recording
     printf("  -- Starting data recording\n");
     sm_p->w[DIAID].launch = getshk_proc;
@@ -437,33 +418,9 @@ int handle_command(char *line, sm_t *sm_p){
   //SHK Commands
   if(!strncasecmp(line,"shk set origin",14)){
     printf("CMD: Setting SHK origin\n");
-    //Turn off gains
-    printf("  -- Disabling PID\n");
-    sm_p->shk_kP_cell = 0;
-    sm_p->shk_kI_cell = 0;
-    sm_p->shk_kD_cell = 0;
-    sm_p->shk_kP_zern = 0;
-    sm_p->shk_kI_zern = 0;
-    sm_p->shk_kD_zern = 0;
-    sleep(3);
-
-    //Start data recording
-    printf("  -- Starting data recording\n");
-    sm_p->w[DIAID].launch = getshk_proc;
-    sm_p->w[DIAID].run    = 1;
-    sleep(3);
-    //Start probe pattern
-    sm_p->hex_calmode = HEX_CALMODE_POKE;
-    printf("  -- Changing HEX calibration mode to %d\n",sm_p->hex_calmode);
-    while(sm_p->hex_calmode == HEX_CALMODE_POKE)
-      sleep(1);
-    printf("  -- Stopping data recording\n");
-    //Stop data recording
-    sm_p->w[DIAID].run    = 0;
-    printf("  -- Done\n");
+    sm_p->shk_setorigin=1;
     return(CMD_NORMAL);
   }
-
 
   //Reset Commands
   if(!strncasecmp(line,"shk reset",9)){
@@ -486,38 +443,32 @@ int handle_command(char *line, sm_t *sm_p){
     printf("CMD: Resetting SCI\n");
     return(CMD_NORMAL);
   }
-
-  //SHK Commands
-  if(!strncasecmp(line,"shk set origin",14)){
-    printf("CMD: Setting SHK origin\n");
-    //Turn off gains
-    printf("  -- Disabling PID\n");
-    sm_p->shk_kP_cell = 0;
-    sm_p->shk_kI_cell = 0;
-    sm_p->shk_kD_cell = 0;
-    sm_p->shk_kP_zern = 0;
-    sm_p->shk_kI_zern = 0;
-    sm_p->shk_kD_zern = 0;
-    printf("  -- Resetting SHK\n");
-    sm_p->shk_reset = 1;
-    sleep(1);
-    sm_p->shk_setorigin=1;
-    return(CMD_NORMAL);
-  }
   
-  //SHK Gain
-  if(!strncasecmp(line,"shk gain ",9) && strlen(line)>10){
-    ftemp = atof(line+9);
+  //SHK ALP Gain
+  if(!strncasecmp(line,"shk alp gain ",13) && strlen(line)>14){
+    ftemp = atof(line+13);
     if(ftemp >= 0 && ftemp <= 5)
       ftemp /= 5.0;
-    sm_p->shk_kP_cell = SHK_KP_CELL_DEFAULT*ftemp;
-    sm_p->shk_kI_cell = SHK_KI_CELL_DEFAULT*ftemp;
-    sm_p->shk_kD_cell = SHK_KD_CELL_DEFAULT*ftemp;
-    sm_p->shk_kP_zern = SHK_KP_ZERN_DEFAULT*ftemp;
-    sm_p->shk_kI_zern = SHK_KI_ZERN_DEFAULT*ftemp;
-    sm_p->shk_kD_zern = SHK_KD_ZERN_DEFAULT*ftemp;
-    printf("SHK switching to cell gain 5: %f, %f, %f\n",sm_p->shk_kP_cell,sm_p->shk_kI_cell,sm_p->shk_kD_cell);
-    printf("SHK switching to zerm gain 5: %f, %f, %f\n",sm_p->shk_kP_zern,sm_p->shk_kI_zern,sm_p->shk_kD_zern);
+    sm_p->shk_kP_alp_cell = SHK_KP_ALP_CELL_DEFAULT*ftemp;
+    sm_p->shk_kI_alp_cell = SHK_KI_ALP_CELL_DEFAULT*ftemp;
+    sm_p->shk_kD_alp_cell = SHK_KD_ALP_CELL_DEFAULT*ftemp;
+    sm_p->shk_kP_alp_zern = SHK_KP_ALP_ZERN_DEFAULT*ftemp;
+    sm_p->shk_kI_alp_zern = SHK_KI_ALP_ZERN_DEFAULT*ftemp;
+    sm_p->shk_kD_alp_zern = SHK_KD_ALP_ZERN_DEFAULT*ftemp;
+    printf("SHK switching to ALP cell gain 5: %f, %f, %f\n",sm_p->shk_kP_alp_cell,sm_p->shk_kI_alp_cell,sm_p->shk_kD_alp_cell);
+    printf("SHK switching to ALP zern gain 5: %f, %f, %f\n",sm_p->shk_kP_alp_zern,sm_p->shk_kI_alp_zern,sm_p->shk_kD_alp_zern);
+    return CMD_NORMAL;
+  }
+
+  //SHK HEX Gain
+  if(!strncasecmp(line,"shk hex gain ",13) && strlen(line)>14){
+    ftemp = atof(line+13);
+    if(ftemp >= 0 && ftemp <= 5)
+      ftemp /= 5.0;
+    sm_p->shk_kP_hex_zern = SHK_KP_HEX_ZERN_DEFAULT*ftemp;
+    sm_p->shk_kI_hex_zern = SHK_KI_HEX_ZERN_DEFAULT*ftemp;
+    sm_p->shk_kD_hex_zern = SHK_KD_HEX_ZERN_DEFAULT*ftemp;
+    printf("SHK switching to HEX zern gain 5: %f, %f, %f\n",sm_p->shk_kP_hex_zern,sm_p->shk_kI_hex_zern,sm_p->shk_kD_hex_zern);
     return CMD_NORMAL;
   }
 

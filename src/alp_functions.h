@@ -4,7 +4,7 @@
 //Function prototypes
 void alp_init_calmode(int calmode, calmode_t *alp);
 int alp_zern2alp(double *zernikes,double *actuators);
-int alp_calibrate(int calmode, alp_t *alp, int reset, uint64 counter);
+int alp_calibrate(int calmode, alp_t *alp, int reset);
 void alp_check(alp_t *alp);
 int alp_open(char *name);
 int alp_write(int devId, alp_t* alp);
