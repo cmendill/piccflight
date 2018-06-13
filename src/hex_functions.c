@@ -320,25 +320,25 @@ int hex_zern2hex_alt(double *zernikes, double *axes){
   //Copy input zernikes
   for(i=0;i<LOWFS_N_HEX_ZERNIKE;i++)
     input_zernikes[i] = zernikes[i];
-  fprintf(stderr,"HEX: Input Zernikes: %f, %f, %f %f, %f\n",input_zernikes[0],input_zernikes[1],input_zernikes[2],input_zernikes[3],input_zernikes[4]);
+  if(HEX_DEBUG) fprintf(stderr,"HEX: INPT: %f, %f, %f, %f, %f\n",input_zernikes[0],input_zernikes[1],input_zernikes[2],input_zernikes[3],input_zernikes[4]);
   //Convert astig to HEX dX & dY
-  //memset(hex_zernikes,0,sizeof(hex_zernikes));
-  //memset(hex_axes,0,sizeof(hex_axes));
-  //hex_zernikes[3] = input_zernikes[3];
-  //hex_zernikes[4] = input_zernikes[4];
-  //num_dgemv(zern2hex_matrix, hex_zernikes, hex_axes, HEX_NAXES, LOWFS_N_HEX_ZERNIKE);
-  //dX = hex_axes[HEX_AXIS_X];
-  //dY = hex_axes[HEX_AXIS_Y];
+  memset(hex_zernikes,0,sizeof(hex_zernikes));
+  memset(hex_axes,0,sizeof(hex_axes));
+  hex_zernikes[3] = input_zernikes[3];
+  hex_zernikes[4] = input_zernikes[4];
+  num_dgemv(zern2hex_matrix, hex_zernikes, hex_axes, HEX_NAXES, LOWFS_N_HEX_ZERNIKE);
+  dX = hex_axes[HEX_AXIS_X];
+  dY = hex_axes[HEX_AXIS_Y];
  
   //Subtract the tilt from dX and dY to the input error
-  //memset(hex_zernikes,0,sizeof(hex_zernikes));
-  //memset(hex_axes,0,sizeof(hex_axes));
-  //hex_axes[HEX_AXIS_X] = dX;
-  //hex_axes[HEX_AXIS_Y] = dY;
-  //num_dgemv(hex2zern_matrix, hex_axes, hex_zernikes, LOWFS_N_HEX_ZERNIKE, HEX_NAXES);
-  //input_zernikes[0] -= hex_zernikes[0];
-  //input_zernikes[1] -= hex_zernikes[1];
-
+  memset(hex_zernikes,0,sizeof(hex_zernikes));
+  memset(hex_axes,0,sizeof(hex_axes));
+  hex_axes[HEX_AXIS_X] = dX;
+  hex_axes[HEX_AXIS_Y] = dY;
+  num_dgemv(hex2zern_matrix, hex_axes, hex_zernikes, LOWFS_N_HEX_ZERNIKE, HEX_NAXES);
+  input_zernikes[0] -= hex_zernikes[0];
+  input_zernikes[1] -= hex_zernikes[1];
+  
   //Convert input tip and tilt to HEX dU & dV
   memset(hex_zernikes,0,sizeof(hex_zernikes));
   memset(hex_axes,0,sizeof(hex_axes));
@@ -349,11 +349,11 @@ int hex_zern2hex_alt(double *zernikes, double *axes){
   dV = hex_axes[HEX_AXIS_V];
 
   //Convert power to HEX dZ
-  //memset(hex_zernikes,0,sizeof(hex_zernikes));
-  //memset(hex_axes,0,sizeof(hex_axes));
-  //hex_zernikes[2] = input_zernikes[2];
-  //num_dgemv(zern2hex_matrix, hex_zernikes, hex_axes, HEX_NAXES, LOWFS_N_HEX_ZERNIKE);
-  //dZ = hex_axes[HEX_AXIS_Z];
+  memset(hex_zernikes,0,sizeof(hex_zernikes));
+  memset(hex_axes,0,sizeof(hex_axes));
+  hex_zernikes[2] = input_zernikes[2];
+  num_dgemv(zern2hex_matrix, hex_zernikes, hex_axes, HEX_NAXES, LOWFS_N_HEX_ZERNIKE);
+  dZ = hex_axes[HEX_AXIS_Z];
 
   //Set final command
   axes[HEX_AXIS_X] = dX;

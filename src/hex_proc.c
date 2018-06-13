@@ -197,9 +197,9 @@ void hex_proc(void){
 	/* Debugging */
 	if(HEX_DEBUG){
 	  fprintf(stderr,"HEX: Accepted command %lu from: %d\n",hexcmd.command_number,hexcmd.clientid);
-	  fprintf(stderr,"HEX: ZERN: %f, %f, %f, %f, %f, %f\n",
-		 hexcmd.hex.zernike_cmd[0],hexcmd.hex.zernike_cmd[1],hexcmd.hex.zernike_cmd[2],
-		 hexcmd.hex.zernike_cmd[3],hexcmd.hex.zernike_cmd[4],hexcmd.hex.zernike_cmd[5]);
+	  fprintf(stderr,"HEX: ZERN: %f, %f, %f, %f, %f\n",
+		  hexcmd.hex.zernike_cmd[0],hexcmd.hex.zernike_cmd[1],hexcmd.hex.zernike_cmd[2],
+		  hexcmd.hex.zernike_cmd[3],hexcmd.hex.zernike_cmd[4]);
 	  fprintf(stderr,"HEX: AXES: %f, %f, %f, %f, %f, %f\n",
 		 hexcmd.hex.axis_cmd[0],hexcmd.hex.axis_cmd[1],hexcmd.hex.axis_cmd[2],
 		 hexcmd.hex.axis_cmd[3],hexcmd.hex.axis_cmd[4],hexcmd.hex.axis_cmd[5]);
