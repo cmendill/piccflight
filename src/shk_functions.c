@@ -397,18 +397,17 @@ void shk_zernike_fit(shkcell_t *cells, double *zernikes){
   FILE *matrix=NULL;
   char matrix_file[MAX_FILENAME];
   static double shk2zern[2*SHK_NCELLS*LOWFS_N_ZERNIKE]={0};
-  static double dphi_dxdy[2*SHK_NCELLS] = {0};
   double shk_xydev[2*SHK_NCELLS];
   uint64 fsize,rsize;
   static int beam_cell_index[SHK_NCELLS] = {0};
-  static int beam_cell_used[SHK_NCELLS] = {0};
   static int beam_ncells=0;
   static int init=0;
   int i;
-
+  
   /* Initialize Fitting Matrix */
   if(!init){
     /* Get number of cells in the beam */
+    beam_ncells=0;
     for(i=0;i<SHK_NCELLS;i++)
       if(cells[i].beam_select)
 	beam_cell_index[beam_ncells++]=i;
@@ -448,8 +447,8 @@ void shk_zernike_fit(shkcell_t *cells, double *zernikes){
 
   //Format displacement array
   for(i=0;i<beam_ncells;i++){
-    shk_xydev[2*i + 0] = cells[i].deviation[0]; //pixels
-    shk_xydev[2*i + 1] = cells[i].deviation[1]; //pixels
+    shk_xydev[2*i + 0] = cells[beam_cell_index[i]].deviation[0]; //pixels
+    shk_xydev[2*i + 1] = cells[beam_cell_index[i]].deviation[1]; //pixels
   }
   
   //Do matrix multiply
