@@ -37,6 +37,8 @@
 #define SHK_KI_HEX_ZERN_DEFAULT   0.0
 #define SHK_KD_HEX_ZERN_DEFAULT   0.0
 
+//Hexapod Settings
+#define HEX_TILT_CORRECT_DEFAULT  1
 
 /*************************************************
  * System Settings & Messages

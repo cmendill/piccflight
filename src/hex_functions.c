@@ -16,6 +16,11 @@
 #include "numeric.h"
 #include "hex_functions.h"
 
+/* TCOR Calibration */
+#define HEX_TCOR_DVDX -0.1
+#define HEX_TCOR_DUDY  0.1
+#define HEX_TCOR_DUDZ -0.021214635
+
 /**************************************************************/
 /* HEX_INIT_CALMODE                                           */
 /*  - Initialize HEX calmode structure                        */
@@ -30,6 +35,11 @@ void hex_init_calmode(int calmode, calmode_t *hex){
   if(calmode == HEX_CALMODE_POKE){
     sprintf(hex->name,"HEX_CALMODE_POKE");
     sprintf(hex->cmd,"poke");
+  }
+  //HEX_CALMODE_TCOR
+  if(calmode == HEX_CALMODE_TCOR){
+    sprintf(hex->name,"HEX_CALMODE_TCOR");
+    sprintf(hex->cmd,"tcor");
   }
   //HEX_CALMODE_SPIRAL
   if(calmode == HEX_CALMODE_SPIRAL){
@@ -246,115 +256,35 @@ int hex_zern2hex(double *zernikes, double *axes){
 /*  - Alternate Version                                       */
 /**************************************************************/
 int hex_zern2hex_alt(double *zernikes, double *axes){
-  FILE *fp=NULL;
-  char matrix_file[MAX_FILENAME];
-  static int init=0;
-  static double zern2hex_matrix[LOWFS_N_HEX_ZERNIKE*HEX_NAXES]={0};
-  static double hex2zern_matrix[LOWFS_N_HEX_ZERNIKE*HEX_NAXES]={0};
-  uint64 fsize,rsize;
-  int c,i;
-  double hex_zernikes[LOWFS_N_HEX_ZERNIKE]={0};
-  double input_zernikes[LOWFS_N_HEX_ZERNIKE]={0};
   double dX=0,dY=0,dZ=0,dU=0,dV=0,dW=0;
-  double hex_axes[HEX_NAXES];
+
+  //Calibration
+  double dVdZ0 = -0.000532325;
+  double dUdZ1 =  0.000566154;
+  double dXdZ4 =  0.64/0.3;
+  double dYdZ3 = -0.64/0.2;
+  double dZdZ2 =  0.1;
+  double dVdX  = -0.1;
+  double dUdY  =  0.1; 
+  double dZdZ1 = 0.0277399; //mm/zern micron
+  double dUdZ  = -dUdZ1 / dZdZ1;
   
-  if(!init){
-    /* Open zern2hex matrix file */
-    //--setup filename
-    sprintf(matrix_file,ZERNIKE2HEX_FILE);
-    //--open file
-    if((fp = fopen(matrix_file,"r")) == NULL){
-      printf("zern2hex file\n");
-      perror("fopen");
-      return 1;
-    }
-    //--check file size
-    fseek(fp, 0L, SEEK_END);
-    fsize = ftell(fp);
-    rewind(fp);
-    rsize = (LOWFS_N_HEX_ZERNIKE)*HEX_NAXES*sizeof(double);
-    if(fsize != rsize){
-      printf("HEX: incorrect HEX matrix file size %lu != %lu\n",fsize,rsize);
-      return 1;
-    }
-    //--read matrix
-    if(fread(zern2hex_matrix,(LOWFS_N_HEX_ZERNIKE)*HEX_NAXES*sizeof(double),1,fp) != 1){
-      printf("zern2hex file\r");
-      perror("fread");
-      return 1;
-    }
-    //--close file
-    fclose(fp);
-
-    /* Open hex2zern matrix file */
-    //--setup filename
-    sprintf(matrix_file,ZERNIKE2HEX_FILE);
-    //--open file
-    if((fp = fopen(matrix_file,"r")) == NULL){
-      printf("hex2zern file\n");
-      perror("fopen");
-      return 1;
-    }
-    //--check file size
-    fseek(fp, 0L, SEEK_END);
-    fsize = ftell(fp);
-    rewind(fp);
-    rsize = (LOWFS_N_HEX_ZERNIKE)*HEX_NAXES*sizeof(double);
-    if(fsize != rsize){
-      printf("HEX: incorrect HEX matrix file size %lu != %lu\n",fsize,rsize);
-      return 1;
-    }
-    //--read matrix
-    if(fread(hex2zern_matrix,(LOWFS_N_HEX_ZERNIKE)*HEX_NAXES*sizeof(double),1,fp) != 1){
-      printf("hex2zern file\r");
-      perror("fread");
-      return 1;
-    }
-    //--close file
-    fclose(fp);
-
-    //--set init flag
-    init=1;
-  }
-
-  //Copy input zernikes
-  for(i=0;i<LOWFS_N_HEX_ZERNIKE;i++)
-    input_zernikes[i] = zernikes[i];
-
   //Convert astig to HEX dX & dY
-  memset(hex_zernikes,0,sizeof(hex_zernikes));
-  memset(hex_axes,0,sizeof(hex_axes));
-  hex_zernikes[3] = input_zernikes[3];
-  hex_zernikes[4] = input_zernikes[4];
-  num_dgemv(zern2hex_matrix, hex_zernikes, hex_axes, HEX_NAXES, LOWFS_N_HEX_ZERNIKE);
-  dX = hex_axes[HEX_AXIS_X];
-  dY = hex_axes[HEX_AXIS_Y];
- 
-  //Subtract the tilt from dX and dY to the input error
-  memset(hex_zernikes,0,sizeof(hex_zernikes));
-  memset(hex_axes,0,sizeof(hex_axes));
-  hex_axes[HEX_AXIS_X] = dX;
-  hex_axes[HEX_AXIS_Y] = dY;
-  num_dgemv(hex2zern_matrix, hex_axes, hex_zernikes, LOWFS_N_HEX_ZERNIKE, HEX_NAXES);
-  input_zernikes[0] -= hex_zernikes[0];
-  input_zernikes[1] -= hex_zernikes[1];
+  dX = dXdZ4 * zernikes[4];
+  dY = dYdZ3 * zernikes[3];
+  //--correct tilt for dX & dY
+  dV = dVdX * dX;
+  dU = dUdY * dY;
+
+  //Convert focus to HEX dZ
+  dZ = dZdZ2 * zernikes[2];
+  //--tilt correction
+  dU += dUdZ * dZ;
   
-  //Convert input tip and tilt to HEX dU & dV
-  memset(hex_zernikes,0,sizeof(hex_zernikes));
-  memset(hex_axes,0,sizeof(hex_axes));
-  hex_zernikes[0] = input_zernikes[0];
-  hex_zernikes[1] = input_zernikes[1];
-  num_dgemv(zern2hex_matrix, hex_zernikes, hex_axes, HEX_NAXES, LOWFS_N_HEX_ZERNIKE);
-  dU = hex_axes[HEX_AXIS_U];
-  dV = hex_axes[HEX_AXIS_V];
-
-  //Convert power to HEX dZ
-  memset(hex_zernikes,0,sizeof(hex_zernikes));
-  memset(hex_axes,0,sizeof(hex_axes));
-  hex_zernikes[2] = input_zernikes[2];
-  num_dgemv(zern2hex_matrix, hex_zernikes, hex_axes, HEX_NAXES, LOWFS_N_HEX_ZERNIKE);
-  dZ = hex_axes[HEX_AXIS_Z];
-
+  //Convert tilt to dU & dV
+  dV += dVdZ0 * zernikes[0];
+  dU += dUdZ1 * zernikes[1];
+  
   //Set final command
   axes[HEX_AXIS_X] = dX;
   axes[HEX_AXIS_Y] = dY;
@@ -382,9 +312,9 @@ int hex_calibrate(int calmode, hex_t *hex, uint64 *step, int reset){
   time_t t;
   double dt=0;
   const double poke[HEX_NAXES]={HEX_X_CAL_POKE,HEX_Y_CAL_POKE,HEX_Z_CAL_POKE,HEX_U_CAL_POKE,HEX_V_CAL_POKE,HEX_W_CAL_POKE};
+  const double tcor[HEX_NAXES]={HEX_X_CAL_TCOR,HEX_Y_CAL_TCOR,HEX_Z_CAL_TCOR,HEX_U_CAL_TCOR,HEX_V_CAL_TCOR,HEX_W_CAL_TCOR};
   int iax;
-  
-
+ 
   /* Reset */
   if(reset){
     memset(countA,0,sizeof(countA));
@@ -411,7 +341,7 @@ int hex_calibrate(int calmode, hex_t *hex, uint64 *step, int reset){
   if(timespec_subtract(&delta,&this,&start))
     printf("SHK: shk_process_image --> timespec_subtract error!\n");
   ts2double(&delta,&dt);
-    
+
   /* HEX_CALMODE_NONE: Do nothing. */
   if(calmode == HEX_CALMODE_NONE){
     return calmode;
@@ -447,6 +377,48 @@ int hex_calibrate(int calmode, hex_t *hex, uint64 *step, int reset){
       init = 0;
       //Set hex back to starting position
       memcpy(hex,&hex_start[HEX_CALMODE_POKE],sizeof(hex_t));
+    }
+    return calmode;
+  }
+
+  /* HEX_CALMODE_TCOR:      Move through axes one at a time. */
+  /*                        Use tilt correction.             */
+  /*                        Go home in between each move.    */
+  if(calmode == HEX_CALMODE_TCOR){
+    //Save hex starting position
+    if(!mode_init[HEX_CALMODE_TCOR]){
+      memcpy(&hex_start[HEX_CALMODE_TCOR],hex,sizeof(hex_t));
+      mode_init[HEX_CALMODE_TCOR]=1;
+    }
+    //Proceed with calibration
+    if(countA[calmode] >= 0 && countA[calmode] < (2*HEX_NAXES*HEX_NCALIM)){
+      //Set calibration step
+      *step = countA[calmode]/HEX_NCALIM;
+      //Set hex to starting position
+      memcpy(hex,&hex_start[HEX_CALMODE_TCOR],sizeof(hex_t));
+	
+      if((countA[calmode]/HEX_NCALIM) % 2 == 1){
+	//move one axis
+	iax = (countB[calmode]/HEX_NCALIM) % HEX_NAXES;
+	hex->axis_cmd[iax] += tcor[iax];
+	//correct tilt
+	if(iax == HEX_AXIS_X)
+	  hex->axis_cmd[HEX_AXIS_V] += HEX_TCOR_DVDX * tcor[iax];
+	if(iax == HEX_AXIS_Y)
+	  hex->axis_cmd[HEX_AXIS_U] += HEX_TCOR_DUDY * tcor[iax];
+	if(iax == HEX_AXIS_Z)
+	  hex->axis_cmd[HEX_AXIS_U] += HEX_TCOR_DUDZ * tcor[iax];
+	countB[calmode]++;
+      }
+      countA[calmode]++;
+    }
+    else{
+      //Turn off calibration
+      printf("HEX: Stopping HEX calmode HEX_CALMODE_TCOR\n");
+      calmode = HEX_CALMODE_NONE;
+      init = 0;
+      //Set hex back to starting position
+      memcpy(hex,&hex_start[HEX_CALMODE_TCOR],sizeof(hex_t));
     }
     return calmode;
   }

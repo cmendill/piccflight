@@ -70,6 +70,7 @@ int handle_command(char *line, sm_t *sm_p){
   int   cmdfound=0;
   int   i=0,hex_axis=0;
   double hex_poke=0;
+  int   hex_calmode=0;
   static double trl_poke = HEX_TRL_POKE;//0.01;
   static double rot_poke = HEX_ROT_POKE;///0.01;
   static calmode_t alpcalmodes[ALP_NCALMODES];
@@ -246,6 +247,16 @@ int handle_command(char *line, sm_t *sm_p){
   //User Hexapod Control
   if(!strncasecmp(line,"hex",3)){
     if(sm_p->state_array[sm_p->state].hex_commander == WATID){
+      //Turn ON tilt correction
+      if(!strncasecmp(line,"hex tcor on",11)){
+	printf("CMD: Turning HEX tilt correction ON\n");
+	sm_p->hex_tilt_correct = 1;
+      }
+      //Turn OFF tilt correction
+      if(!strncasecmp(line,"hex tcor off",11)){
+	printf("CMD: Turning HEX tilt correction OFF\n");
+	sm_p->hex_tilt_correct = 0;
+      }
       //Reset step size
       if(!strncasecmp(line,"hex rst step",12)){
 	rot_poke = HEX_ROT_POKE;
@@ -372,18 +383,31 @@ int handle_command(char *line, sm_t *sm_p){
   
   //HEX Calibration
   if(!strncasecmp(line,"shk calibrate hex",17)){
+    //Get calmode
+    cmdfound = 0;
+    for(i=0;i<HEX_NCALMODES;i++){
+      if(!strncasecmp(line+18,hexcalmodes[i].cmd,strlen(hexcalmodes[i].cmd))){
+	hex_calmode=i;
+	cmdfound = 1;
+      }
+    }
+    if(!cmdfound){
+      printf("CMD: Could not find hex calmode\n");
+      print_hex_calmodes(hexcalmodes);
+      return(CMD_NORMAL);
+    }
     printf("CMD: Running HEX AXS calibration\n");
     //Change calibration output filename
-    sprintf((char *)sm_p->calfile,SHK_HEX_CALFILE);
+    sprintf((char *)sm_p->calfile,SHK_HEX_CALFILE,(char *)hexcalmodes[hex_calmode].cmd);
     //Start data recording
-    printf("  -- Starting data recording\n");
+    printf("  -- Starting data recording to file: %s\n",sm_p->calfile);
     sm_p->w[DIAID].launch = getshk_proc;
     sm_p->w[DIAID].run    = 1;
     sleep(3);
     //Start probe pattern
-    sm_p->hex_calmode = HEX_CALMODE_POKE;
+    sm_p->hex_calmode = hex_calmode;
     printf("  -- Changing HEX calibration mode to %s\n",hexcalmodes[sm_p->hex_calmode].name);
-    while(sm_p->hex_calmode == HEX_CALMODE_POKE)
+    while(sm_p->hex_calmode == hex_calmode)
       sleep(1);
     printf("  -- Stopping data recording\n");
     //Stop data recording
@@ -422,28 +446,6 @@ int handle_command(char *line, sm_t *sm_p){
     return(CMD_NORMAL);
   }
 
-  //Reset Commands
-  if(!strncasecmp(line,"shk reset",9)){
-    sm_p->shk_reset=1;
-    printf("CMD: Resetting SHK\n");
-    return(CMD_NORMAL);
-  }
-  if(!strncasecmp(line,"lyt reset",9)){
-    sm_p->lyt_reset=1;
-    printf("CMD: Resetting LYT\n");
-    return(CMD_NORMAL);
-  }
-  if(!strncasecmp(line,"acq reset",9)){
-    sm_p->acq_reset=1;
-    printf("CMD: Resetting ACQ\n");
-    return(CMD_NORMAL);
-  }
-  if(!strncasecmp(line,"sci reset",9)){
-    sm_p->sci_reset=1;
-    printf("CMD: Resetting SCI\n");
-    return(CMD_NORMAL);
-  }
-  
   //SHK ALP Gain
   if(!strncasecmp(line,"shk alp gain ",13) && strlen(line)>14){
     ftemp = atof(line+13);

@@ -900,7 +900,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     }
     // - convert zernikes to axes and add to current command
     if(found_zernike){
-      hex_zern2hex(zernike_delta,hex_delta);
+      hex_zern2hex_alt(zernike_delta,hex_delta);
       for(i=0;i<HEX_NAXES;i++)
 	hex.axis_cmd[i] += hex_delta[i];
       // - trigger hex command

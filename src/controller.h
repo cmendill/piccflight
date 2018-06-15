@@ -151,7 +151,7 @@ enum states { STATE_STANDBY,
 #define ZERNIKE2ALP_FILE  "data/shk/zern2alp.dat"
 #define SHK2ZERNIKE_FILE  "data/shk/shk2zern.dat"
 #define ASTIG2TILT_FILE   "data/shk/astig2tilt.dat"
-#define SHK_HEX_CALFILE   "data/test_data/shk_hex_caldata.dat"
+#define SHK_HEX_CALFILE   "data/test_data/shk_hex_%s_caldata.dat"
 #define SHK_ALP_CALFILE   "data/test_data/shk_alp_caldata.dat"
 #define SHK2ZERN_OUTFILE  "data/shk/shk2zern_flight_output.dat"
 #define ZERN2SHK_OUTFILE  "data/shk/zern2shk_flight_output.dat"
@@ -309,6 +309,12 @@ enum bufids {SCIEVENT, SCIFULL,
 #define HEX_U_CAL_POKE    0.001
 #define HEX_V_CAL_POKE    0.001
 #define HEX_W_CAL_POKE    0.005
+#define HEX_X_CAL_TCOR    0.5
+#define HEX_Y_CAL_TCOR    0.5
+#define HEX_Z_CAL_TCOR    0.05
+#define HEX_U_CAL_TCOR    0.001
+#define HEX_V_CAL_TCOR    0.001
+#define HEX_W_CAL_TCOR    0.005
 #define HEX_NCALIM        10
 #define HEX_PIVOT_X       0//122.32031250
 #define HEX_PIVOT_Y       0//206.61012268
@@ -689,6 +695,7 @@ typedef volatile struct {
   //Other Commands
   int hex_getpos;
   int shk_setorigin;
+  int hex_tilt_correct;
 
   //Zernike Targets
   double zernike_target[LOWFS_N_ZERNIKE];

@@ -20,6 +20,7 @@ int hex_calibrate(int calmode, hex_t *hex,uint64 *step, int reset);
 //Calibration Modes
 enum hexcalmodes {HEX_CALMODE_NONE,
 		  HEX_CALMODE_POKE,
+		  HEX_CALMODE_TCOR,
 		  HEX_CALMODE_SPIRAL,
 		  HEX_NCALMODES};
 
