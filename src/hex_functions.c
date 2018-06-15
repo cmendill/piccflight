@@ -320,7 +320,7 @@ int hex_zern2hex_alt(double *zernikes, double *axes){
   //Copy input zernikes
   for(i=0;i<LOWFS_N_HEX_ZERNIKE;i++)
     input_zernikes[i] = zernikes[i];
-  if(HEX_DEBUG) fprintf(stderr,"HEX: INPT: %f, %f, %f, %f, %f\n",input_zernikes[0],input_zernikes[1],input_zernikes[2],input_zernikes[3],input_zernikes[4]);
+
   //Convert astig to HEX dX & dY
   memset(hex_zernikes,0,sizeof(hex_zernikes));
   memset(hex_axes,0,sizeof(hex_axes));

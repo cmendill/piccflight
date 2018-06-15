@@ -900,7 +900,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     }
     // - convert zernikes to axes and add to current command
     if(found_zernike){
-      hex_zern2hex_alt(zernike_delta,hex_delta);
+      hex_zern2hex(zernike_delta,hex_delta);
       for(i=0;i<HEX_NAXES;i++)
 	hex.axis_cmd[i] += hex_delta[i];
       // - trigger hex command
@@ -924,9 +924,6 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     hexevent.command_number = ++hex_last_sent;
     memcpy(&hexevent.hex,&hex,sizeof(hex_t));
     if(HEX_DEBUG) fprintf(stderr,"SHK: Writing HEX command %lu\n",hex_last_sent);
-    if(HEX_DEBUG) fprintf(stderr,"SHK: ZERN: %f, %f, %f, %f, %f\n",
-			  shkevent.zernike_measured[0],shkevent.zernike_measured[1],shkevent.zernike_measured[2],
-			  shkevent.zernike_measured[3],shkevent.zernike_measured[4]);
     write_to_buffer(sm_p,&hexevent,SHK_HEXSEND);
     // - copy to shkevent
     memcpy(&shkevent.hex,&hex,sizeof(hex_t));
