@@ -84,7 +84,7 @@ enum states { STATE_STANDBY,
 	      STATE_LYT_LOWFC,
 	      STATE_SCI_DARK_HOLE,
 	      NSTATES};
-  
+
 /*************************************************
  * Commands
  *************************************************/
@@ -262,7 +262,7 @@ enum bufids {SCIEVENT, SCIFULL,
 /*************************************************
  * BMC DM Parameters
  *************************************************/
-#define BMC_NACT    952  
+#define BMC_NACT    952
 #define BMC_STROKE  1.5
 #define BMCXS        34
 #define BMCYS        34
@@ -351,8 +351,8 @@ enum bufids {SCIEVENT, SCIFULL,
 #define SHK_MAX_BOXSIZE       27     //[pixels] gives a 5 pixel buffer around edges
 #define SHK_SPOT_UPPER_THRESH 200
 #define SHK_SPOT_LOWER_THRESH 100
-#define SHK_CELL_XOFF         73
-#define SHK_CELL_YOFF         56
+#define SHK_CELL_XOFF         65
+#define SHK_CELL_YOFF         50
 #define SHK_CELL_ROTATION     0.0
 #define SHK_CELL_XSCALE       1.0
 #define SHK_CELL_YSCALE       1.0
@@ -434,13 +434,13 @@ typedef struct acqctrl_struct{
 
 //State Structure
 typedef struct state_struct{
-  char      name[128]; 
+  char      name[128];
   char      cmd[128];
   int       hex_commander;
   int       alp_commander;
   int       bmc_commander;
   int       wsp_commander;
-  shkctrl_t shk;        
+  shkctrl_t shk;
   lytctrl_t lyt;
   scictrl_t sci;
   acqctrl_t acq;
@@ -488,7 +488,7 @@ typedef struct {
   double deviation[2];
   double command[2];
 } shkcell_t;
- 
+
 /*************************************************
  * Device Command Structures
  *************************************************/
@@ -645,7 +645,7 @@ typedef volatile struct {
   //State
   int state;                    //Current operational state
   state_t state_array[NSTATES]; //Array of states
-  
+
   //Fake modes
   int tlm_fake_mode;        //Telemetry fake mode
   int sci_fake_mode;        //Science camera fake mode
@@ -699,7 +699,7 @@ typedef volatile struct {
 
   //Zernike Targets
   double zernike_target[LOWFS_N_ZERNIKE];
-  
+
   //Events circular buffers
   scievent_t scievent[SCIEVENTSIZE];
   shkevent_t shkevent[SHKEVENTSIZE];
@@ -714,7 +714,7 @@ typedef volatile struct {
   hexevent_t lyt_hexrecv[HEXRECVSIZE];
   hexevent_t acq_hexrecv[HEXRECVSIZE];
   hexevent_t wat_hexrecv[HEXRECVSIZE];
-  
+
   //Full frame circular buffers
   scifull_t scifull[SCIFULLSIZE];
   shkfull_t shkfull[SHKFULLSIZE];
