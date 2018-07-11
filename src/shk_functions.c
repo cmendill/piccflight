@@ -296,7 +296,7 @@ void shk_zernike_matrix(shkcell_t *cells, double *matrix_inv){
     y_3 = pow(y_1,3);
     y_4 = pow(y_1,4);
     y_5 = pow(y_1,5);
-    //NOTE: This is hard coded for LOWFS_N_ZERNIKE == 24
+    //NOTE: This is hard coded for LOWFS_N_ZERNIKE == 23
     //Units before unit_conversion are wavefront slope [unitless = um/um] per 1 unit of RMS zernike coefficent= [um/um]
     //--> wavefront slope [um/um] of a wavefront with zernike coefficient = 1
     //unit_conversion contains (1/beam_radius [microns]) this converts the zernike coefficents to microns 
