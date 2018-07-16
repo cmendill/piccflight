@@ -6,7 +6,7 @@
 #include <string.h>
 #include <fcntl.h>
 #include <ctype.h>
-#include <acedev5.h>
+#include <rtdalpao_library.h>
 
 
 /* piccflight headers */
@@ -909,10 +909,9 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   }
   
   //Send command to ALP
-  if(ALP_ENABLE && sm_p->alp_dev >= 0 && move_alp){
+  if(ALP_ENABLE && move_alp){
     // - send command
-    if(alp_write(sm_p->alp_dev,&alp))
-      printf("SHK: alp_write failed!\n");
+    rtdalpao_send_analog_data(alp.act_cmd);
     // - copy command to shkevent
     memcpy(&shkevent.alp,&alp,sizeof(alp_t));
   }

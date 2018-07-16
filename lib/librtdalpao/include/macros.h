@@ -10,9 +10,9 @@
 #define N_ELEMENTS(array) (sizeof(array)/sizeof(array[0]))
 
 /* pre-processor ceiling function */
-#define CEILING(x,y) (((x) + (y) - 1) / (y))
+#define DIV_CEILING(x,y) (((x) + (y) - 1) / (y))
 
 /* pre-processor floor function */
-#define FLOOR(x,y) ((x) / (y))
+#define DIV_FLOOR(x,y) ((x) / (y))
 
 #endif /* _macros_h */

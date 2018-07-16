@@ -205,6 +205,24 @@ void init_state(int state_number, state_t *state){
     return;
   }
 
+  //STATE_SHK_ALP_CALIBRATE
+  if(state_number == STATE_SHK_ALP_CALIBRATE){
+    //Set name
+    sprintf(state->name,"STATE_SHK_ALP_CALIBRATE");
+    //Set cmd
+    sprintf(state->cmd,"sac");
+    //Config Cameras
+    state->shk.run_camera = 1;
+    state->lyt.run_camera = 1;
+    state->sci.run_camera = 1;
+    state->acq.run_camera = 1;
+    //SHK Settings
+    state->shk.fit_zernikes = 1;
+    //Set SHKID as alp commander
+    state->alp_commander = SHKID;
+    return;
+  }
+
   //STATE_SHK_LOWFC
   if(state_number == STATE_SHK_LOWFC){
     //Set name

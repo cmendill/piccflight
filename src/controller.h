@@ -80,6 +80,7 @@ enum states { STATE_STANDBY,
 	      STATE_HEX_CAPTURE_TARGET,
 	      STATE_M2_ALIGN,
 	      STATE_SHK_HEX_CALIBRATE,
+	      STATE_SHK_ALP_CALIBRATE,
 	      STATE_SHK_LOWFC,
 	      STATE_LYT_LOWFC,
 	      STATE_SCI_DARK_HOLE,
@@ -93,7 +94,7 @@ enum states { STATE_STANDBY,
 /*************************************************
 * Actuator Enable Switches
 *************************************************/
-#define ALP_ENABLE      0 // ALPAO DM
+#define ALP_ENABLE      1 // ALPAO DM
 #define BMC_ENABLE      0 // BMC DM
 #define HEX_ENABLE      1 // Hexapod
 #define WSP_ENABLE      0 // WASP
@@ -658,9 +659,6 @@ typedef volatile struct {
   int lyt_mode;        //Lyot LOWFS camera mode
   int shk_mode;        //Shack-Hartmann camera mode
   int acq_mode;        //Acquisition camera mode
-
-  //Devices
-  int alp_dev;           //ALPAO DM device handle
 
   //ALP Calibration Mode
   int alp_calmode;

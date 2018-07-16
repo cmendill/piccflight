@@ -13,7 +13,7 @@
 #include <sys/ipc.h>
 #include <sys/sem.h>
 #include <sys/io.h>
-#include <acedev5.h>
+#include <rtdalpao_library.h>
 
 /* piccflight headers */
 #include "watchdog.h"
@@ -386,16 +386,14 @@ int main(int argc,char **argv){
   sm_p->circbuf[ACQFULL].bufsize = ACQFULLSIZE;
   sprintf((char *)sm_p->circbuf[ACQFULL].name,"ACQFULL");
   
-  /* Open ALPAO Driver */
+  /* Init RTD ALPAO Driver */
   if(ALP_ENABLE){
-    sm_p->alp_dev = alp_open(ALP_NAME);
-    if(sm_p->alp_dev < 0){
-      printf("WAT: alp_open failed!\n");
-      alp_close(sm_p->alp_dev);
-      sm_p->alp_dev=-1;
-    }
+    /* Init RTD board for ALPAO */
+    rtdalpao_init();
+    /* Start RTD ALPAO timer */
+    rtdalpao_start_timer();
   }
-  else printf("WAT: ALP driver disabled\n");
+  else printf("WAT: ALPAO disabled\n");
 
   /* Launch Watchdog */
   if(sm_p->w[WATID].run){
@@ -448,14 +446,20 @@ int main(int argc,char **argv){
     printf("WAT: cleanup done.\n");
 
 
-//Close ALPAO driver
-  #if ALP_ENABLE
-    // if(*alp_dev >= 0){
-      alp_zero(alp_dev);
-      printf("WAT: alp_dev: %i\n", sm_p->alp_dev);
-      alp_closeDev(alp_dev);
-    // }
-  #endif
+  //Close ALPAO driver
+  if(ALP_ENABLE){
+    /* Sleep before stop timer */
+    usleep(RTDALPAO_DATA_TRANSFER_TIME);
+    
+    /* Stop timer */
+    rtdalpao_stop_timer();
+    
+    /* Sleep before cleanup */
+    usleep(1500);
+    
+    /* Cleanup RTD board */
+    rtdalpao_clean_close();
+  }
 
 
   close(shmfd);

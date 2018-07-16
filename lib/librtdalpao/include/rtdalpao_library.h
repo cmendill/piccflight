@@ -81,8 +81,8 @@ const extern alpao_device_t alpao_device;
 #define LWFC_FREQ                      500.0 //[Hz]
 
 #ifdef RTDALPAO_DITHER // to use dither compile with flag -DRTDALPAO_DITHER in gcc cli
-// #define RTDALPAO_DITHERS_PER_FRAME     ((uint16_t)(CEILING(RTDALPAO_MAX_REFRESH_RATE,LWFC_FREQ)))
-#define RTDALPAO_DITHERS_PER_FRAME     ((uint16_t)(FLOOR(RTDALPAO_MAX_REFRESH_RATE,LWFC_FREQ)))
+// #define RTDALPAO_DITHERS_PER_FRAME     ((uint16_t)(DIV_CEILING(RTDALPAO_MAX_REFRESH_RATE,LWFC_FREQ)))
+#define RTDALPAO_DITHERS_PER_FRAME     ((uint16_t)(DIV_FLOOR(RTDALPAO_MAX_REFRESH_RATE,LWFC_FREQ)))
 #define RTDALPAO_DATA_LENGTH           ((uint16_t)(RTDALPAO_DITHERS_PER_FRAME*ALPAO_DATA_LENGTH)) //[uint16_ts]
 #else
 #define RTDALPAO_DITHERS_PER_FRAME     1
