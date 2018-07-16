@@ -1255,7 +1255,7 @@ static void rtd_write_dma_fifo(char* buffer, uint32_t size) {
 
 /* %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% RTD ALPAO Section begin %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% */
 
-#define RTDALPAO_HARDWARE 0
+#define RTDALPAO_HARDWARE 1
 
 uint16_t rtdalpao_dma_data[RTDALPAO_DATA_LENGTH] = {ALPAO_MID_SCALE}; 
 

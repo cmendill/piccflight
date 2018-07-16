@@ -41,7 +41,7 @@ int main( int argc, char *argv[] ) {
   uint8_t b_actuator = ALPAO_DEV_N_CHANNEL;
   uint8_t a_flag = 0, b_flag = 0, sweep_flag = 0, print_flag = 0, file_flag = 0;
   FILE* fp;
-  uint16_t period_us = 5000;
+  uint64_t period_us = 5000;
 
   int opt;
   while ((opt = getopt (argc, argv, "a:b:t:v:f:p")) != -1) {

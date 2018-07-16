@@ -5,18 +5,22 @@
         DM7820 user library source code
 
     @verbatim
-    --------------------------------------------------------------------------
-    This file and its contents are copyright (C) RTD Embedded Technologies,
-    Inc.  All Rights Reserved.
-
-    This software is licensed as described in the RTD End-User Software License
-    Agreement.  For a copy of this agreement, refer to the file LICENSE.TXT
-    (which should be included with this software) or contact RTD Embedded
-    Technologies, Inc.
-    --------------------------------------------------------------------------
+//----------------------------------------------------------------------------
+//  COPYRIGHT (C) RTD EMBEDDED TECHNOLOGIES, INC.  ALL RIGHTS RESERVED.
+//
+//  This software package is dual-licensed.  Source code that is compiled for
+//  kernel mode execution is licensed under the GNU General Public License
+//  version 2.  For a copy of this license, refer to the file
+//  LICENSE_GPLv2.TXT (which should be included with this software) or contact
+//  the Free Software Foundation.  Source code that is compiled for user mode
+//  execution is licensed under the RTD End-User Software License Agreement.
+//  For a copy of this license, refer to LICENSE.TXT or contact RTD Embedded
+//  Technologies, Inc.  Using this software indicates agreement with the
+//  license terms listed above.
+//----------------------------------------------------------------------------
     @endverbatim
 
-    $Id: librtd-dm7820.c 56791 2011-11-23 21:48:43Z rgroner $
+    $Id: librtd-dm7820.c 89872 2015-07-08 16:05:17Z rgroner $
 */
 
 #include <errno.h>
@@ -31,10 +35,10 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include <dm7820_globals.h>
-#include <dm7820_ioctl.h>
-#include <dm7820_library.h>
-#include <dm7820_registers.h>
+#include "dm7820_globals.h"
+#include "dm7820_ioctl.h"
+#include "dm7820_library.h"
+#include "dm7820_registers.h"
 
 /**
  * @defgroup DM7820_Library_Source DM7820 user library source code

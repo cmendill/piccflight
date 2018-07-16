@@ -13,8 +13,8 @@
 
 /* %%%%%%%%%%%%%%%%%%%%%%% ALPAO Section begin %%%%%%%%%%%%%%%%%%%%%%% */
 // #include "alpao_device_def128.h" // default device (for debuggin)
-#include "alpao_device_led64.h" // LED panel
-// #include "alpao_device_dm97.h" // The DM97
+// #include "alpao_device_led64.h" // LED panel
+ #include "alpao_device_dm97.h" // The DM97
 
 #include "alpao_device.h"
 #include "macros.h"
