@@ -6,18 +6,22 @@
         definitions
 
     @verbatim
-    --------------------------------------------------------------------------
-    This file and its contents are copyright (C) RTD Embedded Technologies,
-    Inc.  All Rights Reserved.
-
-    This software is licensed as described in the RTD End-User Software License
-    Agreement.  For a copy of this agreement, refer to the file LICENSE.TXT
-    (which should be included with this software) or contact RTD Embedded
-    Technologies, Inc.
-    --------------------------------------------------------------------------
+//----------------------------------------------------------------------------
+//  COPYRIGHT (C) RTD EMBEDDED TECHNOLOGIES, INC.  ALL RIGHTS RESERVED.
+//
+//  This software package is dual-licensed.  Source code that is compiled for
+//  kernel mode execution is licensed under the GNU General Public License
+//  version 2.  For a copy of this license, refer to the file
+//  LICENSE_GPLv2.TXT (which should be included with this software) or contact
+//  the Free Software Foundation.  Source code that is compiled for user mode
+//  execution is licensed under the RTD End-User Software License Agreement.
+//  For a copy of this license, refer to LICENSE.TXT or contact RTD Embedded
+//  Technologies, Inc.  Using this software indicates agreement with the
+//  license terms listed above.
+//----------------------------------------------------------------------------
     @endverbatim
 
-    $Id: dm7820_ioctl.h 56790 2011-11-23 16:46:10Z rgroner $
+    $Id: dm7820_ioctl.h 86294 2015-03-04 21:36:57Z rgroner $
 */
 
 #ifndef __dm7820_ioctl_h__
@@ -27,6 +31,10 @@
 #include <linux/types.h>
 
 #include "dm7820_types.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /**
  * @defgroup DM7820_Ioctl_Header DM7820 ioctl header file
@@ -47,37 +55,37 @@ Enumerations
  *      Functions supported by driver DMA management system
  */
 
-typedef enum dm7820_dma_manage_function {
+	typedef enum dm7820_dma_manage_function {
 
     /**
      * DMA initialization
      */
 
-	DM7820_DMA_FUNCTION_INITIALIZE = 0,
+		DM7820_DMA_FUNCTION_INITIALIZE = 0,
 
      /**
      * DMA stop
      */
 
-	DM7820_DMA_FUNCTION_STOP,
+		DM7820_DMA_FUNCTION_STOP,
 
     /**
      * DMA read
      */
 
-	DM7820_DMA_FUNCTION_READ,
+		DM7820_DMA_FUNCTION_READ,
 
     /**
      * DMA write
      */
 
-	DM7820_DMA_FUNCTION_WRITE,
+		DM7820_DMA_FUNCTION_WRITE,
 
     /**
      * Get Address of DMA Buffer
      */
-	DM7820_DMA_GET_BUFFER_ADDR
-} dm7820_dma_manage_function_t;
+		DM7820_DMA_GET_BUFFER_ADDR
+	} dm7820_dma_manage_function_t;
 
 /**
  * @} DM7820_Ioctl_Enumerations
@@ -97,32 +105,33 @@ Structures
  *      ioctl() request structure for read from or write to PCI region
  */
 
-struct dm7820_ioctl_region_readwrite {
+	struct dm7820_ioctl_region_readwrite {
 
     /**
      * PCI region access request
      */
 
-	dm7820_pci_access_request_t access;
-};
+		dm7820_pci_access_request_t access;
+	};
 
 /**
 * typedef for the PCI region access request type
 */
-typedef struct dm7820_ioctl_region_readwrite dm7820_ioctl_region_readwrite_t;
+	typedef struct dm7820_ioctl_region_readwrite
+	 dm7820_ioctl_region_readwrite_t;
 
 /**
  * @brief
  *      ioctl() request structure for PCI region read/modify/write
  */
 
-struct dm7820_ioctl_region_modify {
+	struct dm7820_ioctl_region_modify {
 
     /**
      * PCI region access request
      */
 
-	dm7820_pci_access_request_t access;
+		dm7820_pci_access_request_t access;
 
     /**
      * Bit mask that controls which bits can be modified.  A zero in a bit
@@ -136,34 +145,34 @@ struct dm7820_ioctl_region_modify {
      * will not return an indication that the mask or new value was incorrect.
      */
 
-	union {
+		union {
 
     /**
      * Mask for 8-bit operations
      */
 
-		uint8_t mask8;
+			uint8_t mask8;
 
     /**
      * Mask for 16-bit operations
      */
 
-		uint16_t mask16;
+			uint16_t mask16;
 
     /**
      * Mask for 32-bit operations
      */
 
-		uint32_t mask32;
-	} mask;
-};
+			uint32_t mask32;
+		} mask;
+	};
 
 /**
  * @brief
  *      ioctl() PCI region read/modify/write request descriptor type
  */
 
-typedef struct dm7820_ioctl_region_modify dm7820_ioctl_region_modify_t;
+	typedef struct dm7820_ioctl_region_modify dm7820_ioctl_region_modify_t;
 
 /**
  * @brief
@@ -171,7 +180,7 @@ typedef struct dm7820_ioctl_region_modify dm7820_ioctl_region_modify_t;
  *      an interrupt to occur
  */
 
-struct dm7820_ioctl_interrupt_status {
+	struct dm7820_ioctl_interrupt_status {
 
     /**
      * Flag indicating whether or not to wait for an interrupt to occur before
@@ -180,7 +189,7 @@ struct dm7820_ioctl_interrupt_status {
      * means wait for an interrupt to occur before returning status.
      */
 
-	uint8_t wait_for_interrupt;
+		uint8_t wait_for_interrupt;
 
     /**
      * Bit mask indicating status of each interrupt source.  A zero in a bit
@@ -188,105 +197,106 @@ struct dm7820_ioctl_interrupt_status {
      * in a bit position means the corresponding interrupt source did occur.
      */
 
-	dm7820_interrupt_info int_source_info;
-};
+		dm7820_interrupt_info int_source_info;
+	};
 
 /**
  * @brief
  *      ioctl() interrupt status request descriptor type
  */
 
-typedef struct dm7820_ioctl_interrupt_status dm7820_ioctl_interrupt_status_t;
+	typedef struct dm7820_ioctl_interrupt_status
+	 dm7820_ioctl_interrupt_status_t;
 
 /**
  * @brief
  *      Arguments for DMA initialization function
  */
 
-typedef struct dm7820_dma_initialize_arguments {
+	typedef struct dm7820_dma_initialize_arguments {
 
     /**
      * Number of DMA buffers to allocate
      */
 
-	uint32_t buffer_count;
+		uint32_t buffer_count;
 
     /**
      * DMA buffer size in bytes
      */
 
-	uint32_t buffer_size;
-} dm7820_dma_initialize_arguments_t;
+		uint32_t buffer_size;
+	} dm7820_dma_initialize_arguments_t;
 
 /**
  * @brief
  *      Structure encapsulating arguments to all possible DMA functions
  */
 
-typedef union dm7820_dma_function_arguments {
+	typedef union dm7820_dma_function_arguments {
 
     /**
      * DMA initialization
      */
 
-	dm7820_dma_initialize_arguments_t dma_init;
-} dm7820_dma_function_arguments_t;
+		dm7820_dma_initialize_arguments_t dma_init;
+	} dm7820_dma_function_arguments_t;
 
 /**
  * @brief
  *      ioctl() request structure for performing a DMA function
  */
 
-typedef struct dm7820_ioctl_dma_function {
+	typedef struct dm7820_ioctl_dma_function {
 
     /**
      * Buffer for data coming from user.
      */
 
-	void *user_buffer;
+		void *user_buffer;
 
     /**
      * enumeration of the direction mode for the DMA channel
      */
 
-	uint8_t direction;
+		uint8_t direction;
 
     /**
      * contains the transfer size for the DMA channel
      */
 
-	uint32_t DMA_Transfer_Size;
+		uint32_t DMA_Transfer_Size;
 
     /**
      * The address of a DMA buffer
      */
 
-	uint32_t buffer_address;
+		uint32_t buffer_address;
 
     /**
      * Size of the DMA transfer
      */
 
-	uint32_t transfer_size;
+		uint32_t transfer_size;
 
     /**
      * DMA/FIFO channel to operate upon
      */
 
-	dm7820_fifo_queue fifo;
+		dm7820_fifo_queue fifo;
 
     /**
      * DMA function to perform
      */
 
-	dm7820_dma_manage_function_t function;
+		dm7820_dma_manage_function_t function;
 
     /**
      * Arguments required by function
      */
 
-	dm7820_dma_function_arguments_t arguments;
-} dm7820_ioctl_dma_function_t;
+		dm7820_dma_function_arguments_t arguments;
+	} dm7820_ioctl_dma_function_t;
 
 /**
  * @brief
@@ -294,39 +304,39 @@ typedef struct dm7820_ioctl_dma_function {
  *      what gets passed into the kernel from user space on the ioctl() call.
  */
 
-union dm7820_ioctl_argument {
+	union dm7820_ioctl_argument {
 
     /**
      * PCI region read and write
      */
 
-	dm7820_ioctl_region_readwrite_t readwrite;
+		dm7820_ioctl_region_readwrite_t readwrite;
 
     /**
      * PCI region read/modify/write
      */
 
-	dm7820_ioctl_region_modify_t modify;
+		dm7820_ioctl_region_modify_t modify;
 
     /**
      * Get interrupt status
      */
 
-	dm7820_ioctl_interrupt_status_t int_status;
+		dm7820_ioctl_interrupt_status_t int_status;
 
     /**
      * DMA management function
      */
 
-	dm7820_ioctl_dma_function_t dma_function;
-};
+		dm7820_ioctl_dma_function_t dma_function;
+	};
 
 /**
  * @brief
  *      ioctl() request descriptor type
  */
 
-typedef union dm7820_ioctl_argument dm7820_ioctl_argument_t;
+	typedef union dm7820_ioctl_argument dm7820_ioctl_argument_t;
 
 /**
  * @} DM7820_Ioctl_Structures
@@ -448,4 +458,7 @@ Macros
  * @} DM7820_Ioctl_Header
  */
 
-#endif /* __dm7820_ioctl_h__ */
+#ifdef __cplusplus
+}
+#endif
+#endif				/* __dm7820_ioctl_h__ */

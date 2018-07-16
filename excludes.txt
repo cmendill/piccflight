@@ -13,3 +13,4 @@ bin/shkevent
 bin/iwctest
 lib/libuvc/build
 doc
+test/*/bin

@@ -5,18 +5,22 @@
         DM7820 driver source code
 
     @verbatim
-    --------------------------------------------------------------------------
-    This file and its contents are copyright (C) RTD Embedded Technologies,
-    Inc.  All Rights Reserved.
-
-    This software is licensed as described in the RTD End-User Software License
-    Agreement.  For a copy of this agreement, refer to the file LICENSE.TXT
-    (which should be included with this software) or contact RTD Embedded
-    Technologies, Inc.
-    --------------------------------------------------------------------------
+//----------------------------------------------------------------------------
+//  COPYRIGHT (C) RTD EMBEDDED TECHNOLOGIES, INC.  ALL RIGHTS RESERVED.
+//
+//  This software package is dual-licensed.  Source code that is compiled for
+//  kernel mode execution is licensed under the GNU General Public License
+//  version 2.  For a copy of this license, refer to the file
+//  LICENSE_GPLv2.TXT (which should be included with this software) or contact
+//  the Free Software Foundation.  Source code that is compiled for user mode
+//  execution is licensed under the RTD End-User Software License Agreement.
+//  For a copy of this license, refer to LICENSE.TXT or contact RTD Embedded
+//  Technologies, Inc.  Using this software indicates agreement with the
+//  license terms listed above.
+//----------------------------------------------------------------------------
     @endverbatim
 
-    $Id: rtd-dm7820.c 56791 2011-11-23 21:48:43Z rgroner $
+    $Id: rtd-dm7820.c 89872 2015-07-08 16:05:17Z rgroner $
 */
 
 #include <linux/sched.h>
@@ -30,17 +34,17 @@
 #include <linux/list.h>
 #include <linux/pci.h>
 #include <linux/poll.h>
-#include <linux/proc_fs.h>
 #include <linux/slab.h>
 #include <linux/spinlock.h>
+#include <linux/cdev.h>
+#include <linux/interrupt.h>
 
-#include <dm7820_driver.h>
-#include <dm7820_globals.h>
-#include <dm7820_ioctl.h>
-#include <dm7820_kernel.h>
-#include <dm7820_registers.h>
-#include <dm7820_types.h>
-#include <dm7820_version.h>
+#include "dm7820_driver.h"
+#include "dm7820_globals.h"
+#include "dm7820_ioctl.h"
+#include "dm7820_registers.h"
+#include "dm7820_types.h"
+#include "dm7820_version.h"
 
 /*=============================================================================
 Driver documentation
@@ -48,13 +52,13 @@ Driver documentation
 
 #define DRIVER_COPYRIGHT RTD_COPYRIGHT_STRING
 
-#define DRIVER_DESCRIPTION "DM7820/DM9820 device driver"
+#define DRIVER_DESCRIPTION "DM7820/DM9820/DM35820 device driver"
 
 #define DRIVER_NAME "rtd-dm7820"
 
 MODULE_AUTHOR(DRIVER_COPYRIGHT);
 MODULE_DESCRIPTION(DRIVER_DESCRIPTION);
-MODULE_LICENSE("Proprietary");
+MODULE_LICENSE("GPL");
 
 /*=============================================================================
 Global variables
@@ -74,21 +78,18 @@ static dm7820_device_descriptor_t *dm7820_devices;
 
 /**
  * Character device descriptor for 2.6 kernels.  This is used when registering
- * the DM7820 character device with the kernel.  Although the 2.4 method still
- * works, this is preferred in kernel 2.6.
+ * the DM7820 character device with the kernel.
  */
 
-#if defined(RTD_2_6_KERNEL)
-
 static struct cdev dm7820_cdev;
-
-#endif
 
 /**
  * Number of devices detected during probe
  */
 
 static uint32_t dm7820_device_count;
+
+static struct class *dev_class = NULL;
 
 /**
  * Table of devices supported by the driver.  This array is used by
@@ -397,17 +398,17 @@ dm7820_access_pci_region(const dm7820_device_descriptor_t * dm7820_device,
 			switch (pci_request->size) {
 			case DM7820_PCI_REGION_ACCESS_8:
 				pci_request->data.data8 =
-				    IO_MEMORY_READ8((unsigned long *)address);
+				    ioread8((unsigned long *)address);
 				break;
 
 			case DM7820_PCI_REGION_ACCESS_16:
 				pci_request->data.data16 =
-				    IO_MEMORY_READ16((unsigned long *)address);
+				    ioread16((unsigned long *)address);
 				break;
 
 			case DM7820_PCI_REGION_ACCESS_32:
 				pci_request->data.data32 =
-				    IO_MEMORY_READ32((unsigned long *)address);
+				    ioread32((unsigned long *)address);
 				break;
 			}
 		} else {
@@ -459,18 +460,18 @@ dm7820_access_pci_region(const dm7820_device_descriptor_t * dm7820_device,
 
 			switch (pci_request->size) {
 			case DM7820_PCI_REGION_ACCESS_8:
-				IO_MEMORY_WRITE8(pci_request->data.data8,
-						 (unsigned long *)address);
+				iowrite8(pci_request->data.data8,
+					 (unsigned long *)address);
 				break;
 
 			case DM7820_PCI_REGION_ACCESS_16:
-				IO_MEMORY_WRITE16(pci_request->data.data16,
-						  (unsigned long *)address);
+				iowrite16(pci_request->data.data16,
+					  (unsigned long *)address);
 				break;
 
 			case DM7820_PCI_REGION_ACCESS_32:
-				IO_MEMORY_WRITE32(pci_request->data.data32,
-						  (unsigned long *)address);
+				iowrite32(pci_request->data.data32,
+					  (unsigned long *)address);
 				break;
 			}
 		} else {
@@ -518,7 +519,7 @@ dm7820_allocate_irq(dm7820_device_descriptor_t * dm7820_device,
 	 */
 
 	status = request_irq(pci_device->irq,
-			     (dm7820_handler_t) dm7820_interrupt_handler,
+			     (irq_handler_t) dm7820_interrupt_handler,
 			     IRQF_SHARED,
 			     &((dm7820_device->device_name)[0]), dm7820_device);
 	if (status != 0) {
@@ -846,12 +847,10 @@ dm7820_free_dma_mappings(dm7820_device_descriptor_t * dm7820_device,
 		 */
 		spin_unlock_irqrestore(&(dm7820_device->device_lock),
 				       irq_flags);
-		FREE_PERMANENT_DMA_MAPPING(NULL,
-					   (dm7820_device->dma_size)[fifo],
-					   (list_item->
-					    dma_buffer)->virtual_address,
-					   (list_item->
-					    dma_buffer)->bus_address);
+		dma_free_coherent(NULL,
+				  (dm7820_device->dma_size)[fifo],
+				  (list_item->dma_buffer)->virtual_address,
+				  (list_item->dma_buffer)->bus_address);
 
 		/*
 		 * Free memory allocated for DMA buffer descriptor and DMA buffer list
@@ -871,8 +870,8 @@ dm7820_free_dma_mappings(dm7820_device_descriptor_t * dm7820_device,
 	 */
 
 	list_for_each_safe(cursor, next,
-			   &((dm7820_device->
-			      dma_buffers_post_transfer)[fifo])) {
+			   &((dm7820_device->dma_buffers_post_transfer)[fifo]))
+	{
 		dm7820_dma_list_item_t *list_item;
 
 		/*
@@ -894,12 +893,10 @@ dm7820_free_dma_mappings(dm7820_device_descriptor_t * dm7820_device,
 		 */
 		spin_unlock_irqrestore(&(dm7820_device->device_lock),
 				       irq_flags);
-		FREE_PERMANENT_DMA_MAPPING(NULL,
-					   (dm7820_device->dma_size)[fifo],
-					   (list_item->
-					    dma_buffer)->virtual_address,
-					   (list_item->
-					    dma_buffer)->bus_address);
+		dma_free_coherent(NULL,
+				  (dm7820_device->dma_size)[fifo],
+				  (list_item->dma_buffer)->virtual_address,
+				  (list_item->dma_buffer)->bus_address);
 
 		/*
 		 * Free memory allocated for DMA buffer descriptor and DMA buffer list
@@ -1530,8 +1527,9 @@ dm7820_dma_write(dm7820_device_descriptor_t * dm7820_device,
 			list_del(cursor);
 			list_add_tail(cursor,
 				      (&
-				       (dm7820_device->dma_buffers_post_transfer)
-				       [fifo]));
+				       (dm7820_device->
+					dma_buffers_post_transfer)
+[fifo]));
 		}
 
 		dm7820_device->dma_in_read_direction[fifo] = 0x00;
@@ -1568,8 +1566,8 @@ dm7820_dma_write(dm7820_device_descriptor_t * dm7820_device,
 		 * This cannot be called within spinlocks, as it may sleep
 		 */
 		status = copy_from_user((dma_item->dma_buffer)->virtual_address,
-					ioctl_argument->
-					dma_function.user_buffer +
+					ioctl_argument->dma_function.
+					user_buffer +
 					(dm7820_device->dma_size)[fifo] *
 					buffer_index,
 					(dm7820_device->dma_size)[fifo]);
@@ -1743,12 +1741,11 @@ dm7820_initialize_dma(dm7820_device_descriptor_t * dm7820_device,
 		 */
 
 		virtual_address =
-		    CREATE_PERMANENT_DMA_MAPPING(NULL, buffer_size,
-						 &bus_address,
-						 (GFP_ATOMIC |
-						  DM7820_GFP_NOWARN)
+		    dma_alloc_coherent(NULL, buffer_size,
+				       &bus_address, (GFP_ATOMIC | __GFP_NOWARN)
 		    );
 		if (virtual_address == NULL) {
+
 			dm7820_free_dma_mappings(dm7820_device, fifo);
 			return -ENOMEM;
 		}
@@ -1761,9 +1758,8 @@ dm7820_initialize_dma(dm7820_device_descriptor_t * dm7820_device,
 		    kmalloc(sizeof(dm7820_dma_descriptor_t), GFP_ATOMIC);
 
 		if (dma_descriptor == NULL) {
-			FREE_PERMANENT_DMA_MAPPING(NULL, buffer_size,
-						   virtual_address,
-						   bus_address);
+			dma_free_coherent(NULL, buffer_size,
+					  virtual_address, bus_address);
 			dm7820_free_dma_mappings(dm7820_device, fifo);
 			return -ENOMEM;
 		}
@@ -1776,9 +1772,8 @@ dm7820_initialize_dma(dm7820_device_descriptor_t * dm7820_device,
 
 		if (dma_item == NULL) {
 			kfree(dma_descriptor);
-			FREE_PERMANENT_DMA_MAPPING(NULL, buffer_size,
-						   virtual_address,
-						   bus_address);
+			dma_free_coherent(NULL, buffer_size,
+					  virtual_address, bus_address);
 			dm7820_free_dma_mappings(dm7820_device, fifo);
 			return -ENOMEM;
 		}
@@ -1966,19 +1961,8 @@ dm7820_initialize_hardware(const dm7820_device_descriptor_t * dm7820_device)
 DM7820 interrupt handler
  ******************************************************************************/
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 19)
-
-INTERRUPT_HANDLER_TYPE dm7820_interrupt_handler(int irq_number,
-						void *device_id,
-						struct pt_regs *registers)
+static irqreturn_t dm7820_interrupt_handler(int irq_number, void *device_id)
 {
-
-#else
-
-INTERRUPT_HANDLER_TYPE dm7820_interrupt_handler(int irq_number, void *device_id)
-{
-
-#endif
 
 	dm7820_device_descriptor_t *dm7820_device;
 	uint16_t int_enable;
@@ -2010,7 +1994,7 @@ INTERRUPT_HANDLER_TYPE dm7820_interrupt_handler(int irq_number, void *device_id)
 		       "%s: ERROR: Invalid device descriptor in interrupt\n",
 		       &((dm7820_device->device_name)[0])
 		    );
-		return INTERRUPT_NOT_HANDLED;
+		return IRQ_NONE;
 	}
 
 	/*
@@ -2030,9 +2014,8 @@ INTERRUPT_HANDLER_TYPE dm7820_interrupt_handler(int irq_number, void *device_id)
 	 */
 
 	plx_intcsr =
-	    IO_MEMORY_READ32(dm7820_device->
-			     pci[DM7820_PCI_REGION_PLX_MEM].virt_addr +
-			     DM7820_BAR0_INTCSR);
+	    ioread32(dm7820_device->pci[DM7820_PCI_REGION_PLX_MEM].virt_addr +
+		     DM7820_BAR0_INTCSR);
 
 	/*
 	 * If neither a PLX local interrupt nor a PLX DMA channel 0 nor a PLX DMA
@@ -2042,7 +2025,7 @@ INTERRUPT_HANDLER_TYPE dm7820_interrupt_handler(int irq_number, void *device_id)
 	if (!(plx_intcsr & 0x00608000)) {
 		spin_unlock(&(dm7820_device->device_lock));
 
-		return INTERRUPT_NOT_HANDLED;
+		return IRQ_NONE;
 	}
 
 	/*
@@ -2055,7 +2038,7 @@ INTERRUPT_HANDLER_TYPE dm7820_interrupt_handler(int irq_number, void *device_id)
 		printk(KERN_ERR "%s: ERROR: Interrupt on wrong IRQ line\n",
 		       &((dm7820_device->device_name)[0])
 		    );
-		return INTERRUPT_NOT_HANDLED;
+		return IRQ_NONE;
 	}
 
 	/*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -2066,9 +2049,9 @@ INTERRUPT_HANDLER_TYPE dm7820_interrupt_handler(int irq_number, void *device_id)
 		int pre_buff = 0, post_buff = 0;
 #endif
 		data8 =
-		    IO_MEMORY_READ8(dm7820_device->pci
-				    [DM7820_PCI_REGION_PLX_MEM].virt_addr +
-				    DM7820_BAR0_DMACSR0);
+		    ioread8(dm7820_device->pci
+			    [DM7820_PCI_REGION_PLX_MEM].virt_addr +
+			    DM7820_BAR0_DMACSR0);
 
 		/*
 		 * Did we just finish a transfer, and not because
@@ -2083,9 +2066,9 @@ INTERRUPT_HANDLER_TYPE dm7820_interrupt_handler(int irq_number, void *device_id)
 			 * transfer.
 			 */
 
-			data32 = IO_MEMORY_READ32(dm7820_device->pci
-						  [DM7820_PCI_REGION_PLX_MEM].virt_addr
-						  + DM7820_BAR0_DMADPR0);
+			data32 = ioread32(dm7820_device->pci
+					  [DM7820_PCI_REGION_PLX_MEM].virt_addr
+					  + DM7820_BAR0_DMADPR0);
 
 			cursor =
 			    &dm7820_device->dma_buffers_pre_transfer
@@ -2100,8 +2083,7 @@ INTERRUPT_HANDLER_TYPE dm7820_interrupt_handler(int irq_number, void *device_id)
 				next = cursor->next;
 				list_del(next);
 				list_add_tail(next,
-					      &dm7820_device->
-					      dma_buffers_post_transfer
+					      &dm7820_device->dma_buffers_post_transfer
 					      [DM7820_FIFO_QUEUE_0]);
 			} else {
 
@@ -2117,8 +2099,7 @@ INTERRUPT_HANDLER_TYPE dm7820_interrupt_handler(int irq_number, void *device_id)
 #if defined(DM7820_DEBUG_DMA)
 			list_for_each(cursor,
 				      (&
-				       (dm7820_device->
-					dma_buffers_post_transfer)
+				       (dm7820_device->dma_buffers_post_transfer)
 [DM7820_FIFO_QUEUE_0])) {
 				post_buff++;
 			}
@@ -2149,11 +2130,10 @@ INTERRUPT_HANDLER_TYPE dm7820_interrupt_handler(int irq_number, void *device_id)
 						      dm7820_dma_list_item_t,
 						      list);
 
-				IO_MEMORY_WRITE32((dma_item->
-						   dma_buffer)->bus_address,
-						  dm7820_device->pci
-						  [DM7820_PCI_REGION_PLX_MEM].virt_addr
-						  + DM7820_BAR0_DMAPADR0);
+				iowrite32((dma_item->dma_buffer)->bus_address,
+					  dm7820_device->pci
+					  [DM7820_PCI_REGION_PLX_MEM].virt_addr
+					  + DM7820_BAR0_DMAPADR0);
 
 				/*
 				 * Write DMACSRx[1] high to restart the DMA
@@ -2174,10 +2154,9 @@ INTERRUPT_HANDLER_TYPE dm7820_interrupt_handler(int irq_number, void *device_id)
 		 * restart the next DMA transfer
 		 */
 
-		IO_MEMORY_WRITE8(data8,
-				 dm7820_device->
-				 pci[DM7820_PCI_REGION_PLX_MEM].virt_addr +
-				 DM7820_BAR0_DMACSR0);
+		iowrite8(data8,
+			 dm7820_device->pci[DM7820_PCI_REGION_PLX_MEM].
+			 virt_addr + DM7820_BAR0_DMACSR0);
 
 		dm7820_int_queue_add(dm7820_device,
 				     DM7820_INTERRUPT_FIFO_0_DMA_DONE);
@@ -2186,7 +2165,7 @@ INTERRUPT_HANDLER_TYPE dm7820_interrupt_handler(int irq_number, void *device_id)
 
 		wake_up_interruptible(&(dm7820_device->int_wait_queue));
 
-		return INTERRUPT_HANDLED;
+		return IRQ_HANDLED;
 	}
 	/*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 	   ISR for DMA 1
@@ -2196,9 +2175,9 @@ INTERRUPT_HANDLER_TYPE dm7820_interrupt_handler(int irq_number, void *device_id)
 		int pre_buff = 0, post_buff = 0;
 #endif
 		data8 =
-		    IO_MEMORY_READ8(dm7820_device->pci
-				    [DM7820_PCI_REGION_PLX_MEM].virt_addr +
-				    DM7820_BAR0_DMACSR1);
+		    ioread8(dm7820_device->pci
+			    [DM7820_PCI_REGION_PLX_MEM].virt_addr +
+			    DM7820_BAR0_DMACSR1);
 
 		/*
 		 * Did we just finish a transfer, and not because
@@ -2213,9 +2192,9 @@ INTERRUPT_HANDLER_TYPE dm7820_interrupt_handler(int irq_number, void *device_id)
 			 * transfer.
 			 */
 
-			data32 = IO_MEMORY_READ32(dm7820_device->pci
-						  [DM7820_PCI_REGION_PLX_MEM].virt_addr
-						  + DM7820_BAR0_DMADPR1);
+			data32 = ioread32(dm7820_device->pci
+					  [DM7820_PCI_REGION_PLX_MEM].virt_addr
+					  + DM7820_BAR0_DMADPR1);
 
 			cursor =
 			    &dm7820_device->dma_buffers_pre_transfer
@@ -2230,8 +2209,7 @@ INTERRUPT_HANDLER_TYPE dm7820_interrupt_handler(int irq_number, void *device_id)
 				next = cursor->next;
 				list_del(next);
 				list_add_tail(next,
-					      &dm7820_device->
-					      dma_buffers_post_transfer
+					      &dm7820_device->dma_buffers_post_transfer
 					      [DM7820_FIFO_QUEUE_1]);
 			} else {
 
@@ -2247,14 +2225,15 @@ INTERRUPT_HANDLER_TYPE dm7820_interrupt_handler(int irq_number, void *device_id)
 #if defined(DM7820_DEBUG_DMA)
 			list_for_each(cursor,
 				      (&
-				       (dm7820_device->dma_buffers_post_transfer)
-				       [DM7820_FIFO_QUEUE_1])) {
+				       (dm7820_device->
+					dma_buffers_post_transfer)
+[DM7820_FIFO_QUEUE_1])) {
 				post_buff++;
 			}
 			list_for_each(cursor,
 				      (&
 				       (dm7820_device->dma_buffers_pre_transfer)
-				       [DM7820_FIFO_QUEUE_1])) {
+[DM7820_FIFO_QUEUE_1])) {
 				pre_buff++;
 			}
 
@@ -2279,11 +2258,10 @@ INTERRUPT_HANDLER_TYPE dm7820_interrupt_handler(int irq_number, void *device_id)
 						      dm7820_dma_list_item_t,
 						      list);
 
-				IO_MEMORY_WRITE32((dma_item->
-						   dma_buffer)->bus_address,
-						  dm7820_device->pci
-						  [DM7820_PCI_REGION_PLX_MEM].virt_addr
-						  + DM7820_BAR0_DMAPADR1);
+				iowrite32((dma_item->dma_buffer)->bus_address,
+					  dm7820_device->pci
+					  [DM7820_PCI_REGION_PLX_MEM].virt_addr
+					  + DM7820_BAR0_DMAPADR1);
 
 				/*
 				 * Write DMACSRx[1] high to restart the DMA
@@ -2304,10 +2282,9 @@ INTERRUPT_HANDLER_TYPE dm7820_interrupt_handler(int irq_number, void *device_id)
 		 * restart the next DMA transfer
 		 */
 
-		IO_MEMORY_WRITE8(data8,
-				 dm7820_device->
-				 pci[DM7820_PCI_REGION_PLX_MEM].virt_addr +
-				 DM7820_BAR0_DMACSR1);
+		iowrite8(data8,
+			 dm7820_device->pci[DM7820_PCI_REGION_PLX_MEM].
+			 virt_addr + DM7820_BAR0_DMACSR1);
 
 		dm7820_int_queue_add(dm7820_device,
 				     DM7820_INTERRUPT_FIFO_1_DMA_DONE);
@@ -2316,7 +2293,7 @@ INTERRUPT_HANDLER_TYPE dm7820_interrupt_handler(int irq_number, void *device_id)
 
 		wake_up_interruptible(&(dm7820_device->int_wait_queue));
 
-		return INTERRUPT_HANDLED;
+		return IRQ_HANDLED;
 	}
 
 	/*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -2328,9 +2305,8 @@ INTERRUPT_HANDLER_TYPE dm7820_interrupt_handler(int irq_number, void *device_id)
 	 */
 
 	int_enable =
-	    IO_MEMORY_READ16(dm7820_device->
-			     pci[DM7820_PCI_REGION_FPGA_MEM].virt_addr +
-			     DM7820_BAR2_INTERRUPT_ENABLE);
+	    ioread16(dm7820_device->pci[DM7820_PCI_REGION_FPGA_MEM].virt_addr +
+		     DM7820_BAR2_INTERRUPT_ENABLE);
 
 	/*
 	 * Save Interrupt Enable Register value
@@ -2353,9 +2329,8 @@ INTERRUPT_HANDLER_TYPE dm7820_interrupt_handler(int irq_number, void *device_id)
 	 */
 
 	int_status =
-	    IO_MEMORY_READ16(dm7820_device->
-			     pci[DM7820_PCI_REGION_FPGA_MEM].virt_addr +
-			     DM7820_BAR2_INTERRUPT_STATUS);
+	    ioread16(dm7820_device->pci[DM7820_PCI_REGION_FPGA_MEM].virt_addr +
+		     DM7820_BAR2_INTERRUPT_STATUS);
 
 	/*
 	 * Save Interrupt Status Register value but save reserved bits and mask off
@@ -2382,7 +2357,7 @@ INTERRUPT_HANDLER_TYPE dm7820_interrupt_handler(int irq_number, void *device_id)
 	if (!(int_enable & int_status)) {
 		spin_unlock(&(dm7820_device->device_lock));
 
-		return INTERRUPT_NOT_HANDLED;
+		return IRQ_NONE;
 	}
 
 	/*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -2473,9 +2448,9 @@ INTERRUPT_HANDLER_TYPE dm7820_interrupt_handler(int irq_number, void *device_id)
 		 */
 
 		minor_value =
-		    IO_MEMORY_READ16((dm7820_device->pci
-				      [DM7820_PCI_REGION_FPGA_MEM].virt_addr +
-				      minor_reg->offset)
+		    ioread16((dm7820_device->pci
+			      [DM7820_PCI_REGION_FPGA_MEM].virt_addr +
+			      minor_reg->offset)
 		    );
 
 		/*
@@ -2598,10 +2573,10 @@ INTERRUPT_HANDLER_TYPE dm7820_interrupt_handler(int irq_number, void *device_id)
 		 * Write to minor interrupt register to clear the interrupts
 		 */
 
-		IO_MEMORY_WRITE16(minor_value,
-				  (dm7820_device->pci
-				   [DM7820_PCI_REGION_FPGA_MEM].virt_addr +
-				   minor_reg->offset)
+		iowrite16(minor_value,
+			  (dm7820_device->pci
+			   [DM7820_PCI_REGION_FPGA_MEM].virt_addr +
+			   minor_reg->offset)
 		    );
 	}
 
@@ -2609,10 +2584,9 @@ INTERRUPT_HANDLER_TYPE dm7820_interrupt_handler(int irq_number, void *device_id)
 	 * Clear each local enabled and pending interrupt
 	 */
 
-	IO_MEMORY_WRITE16(new_int_status,
-			  (dm7820_device->
-			   pci[DM7820_PCI_REGION_FPGA_MEM].virt_addr +
-			   DM7820_BAR2_INTERRUPT_STATUS)
+	iowrite16(new_int_status,
+		  (dm7820_device->pci[DM7820_PCI_REGION_FPGA_MEM].virt_addr +
+		   DM7820_BAR2_INTERRUPT_STATUS)
 	    );
 
 	/*
@@ -2621,10 +2595,10 @@ INTERRUPT_HANDLER_TYPE dm7820_interrupt_handler(int irq_number, void *device_id)
 	 */
 
 	if (local_disable_mask) {
-		IO_MEMORY_WRITE16((new_int_enable & ~local_disable_mask),
-				  (dm7820_device->pci
-				   [DM7820_PCI_REGION_FPGA_MEM].virt_addr +
-				   DM7820_BAR2_INTERRUPT_STATUS)
+		iowrite16((new_int_enable & ~local_disable_mask),
+			  (dm7820_device->pci
+			   [DM7820_PCI_REGION_FPGA_MEM].virt_addr +
+			   DM7820_BAR2_INTERRUPT_STATUS)
 		    );
 
 #if defined(DM7820_DEBUG_INTERRUPTS)
@@ -2658,7 +2632,7 @@ INTERRUPT_HANDLER_TYPE dm7820_interrupt_handler(int irq_number, void *device_id)
 
 	wake_up_interruptible(&(dm7820_device->int_wait_queue));
 
-	return INTERRUPT_HANDLED;
+	return IRQ_HANDLED;
 }
 
 /******************************************************************************
@@ -2903,8 +2877,6 @@ int dm7820_load(void)
 {
 	int status;
 
-	DONT_EXPORT_SYMBOLS;
-
 	printk(KERN_INFO "%s: Initializing module (version %s).\n",
 	       DRIVER_NAME, DRIVER_RELEASE);
 
@@ -2927,18 +2899,6 @@ int dm7820_load(void)
 		dm7820_release_resources();
 		return status;
 	}
-
-	if (create_proc_read_entry
-	    (DRIVER_NAME, 0, NULL, dm7820_read_proc_entry, NULL)
-	    == NULL) {
-		printk(KERN_ERR "%s: ERROR: /proc/ entry creation FAILED\n",
-		       DRIVER_NAME);
-		dm7820_release_resources();
-		dm7820_unregister_char_device();
-		return -ENOMEM;
-	}
-
-	printk(KERN_INFO "%s: Created /proc/ entry\n", DRIVER_NAME);
 
 	printk(KERN_INFO
 	       "%s: Driver registered using character major number %d\n",
@@ -3022,8 +2982,8 @@ dm7820_modify_pci_region(dm7820_device_descriptor_t * dm7820_device,
 		 */
 
 		pci_request.data.data8 |=
-		    (ioctl_argument.modify.access.data.
-		     data8 & ioctl_argument.modify.mask.mask8);
+		    (ioctl_argument.modify.access.data.data8 & ioctl_argument.
+		     modify.mask.mask8);
 
 		break;
 
@@ -3042,8 +3002,8 @@ dm7820_modify_pci_region(dm7820_device_descriptor_t * dm7820_device,
 		 */
 
 		pci_request.data.data16 |=
-		    (ioctl_argument.modify.access.data.
-		     data16 & ioctl_argument.modify.mask.mask16);
+		    (ioctl_argument.modify.access.data.data16 & ioctl_argument.
+		     modify.mask.mask16);
 
 		break;
 
@@ -3062,8 +3022,8 @@ dm7820_modify_pci_region(dm7820_device_descriptor_t * dm7820_device,
 		 */
 
 		pci_request.data.data32 |=
-		    (ioctl_argument.modify.access.data.
-		     data32 & ioctl_argument.modify.mask.mask32);
+		    (ioctl_argument.modify.access.data.data32 & ioctl_argument.
+		     modify.mask.mask32);
 
 		break;
 	}
@@ -3090,7 +3050,7 @@ static int dm7820_open(struct inode *inode, struct file *file)
 	unsigned int minor_number;
 	unsigned long irq_flags;
 
-	minor_number = GET_INODE_MINOR_NUM(inode);
+	minor_number = iminor(inode);
 	if (minor_number >= dm7820_device_count) {
 
 		/*
@@ -3116,7 +3076,6 @@ static int dm7820_open(struct inode *inode, struct file *file)
 
 	file->private_data = dm7820_device;
 	dm7820_device->reference_count++;
-	INCREMENT_MODULE_USAGE;
 
 	dm7820_disable_all_interrupts(dm7820_device);
 
@@ -3192,16 +3151,7 @@ dm7820_poll(struct file *file, struct poll_table_struct *poll_table)
 
 	spin_lock_irqsave(&(dm7820_device->device_lock), irq_flags);
 
-	if (dm7820_device->int_queue_out <= dm7820_device->int_queue_in) {
-
-		interrupts_in_queue = dm7820_device->int_queue_in -
-		    dm7820_device->int_queue_out;
-
-	} else {
-		interrupts_in_queue = (DM7820_INT_QUEUE_SIZE + 1) -
-		    (dm7820_device->int_queue_out -
-		     dm7820_device->int_queue_in);
-	}
+	interrupts_in_queue = dm7820_device->int_queue_count;
 
 	if (dm7820_device->remove_isr_flag) {
 		status_mask = (POLLIN | POLLRDNORM);
@@ -3248,9 +3198,8 @@ dm7820_probe_device_blocks(dm7820_device_descriptor_t * dm7820_device)
 		uint16_t offset_increment;
 
 		block_id =
-		    IO_MEMORY_READ16(dm7820_device->pci
-				     [DM7820_PCI_REGION_FPGA_MEM].virt_addr +
-				     offset);
+		    ioread16(dm7820_device->pci
+			     [DM7820_PCI_REGION_FPGA_MEM].virt_addr + offset);
 
 		/*
 		 * Validate block ID and associate a name with it
@@ -3420,15 +3369,11 @@ dm7820_probe_devices(uint32_t * device_count,
 	*device_count = 0;
 	pci_device = NULL;
 
-	while ((pci_device =
-		PCI_NEXT_DEVICE(PCI_ANY_ID, PCI_ANY_ID, pci_device))
+	while ((pci_device = pci_get_device(PCI_ANY_ID, PCI_ANY_ID, pci_device))
 	       != NULL) {
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION( 2, 6, 12 ))
+
 		if (pci_match_id(dm7820_pci_device_table, pci_device) == NULL) {
-#else
-		if (pci_match_device(dm7820_pci_device_table, pci_device) ==
-		    NULL) {
-#endif
+
 			continue;
 		}
 
@@ -3465,8 +3410,7 @@ dm7820_probe_devices(uint32_t * device_count,
 	pci_device = NULL;
 	minor_number = 0;
 
-	while ((pci_device =
-		PCI_NEXT_DEVICE(PCI_ANY_ID, PCI_ANY_ID, pci_device))
+	while ((pci_device = pci_get_device(PCI_ANY_ID, PCI_ANY_ID, pci_device))
 	       != NULL) {
 		dm7820_device_descriptor_t *dm7820_device;
 		dm7820_pci_access_request_t pci_request;
@@ -3478,12 +3422,8 @@ dm7820_probe_devices(uint32_t * device_count,
 		 * by the driver.  If not, just ignore it and go to next PCI device.
 		 */
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION( 2, 6, 12 ))
 		if (pci_match_id(dm7820_pci_device_table, pci_device) == NULL) {
-#else
-		if (pci_match_device(dm7820_pci_device_table, pci_device) ==
-		    NULL) {
-#endif
+
 			continue;
 		}
 
@@ -3513,7 +3453,7 @@ dm7820_probe_devices(uint32_t * device_count,
 			       "%s-%u> ERROR: Device name creation FAILED\n",
 			       DRIVER_NAME, minor_number);
 			dm7820_release_resources();
-			PCI_RELEASE_DEVICE(pci_device);
+			pci_dev_put(pci_device);
 			return -ENAMETOOLONG;
 		}
 
@@ -3521,7 +3461,7 @@ dm7820_probe_devices(uint32_t * device_count,
 
 		if (status < 0) {
 
-			PCI_RELEASE_DEVICE(pci_device);
+			pci_dev_put(pci_device);
 
 		}
 
@@ -3533,7 +3473,7 @@ dm7820_probe_devices(uint32_t * device_count,
 
 		status = dm7820_process_pci_regions(dm7820_device, pci_device);
 		if (status != 0) {
-			PCI_RELEASE_DEVICE(pci_device);
+			pci_dev_put(pci_device);
 			return status;
 		}
 
@@ -3543,7 +3483,7 @@ dm7820_probe_devices(uint32_t * device_count,
 
 		status = dm7820_allocate_irq(dm7820_device, pci_device);
 		if (status != 0) {
-			PCI_RELEASE_DEVICE(pci_device);
+			pci_dev_put(pci_device);
 			return status;
 		}
 
@@ -3555,7 +3495,7 @@ dm7820_probe_devices(uint32_t * device_count,
 		status = dm7820_probe_device_blocks(dm7820_device);
 		if (status != 0) {
 			dm7820_release_resources();
-			PCI_RELEASE_DEVICE(pci_device);
+			pci_dev_put(pci_device);
 			return status;
 		}
 
@@ -3602,6 +3542,8 @@ dm7820_probe_devices(uint32_t * device_count,
 		}
 
 		dm7820_initialize_hardware(dm7820_device);
+
+		pci_set_master(pci_device);
 
 		minor_number++;
 	}
@@ -3756,8 +3698,8 @@ dm7820_process_pci_regions(dm7820_device_descriptor_t * dm7820_device,
 			       dm7820_device->pci[region].io_addr);
 		} else {
 			printk(KERN_INFO "    Address: %#lx (memory mapped)\n",
-			       (unsigned long)dm7820_device->
-			       pci[region].virt_addr);
+			       (unsigned long)dm7820_device->pci[region].
+			       virt_addr);
 			printk(KERN_INFO "    Address: %#lx (physical)\n",
 			       dm7820_device->pci[region].phys_addr);
 		}
@@ -3830,47 +3772,16 @@ dm7820_read_pci_region(dm7820_device_descriptor_t * dm7820_device,
 }
 
 /******************************************************************************
-Read DM7820 /proc/ file
- ******************************************************************************/
-
-static int
-dm7820_read_proc_entry(char *buffer,
-		       char **start,
-		       off_t offset, int count, int *end_of_file, void *data)
-{
-	int chars_written;
-
-	chars_written = sprintf(buffer, "%u\n", dm7820_device_count);
-
-	*end_of_file = 1;
-	return chars_written;
-}
-
-/******************************************************************************
 Register DM7820 character device with kernel
  ******************************************************************************/
 
-#if defined(RTD_2_4_KERNEL)
-
 static int dm7820_register_char_device(int *major)
 {
+	dev_t device, devno;
 	int status;
-
-	status = register_chrdev(0, DRIVER_NAME, &dm7820_file_ops);
-	if (status < 0) {
-		return status;
-	}
-
-	*major = status;
-	return 0;
-}
-
-#else
-
-static int dm7820_register_char_device(int *major)
-{
-	dev_t device;
-	int status;
+	struct device *dev = NULL;
+	char dev_file_name[30];
+	int minor = 0;
 
 	status =
 	    alloc_chrdev_region(&device, 0, dm7820_device_count, DRIVER_NAME);
@@ -3888,10 +3799,29 @@ static int dm7820_register_char_device(int *major)
 	}
 
 	*major = MAJOR(device);
+
+	dev_class = class_create(THIS_MODULE, DRIVER_NAME);
+
+	if (dev_class == NULL) {
+		unregister_chrdev_region(device, dm7820_device_count);
+		return -ENODEV;
+	}
+
+	for (minor = 0; minor < dm7820_device_count; minor++) {
+		sprintf(dev_file_name, "%s-%u", DRIVER_NAME, minor);
+		devno = MKDEV(*major, minor);
+		dev = device_create(dev_class,
+				    NULL, devno, NULL, dev_file_name, 0);
+
+		if (dev == NULL) {
+			return -ENODEV;
+		}
+		printk(KERN_INFO "%s: Created device file %s", DRIVER_NAME,
+		       dev_file_name);
+	}
+
 	return 0;
 }
-
-#endif /* defined(RTD_2_4_KERNEL) */
 
 /******************************************************************************
 Close a DM7820 device file
@@ -3914,7 +3844,6 @@ static int dm7820_release(struct inode *inode, struct file *file)
 
 	dm7820_device->reference_count--;
 	file->private_data = NULL;
-	DECREMENT_MODULE_USAGE;
 
 	/*
 	 * Disable PLX interrupts
@@ -3985,24 +3914,22 @@ static void dm7820_release_resources(void)
 
 				if (dm7820_device->pci[region].allocated !=
 				    0x00) {
-					release_mem_region(dm7820_device->
-							   pci[region].
-							   phys_addr,
-							   dm7820_device->
-							   pci[region].length);
+					release_mem_region(dm7820_device->pci
+							   [region].phys_addr,
+							   dm7820_device->pci
+							   [region].length);
 
 					printk(KERN_INFO
 					       "%s: Released I/O memory range %#lx-%#lx\n",
 					       &((dm7820_device->device_name)
 						 [0]), (unsigned long)
-					       dm7820_device->pci[region].
-					       phys_addr, ((unsigned long)
-							   dm7820_device->
-							   pci[region].phys_addr
-							   +
-							   dm7820_device->
-							   pci[region].length -
-							   1)
+					       dm7820_device->
+					       pci[region].phys_addr,
+					       ((unsigned long)
+						dm7820_device->pci[region].
+						phys_addr +
+						dm7820_device->pci[region].
+						length - 1)
 					    );
 				}
 
@@ -4027,10 +3954,10 @@ static void dm7820_release_resources(void)
 				 * Free I/O port range
 				 */
 
-				release_region(dm7820_device->
-					       pci[region].phys_addr,
-					       dm7820_device->
-					       pci[region].length);
+				release_region(dm7820_device->pci[region].
+					       phys_addr,
+					       dm7820_device->pci[region].
+					       length);
 
 				printk(KERN_INFO
 				       "%s: Released I/O port range %#lx-%#lx\n",
@@ -4109,8 +4036,8 @@ dm7820_service_dma_function(dm7820_device_descriptor_t * dm7820_device,
 
 	case DM7820_DMA_GET_BUFFER_ADDR:
 		status = dm7820_get_buffer_phy_addr(dm7820_device,
-						    ioctl_argument.
-						    dma_function.fifo);
+						    ioctl_argument.dma_function.
+						    fifo);
 		break;
 
 	default:
@@ -4128,8 +4055,26 @@ Deinitialize DM7820 driver and devices
 void dm7820_unload(void)
 {
 	int status;
+	struct pci_dev *pci_device = NULL;
 
 	dm7820_release_resources();
+
+	while ((pci_device =
+		pci_get_device(PCI_ANY_ID, PCI_ANY_ID, pci_device)) != NULL) {
+
+		/*
+		 * See if the current PCI device is in the table of devices supported
+		 * by the driver.  If not, just ignore it and go to next PCI device.
+		 */
+
+		if (pci_match_id(dm7820_pci_device_table, pci_device) == NULL) {
+
+			continue;
+		}
+
+		pci_clear_master(pci_device);
+
+	}
 
 	status = dm7820_unregister_char_device();
 	if (status != 0) {
@@ -4144,10 +4089,6 @@ void dm7820_unload(void)
 	printk(KERN_INFO "%s: Character device %d unregistered\n",
 	       DRIVER_NAME, dm7820_major);
 
-	remove_proc_entry(DRIVER_NAME, NULL);
-
-	printk(KERN_INFO "%s: Removed /proc/ entry\n", DRIVER_NAME);
-
 	printk(KERN_INFO "%s: Module unloaded.\n", DRIVER_NAME);
 }
 
@@ -4155,23 +4096,24 @@ void dm7820_unload(void)
 Unregister DM7820 character device with kernel
  ******************************************************************************/
 
-#if defined(RTD_2_4_KERNEL)
-
 static int dm7820_unregister_char_device(void)
 {
-	return unregister_chrdev(dm7820_major, DRIVER_NAME);
-}
+	unsigned int minor;
 
-#else
-
-static int dm7820_unregister_char_device(void)
-{
 	cdev_del(&dm7820_cdev);
+
+	for (minor = 0; minor < dm7820_device_count; minor++) {
+		device_destroy(dev_class, MKDEV(dm7820_major, minor));
+
+	}
+
+	class_unregister(dev_class);
+
+	class_destroy(dev_class);
+
 	unregister_chrdev_region(MKDEV(dm7820_major, 0), dm7820_device_count);
 	return 0;
 }
-
-#endif
 
 /******************************************************************************
 Validate a DM7820 device descriptor

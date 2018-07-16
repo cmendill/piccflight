@@ -5,18 +5,22 @@
         Definitions for the DM7820 driver
 
     @verbatim
-    --------------------------------------------------------------------------
-    This file and its contents are copyright (C) RTD Embedded Technologies,
-    Inc.  All Rights Reserved.
-
-    This software is licensed as described in the RTD End-User Software License
-    Agreement.  For a copy of this agreement, refer to the file LICENSE.TXT
-    (which should be included with this software) or contact RTD Embedded
-    Technologies, Inc.
-    --------------------------------------------------------------------------
+//----------------------------------------------------------------------------
+//  COPYRIGHT (C) RTD EMBEDDED TECHNOLOGIES, INC.  ALL RIGHTS RESERVED.
+//
+//  This software package is dual-licensed.  Source code that is compiled for
+//  kernel mode execution is licensed under the GNU General Public License
+//  version 2.  For a copy of this license, refer to the file
+//  LICENSE_GPLv2.TXT (which should be included with this software) or contact
+//  the Free Software Foundation.  Source code that is compiled for user mode
+//  execution is licensed under the RTD End-User Software License Agreement.
+//  For a copy of this license, refer to LICENSE.TXT or contact RTD Embedded
+//  Technologies, Inc.  Using this software indicates agreement with the
+//  license terms listed above.
+//----------------------------------------------------------------------------
     @endverbatim
 
-    $Id: dm7820_driver.h 56791 2011-11-23 21:48:43Z rgroner $
+    $Id: dm7820_driver.h 86294 2015-03-04 21:36:57Z rgroner $
 */
 
 #ifndef __dm7820_driver_h__
@@ -29,9 +33,11 @@
 #include <linux/types.h>
 
 #include "dm7820_ioctl.h"
-#include "dm7820_kernel.h"
 #include "dm7820_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 /**
  * @defgroup DM7820_Driver_Header DM7820 driver header file
  * @{
@@ -51,27 +57,28 @@ Enumerations
  *      Direction of access to standard PCI region
  */
 
-enum dm7820_pci_region_access_dir {
+	enum dm7820_pci_region_access_dir {
 
     /**
      * Read from the region
      */
 
-	DM7820_PCI_REGION_ACCESS_READ = 0,
+		DM7820_PCI_REGION_ACCESS_READ = 0,
 
     /**
      * Write to the region
      */
 
-	DM7820_PCI_REGION_ACCESS_WRITE
-};
+		DM7820_PCI_REGION_ACCESS_WRITE
+	};
 
 /**
  * @brief
  *      Standard PCI region access direction type
  */
 
-typedef enum dm7820_pci_region_access_dir dm7820_pci_region_access_dir_t;
+	typedef enum dm7820_pci_region_access_dir
+	 dm7820_pci_region_access_dir_t;
 
 /**
  * @} DM7820_Driver_Enumerations
@@ -171,19 +178,19 @@ Constants
  * @{
  */
 
-const uint8_t DMACSR_COMPLETE_BIT = 0x10;
+	const uint8_t DMACSR_COMPLETE_BIT = 0x10;
 
-const uint8_t DMACSR_ABORT_BIT = 0x04;
+	const uint8_t DMACSR_ABORT_BIT = 0x04;
 
-const uint8_t DMACSR_START_BIT = 0x02;
+	const uint8_t DMACSR_START_BIT = 0x02;
 
-const uint8_t DMACSR_CLEAR_INTERRUPT_BIT = 0x08;
+	const uint8_t DMACSR_CLEAR_INTERRUPT_BIT = 0x08;
 
-const uint32_t PLXCSR_DMA0_INT_ACTIVE = 0x00200000;
+	const uint32_t PLXCSR_DMA0_INT_ACTIVE = 0x00200000;
 
-const uint32_t PLXCSR_DMA1_INT_ACTIVE = 0x00400000;
+	const uint32_t PLXCSR_DMA1_INT_ACTIVE = 0x00400000;
 
-const uint16_t FPGA_INTCSR_RESERVED_BITS = 0x00C8;
+	const uint16_t FPGA_INTCSR_RESERVED_BITS = 0x00C8;
 
 /**
  * @} DM7820_Driver_Constants
@@ -204,33 +211,33 @@ Structures
  *      one of a device's PCI memory regions.
  */
 
-struct dm7820_pci_region {
+	struct dm7820_pci_region {
 
     /**
      * I/O port number if I/O mapped
      */
 
-	unsigned long io_addr;
+		unsigned long io_addr;
 
     /**
      * Length of region in bytes
      */
 
-	unsigned long length;
+		unsigned long length;
 
     /**
      * Region's physical address if memory mapped or I/O port number if I/O
      * mapped
      */
 
-	unsigned long phys_addr;
+		unsigned long phys_addr;
 
     /**
      * Address at which region is mapped in kernel virtual address space if
      * memory mapped
      */
 
-	void *virt_addr;
+		void *virt_addr;
 
     /**
      * Flag indicating whether or not the I/O-mapped memory ranged was
@@ -238,15 +245,15 @@ struct dm7820_pci_region {
      * Any other value means the memory range was allocated.
      */
 
-	uint8_t allocated;
-};
+		uint8_t allocated;
+	};
 
 /**
  * @brief
  *      DM7820 PCI region descriptor type
  */
 
-typedef struct dm7820_pci_region dm7820_pci_region_t;
+	typedef struct dm7820_pci_region dm7820_pci_region_t;
 
 /**
  * @brief
@@ -254,40 +261,40 @@ typedef struct dm7820_pci_region dm7820_pci_region_t;
  *      information for a single DMA buffer.
  */
 
-typedef struct {
+	typedef struct {
 
     /**
      * Bus/physical address
      */
 
-	dma_addr_t bus_address;
+		dma_addr_t bus_address;
 
     /**
      * Virtual address
      */
 
-	void *virtual_address;
-} dm7820_dma_descriptor_t;
+		void *virtual_address;
+	} dm7820_dma_descriptor_t;
 
 /**
  * @brief
  *      DM7820 DMA buffer list item
  */
 
-typedef struct {
+	typedef struct {
 
     /**
      * Linked list management
      */
 
-	struct list_head list;
+		struct list_head list;
 
     /**
      * DMA buffer allocation information
      */
 
-	dm7820_dma_descriptor_t *dma_buffer;
-} dm7820_dma_list_item_t;
+		dm7820_dma_descriptor_t *dma_buffer;
+	} dm7820_dma_list_item_t;
 
 /**
  * @brief
@@ -295,64 +302,64 @@ typedef struct {
  *      device needed by the kernel.
  */
 
-struct dm7820_device_descriptor {
+	struct dm7820_device_descriptor {
 
     /**
      * Device name used when requesting resources; a NUL terminated string of
      * the form rtd-dm7820-x where x is the device minor number.
      */
 
-	char device_name[DM7820_DEVICE_NAME_LENGTH];
+		char device_name[DM7820_DEVICE_NAME_LENGTH];
 
     /**
      * Information about each of the standard PCI regions
      */
 
-	dm7820_pci_region_t pci[PCI_ROM_RESOURCE];
+		dm7820_pci_region_t pci[PCI_ROM_RESOURCE];
 
     /**
      * Concurrency control
      */
 
-	spinlock_t device_lock;
+		spinlock_t device_lock;
 
     /**
      * Number of entities which have the device file open.  Used to enforce
      * single open semantics.
      */
 
-	uint8_t reference_count;
+		uint8_t reference_count;
 
     /**
      * IRQ line number
      */
 
-	unsigned int irq_number;
+		unsigned int irq_number;
 
     /**
      * Flag indicating whether or not an interrupt occurred.  Cleared when
      * interrupt status is read.  Set by interrupt handler.
      */
 
-	uint8_t interrupt_occurred;
+		uint8_t interrupt_occurred;
 
     /**
      * Used to assist poll in shutting down the thread waiting for interrupts
      */
 
-	uint8_t remove_isr_flag;
+		uint8_t remove_isr_flag;
 
     /**
      * Queue of processes waiting to be woken up when an interrupt occurs
      */
 
-	wait_queue_head_t int_wait_queue;
+		wait_queue_head_t int_wait_queue;
 
     /**
      * Queue of processes waiting to be woken up when an interrupt occurs
      */
 
-	wait_queue_head_t dma_wait_queue;
+		wait_queue_head_t dma_wait_queue;
 
     /**
      * Bit mask indicating status of each interrupt source.  A zero in a bit
@@ -360,7 +367,7 @@ struct dm7820_device_descriptor {
      * in a bit position means the corresponding interrupt source did occur.
      */
 
-	dm7820_int_source_status_t int_source_status;
+		dm7820_int_source_status_t int_source_status;
 
     /**
      * Per-FIFO channel flag indicating whether or not DMA was initialized.  A
@@ -368,106 +375,108 @@ struct dm7820_device_descriptor {
      * was initialized.
      */
 
-	uint8_t dma_initialized[DM7820_FIFO_CHANNELS];
+		uint8_t dma_initialized[DM7820_FIFO_CHANNELS];
 
     /**
      * Per-FIFO channel DMA transfer size
      */
 
-	uint32_t dma_size[DM7820_FIFO_CHANNELS];
+		uint32_t dma_size[DM7820_FIFO_CHANNELS];
 
     /**
      * Per-FIFO channel linked list of DMA buffers
      */
 
-	struct list_head dma_buffers_pre_transfer[DM7820_FIFO_CHANNELS];
+		struct list_head dma_buffers_pre_transfer[DM7820_FIFO_CHANNELS];
 
     /**
      * Per-FIFO channel linked list of DMA buffers containing data read from
      * FIFO
      */
 
-	struct list_head dma_buffers_post_transfer[DM7820_FIFO_CHANNELS];
+		struct list_head
+		 dma_buffers_post_transfer[DM7820_FIFO_CHANNELS];
 
     /**
      * Per-FIFO flag indicating direction of DMA, true if in read
      * and false if in write
      */
-	uint8_t dma_in_read_direction[DM7820_FIFO_CHANNELS];
+		uint8_t dma_in_read_direction[DM7820_FIFO_CHANNELS];
 
     /**
      * Interrupt status queue
      */
 
-	dm7820_interrupt_source int_status[DM7820_INT_QUEUE_SIZE];
+		dm7820_interrupt_source int_status[DM7820_INT_QUEUE_SIZE];
 
     /**
      * Number of entries in the interrupt status queue
      */
 
-	unsigned int int_queue_in;
+		unsigned int int_queue_in;
 
     /**
      * Number of entries read from the interrupt status queue
      */
 
-	unsigned int int_queue_out;
+		unsigned int int_queue_out;
 
     /**
      * Number of interrupts missed because of a full queue
      */
 
-	unsigned int int_queue_missed;
+		unsigned int int_queue_missed;
 
     /**
      * Number of interrupts currently in the queue
      */
 
-	unsigned int int_queue_count;
-};
+		unsigned int int_queue_count;
+	};
 
 /**
  * @brief
  *      DM7820 device descriptor type
  */
 
-typedef struct dm7820_device_descriptor dm7820_device_descriptor_t;
+	typedef struct dm7820_device_descriptor dm7820_device_descriptor_t;
 
 /**
  * @brief
  *      Interrupt source information for a single Interrupt Status Register bit
  */
 
-struct dm7820_interrupt_status_source {
+	struct dm7820_interrupt_status_source {
 
     /**
      * Minor interrupt register.  If there is no minor interrupt register, this
      * will be DM7820_MINOR_INT_REG_NONE.
      */
 
-	dm7820_minor_interrupt_register minor_reg;
+		dm7820_minor_interrupt_register minor_reg;
 
     /**
      * Interrupt source for register bit.  If there is a minor interrupt
      * register, this will be DM7820_INTERRUPT_NONE.
      */
 
-	dm7820_interrupt_source source;
+		dm7820_interrupt_source source;
 
     /**
      * Table of interrupt sources for register bit.  If there is no minor
      * interrupt register, this will be NULL.
      */
 
-	dm7820_interrupt_source *source_table;
-};
+		dm7820_interrupt_source *source_table;
+	};
 
 /**
  * @brief
  *      Interrupt Status Register bit interrupt source information type
  */
 
-typedef struct dm7820_interrupt_status_source dm7820_interrupt_status_source_t;
+	typedef struct dm7820_interrupt_status_source
+	 dm7820_interrupt_status_source_t;
 
 /**
  * @} DM7820_Driver_Structures
@@ -487,7 +496,7 @@ Forward declarations
  *      File operations supported by driver
  */
 
-static struct file_operations dm7820_file_ops;
+	static struct file_operations dm7820_file_ops;
 
 /**
  * @} DM7820_Driver_Forward_Declarations
@@ -528,10 +537,12 @@ Function prototypes
  *******************************************************************************
  */
 
-static void dm7820_access_pci_region(const dm7820_device_descriptor_t *
-				     dm7820_device,
-				     dm7820_pci_access_request_t * pci_request,
-				     dm7820_pci_region_access_dir_t direction);
+	static void dm7820_access_pci_region(const dm7820_device_descriptor_t *
+					     dm7820_device,
+					     dm7820_pci_access_request_t *
+					     pci_request,
+					     dm7820_pci_region_access_dir_t
+					     direction);
 
 /**
 *******************************************************************************
@@ -580,8 +591,9 @@ static void dm7820_access_pci_region(const dm7820_device_descriptor_t *
  *******************************************************************************
  */
 
-static int dm7820_allocate_irq(dm7820_device_descriptor_t * dm7820_device,
-			       const struct pci_dev *pci_device);
+	static int dm7820_allocate_irq(dm7820_device_descriptor_t *
+				       dm7820_device,
+				       const struct pci_dev *pci_device);
 
 /**
 *******************************************************************************
@@ -595,8 +607,9 @@ static int dm7820_allocate_irq(dm7820_device_descriptor_t * dm7820_device,
  *******************************************************************************
  */
 
-static void dm7820_disable_all_interrupts(const dm7820_device_descriptor_t *
-					  dm7820_device);
+	static void dm7820_disable_all_interrupts(const
+						  dm7820_device_descriptor_t *
+						  dm7820_device);
 
 /**
 *******************************************************************************
@@ -617,8 +630,9 @@ static void dm7820_disable_all_interrupts(const dm7820_device_descriptor_t *
  *******************************************************************************
  */
 
-static void dm7820_enable_plx_interrupts(const dm7820_device_descriptor_t *
-					 dm7820_device, uint8_t enable);
+	static void dm7820_enable_plx_interrupts(const
+						 dm7820_device_descriptor_t *
+						 dm7820_device, uint8_t enable);
 
 /**
 *******************************************************************************
@@ -642,8 +656,9 @@ static void dm7820_enable_plx_interrupts(const dm7820_device_descriptor_t *
  *******************************************************************************
  */
 
-static void dm7820_free_dma_mappings(dm7820_device_descriptor_t * dm7820_device,
-				     dm7820_fifo_queue fifo);
+	static void dm7820_free_dma_mappings(dm7820_device_descriptor_t *
+					     dm7820_device,
+					     dm7820_fifo_queue fifo);
 
 /**
 *******************************************************************************
@@ -677,9 +692,9 @@ static void dm7820_free_dma_mappings(dm7820_device_descriptor_t * dm7820_device,
  *******************************************************************************
  */
 
-static int dm7820_get_interrupt_status(dm7820_device_descriptor_t *
-				       dm7820_device,
-				       unsigned long ioctl_param);
+	static int dm7820_get_interrupt_status(dm7820_device_descriptor_t *
+					       dm7820_device,
+					       unsigned long ioctl_param);
 
 /**
 *******************************************************************************
@@ -700,8 +715,9 @@ static int dm7820_get_interrupt_status(dm7820_device_descriptor_t *
  *******************************************************************************
  */
 
-static void dm7820_get_pci_master_status(dm7820_device_descriptor_t *
-					 dm7820_device, uint8_t * pci_master);
+	static void dm7820_get_pci_master_status(dm7820_device_descriptor_t *
+						 dm7820_device,
+						 uint8_t * pci_master);
 
 /**
 *******************************************************************************
@@ -715,8 +731,9 @@ static void dm7820_get_pci_master_status(dm7820_device_descriptor_t *
  *******************************************************************************
  */
 
-static void dm7820_initialize_device_descriptor(dm7820_device_descriptor_t *
-						dm7820_device);
+	static void
+	 dm7820_initialize_device_descriptor(dm7820_device_descriptor_t *
+					     dm7820_device);
 
 /**
 *******************************************************************************
@@ -794,8 +811,10 @@ static void dm7820_initialize_device_descriptor(dm7820_device_descriptor_t *
  *******************************************************************************
  */
 
-static int dm7820_initialize_dma(dm7820_device_descriptor_t * dm7820_device,
-				 dm7820_ioctl_argument_t * ioctl_argument);
+	static int dm7820_initialize_dma(dm7820_device_descriptor_t *
+					 dm7820_device,
+					 dm7820_ioctl_argument_t *
+					 ioctl_argument);
 
 /**
 ********************************************************************************
@@ -808,9 +827,9 @@ static int dm7820_initialize_dma(dm7820_device_descriptor_t * dm7820_device,
     Address of the device's DM7820 device descriptor.
 
 @param
-    ioctl_argument
+    fifo
 
-    Address of kernel's ioctl() request structure.
+    FIFO to get physical address of.
 
 @retval
     0
@@ -820,9 +839,9 @@ static int dm7820_initialize_dma(dm7820_device_descriptor_t * dm7820_device,
  *******************************************************************************
  */
 
-dma_addr_t
-dm7820_get_buffer_phy_addr(dm7820_device_descriptor_t * dm7820_device,
-			   dm7820_fifo_queue fifo);
+	 dma_addr_t
+	    dm7820_get_buffer_phy_addr(dm7820_device_descriptor_t *
+				       dm7820_device, dm7820_fifo_queue fifo);
 
 /**
 *******************************************************************************
@@ -851,9 +870,9 @@ dm7820_get_buffer_phy_addr(dm7820_device_descriptor_t * dm7820_device,
  *******************************************************************************
  */
 
-static int
-dm7820_dma_read(dm7820_device_descriptor_t * dm7820_device,
-		dm7820_ioctl_argument_t * ioctl_argument);
+	static int
+	 dm7820_dma_read(dm7820_device_descriptor_t * dm7820_device,
+			 dm7820_ioctl_argument_t * ioctl_argument);
 
 /**
 *******************************************************************************
@@ -877,9 +896,9 @@ dm7820_dma_read(dm7820_device_descriptor_t * dm7820_device,
  *******************************************************************************
  */
 
-static int
-dm7820_dma_write(dm7820_device_descriptor_t * dm7820_device,
-		 dm7820_ioctl_argument_t * ioctl_argument);
+	static int
+	 dm7820_dma_write(dm7820_device_descriptor_t * dm7820_device,
+			  dm7820_ioctl_argument_t * ioctl_argument);
 
 /**
 *******************************************************************************
@@ -902,8 +921,8 @@ dm7820_dma_write(dm7820_device_descriptor_t * dm7820_device,
     Success.
  *******************************************************************************
  */
-static int dm7820_dma_stop(dm7820_device_descriptor_t * dm7820_device,
-			   dm7820_fifo_queue fifo);
+	static int dm7820_dma_stop(dm7820_device_descriptor_t * dm7820_device,
+				   dm7820_fifo_queue fifo);
 
 /**
 *******************************************************************************
@@ -927,9 +946,9 @@ static int dm7820_dma_stop(dm7820_device_descriptor_t * dm7820_device,
  *******************************************************************************
  */
 
-static int
-dm7820_dma_pause(dm7820_device_descriptor_t * dm7820_device,
-		 dm7820_fifo_queue fifo);
+	static int
+	 dm7820_dma_pause(dm7820_device_descriptor_t * dm7820_device,
+			  dm7820_fifo_queue fifo);
 
 /**
 *******************************************************************************
@@ -960,8 +979,8 @@ dm7820_dma_pause(dm7820_device_descriptor_t * dm7820_device,
  *******************************************************************************
  */
 
-static int dm7820_dma_check_xfer(dm7820_device_descriptor_t * dm7820_device,
-				 dm7820_fifo_queue fifo);
+	static int dm7820_dma_check_xfer(dm7820_device_descriptor_t *
+					 dm7820_device, dm7820_fifo_queue fifo);
 
 /**
 *******************************************************************************
@@ -981,8 +1000,8 @@ static int dm7820_dma_check_xfer(dm7820_device_descriptor_t * dm7820_device,
  *******************************************************************************
  */
 
-static void dm7820_initialize_hardware(const dm7820_device_descriptor_t *
-				       dm7820_device);
+	static void dm7820_initialize_hardware(const dm7820_device_descriptor_t
+					       * dm7820_device);
 
 /**
 *******************************************************************************
@@ -1004,9 +1023,9 @@ static void dm7820_initialize_hardware(const dm7820_device_descriptor_t *
  *******************************************************************************
  */
 
-static void
-dm7820_int_queue_add(dm7820_device_descriptor_t * dm7820_device,
-		     dm7820_interrupt_source source);
+	static void
+	 dm7820_int_queue_add(dm7820_device_descriptor_t * dm7820_device,
+			      dm7820_interrupt_source source);
 
 /**
 *******************************************************************************
@@ -1028,50 +1047,10 @@ dm7820_int_queue_add(dm7820_device_descriptor_t * dm7820_device,
  *******************************************************************************
  */
 
-static dm7820_interrupt_info
-dm7820_dequeue_interrupt(dm7820_device_descriptor_t * dm7820_device);
+	static dm7820_interrupt_info
+	    dm7820_dequeue_interrupt(dm7820_device_descriptor_t *
+				     dm7820_device);
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 19)
-/**
-*******************************************************************************
-@brief
-    DM7820 device interrupt handler.
-
-@param
-    irq_number
-
-    Interrupt line number.
-
-@param
-    device_id
-
-    Address of device's DM7820 device descriptor.  This is set on request_irq()
-    call.
-
-@param
-    pt_regs
-
-    Address of processor context at time of interrupt.  Unused.
-
-@retval
-    IRQ_HANDLED
-
-    Interrupt successfully processed; 2.6 kernel only.
-
-@retval
-    IRQ_NONE
-
-    Interrupt could not be processed; 2.6 kernel only.
-
-@note
-    This function does not return a value on 2.4 kernels.
- *******************************************************************************
- */
-INTERRUPT_HANDLER_TYPE dm7820_interrupt_handler(int irq_number,
-						void *device_id,
-						struct pt_regs *);
-
-#else
 /**
 *******************************************************************************
 @brief
@@ -1102,10 +1081,8 @@ INTERRUPT_HANDLER_TYPE dm7820_interrupt_handler(int irq_number,
     This function does not return a value on 2.4 kernels.
  *******************************************************************************
  */
-INTERRUPT_HANDLER_TYPE dm7820_interrupt_handler(int irq_number,
-						void *device_id);
-
-#endif
+	static irqreturn_t dm7820_interrupt_handler(int irq_number,
+						    void *device_id);
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,35)
 /**
@@ -1157,9 +1134,10 @@ INTERRUPT_HANDLER_TYPE dm7820_interrupt_handler(int irq_number,
  *******************************************************************************
  */
 
-static int dm7820_ioctl(struct inode *inode,
-			struct file *file,
-			unsigned int request_code, unsigned long ioctl_param);
+	static int dm7820_ioctl(struct inode *inode,
+				struct file *file,
+				unsigned int request_code,
+				unsigned long ioctl_param);
 #else
 
 /**
@@ -1206,8 +1184,9 @@ static int dm7820_ioctl(struct inode *inode,
  *******************************************************************************
  */
 
-static long dm7820_ioctl(struct file *file,
-			 unsigned int request_code, unsigned long ioctl_param);
+	static long dm7820_ioctl(struct file *file,
+				 unsigned int request_code,
+				 unsigned long ioctl_param);
 #endif
 
 /**
@@ -1243,7 +1222,7 @@ static long dm7820_ioctl(struct file *file,
  *******************************************************************************
  */
 
-int dm7820_load(void);
+	int dm7820_load(void);
 
 /**
 *******************************************************************************
@@ -1280,9 +1259,9 @@ int dm7820_load(void);
  *******************************************************************************
  */
 
-static int
-dm7820_modify_pci_region(dm7820_device_descriptor_t * dm7820_device,
-			 unsigned long ioctl_param);
+	static int
+	 dm7820_modify_pci_region(dm7820_device_descriptor_t * dm7820_device,
+				  unsigned long ioctl_param);
 
 /**
 *******************************************************************************
@@ -1323,7 +1302,7 @@ dm7820_modify_pci_region(dm7820_device_descriptor_t * dm7820_device,
  *******************************************************************************
  */
 
-static int dm7820_open(struct inode *inode, struct file *file);
+	static int dm7820_open(struct inode *inode, struct file *file);
 
 /**
 *******************************************************************************
@@ -1373,8 +1352,8 @@ static int dm7820_open(struct inode *inode, struct file *file);
  *******************************************************************************
  */
 
-static unsigned int dm7820_poll(struct file *file,
-				struct poll_table_struct *poll_table);
+	static unsigned int dm7820_poll(struct file *file,
+					struct poll_table_struct *poll_table);
 
 /**
 *******************************************************************************
@@ -1412,8 +1391,8 @@ static unsigned int dm7820_poll(struct file *file,
  *******************************************************************************
  */
 
-static int dm7820_probe_device_blocks(dm7820_device_descriptor_t *
-				      dm7820_device);
+	static int dm7820_probe_device_blocks(dm7820_device_descriptor_t *
+					      dm7820_device);
 
 /**
 *******************************************************************************
@@ -1468,9 +1447,9 @@ static int dm7820_probe_device_blocks(dm7820_device_descriptor_t *
  *******************************************************************************
  */
 
-static int dm7820_probe_devices(uint32_t * device_count,
-				dm7820_device_descriptor_t **
-				device_descriptors);
+	static int dm7820_probe_devices(uint32_t * device_count,
+					dm7820_device_descriptor_t **
+					device_descriptors);
 
 /**
 *******************************************************************************
@@ -1520,9 +1499,9 @@ static int dm7820_probe_devices(uint32_t * device_count,
  *******************************************************************************
  */
 
-static int dm7820_process_pci_regions(dm7820_device_descriptor_t *
-				      dm7820_device,
-				      const struct pci_dev *pci_device);
+	static int dm7820_process_pci_regions(dm7820_device_descriptor_t *
+					      dm7820_device,
+					      const struct pci_dev *pci_device);
 
 /**
 *******************************************************************************
@@ -1558,69 +1537,9 @@ static int dm7820_process_pci_regions(dm7820_device_descriptor_t *
  *******************************************************************************
  */
 
-static int
-dm7820_read_pci_region(dm7820_device_descriptor_t * dm7820_device,
-		       unsigned long ioctl_param);
-
-/**
-*******************************************************************************
-@brief
-    Read information from the driver's /proc/driver/ entry.
-
-@param
-    buffer
-
-    Address of kernel buffer where information should be stored.
-
-@param
-    start
-
-    Offset into buffer when returning large amounts of data.  Unused.
-
-@param
-    offset
-
-    Offset within file where read should occur.  Unused.
-
-@param
-    count
-
-    Number of bytes to transfer.  Unused.
-
-@param
-    end_of_file
-
-    Address where end-of-file flag should be stored.  Zero will be stored here
-    if there is more information to be read.  One will be stored here if all
-    information has been read.
-
-@param
-    data
-
-    Address of driver-specific data.  Unused.
-
-@retval
-    Number of bytes of data stored in buffer.
-
-@note
-    This function always stores a one into the address referred to end_of_file.
-    Only a small amount of data is returned and it should fit into a standard
-    kernel /proc buffer.  Therefore, each time the file is read, an end of file
-    occurs.
-
-@note
-    Data returned in buffer is always terminated by a newline character '\n'.
-
-@note
-    Currently, the only piece of information returned is the number of devices
-    found when the driver was loaded.
- *******************************************************************************
- */
-
-static int
-dm7820_read_proc_entry(char *buffer,
-		       char **start,
-		       off_t offset, int count, int *end_of_file, void *data);
+	static int
+	 dm7820_read_pci_region(dm7820_device_descriptor_t * dm7820_device,
+				unsigned long ioctl_param);
 
 /**
 *******************************************************************************
@@ -1661,7 +1580,7 @@ dm7820_read_proc_entry(char *buffer,
  *******************************************************************************
  */
 
-static int dm7820_register_char_device(int *major);
+	static int dm7820_register_char_device(int *major);
 
 /**
 *******************************************************************************
@@ -1696,7 +1615,7 @@ static int dm7820_register_char_device(int *major);
  *******************************************************************************
  */
 
-static int dm7820_release(struct inode *inode, struct file *file);
+	static int dm7820_release(struct inode *inode, struct file *file);
 
 /**
 *******************************************************************************
@@ -1709,8 +1628,8 @@ static int dm7820_release(struct inode *inode, struct file *file);
  *******************************************************************************
  */
 
-static void dm7820_release_resources(void
-    );
+	static void dm7820_release_resources(void
+	    );
 
 /**
 *******************************************************************************
@@ -1752,9 +1671,9 @@ static void dm7820_release_resources(void
  *******************************************************************************
  */
 
-static int dm7820_service_dma_function(dm7820_device_descriptor_t *
-				       dm7820_device,
-				       unsigned long ioctl_param);
+	static int dm7820_service_dma_function(dm7820_device_descriptor_t *
+					       dm7820_device,
+					       unsigned long ioctl_param);
 
 /**
 *******************************************************************************
@@ -1763,8 +1682,8 @@ static int dm7820_service_dma_function(dm7820_device_descriptor_t *
  *******************************************************************************
  */
 
-void dm7820_unload(void
-    );
+	void dm7820_unload(void
+	    );
 
 /**
 *******************************************************************************
@@ -1803,8 +1722,8 @@ void dm7820_unload(void
  *******************************************************************************
  */
 
-static int dm7820_unregister_char_device(void
-    );
+	static int dm7820_unregister_char_device(void
+	    );
 
 /**
 *******************************************************************************
@@ -1833,8 +1752,8 @@ static int dm7820_unregister_char_device(void
  *******************************************************************************
  */
 
-static int dm7820_validate_device(const dm7820_device_descriptor_t *
-				  dm7820_device);
+	static int dm7820_validate_device(const dm7820_device_descriptor_t *
+					  dm7820_device);
 
 /**
 *******************************************************************************
@@ -1880,10 +1799,10 @@ static int dm7820_validate_device(const dm7820_device_descriptor_t *
  *******************************************************************************
  */
 
-static int dm7820_validate_pci_access(const dm7820_device_descriptor_t *
-				      dm7820_device,
-				      const dm7820_pci_access_request_t *
-				      pci_request);
+	static int dm7820_validate_pci_access(const dm7820_device_descriptor_t *
+					      dm7820_device,
+					      const dm7820_pci_access_request_t
+					      * pci_request);
 
 /**
 *******************************************************************************
@@ -1919,9 +1838,9 @@ static int dm7820_validate_pci_access(const dm7820_device_descriptor_t *
  *******************************************************************************
  */
 
-static int
-dm7820_write_pci_region(dm7820_device_descriptor_t * dm7820_device,
-			unsigned long ioctl_param);
+	static int
+	 dm7820_write_pci_region(dm7820_device_descriptor_t * dm7820_device,
+				 unsigned long ioctl_param);
 
 /**
  * @} DM7820_Driver_Functions
@@ -1931,4 +1850,7 @@ dm7820_write_pci_region(dm7820_device_descriptor_t * dm7820_device,
  * @} DM7820_Library_Header
  */
 
-#endif /* __dm7820_driver_h__ */
+#ifdef __cplusplus
+}
+#endif
+#endif				/* __dm7820_driver_h__ */

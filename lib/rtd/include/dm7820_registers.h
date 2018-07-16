@@ -5,22 +5,30 @@
         Register definitions for DM7820 devices
 
     @verbatim
-    --------------------------------------------------------------------------
-    This file and its contents are copyright (C) RTD Embedded Technologies,
-    Inc.  All Rights Reserved.
-
-    This software is licensed as described in the RTD End-User Software License
-    Agreement.  For a copy of this agreement, refer to the file LICENSE.TXT
-    (which should be included with this software) or contact RTD Embedded
-    Technologies, Inc.
-    --------------------------------------------------------------------------
+//----------------------------------------------------------------------------
+//  COPYRIGHT (C) RTD EMBEDDED TECHNOLOGIES, INC.  ALL RIGHTS RESERVED.
+//
+//  This software package is dual-licensed.  Source code that is compiled for
+//  kernel mode execution is licensed under the GNU General Public License
+//  version 2.  For a copy of this license, refer to the file
+//  LICENSE_GPLv2.TXT (which should be included with this software) or contact
+//  the Free Software Foundation.  Source code that is compiled for user mode
+//  execution is licensed under the RTD End-User Software License Agreement.
+//  For a copy of this license, refer to LICENSE.TXT or contact RTD Embedded
+//  Technologies, Inc.  Using this software indicates agreement with the
+//  license terms listed above.
+//----------------------------------------------------------------------------
     @endverbatim
 
-    $Id: dm7820_registers.h 56179 2011-10-20 20:19:35Z rgroner $
+    $Id: dm7820_registers.h 86275 2015-03-04 15:53:23Z rgroner $
 */
 
 #ifndef __dm7820_registers_h__
 #define __dm7820_registers_h__
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /**
  * @defgroup DM7820_Register_Header DM7820 register header file
@@ -1776,4 +1784,7 @@ Board Reset Register at offset 0x0004
  * @} DM7820_Register_Header
  */
 
-#endif /* __dm7820_registers_h__ */
+#ifdef __cplusplus
+}
+#endif
+#endif				/* __dm7820_registers_h__ */

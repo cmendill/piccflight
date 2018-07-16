@@ -5,18 +5,22 @@
         DM7820 user library definitions
 
     @verbatim
-    --------------------------------------------------------------------------
-    This file and its contents are copyright (C) RTD Embedded Technologies,
-    Inc.  All Rights Reserved.
-
-    This software is licensed as described in the RTD End-User Software License
-    Agreement.  For a copy of this agreement, refer to the file LICENSE.TXT
-    (which should be included with this software) or contact RTD Embedded
-    Technologies, Inc.
-    --------------------------------------------------------------------------
+//----------------------------------------------------------------------------
+//  COPYRIGHT (C) RTD EMBEDDED TECHNOLOGIES, INC.  ALL RIGHTS RESERVED.
+//
+//  This software package is dual-licensed.  Source code that is compiled for
+//  kernel mode execution is licensed under the GNU General Public License
+//  version 2.  For a copy of this license, refer to the file
+//  LICENSE_GPLv2.TXT (which should be included with this software) or contact
+//  the Free Software Foundation.  Source code that is compiled for user mode
+//  execution is licensed under the RTD End-User Software License Agreement.
+//  For a copy of this license, refer to LICENSE.TXT or contact RTD Embedded
+//  Technologies, Inc.  Using this software indicates agreement with the
+//  license terms listed above.
+//----------------------------------------------------------------------------
     @endverbatim
 
-    $Id: dm7820_library.h 56566 2011-11-11 20:27:48Z rgroner $
+    $Id: dm7820_library.h 86275 2015-03-04 15:53:23Z rgroner $
 */
 
 #ifndef __dm7820_library_h__
@@ -28,6 +32,9 @@
 #include <pthread.h>
 #include <sys/wait.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 /**
  * @defgroup DM7820_Library_Header DM7820 user library header file
  * @{
@@ -176,14 +183,14 @@ Type definitions
  *      DM7820 user library error code type
  */
 
-typedef int DM7820_Error;
+	typedef int DM7820_Error;
 
 /**
  * @brief
  *      Incremental encoder phase filter type
  */
 
-typedef uint8_t dm7820_incenc_phase_filter;
+	typedef uint8_t dm7820_incenc_phase_filter;
 
 /**
  * @} DM7820_Library_Types
@@ -204,32 +211,32 @@ Structures
  *      device needed by the library.
  */
 
-struct DM7820_Board_Descriptor {
+	struct DM7820_Board_Descriptor {
 
     /**
      * File descriptor for device returned from open()
      */
 
-	int file_descriptor;
+		int file_descriptor;
 
     /**
      * Function pointer to the user ISR callback function.
      */
 
-	void (*isr) (dm7820_interrupt_info status);
+		void (*isr) (dm7820_interrupt_info status);
 
     /**
      * Process ID of the child process which will monitor DMA done interrupts.
      */
 
-	pthread_t pid;
-};
+		pthread_t pid;
+	};
 
 /**
  * DM7820 board descriptor type
  */
 
-typedef struct DM7820_Board_Descriptor DM7820_Board_Descriptor;
+	typedef struct DM7820_Board_Descriptor DM7820_Board_Descriptor;
 
 /**
  * @} DM7820_Library_Structures
@@ -305,9 +312,9 @@ Advanced interrupt block functions
  *******************************************************************************
  */
 
-DM7820_Error DM7820_AdvInt_Get_Status(DM7820_Board_Descriptor * handle,
-				      dm7820_advint_interrupt interrupt,
-				      uint8_t * occurred);
+	DM7820_Error DM7820_AdvInt_Get_Status(DM7820_Board_Descriptor * handle,
+					      dm7820_advint_interrupt interrupt,
+					      uint8_t * occurred);
 
 /**
 *******************************************************************************
@@ -356,10 +363,12 @@ DM7820_Error DM7820_AdvInt_Get_Status(DM7820_Board_Descriptor * handle,
  *******************************************************************************
  */
 
-DM7820_Error DM7820_AdvInt_Read_Capture(DM7820_Board_Descriptor * handle,
-					dm7820_advint_interrupt interrupt,
-					DM7820_StdIO_Port port,
-					uint16_t * value);
+	DM7820_Error DM7820_AdvInt_Read_Capture(DM7820_Board_Descriptor *
+						handle,
+						dm7820_advint_interrupt
+						interrupt,
+						DM7820_StdIO_Port port,
+						uint16_t * value);
 
 /**
 *******************************************************************************
@@ -408,9 +417,11 @@ DM7820_Error DM7820_AdvInt_Read_Capture(DM7820_Board_Descriptor * handle,
  *******************************************************************************
  */
 
-DM7820_Error DM7820_AdvInt_Set_Compare(DM7820_Board_Descriptor * handle,
-				       dm7820_advint_interrupt interrupt,
-				       DM7820_StdIO_Port port, uint16_t value);
+	DM7820_Error DM7820_AdvInt_Set_Compare(DM7820_Board_Descriptor * handle,
+					       dm7820_advint_interrupt
+					       interrupt,
+					       DM7820_StdIO_Port port,
+					       uint16_t value);
 
 /**
 *******************************************************************************
@@ -467,9 +478,10 @@ DM7820_Error DM7820_AdvInt_Set_Compare(DM7820_Board_Descriptor * handle,
  *******************************************************************************
  */
 
-DM7820_Error DM7820_AdvInt_Set_Mask(DM7820_Board_Descriptor * handle,
-				    dm7820_advint_interrupt interrupt,
-				    DM7820_StdIO_Port port, uint16_t value);
+	DM7820_Error DM7820_AdvInt_Set_Mask(DM7820_Board_Descriptor * handle,
+					    dm7820_advint_interrupt interrupt,
+					    DM7820_StdIO_Port port,
+					    uint16_t value);
 
 /**
 *******************************************************************************
@@ -525,9 +537,10 @@ DM7820_Error DM7820_AdvInt_Set_Mask(DM7820_Board_Descriptor * handle,
  *******************************************************************************
  */
 
-DM7820_Error DM7820_AdvInt_Set_Master(DM7820_Board_Descriptor * handle,
-				      dm7820_advint_interrupt interrupt,
-				      dm7820_advint_master_clock master);
+	DM7820_Error DM7820_AdvInt_Set_Master(DM7820_Board_Descriptor * handle,
+					      dm7820_advint_interrupt interrupt,
+					      dm7820_advint_master_clock
+					      master);
 
 /**
 *******************************************************************************
@@ -570,9 +583,9 @@ DM7820_Error DM7820_AdvInt_Set_Master(DM7820_Board_Descriptor * handle,
  *******************************************************************************
  */
 
-DM7820_Error DM7820_AdvInt_Set_Mode(DM7820_Board_Descriptor * handle,
-				    dm7820_advint_interrupt interrupt,
-				    dm7820_advint_mode mode);
+	DM7820_Error DM7820_AdvInt_Set_Mode(DM7820_Board_Descriptor * handle,
+					    dm7820_advint_interrupt interrupt,
+					    dm7820_advint_mode mode);
 
 /**
  * @} DM7820_Library_AdvInt_Functions
@@ -629,8 +642,8 @@ FIFO block functions
  *******************************************************************************
  */
 
-DM7820_Error DM7820_FIFO_Enable(DM7820_Board_Descriptor * handle,
-				dm7820_fifo_queue fifo, uint8_t enable);
+	DM7820_Error DM7820_FIFO_Enable(DM7820_Board_Descriptor * handle,
+					dm7820_fifo_queue fifo, uint8_t enable);
 
 /**
 *******************************************************************************
@@ -700,10 +713,10 @@ DM7820_Error DM7820_FIFO_Enable(DM7820_Board_Descriptor * handle,
  *******************************************************************************
  */
 
-DM7820_Error DM7820_FIFO_Get_Status(DM7820_Board_Descriptor * handle,
-				    dm7820_fifo_queue fifo,
-				    dm7820_fifo_status_condition condition,
-				    uint8_t * occurred);
+	DM7820_Error DM7820_FIFO_Get_Status(DM7820_Board_Descriptor * handle,
+					    dm7820_fifo_queue fifo,
+					    dm7820_fifo_status_condition
+					    condition, uint8_t * occurred);
 
 /**
 *******************************************************************************
@@ -805,10 +818,10 @@ DM7820_Error DM7820_FIFO_Get_Status(DM7820_Board_Descriptor * handle,
  *******************************************************************************
  */
 
-DM7820_Error DM7820_FIFO_DMA_Initialize(DM7820_Board_Descriptor * handle,
-					dm7820_fifo_queue fifo,
-					uint32_t buffer_count,
-					uint32_t buffer_size);
+	DM7820_Error DM7820_FIFO_DMA_Initialize(DM7820_Board_Descriptor *
+						handle, dm7820_fifo_queue fifo,
+						uint32_t buffer_count,
+						uint32_t buffer_size);
 
 /**
 ********************************************************************************
@@ -856,7 +869,8 @@ DM7820_Error DM7820_FIFO_DMA_Initialize(DM7820_Board_Descriptor * handle,
 ********************************************************************************
 */
 
-DM7820_Error DM7820_FIFO_DMA_Create_Buffer(uint16_t ** buf, uint32_t size);
+	DM7820_Error DM7820_FIFO_DMA_Create_Buffer(uint16_t ** buf,
+						   uint32_t size);
 
 /**
 ********************************************************************************
@@ -901,7 +915,8 @@ DM7820_Error DM7820_FIFO_DMA_Create_Buffer(uint16_t ** buf, uint32_t size);
                         to perform memory unlocking.
 ********************************************************************************
 */
-DM7820_Error DM7820_FIFO_DMA_Free_Buffer(uint16_t ** buf, uint32_t size);
+	DM7820_Error DM7820_FIFO_DMA_Free_Buffer(uint16_t ** buf,
+						 uint32_t size);
 
 /**
 ********************************************************************************
@@ -941,10 +956,10 @@ DM7820_Error DM7820_FIFO_DMA_Free_Buffer(uint16_t ** buf, uint32_t size);
  *******************************************************************************
  */
 
-DM7820_Error
-DM7820_FIFO_DMA_Read(DM7820_Board_Descriptor * handle,
-		     dm7820_fifo_queue fifo, void *user_buffer,
-		     uint32_t num_bufs);
+	 DM7820_Error
+	    DM7820_FIFO_DMA_Read(DM7820_Board_Descriptor * handle,
+				 dm7820_fifo_queue fifo, void *user_buffer,
+				 uint32_t num_bufs);
 
 /**
 ********************************************************************************
@@ -983,10 +998,10 @@ DM7820_FIFO_DMA_Read(DM7820_Board_Descriptor * handle,
  *******************************************************************************
  */
 
-DM7820_Error
-DM7820_FIFO_DMA_Write(DM7820_Board_Descriptor * handle,
-		      dm7820_fifo_queue fifo, void *user_buffer,
-		      uint32_t num_bufs);
+	 DM7820_Error
+	    DM7820_FIFO_DMA_Write(DM7820_Board_Descriptor * handle,
+				  dm7820_fifo_queue fifo, void *user_buffer,
+				  uint32_t num_bufs);
 
 /**
 ********************************************************************************
@@ -1017,8 +1032,9 @@ DM7820_FIFO_DMA_Write(DM7820_Board_Descriptor * handle,
  *******************************************************************************
  */
 
-DM7820_Error
-DM7820_Stop_DMA(DM7820_Board_Descriptor * handle, dm7820_fifo_queue fifo);
+	 DM7820_Error
+	    DM7820_Stop_DMA(DM7820_Board_Descriptor * handle,
+			    dm7820_fifo_queue fifo);
 
 /**
 *******************************************************************************
@@ -1072,10 +1088,11 @@ DM7820_Stop_DMA(DM7820_Board_Descriptor * handle, dm7820_fifo_queue fifo);
  *******************************************************************************
  */
 
-DM7820_Error
-DM7820_FIFO_DMA_Configure(DM7820_Board_Descriptor * handle,
-			  dm7820_fifo_queue fifo,
-			  uint8_t direction, uint32_t transfer_size);
+	 DM7820_Error
+	    DM7820_FIFO_DMA_Configure(DM7820_Board_Descriptor * handle,
+				      dm7820_fifo_queue fifo,
+				      uint8_t direction,
+				      uint32_t transfer_size);
 
 /**
 *******************************************************************************
@@ -1120,9 +1137,9 @@ DM7820_FIFO_DMA_Configure(DM7820_Board_Descriptor * handle,
  *******************************************************************************
  */
 
-DM7820_Error DM7820_FIFO_DMA_Enable(DM7820_Board_Descriptor * handle,
-				    dm7820_fifo_queue fifo,
-				    uint8_t enable, uint8_t start);
+	DM7820_Error DM7820_FIFO_DMA_Enable(DM7820_Board_Descriptor * handle,
+					    dm7820_fifo_queue fifo,
+					    uint8_t enable, uint8_t start);
 
 /**
 *******************************************************************************
@@ -1162,8 +1179,8 @@ DM7820_Error DM7820_FIFO_DMA_Enable(DM7820_Board_Descriptor * handle,
  *******************************************************************************
  */
 
-DM7820_Error DM7820_FIFO_Read(DM7820_Board_Descriptor * handle,
-			      dm7820_fifo_queue fifo, uint16_t * data);
+	DM7820_Error DM7820_FIFO_Read(DM7820_Board_Descriptor * handle,
+				      dm7820_fifo_queue fifo, uint16_t * data);
 
 /**
 *******************************************************************************
@@ -1206,9 +1223,10 @@ DM7820_Error DM7820_FIFO_Read(DM7820_Board_Descriptor * handle,
  *******************************************************************************
  */
 
-DM7820_Error DM7820_FIFO_Set_DMA_Request(DM7820_Board_Descriptor * handle,
-					 dm7820_fifo_queue fifo,
-					 dm7820_fifo_dma_request source);
+	DM7820_Error DM7820_FIFO_Set_DMA_Request(DM7820_Board_Descriptor *
+						 handle, dm7820_fifo_queue fifo,
+						 dm7820_fifo_dma_request
+						 source);
 
 /**
 *******************************************************************************
@@ -1254,9 +1272,9 @@ DM7820_Error DM7820_FIFO_Set_DMA_Request(DM7820_Board_Descriptor * handle,
  *******************************************************************************
  */
 
-DM7820_Error DM7820_FIFO_Set_Data_Input(DM7820_Board_Descriptor * handle,
-					dm7820_fifo_queue fifo,
-					dm7820_fifo_data_input input);
+	DM7820_Error DM7820_FIFO_Set_Data_Input(DM7820_Board_Descriptor *
+						handle, dm7820_fifo_queue fifo,
+						dm7820_fifo_data_input input);
 
 /**
 *******************************************************************************
@@ -1305,9 +1323,9 @@ DM7820_Error DM7820_FIFO_Set_Data_Input(DM7820_Board_Descriptor * handle,
  *******************************************************************************
  */
 
-DM7820_Error DM7820_FIFO_Set_Input_Clock(DM7820_Board_Descriptor * handle,
-					 dm7820_fifo_queue fifo,
-					 dm7820_fifo_input_clock clock);
+	DM7820_Error DM7820_FIFO_Set_Input_Clock(DM7820_Board_Descriptor *
+						 handle, dm7820_fifo_queue fifo,
+						 dm7820_fifo_input_clock clock);
 
 /**
 *******************************************************************************
@@ -1356,9 +1374,11 @@ DM7820_Error DM7820_FIFO_Set_Input_Clock(DM7820_Board_Descriptor * handle,
  *******************************************************************************
  */
 
-DM7820_Error DM7820_FIFO_Set_Output_Clock(DM7820_Board_Descriptor * handle,
-					  dm7820_fifo_queue fifo,
-					  dm7820_fifo_output_clock clock);
+	DM7820_Error DM7820_FIFO_Set_Output_Clock(DM7820_Board_Descriptor *
+						  handle,
+						  dm7820_fifo_queue fifo,
+						  dm7820_fifo_output_clock
+						  clock);
 
 /**
 *******************************************************************************
@@ -1398,8 +1418,8 @@ DM7820_Error DM7820_FIFO_Set_Output_Clock(DM7820_Board_Descriptor * handle,
  *******************************************************************************
  */
 
-DM7820_Error DM7820_FIFO_Write(DM7820_Board_Descriptor * handle,
-			       dm7820_fifo_queue fifo, uint16_t data);
+	DM7820_Error DM7820_FIFO_Write(DM7820_Board_Descriptor * handle,
+				       dm7820_fifo_queue fifo, uint16_t data);
 
 /**
  * @} DM7820_Library_FIFO_Functions
@@ -1454,7 +1474,8 @@ General functions
  *******************************************************************************
  */
 
-DM7820_Error DM7820_General_Close_Board(DM7820_Board_Descriptor * handle);
+	DM7820_Error DM7820_General_Close_Board(DM7820_Board_Descriptor *
+						handle);
 
 /**
 *******************************************************************************
@@ -1519,9 +1540,10 @@ DM7820_Error DM7820_General_Close_Board(DM7820_Board_Descriptor * handle);
  *******************************************************************************
  */
 
-DM7820_Error DM7820_General_Enable_Interrupt(DM7820_Board_Descriptor * handle,
-					     dm7820_interrupt_source source,
-					     uint8_t enable);
+	DM7820_Error DM7820_General_Enable_Interrupt(DM7820_Board_Descriptor *
+						     handle,
+						     dm7820_interrupt_source
+						     source, uint8_t enable);
 
 /**
 *******************************************************************************
@@ -1587,11 +1609,12 @@ DM7820_Error DM7820_General_Enable_Interrupt(DM7820_Board_Descriptor * handle,
  *******************************************************************************
  */
 
-DM7820_Error DM7820_General_Get_Interrupt_Status(DM7820_Board_Descriptor *
-						 handle,
-						 dm7820_interrupt_info *
-						 interrupt_info,
-						 uint8_t wait_for_interrupt);
+	DM7820_Error DM7820_General_Get_Interrupt_Status(DM7820_Board_Descriptor
+							 * handle,
+							 dm7820_interrupt_info *
+							 interrupt_info,
+							 uint8_t
+							 wait_for_interrupt);
 
 /**
 *******************************************************************************
@@ -1647,8 +1670,9 @@ DM7820_Error DM7820_General_Get_Interrupt_Status(DM7820_Board_Descriptor *
  *******************************************************************************
  */
 
-DM7820_Error DM7820_General_Open_Board(uint8_t dev_num,
-				       DM7820_Board_Descriptor ** handle);
+	DM7820_Error DM7820_General_Open_Board(uint8_t dev_num,
+					       DM7820_Board_Descriptor **
+					       handle);
 
 /**
 *******************************************************************************
@@ -1693,10 +1717,11 @@ DM7820_Error DM7820_General_Open_Board(uint8_t dev_num,
  *******************************************************************************
  */
 
-DM7820_Error DM7820_General_Get_Version_Info(DM7820_Board_Descriptor * handle,
-					     uint8_t * fpga_type_id,
-					     uint8_t * fpga_version,
-					     uint16_t * svn_version);
+	DM7820_Error DM7820_General_Get_Version_Info(DM7820_Board_Descriptor *
+						     handle,
+						     uint8_t * fpga_type_id,
+						     uint8_t * fpga_version,
+						     uint16_t * svn_version);
 
 /**
 *******************************************************************************
@@ -1730,8 +1755,8 @@ DM7820_Error DM7820_General_Get_Version_Info(DM7820_Board_Descriptor * handle,
  *******************************************************************************
  */
 
-DM7820_Error DM7820_General_Is_PCI_Master(DM7820_Board_Descriptor * handle,
-					  uint8_t * pci_master);
+	DM7820_Error DM7820_General_Is_PCI_Master(DM7820_Board_Descriptor *
+						  handle, uint8_t * pci_master);
 
 /**
 *******************************************************************************
@@ -1761,10 +1786,10 @@ DM7820_Error DM7820_General_Is_PCI_Master(DM7820_Board_Descriptor * handle,
  *******************************************************************************
  */
 
-DM7820_Error DM7820_General_Reset(DM7820_Board_Descriptor * handle);
+	DM7820_Error DM7820_General_Reset(DM7820_Board_Descriptor * handle);
 
-DM7820_Error DM7820_General_InstallISR(DM7820_Board_Descriptor * handle,
-				       void (*isr_fnct));
+	DM7820_Error DM7820_General_InstallISR(DM7820_Board_Descriptor * handle,
+					       void (*isr_fnct));
 
 /**
 ********************************************************************************
@@ -1789,7 +1814,7 @@ DM7820_Error DM7820_General_InstallISR(DM7820_Board_Descriptor * handle,
 ********************************************************************************
 */
 
-DM7820_Error DM7820_General_RemoveISR(DM7820_Board_Descriptor * handle);
+	DM7820_Error DM7820_General_RemoveISR(DM7820_Board_Descriptor * handle);
 
 /**
 ********************************************************************************
@@ -1821,7 +1846,8 @@ DM7820_Error DM7820_General_RemoveISR(DM7820_Board_Descriptor * handle);
 ********************************************************************************
 */
 
-DM7820_Error DM7820_General_StartThread(int (*fnct) (void *), void *data);
+	DM7820_Error DM7820_General_StartThread(int (*fnct) (void *),
+						void *data);
 
 /**
 ********************************************************************************
@@ -1851,7 +1877,7 @@ DM7820_Error DM7820_General_StartThread(int (*fnct) (void *), void *data);
 ********************************************************************************
 */
 
-void *DM7820_General_WaitForInterrupt(void *ptr);
+	void *DM7820_General_WaitForInterrupt(void *ptr);
 
 /**
 ********************************************************************************
@@ -1876,8 +1902,9 @@ void *DM7820_General_WaitForInterrupt(void *ptr);
 ********************************************************************************
 */
 
-DM7820_Error
-DM7820_General_SetISRPriority(DM7820_Board_Descriptor * handle, int priority);
+	 DM7820_Error
+	    DM7820_General_SetISRPriority(DM7820_Board_Descriptor * handle,
+					  int priority);
 
 /**
  * @} DM7820_Library_General_Functions
@@ -1969,13 +1996,16 @@ Incremental encoder block functions
  *******************************************************************************
  */
 
-DM7820_Error DM7820_IncEnc_Configure(DM7820_Board_Descriptor * handle,
-				     dm7820_incenc_encoder encoder,
-				     dm7820_incenc_phase_filter phase_filter,
-				     dm7820_incenc_input_mode input_mode,
-				     uint8_t enable_input_filter,
-				     dm7820_incenc_channel_mode channel_mode,
-				     uint8_t enable_index);
+	DM7820_Error DM7820_IncEnc_Configure(DM7820_Board_Descriptor * handle,
+					     dm7820_incenc_encoder encoder,
+					     dm7820_incenc_phase_filter
+					     phase_filter,
+					     dm7820_incenc_input_mode
+					     input_mode,
+					     uint8_t enable_input_filter,
+					     dm7820_incenc_channel_mode
+					     channel_mode,
+					     uint8_t enable_index);
 
 /**
 *******************************************************************************
@@ -2017,9 +2047,9 @@ DM7820_Error DM7820_IncEnc_Configure(DM7820_Board_Descriptor * handle,
  *******************************************************************************
  */
 
-DM7820_Error DM7820_IncEnc_Enable(DM7820_Board_Descriptor * handle,
-				  dm7820_incenc_encoder encoder,
-				  uint8_t enable);
+	DM7820_Error DM7820_IncEnc_Enable(DM7820_Board_Descriptor * handle,
+					  dm7820_incenc_encoder encoder,
+					  uint8_t enable);
 
 /**
 *******************************************************************************
@@ -2061,9 +2091,9 @@ DM7820_Error DM7820_IncEnc_Enable(DM7820_Board_Descriptor * handle,
  *******************************************************************************
  */
 
-DM7820_Error DM7820_IncEnc_Enable_Hold(DM7820_Board_Descriptor * handle,
-				       dm7820_incenc_encoder encoder,
-				       uint8_t enable);
+	DM7820_Error DM7820_IncEnc_Enable_Hold(DM7820_Board_Descriptor * handle,
+					       dm7820_incenc_encoder encoder,
+					       uint8_t enable);
 
 /**
 *******************************************************************************
@@ -2115,11 +2145,13 @@ DM7820_Error DM7820_IncEnc_Enable_Hold(DM7820_Board_Descriptor * handle,
  *******************************************************************************
  */
 
-DM7820_Error DM7820_IncEnc_Get_Independent_Value(DM7820_Board_Descriptor *
-						 handle,
-						 dm7820_incenc_encoder encoder,
-						 dm7820_incenc_channel channel,
-						 uint16_t * value);
+	DM7820_Error DM7820_IncEnc_Get_Independent_Value(DM7820_Board_Descriptor
+							 * handle,
+							 dm7820_incenc_encoder
+							 encoder,
+							 dm7820_incenc_channel
+							 channel,
+							 uint16_t * value);
 
 /**
 *******************************************************************************
@@ -2166,9 +2198,10 @@ DM7820_Error DM7820_IncEnc_Get_Independent_Value(DM7820_Board_Descriptor *
  *******************************************************************************
  */
 
-DM7820_Error DM7820_IncEnc_Get_Joined_Value(DM7820_Board_Descriptor * handle,
-					    dm7820_incenc_encoder encoder,
-					    uint32_t * value);
+	DM7820_Error DM7820_IncEnc_Get_Joined_Value(DM7820_Board_Descriptor *
+						    handle,
+						    dm7820_incenc_encoder
+						    encoder, uint32_t * value);
 
 /**
 *******************************************************************************
@@ -2230,10 +2263,10 @@ DM7820_Error DM7820_IncEnc_Get_Joined_Value(DM7820_Board_Descriptor * handle,
  *******************************************************************************
  */
 
-DM7820_Error DM7820_IncEnc_Get_Status(DM7820_Board_Descriptor * handle,
-				      dm7820_incenc_encoder encoder,
-				      dm7820_incenc_status_condition condition,
-				      uint8_t * occurred);
+	DM7820_Error DM7820_IncEnc_Get_Status(DM7820_Board_Descriptor * handle,
+					      dm7820_incenc_encoder encoder,
+					      dm7820_incenc_status_condition
+					      condition, uint8_t * occurred);
 
 /**
 *******************************************************************************
@@ -2285,11 +2318,13 @@ DM7820_Error DM7820_IncEnc_Get_Status(DM7820_Board_Descriptor * handle,
  *******************************************************************************
  */
 
-DM7820_Error DM7820_IncEnc_Set_Independent_Value(DM7820_Board_Descriptor *
-						 handle,
-						 dm7820_incenc_encoder encoder,
-						 dm7820_incenc_channel channel,
-						 uint16_t value);
+	DM7820_Error DM7820_IncEnc_Set_Independent_Value(DM7820_Board_Descriptor
+							 * handle,
+							 dm7820_incenc_encoder
+							 encoder,
+							 dm7820_incenc_channel
+							 channel,
+							 uint16_t value);
 
 /**
 *******************************************************************************
@@ -2336,9 +2371,10 @@ DM7820_Error DM7820_IncEnc_Set_Independent_Value(DM7820_Board_Descriptor *
  *******************************************************************************
  */
 
-DM7820_Error DM7820_IncEnc_Set_Joined_Value(DM7820_Board_Descriptor * handle,
-					    dm7820_incenc_encoder encoder,
-					    uint32_t value);
+	DM7820_Error DM7820_IncEnc_Set_Joined_Value(DM7820_Board_Descriptor *
+						    handle,
+						    dm7820_incenc_encoder
+						    encoder, uint32_t value);
 
 /**
 *******************************************************************************
@@ -2387,9 +2423,10 @@ DM7820_Error DM7820_IncEnc_Set_Joined_Value(DM7820_Board_Descriptor * handle,
  *******************************************************************************
  */
 
-DM7820_Error DM7820_IncEnc_Set_Master(DM7820_Board_Descriptor * handle,
-				      dm7820_incenc_encoder encoder,
-				      dm7820_incenc_master_clock master);
+	DM7820_Error DM7820_IncEnc_Set_Master(DM7820_Board_Descriptor * handle,
+					      dm7820_incenc_encoder encoder,
+					      dm7820_incenc_master_clock
+					      master);
 
 /**
  * @} DM7820_Library_IncEnc_Functions
@@ -2444,8 +2481,9 @@ Pulse width modulator block functions
  *******************************************************************************
  */
 
-DM7820_Error DM7820_PWM_Enable(DM7820_Board_Descriptor * handle,
-			       dm7820_pwm_modulator pwm, uint8_t enable);
+	DM7820_Error DM7820_PWM_Enable(DM7820_Board_Descriptor * handle,
+				       dm7820_pwm_modulator pwm,
+				       uint8_t enable);
 
 /**
 *******************************************************************************
@@ -2494,8 +2532,9 @@ DM7820_Error DM7820_PWM_Enable(DM7820_Board_Descriptor * handle,
  *******************************************************************************
  */
 
-DM7820_Error DM7820_PWM_Set_Period(DM7820_Board_Descriptor * handle,
-				   dm7820_pwm_modulator pwm, uint32_t period);
+	DM7820_Error DM7820_PWM_Set_Period(DM7820_Board_Descriptor * handle,
+					   dm7820_pwm_modulator pwm,
+					   uint32_t period);
 
 /**
 *******************************************************************************
@@ -2544,10 +2583,11 @@ DM7820_Error DM7820_PWM_Set_Period(DM7820_Board_Descriptor * handle,
  *******************************************************************************
  */
 
-DM7820_Error DM7820_PWM_Set_Period_Master(DM7820_Board_Descriptor * handle,
-					  dm7820_pwm_modulator pwm,
-					  dm7820_pwm_period_master_clock
-					  master);
+	DM7820_Error DM7820_PWM_Set_Period_Master(DM7820_Board_Descriptor *
+						  handle,
+						  dm7820_pwm_modulator pwm,
+						  dm7820_pwm_period_master_clock
+						  master);
 
 /**
 *******************************************************************************
@@ -2596,9 +2636,10 @@ DM7820_Error DM7820_PWM_Set_Period_Master(DM7820_Board_Descriptor * handle,
  *******************************************************************************
  */
 
-DM7820_Error DM7820_PWM_Set_Width(DM7820_Board_Descriptor * handle,
-				  dm7820_pwm_modulator pwm,
-				  dm7820_pwm_output output, uint16_t width);
+	DM7820_Error DM7820_PWM_Set_Width(DM7820_Board_Descriptor * handle,
+					  dm7820_pwm_modulator pwm,
+					  dm7820_pwm_output output,
+					  uint16_t width);
 
 /**
 *******************************************************************************
@@ -2647,9 +2688,11 @@ DM7820_Error DM7820_PWM_Set_Width(DM7820_Board_Descriptor * handle,
  *******************************************************************************
  */
 
-DM7820_Error DM7820_PWM_Set_Width_Master(DM7820_Board_Descriptor * handle,
-					 dm7820_pwm_modulator pwm,
-					 dm7820_pwm_width_master_clock master);
+	DM7820_Error DM7820_PWM_Set_Width_Master(DM7820_Board_Descriptor *
+						 handle,
+						 dm7820_pwm_modulator pwm,
+						 dm7820_pwm_width_master_clock
+						 master);
 
 /**
  * @} DM7820_Library_PWM_Functions
@@ -2711,9 +2754,10 @@ Programmable clock block functions
  *******************************************************************************
  */
 
-DM7820_Error DM7820_PrgClk_Set_Master(DM7820_Board_Descriptor * handle,
-				      dm7820_prgclk_clock clock,
-				      dm7820_prgclk_master_clock master);
+	DM7820_Error DM7820_PrgClk_Set_Master(DM7820_Board_Descriptor * handle,
+					      dm7820_prgclk_clock clock,
+					      dm7820_prgclk_master_clock
+					      master);
 
 /**
 *******************************************************************************
@@ -2766,9 +2810,9 @@ DM7820_Error DM7820_PrgClk_Set_Master(DM7820_Board_Descriptor * handle,
  *******************************************************************************
  */
 
-DM7820_Error DM7820_PrgClk_Set_Mode(DM7820_Board_Descriptor * handle,
-				    dm7820_prgclk_clock clock,
-				    dm7820_prgclk_mode mode);
+	DM7820_Error DM7820_PrgClk_Set_Mode(DM7820_Board_Descriptor * handle,
+					    dm7820_prgclk_clock clock,
+					    dm7820_prgclk_mode mode);
 
 /**
 *******************************************************************************
@@ -2814,9 +2858,9 @@ DM7820_Error DM7820_PrgClk_Set_Mode(DM7820_Board_Descriptor * handle,
  *******************************************************************************
  */
 
-DM7820_Error DM7820_PrgClk_Set_Period(DM7820_Board_Descriptor * handle,
-				      dm7820_prgclk_clock clock,
-				      uint32_t period);
+	DM7820_Error DM7820_PrgClk_Set_Period(DM7820_Board_Descriptor * handle,
+					      dm7820_prgclk_clock clock,
+					      uint32_t period);
 
 /**
 *******************************************************************************
@@ -2862,9 +2906,11 @@ DM7820_Error DM7820_PrgClk_Set_Period(DM7820_Board_Descriptor * handle,
  *******************************************************************************
  */
 
-DM7820_Error DM7820_PrgClk_Set_Start_Trigger(DM7820_Board_Descriptor * handle,
-					     dm7820_prgclk_clock clock,
-					     dm7820_prgclk_start_trigger start);
+	DM7820_Error DM7820_PrgClk_Set_Start_Trigger(DM7820_Board_Descriptor *
+						     handle,
+						     dm7820_prgclk_clock clock,
+						     dm7820_prgclk_start_trigger
+						     start);
 
 /**
 *******************************************************************************
@@ -2910,9 +2956,11 @@ DM7820_Error DM7820_PrgClk_Set_Start_Trigger(DM7820_Board_Descriptor * handle,
  *******************************************************************************
  */
 
-DM7820_Error DM7820_PrgClk_Set_Stop_Trigger(DM7820_Board_Descriptor * handle,
-					    dm7820_prgclk_clock clock,
-					    dm7820_prgclk_stop_trigger stop);
+	DM7820_Error DM7820_PrgClk_Set_Stop_Trigger(DM7820_Board_Descriptor *
+						    handle,
+						    dm7820_prgclk_clock clock,
+						    dm7820_prgclk_stop_trigger
+						    stop);
 
 /**
  * @} DM7820_Library_PrgClk_Functions
@@ -2969,8 +3017,9 @@ Standard I/O block functions
  *******************************************************************************
  */
 
-DM7820_Error DM7820_StdIO_Get_Input(DM7820_Board_Descriptor * handle,
-				    DM7820_StdIO_Port port, uint16_t * value);
+	DM7820_Error DM7820_StdIO_Get_Input(DM7820_Board_Descriptor * handle,
+					    DM7820_StdIO_Port port,
+					    uint16_t * value);
 
 /**
 *******************************************************************************
@@ -3020,9 +3069,10 @@ DM7820_Error DM7820_StdIO_Get_Input(DM7820_Board_Descriptor * handle,
  *******************************************************************************
  */
 
-DM7820_Error DM7820_StdIO_Set_IO_Mode(DM7820_Board_Descriptor * handle,
-				      DM7820_StdIO_Port port,
-				      uint16_t bits, DM7820_StdIO_IO_Mode mode);
+	DM7820_Error DM7820_StdIO_Set_IO_Mode(DM7820_Board_Descriptor * handle,
+					      DM7820_StdIO_Port port,
+					      uint16_t bits,
+					      DM7820_StdIO_IO_Mode mode);
 
 /**
 *******************************************************************************
@@ -3065,8 +3115,9 @@ DM7820_Error DM7820_StdIO_Set_IO_Mode(DM7820_Board_Descriptor * handle,
  *******************************************************************************
  */
 
-DM7820_Error DM7820_StdIO_Set_Output(DM7820_Board_Descriptor * handle,
-				     DM7820_StdIO_Port port, uint16_t value);
+	DM7820_Error DM7820_StdIO_Set_Output(DM7820_Board_Descriptor * handle,
+					     DM7820_StdIO_Port port,
+					     uint16_t value);
 
 /**
 *******************************************************************************
@@ -3121,10 +3172,12 @@ DM7820_Error DM7820_StdIO_Set_Output(DM7820_Board_Descriptor * handle,
  *******************************************************************************
  */
 
-DM7820_Error DM7820_StdIO_Set_Periph_Mode(DM7820_Board_Descriptor * handle,
-					  DM7820_StdIO_Port port,
-					  uint16_t bits,
-					  DM7820_StdIO_Periph_Mode mode);
+	DM7820_Error DM7820_StdIO_Set_Periph_Mode(DM7820_Board_Descriptor *
+						  handle,
+						  DM7820_StdIO_Port port,
+						  uint16_t bits,
+						  DM7820_StdIO_Periph_Mode
+						  mode);
 
 /**
 *******************************************************************************
@@ -3166,9 +3219,9 @@ DM7820_Error DM7820_StdIO_Set_Periph_Mode(DM7820_Board_Descriptor * handle,
  *******************************************************************************
  */
 
-DM7820_Error DM7820_StdIO_Strobe_Input(DM7820_Board_Descriptor * handle,
-				       DM7820_StdIO_Strobe strobe,
-				       uint8_t * state);
+	DM7820_Error DM7820_StdIO_Strobe_Input(DM7820_Board_Descriptor * handle,
+					       DM7820_StdIO_Strobe strobe,
+					       uint8_t * state);
 
 /**
 *******************************************************************************
@@ -3210,9 +3263,9 @@ DM7820_Error DM7820_StdIO_Strobe_Input(DM7820_Board_Descriptor * handle,
  *******************************************************************************
  */
 
-DM7820_Error DM7820_StdIO_Strobe_Mode(DM7820_Board_Descriptor * handle,
-				      DM7820_StdIO_Strobe strobe,
-				      uint8_t output);
+	DM7820_Error DM7820_StdIO_Strobe_Mode(DM7820_Board_Descriptor * handle,
+					      DM7820_StdIO_Strobe strobe,
+					      uint8_t output);
 
 /**
 *******************************************************************************
@@ -3253,9 +3306,10 @@ DM7820_Error DM7820_StdIO_Strobe_Mode(DM7820_Board_Descriptor * handle,
  *******************************************************************************
  */
 
-DM7820_Error DM7820_StdIO_Strobe_Output(DM7820_Board_Descriptor * handle,
-					DM7820_StdIO_Strobe strobe,
-					uint8_t state);
+	DM7820_Error DM7820_StdIO_Strobe_Output(DM7820_Board_Descriptor *
+						handle,
+						DM7820_StdIO_Strobe strobe,
+						uint8_t state);
 
 /**
  * @} DM7820_Library_StdIO_Functions
@@ -3321,9 +3375,9 @@ DM7820_Error DM7820_StdIO_Strobe_Output(DM7820_Board_Descriptor * handle,
  *******************************************************************************
  */
 
-DM7820_Error DM7820_TmrCtr_Get_Status(DM7820_Board_Descriptor * handle,
-				      dm7820_tmrctr_timer timer,
-				      uint8_t * occurred);
+	DM7820_Error DM7820_TmrCtr_Get_Status(DM7820_Board_Descriptor * handle,
+					      dm7820_tmrctr_timer timer,
+					      uint8_t * occurred);
 
 /**
 *******************************************************************************
@@ -3380,11 +3434,11 @@ DM7820_Error DM7820_TmrCtr_Get_Status(DM7820_Board_Descriptor * handle,
  *******************************************************************************
  */
 
-DM7820_Error DM7820_TmrCtr_Program(DM7820_Board_Descriptor * handle,
-				   dm7820_tmrctr_timer timer,
-				   dm7820_tmrctr_waveform waveform,
-				   dm7820_tmrctr_count_mode count_mode,
-				   uint16_t divisor);
+	DM7820_Error DM7820_TmrCtr_Program(DM7820_Board_Descriptor * handle,
+					   dm7820_tmrctr_timer timer,
+					   dm7820_tmrctr_waveform waveform,
+					   dm7820_tmrctr_count_mode count_mode,
+					   uint16_t divisor);
 
 /**
 *******************************************************************************
@@ -3424,8 +3478,9 @@ DM7820_Error DM7820_TmrCtr_Program(DM7820_Board_Descriptor * handle,
  *******************************************************************************
  */
 
-DM7820_Error DM7820_TmrCtr_Read(DM7820_Board_Descriptor * handle,
-				dm7820_tmrctr_timer timer, uint16_t * value);
+	DM7820_Error DM7820_TmrCtr_Read(DM7820_Board_Descriptor * handle,
+					dm7820_tmrctr_timer timer,
+					uint16_t * value);
 
 /**
 *******************************************************************************
@@ -3471,9 +3526,10 @@ DM7820_Error DM7820_TmrCtr_Read(DM7820_Board_Descriptor * handle,
  *******************************************************************************
  */
 
-DM7820_Error DM7820_TmrCtr_Select_Clock(DM7820_Board_Descriptor * handle,
-					dm7820_tmrctr_timer timer,
-					dm7820_tmrctr_clock clock);
+	DM7820_Error DM7820_TmrCtr_Select_Clock(DM7820_Board_Descriptor *
+						handle,
+						dm7820_tmrctr_timer timer,
+						dm7820_tmrctr_clock clock);
 
 /**
 *******************************************************************************
@@ -3516,9 +3572,9 @@ DM7820_Error DM7820_TmrCtr_Select_Clock(DM7820_Board_Descriptor * handle,
  *******************************************************************************
  */
 
-DM7820_Error DM7820_TmrCtr_Select_Gate(DM7820_Board_Descriptor * handle,
-				       dm7820_tmrctr_timer timer,
-				       dm7820_tmrctr_gate gate);
+	DM7820_Error DM7820_TmrCtr_Select_Gate(DM7820_Board_Descriptor * handle,
+					       dm7820_tmrctr_timer timer,
+					       dm7820_tmrctr_gate gate);
 
 /**
  * @} DM7820_Library_TmrCtr_Functions
@@ -3568,4 +3624,7 @@ DM7820_Error DM7820_TmrCtr_Select_Gate(DM7820_Board_Descriptor * handle,
  * @} DM7820_Library_Header
  */
 
-#endif /* __dm7820_library_h__ */
+#ifdef __cplusplus
+}
+#endif
+#endif				/* __dm7820_library_h__ */
