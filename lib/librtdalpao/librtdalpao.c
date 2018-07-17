@@ -125,23 +125,30 @@ static void alpao_limit_power(double buffer[ALPAO_DEV_N_CHANNEL]) {
 static void alpao_build_frame(const double in_data[ALPAO_DEV_N_CHANNEL], uint16_t out_frame[ALPAO_DATA_LENGTH]) {
   size_t channel_index = 0;
   uint32_t sum = 0;
-
+  int i;
   uint8_t *p_sum = (uint8_t*)&sum;
 
+  /* Initialize out_frame */
+  for(i=0;i<ALPAO_DATA_LENGTH;i++)
+    out_frame[i]=ALPAO_MID_SCALE;
+  
+  /* Initialize header */
   out_frame[0] = ALPAO_START_WORD; // Start of frame
   out_frame[1] = ALPAO_INIT_COUNTER; // Reset internal counter
-  sum += out_frame[1];
 
   /* Convert double to UINT16 */
   for ( channel_index = 0; channel_index < ALPAO_DEV_N_CHANNEL; channel_index++ ) {
     out_frame[alpao_device.mapping[channel_index]+2] = (uint16_t) ( (alpao_device.multiplier[channel_index]*(in_data[channel_index]+alpao_device.offset[channel_index])+1.0) * ALPAO_MID_SCALE );
     if ( out_frame[alpao_device.mapping[channel_index]+2] > ALPAO_MAX_SAFE ) out_frame[alpao_device.mapping[channel_index]+2] = ALPAO_MAX_SAFE;
     if ( out_frame[alpao_device.mapping[channel_index]+2] < ALPAO_MIN_SAFE ) out_frame[alpao_device.mapping[channel_index]+2] = ALPAO_MIN_SAFE;
-    sum += out_frame[alpao_device.mapping[channel_index]+2];
   }
   out_frame[ALPAO_N_CHANNEL+2] = ALPAO_END_WORD;
-  sum += out_frame[ALPAO_N_CHANNEL+2];
 
+  /* Calculate Checksum */
+  sum=0;
+  for(i=1;i<=ALPAO_N_CHANNEL+2;i++)
+    sum += out_frame[i];
+  
   while (sum > 0xFF) {
     sum = p_sum[0] + p_sum[1] + p_sum[2] + p_sum[3];
   }
@@ -1246,7 +1253,7 @@ static void rtd_write_dma_fifo(char* buffer, uint32_t size) {
 
 #define RTDALPAO_HARDWARE 1
 
-uint16_t rtdalpao_dma_data[RTDALPAO_DATA_LENGTH] = {ALPAO_MID_SCALE}; 
+uint16_t rtdalpao_dma_data[RTDALPAO_DATA_LENGTH]; 
 
 /* -------------------- function prototypes -------------------- */
 static void rtdalpao_send_analog_frame(double[ALPAO_DEV_N_CHANNEL]);
@@ -1418,12 +1425,15 @@ void rtdalpao_build_dither_frames(const double in_data[ALPAO_DEV_N_CHANNEL], uin
 
   size_t frame_number, channel_index, main_index, sub_index, index;
   uint32_t sum;
-
   uint8_t *p_sum = (uint8_t*)&sum;
-
   double fraction[ALPAO_DEV_N_CHANNEL];
   uint16_t frame[ALPAO_DEV_N_CHANNEL];
-
+  int i;
+  
+  /* Initialize out_block */
+  for(i=0;i<RTDALPAO_DATA_LENGTH;i++)
+    out_block[i]=ALPAO_MID_SCALE;
+  
   for ( channel_index = 0; channel_index < ALPAO_DEV_N_CHANNEL; channel_index++ ) {
     frame[channel_index] = (uint16_t) ( (alpao_device.multiplier[channel_index]*(in_data[channel_index]+alpao_device.offset[channel_index])+1.0) * ALPAO_MID_SCALE );
     fraction[channel_index] = fmod(in_data[channel_index],ALPAO_MIN_ANALOG_STEP)/ALPAO_MIN_ANALOG_STEP + ((in_data[channel_index]<=0.0)?1.0:0.0);
@@ -1432,24 +1442,25 @@ void rtdalpao_build_dither_frames(const double in_data[ALPAO_DEV_N_CHANNEL], uin
   for (frame_number = 1; frame_number <= RTDALPAO_DITHERS_PER_FRAME; frame_number++) {
 
     index = frame_number-1;
-    sum = 0;
-
     main_index = index*ALPAO_DATA_LENGTH;
 
+    /* Initialize Header */
     out_block[main_index+0] = ALPAO_START_WORD;
     out_block[main_index+1] = ALPAO_INIT_COUNTER;
-    sum += out_block[main_index+1];
-
+    
     for ( channel_index = 0; channel_index < ALPAO_DEV_N_CHANNEL; channel_index++ ) {
       sub_index = main_index+alpao_device.mapping[channel_index]+2;
       out_block[sub_index] = frame[channel_index] + is_actuator_up_down(frame_number,fraction[channel_index]);
       if ( out_block[sub_index] > ALPAO_MAX_SAFE ) out_block[sub_index] = ALPAO_MAX_SAFE;
       if ( out_block[sub_index] < ALPAO_MIN_SAFE ) out_block[sub_index] = ALPAO_MIN_SAFE;
-      sum += out_block[sub_index];
     }
     sub_index = main_index+ALPAO_N_CHANNEL+2;
     out_block[sub_index] = ALPAO_END_WORD;
-    sum += out_block[sub_index];
+
+    /* Calculate Checksum */
+    sum=0;
+    for(i=main_index+1;i<=main_index+ALPAO_N_CHANNEL+2;i++)
+      sum += out_block[i];
 
     while (sum > 0xFF) {
       sum = p_sum[0] + p_sum[1] + p_sum[2] + p_sum[3];
