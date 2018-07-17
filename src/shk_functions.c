@@ -915,7 +915,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     // - copy command to shkevent
     memcpy(&shkevent.alp,&alp,sizeof(alp_t));
   }
-  
+
   //Send command to HEX
   if(HEX_ENABLE && move_hex){
     // - send command

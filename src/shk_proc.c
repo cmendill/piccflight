@@ -61,7 +61,7 @@ static void shk_callback( tHandle shkCamera, ui32 dwInterruptMask, void *pvParam
       //Process image
       shk_process_image(&stBuffer,aContext->sm_p,shk_frame_count);
       //Check in with watchdog
-
+      checkin(aContext->sm_p,SHKID);
       //Increment frame counter
       shk_frame_count++;
     }
@@ -181,7 +181,8 @@ int shk_proc(void){
       shkctrlC(0);
 
     /* Check in with the watchdog */
-    checkin(sm_p,SHKID);
+    if(!camera_running)
+      checkin(sm_p,SHKID);
 
     /* Sleep */
     sleep(sm_p->w[SHKID].per);
