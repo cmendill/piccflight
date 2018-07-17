@@ -46,12 +46,36 @@
 #define ALPAO_MID_SCALE                0x2000
 
 /* -------------------- function prototypes -------------------- */
+static double alpao_limit_analog_value(double value);
 static void alpao_limit_power(double[ALPAO_DEV_N_CHANNEL]);
 static void alpao_build_frame(const double[ALPAO_DEV_N_CHANNEL], uint16_t[ALPAO_DATA_LENGTH]);
 static void alpao_print_frame(const uint16_t frame[ALPAO_DATA_LENGTH]);
 /* ------------------------------------------------------------- */
 
-const alpao_device_t alpao_device = {ALPAO_DEV_TYPE, ALPAO_DEV_SERIAL, ALPAO_DEV_MAX_POWER_SAFE, ALPAO_DEV_N_CHANNEL, ALPAO_DEV_MAPPING, ALPAO_DEV_MULTIPLIER};
+const alpao_device_t alpao_device = {ALPAO_DEV_TYPE, ALPAO_DEV_SERIAL, ALPAO_DEV_MAX_POWER_SAFE, ALPAO_DEV_ANALOG_LIMIT, ALPAO_DEV_N_CHANNEL, ALPAO_DEV_MAPPING, ALPAO_DEV_MULTIPLIER, ALPAO_DEV_OFFSET};
+
+
+
+
+
+
+
+
+
+/**
+  *  \brief   Analog value limiting functions
+  *           this function is used to limit the analog values in a window [-ALPAO_DEV_MAX_POWER_SAFE,ALPAO_DEV_MAX_POWER_SAFE]
+  *  @param   [in]    double value - analog value to be clamped.
+  *  @return  double - clamped analog value.
+  */
+static double alpao_limit_analog_value(double value) {
+  if (value > ALPAO_DEV_ANALOG_LIMIT) {
+    value = ALPAO_DEV_ANALOG_LIMIT;
+  } else if (value < -ALPAO_DEV_ANALOG_LIMIT) {
+    value = -ALPAO_DEV_ANALOG_LIMIT;
+  }
+  return value;
+}
 
 
 
@@ -71,6 +95,7 @@ static void alpao_limit_power(double buffer[ALPAO_DEV_N_CHANNEL]) {
   double power = 0.;
   size_t channel_index = 0;
   for (channel_index = 0; channel_index < ALPAO_DEV_N_CHANNEL; channel_index++) {
+    buffer[channel_index] = alpao_limit_analog_value(buffer[channel_index]);
     power += buffer[channel_index] * buffer[channel_index];
   }
   if (power > ALPAO_DEV_MAX_POWER_SAFE) {
@@ -81,42 +106,6 @@ static void alpao_limit_power(double buffer[ALPAO_DEV_N_CHANNEL]) {
     }
   }
 }
-
-
-
-
-
-
-
-
-
-// /**
-//   *  \brief   Calculated frame check-sum (The original function from ALPAO)
-//   *           This function is no longer used (but kept here for reference).
-//   *           Frame checksums are now calculated in the same loop as the adc conversion in ALPAO_build_frame or rtdalpao_build_dither_frames.
-//   *  @param   [in|out]    const uint16_t* buffer - [in]  A buffer with ALPAO_FRAME_LENGTH uint16_t DM frame (including the header (0xF600,0x5C00) in the first 4 bytes and the empty checksum (0xF100) at the last 2 bytes.)
-//   *                                                [out] A buffer with the calculated checksum in the last 2 bytes
-//   *  @return  uint8_t - The caluclated checksum
-//   */
-// static uint8_t checksum(const uint16_t* buffer) {
-//   uint32_t sum = 0;
-//   size_t i;
-  
-//   /* Point with a byte pointer on the integer */
-//   uint8_t *p_sum = (uint8_t*)&sum;
-//   /* Sum all value of the buffer in an integer value (4 Bytes) */
-//   for (i = 1; i < ALPAO_FRAME_LENGTH; ++i) {
-//     sum += buffer[i];
-//   }
-
-//   /* While 3 first bytes of the integer value are not = 0x00 */
-//   while (sum > 0xFF) {
-//     /* Sum each bytes and store their sum in the previous integer */
-//     sum = p_sum[0] + p_sum[1] + p_sum[2] + p_sum[3];
-//   }
-//   /* Once 3 first bytes are zeros, checksum is in the 4th byte 0x000000XX, XX is the checkSum */
-//   return ~p_sum[0];
-// }
 
 
 
@@ -145,7 +134,7 @@ static void alpao_build_frame(const double in_data[ALPAO_DEV_N_CHANNEL], uint16_
 
   /* Convert double to UINT16 */
   for ( channel_index = 0; channel_index < ALPAO_DEV_N_CHANNEL; channel_index++ ) {
-    out_frame[alpao_device.mapping[channel_index]+2] = (uint16_t) ( (alpao_device.multiplier[channel_index]*in_data[channel_index]+1.) * ALPAO_MID_SCALE );
+    out_frame[alpao_device.mapping[channel_index]+2] = (uint16_t) ( (alpao_device.multiplier[channel_index]*(in_data[channel_index]+alpao_device.offset[channel_index])+1.0) * ALPAO_MID_SCALE );
     if ( out_frame[alpao_device.mapping[channel_index]+2] > ALPAO_MAX_SAFE ) out_frame[alpao_device.mapping[channel_index]+2] = ALPAO_MAX_SAFE;
     if ( out_frame[alpao_device.mapping[channel_index]+2] < ALPAO_MIN_SAFE ) out_frame[alpao_device.mapping[channel_index]+2] = ALPAO_MIN_SAFE;
     sum += out_frame[alpao_device.mapping[channel_index]+2];
@@ -1436,7 +1425,7 @@ void rtdalpao_build_dither_frames(const double in_data[ALPAO_DEV_N_CHANNEL], uin
   uint16_t frame[ALPAO_DEV_N_CHANNEL];
 
   for ( channel_index = 0; channel_index < ALPAO_DEV_N_CHANNEL; channel_index++ ) {
-    frame[channel_index] = (uint16_t) ( (alpao_device.multiplier[channel_index]*in_data[channel_index]+1.0) * ALPAO_MID_SCALE );
+    frame[channel_index] = (uint16_t) ( (alpao_device.multiplier[channel_index]*(in_data[channel_index]+alpao_device.offset[channel_index])+1.0) * ALPAO_MID_SCALE );
     fraction[channel_index] = fmod(in_data[channel_index],ALPAO_MIN_ANALOG_STEP)/ALPAO_MIN_ANALOG_STEP + ((in_data[channel_index]<=0.0)?1.0:0.0);
   }
 
@@ -1578,6 +1567,7 @@ void rtdalpao_write_data_to_file(FILE* p_file, const double data[ALPAO_DEV_N_CHA
     fwrite(&frame_length, sizeof(uint16_t), 1, p_file);
     fwrite(&(alpao_device.mapping), sizeof(uint8_t), ALPAO_DEV_N_CHANNEL, p_file);
     fwrite(&(alpao_device.multiplier), sizeof(int8_t), ALPAO_DEV_N_CHANNEL, p_file);
+    fwrite(&(alpao_device.offset), sizeof(double), ALPAO_DEV_N_CHANNEL, p_file);
     write_header = 0;
   }
   fwrite(data, sizeof(double), ALPAO_DEV_N_CHANNEL, p_file);
@@ -1611,11 +1601,12 @@ void rtdalpao_print_info(void) {
   printf("device type                          = %s\n", alpao_device.type); // or ALPAO_DEV_TYPE
   printf("device serial                        = %s\n", alpao_device.serial); // or ALPAO_DEV_SERIAL
   printf("max power                            = %f\n", alpao_device.max_power); // or ALPAO_DEV_MAX_POWER_SAFE
+  printf("analog limit                         = %f\n", alpao_device.analog_limit); // or ALPAO_DEV_ANALOG_LIMIT
   printf("number of actuators                  = %d\n", alpao_device.n_act); // or ALPAO_DEV_N_CHANNEL for static arrays definitions
-  printf("actuator mapping                     = [index,\tmap,\tX  ]\n");
+  printf("actuator mapping                     = [ind,  \tmap,\tmul,\toffset    ]\n");
   uint8_t act;
   for(act = 0; act < alpao_device.n_act; act++)
-    printf("                                       [%03d,\t%03d,\t%+03d]\n", act, alpao_device.mapping[act], alpao_device.multiplier[act]);
+    printf("                                       [%03d,\t%03d,\t%+03d,\t%+1.7f]\n", act, alpao_device.mapping[act], alpao_device.multiplier[act], alpao_device.offset[act]);
   printf("\b\n");
   printf("------------------------ LOWFC info ------------------------\n");
   printf("LWFC frequency                       = %f [Hz]\n", LWFC_FREQ);
