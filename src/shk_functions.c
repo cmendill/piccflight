@@ -687,6 +687,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   shkevent_t *shkevent_p;
   static struct timespec first,start,end,delta,last;
   static int init=0;
+  DM7820_Error dm7820_status;
   double dt;
   int32 i,j;
   uint16 fakepx=0;
@@ -705,6 +706,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   double hex_delta[HEX_NAXES]={0};
   double zernike_delta[LOWFS_N_ZERNIKE]={0};
   hexevent_t hexevent;
+  uint16 n_dither=1;
   
   //Get time immidiately
   clock_gettime(CLOCK_REALTIME,&start);
@@ -739,13 +741,19 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     alp_last_sent = 0;
     hex_last_recv = 0;
     alp_last_recv = 0;
+    //Init ALPAO interface
+    if((dm7820_status = rtdalpao_init(sm_p->p_rtd_board,n_dither)))
+      perror("rtdalpao_init");
+    //Start ALPAO timer 
+    if((dm7820_status = rtdalpao_start_timer(sm_p->p_rtd_board)))
+      perror("rtdalpao_start_timer");
     //Reset start time
     memcpy(&first,&start,sizeof(struct timespec));
     //Set init flag
     init=1;
     //Debugging
     if(SHK_DEBUG) printf("SHK: Initialized\n");
- }
+  }
   
   //Measure exposure time
   if(timespec_subtract(&delta,&start,&last))
@@ -911,7 +919,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   //Send command to ALP
   if(ALP_ENABLE && move_alp){
     // - send command
-    rtdalpao_send_analog_data(alp.act_cmd);
+    dm7820_status = rtdalpao_send_analog_data(sm_p->p_rtd_board,alp.act_cmd);
     // - copy command to shkevent
     memcpy(&shkevent.alp,&alp,sizeof(alp_t));
   }

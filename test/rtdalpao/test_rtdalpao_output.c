@@ -126,9 +126,10 @@ int main( int argc, char *argv[] ) {
   //Print ALPAO info
   rtdalpao_print_info();
   
-  /* Start timer */
-  dm7820_status = rtdalpao_start_timer(p_rtd_board);
-
+  //Start timer
+  if((dm7820_status = rtdalpao_start_timer(p_rtd_board)))
+    perror("rtdalpao_start_timer");
+      
   if (sweep_flag) {
 
     printf("Sweep actuators from %d to %d with %f\n", a_actuator, b_actuator, analog_value);
@@ -183,19 +184,18 @@ int main( int argc, char *argv[] ) {
   usleep(1500);
 
   /* Stop timer */
-  dm7820_status = rtdalpao_stop_timer(p_rtd_board);
+  if((dm7820_status = rtdalpao_stop_timer(p_rtd_board)))
+    perror("rtdalpao_stop_timer");
 
   /* Sleep before cleanup */
   usleep(1500);
 
   
   //Cleanup ALPAO interface
-  printf("Open\n");
   if((dm7820_status = rtdalpao_clean(p_rtd_board)))
     perror("rtdalpao_clean");
 
   //Close driver
-  printf("Open\n");
   if((dm7820_status = rtd_close(p_rtd_board)))
     perror("rtd_close");
 

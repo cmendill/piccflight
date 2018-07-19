@@ -14,6 +14,7 @@
 #include <sys/sem.h>
 #include <sys/io.h>
 #include <rtdalpao_library.h>
+#include <dm7820_library.h>
 
 /* piccflight headers */
 #include "watchdog.h"
@@ -234,6 +235,7 @@ int main(int argc,char **argv){
   int i;
   int retval;
   int shutdown=0;
+  DM7820_Error dm7820_status;
   
   /* Open Shared Memory */
   sm_t *sm_p;
@@ -388,10 +390,17 @@ int main(int argc,char **argv){
   
   /* Init RTD ALPAO Driver */
   if(ALP_ENABLE){
-    /* Init RTD board for ALPAO */
-    rtdalpao_init();
-    /* Start RTD ALPAO timer */
-    rtdalpao_start_timer();
+    //Open driver
+    if((dm7820_status = rtd_open(0, &sm_p->p_rtd_board)))
+      perror("rtd_open");
+
+    //Reset board
+    if((dm7820_status = rtd_reset(sm_p->p_rtd_board)))
+      perror("rtd_reset");
+
+    //Clear all
+    if((dm7820_status = rtd_clear_all(sm_p->p_rtd_board)))
+      perror("rtd_clear_all");
   }
   else printf("WAT: ALPAO disabled\n");
 
@@ -449,16 +458,23 @@ int main(int argc,char **argv){
   //Close ALPAO driver
   if(ALP_ENABLE){
     /* Sleep before stop timer */
-    usleep(RTDALPAO_DATA_TRANSFER_TIME);
-    
+    usleep(1500);
+
     /* Stop timer */
-    rtdalpao_stop_timer();
-    
+    if((dm7820_status = rtdalpao_stop_timer(sm_p->p_rtd_board)))
+      perror("rtdalpao_stop_timer");
+
     /* Sleep before cleanup */
     usleep(1500);
-    
-    /* Cleanup RTD board */
-    rtdalpao_clean_close();
+
+  
+    //Cleanup ALPAO interface
+    if((dm7820_status = rtdalpao_clean(sm_p->p_rtd_board)))
+      perror("rtdalpao_clean");
+
+    //Close driver
+    if((dm7820_status = rtd_close(sm_p->p_rtd_board)))
+      perror("rtd_close");
   }
 
 

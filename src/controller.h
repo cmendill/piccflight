@@ -3,6 +3,7 @@
  ***********************************************/
 #include <stdint.h>
 #include <time.h>
+#include <dm7820_library.h>
 
 #ifndef _CONTROLLER
 #define _CONTROLLER
@@ -642,6 +643,9 @@ typedef volatile struct {
 
   //Process information
   procinfo_t w[NCLIENTS];
+
+  //RTD board descriptor
+  DM7820_Board_Descriptor* p_rtd_board;
 
   //State
   int state;                    //Current operational state
