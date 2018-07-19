@@ -9,32 +9,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 /* %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% ALPAO Section begin %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% */
 
 #define ALPAO_MAX_SAFE                 0x3FFF
@@ -48,11 +22,20 @@
 /* -------------------- function prototypes -------------------- */
 static double alpao_limit_analog_value(double value);
 static void alpao_limit_power(double[ALPAO_DEV_N_CHANNEL]);
+static uint8_t alpao_checksum(const uint16_t[ALPAO_FRAME_LENGTH]);
+static void alpao_init_buffer(uint16_t[ALPAO_DATA_LENGTH]);
 static void alpao_build_frame(const double[ALPAO_DEV_N_CHANNEL], uint16_t[ALPAO_DATA_LENGTH]);
 static void alpao_print_frame(const uint16_t frame[ALPAO_DATA_LENGTH]);
 /* ------------------------------------------------------------- */
 
-const alpao_device_t alpao_device = {ALPAO_DEV_TYPE, ALPAO_DEV_SERIAL, ALPAO_DEV_MAX_POWER_SAFE, ALPAO_DEV_ANALOG_LIMIT, ALPAO_DEV_N_CHANNEL, ALPAO_DEV_MAPPING, ALPAO_DEV_MULTIPLIER, ALPAO_DEV_OFFSET};
+static const alpao_device_t alpao_device = {ALPAO_DEV_TYPE,
+                                            ALPAO_DEV_SERIAL,
+                                            ALPAO_DEV_MAX_POWER_SAFE,
+                                            ALPAO_DEV_ANALOG_LIMIT,
+                                            ALPAO_DEV_N_CHANNEL,
+                                            ALPAO_DEV_MAPPING,
+                                            ALPAO_DEV_MULTIPLIER,
+                                            ALPAO_DEV_OFFSET};
 
 
 
@@ -64,16 +47,15 @@ const alpao_device_t alpao_device = {ALPAO_DEV_TYPE, ALPAO_DEV_SERIAL, ALPAO_DEV
 
 /**
   *  \brief   Analog value limiting functions
-  *           this function is used to limit the analog values in a window [-ALPAO_DEV_MAX_POWER_SAFE,ALPAO_DEV_MAX_POWER_SAFE]
+  *           this function is used to limit the analog values in a window [-ALPAO_DEV_MAX_POWER_SAFE, ALPAO_DEV_MAX_POWER_SAFE]
   *  @param   [in]    double value - analog value to be clamped.
   *  @return  double - clamped analog value.
   */
 static double alpao_limit_analog_value(double value) {
-  if (value > ALPAO_DEV_ANALOG_LIMIT) {
+  if (value > ALPAO_DEV_ANALOG_LIMIT)
     value = ALPAO_DEV_ANALOG_LIMIT;
-  } else if (value < -ALPAO_DEV_ANALOG_LIMIT) {
+  if (value < -ALPAO_DEV_ANALOG_LIMIT)
     value = -ALPAO_DEV_ANALOG_LIMIT;
-  }
   return value;
 }
 
@@ -88,11 +70,12 @@ static double alpao_limit_analog_value(double value) {
 /**
   *  \brief   Power limiting function (The original function from ALPAO)
   *           /!\ The ALPAO_DEV_MAX_POWER_SAFE constant must be adapted to each DM, please contact ALPAO for details.
-  *  @param   [in|out]    double buffer[ALPAO_DEV_N_CHANNEL] - A buffer with ALPAO_DEV_N_CHANNEL actuator values.
+  *  @param   [in|out]    double buffer[ALPAO_DEV_N_CHANNEL] - [in]  A buffer with ALPAO_DEV_N_CHANNEL actuator values.
+  *                                                            [out] A buffer with ALPAO_DEV_N_CHANNEL actuator values (power limitation applied).
   *  @return  void
   */
 static void alpao_limit_power(double buffer[ALPAO_DEV_N_CHANNEL]) {
-  double power = 0.;
+  double power = 0.0;
   size_t channel_index = 0;
   for (channel_index = 0; channel_index < ALPAO_DEV_N_CHANNEL; channel_index++) {
     buffer[channel_index] = alpao_limit_analog_value(buffer[channel_index]);
@@ -100,11 +83,54 @@ static void alpao_limit_power(double buffer[ALPAO_DEV_N_CHANNEL]) {
   }
   if (power > ALPAO_DEV_MAX_POWER_SAFE) {
     double gain = sqrt(ALPAO_DEV_MAX_POWER_SAFE / power);
-    printf("Power limitation, command value multiplied by %.2f\n", gain);
-    for (channel_index = 0; channel_index < ALPAO_DEV_N_CHANNEL; channel_index++) {
+    for (channel_index = 0; channel_index < ALPAO_DEV_N_CHANNEL; channel_index++)
       buffer[channel_index] *= gain;
-    }
   }
+}
+
+
+
+
+
+
+
+
+
+/**
+  *  \brief   Calculated frame check-sum (The original function from ALPAO)
+  *  @param   [in|out]    const uint16_t* buffer - [in]  A buffer with ALPAO_DATA_LENGTH uint16_t DM frame (including the header (0xF600,0x5C00) in the first 4 bytes and the empty checksum (0xF100) at the last 2 bytes.)
+  *                                                [out] A buffer with the calculated checksum in the last 2 bytes
+  *  @return  uint8_t - The caluclated checksum
+  */
+static uint8_t alpao_checksum(const uint16_t buffer[ALPAO_FRAME_LENGTH]) {
+  uint32_t sum = 0;
+  size_t i;
+  uint8_t *p_sum = (uint8_t*)&sum;
+  for (i = 1; i < ALPAO_FRAME_LENGTH; ++i)
+    sum += buffer[i];
+  while (sum > 0xFF)
+    sum = p_sum[0] + p_sum[1] + p_sum[2] + p_sum[3];
+  return ~p_sum[0];
+}
+  
+
+
+
+
+
+
+
+
+/**
+  *  \brief   Initialize the uint16_t buffer to ALPAO_MID_SCALE
+  *  @param   [in|out]    const uint16_t* buffer - [in]  A buffer with ALPAO_DATA_LENGTH uint16_t DM frame.
+  *                                                [out] A buffer filled with ALPAO_MID_SCALE.
+  *  @return  uint8_t - The caluclated checksum
+  */
+static void alpao_init_buffer(uint16_t buffer[ALPAO_DATA_LENGTH]) {
+  size_t i;
+  for (i = 0; i < ALPAO_DATA_LENGTH; ++i)
+    buffer[i]=ALPAO_MID_SCALE;
 }
 
 
@@ -123,37 +149,21 @@ static void alpao_limit_power(double buffer[ALPAO_DEV_N_CHANNEL]) {
   *  @return  void
   */
 static void alpao_build_frame(const double in_data[ALPAO_DEV_N_CHANNEL], uint16_t out_frame[ALPAO_DATA_LENGTH]) {
-  size_t channel_index = 0;
-  uint32_t sum = 0;
-  int i;
-  uint8_t *p_sum = (uint8_t*)&sum;
+  size_t channel_index = 0, data_index = 0;
 
-  /* Initialize out_frame */
-  for(i=0;i<ALPAO_DATA_LENGTH;i++)
-    out_frame[i]=ALPAO_MID_SCALE;
-  
-  /* Initialize header */
+  alpao_init_buffer(out_frame);
   out_frame[0] = ALPAO_START_WORD; // Start of frame
   out_frame[1] = ALPAO_INIT_COUNTER; // Reset internal counter
 
-  /* Convert double to UINT16 */
   for ( channel_index = 0; channel_index < ALPAO_DEV_N_CHANNEL; channel_index++ ) {
-    out_frame[alpao_device.mapping[channel_index]+2] = (uint16_t) ( (alpao_device.multiplier[channel_index]*(in_data[channel_index]+alpao_device.offset[channel_index])+1.0) * ALPAO_MID_SCALE );
-    if ( out_frame[alpao_device.mapping[channel_index]+2] > ALPAO_MAX_SAFE ) out_frame[alpao_device.mapping[channel_index]+2] = ALPAO_MAX_SAFE;
-    if ( out_frame[alpao_device.mapping[channel_index]+2] < ALPAO_MIN_SAFE ) out_frame[alpao_device.mapping[channel_index]+2] = ALPAO_MIN_SAFE;
+    data_index = alpao_device.mapping[channel_index]+ALPAO_HEADER_LENGTH;
+    out_frame[data_index] = (uint16_t) ( (alpao_device.multiplier[channel_index]*(in_data[channel_index]+alpao_device.offset[channel_index])+1.0) * ALPAO_MID_SCALE );
+    if ( out_frame[data_index] > ALPAO_MAX_SAFE ) out_frame[data_index] = ALPAO_MAX_SAFE;
+    if ( out_frame[data_index] < ALPAO_MIN_SAFE ) out_frame[data_index] = ALPAO_MIN_SAFE;
   }
-  out_frame[ALPAO_N_CHANNEL+2] = ALPAO_END_WORD;
-
-  /* Calculate Checksum */
-  sum=0;
-  for(i=1;i<=ALPAO_N_CHANNEL+2;i++)
-    sum += out_frame[i];
-  
-  while (sum > 0xFF) {
-    sum = p_sum[0] + p_sum[1] + p_sum[2] + p_sum[3];
-  }
-  out_frame[ALPAO_N_CHANNEL+2] += (uint8_t)(~p_sum[0]);
-  out_frame[ALPAO_N_CHANNEL+3] = 0xFEED;// End of frame
+  out_frame[ALPAO_N_CHANNEL+ALPAO_HEADER_LENGTH] = ALPAO_END_WORD;
+  out_frame[ALPAO_N_CHANNEL+ALPAO_HEADER_LENGTH] += alpao_checksum(out_frame);
+  out_frame[ALPAO_N_CHANNEL+ALPAO_HEADER_LENGTH+ALPAO_PAD_LENGTH] = 0xFEED;// End of frame
 }
 
 
@@ -214,35 +224,32 @@ static void alpao_print_frame(const uint16_t frame[ALPAO_DATA_LENGTH]) {
 
 /* -------------------- function prototypes -------------------- */
 static void rtd_interrupt_service_routine(dm7820_interrupt_info);
-static void rtd_timer_select_gate(DM7820_Board_Descriptor*, dm7820_tmrctr_timer, dm7820_tmrctr_gate);
-static void rtd_timer_disable(DM7820_Board_Descriptor*, dm7820_tmrctr_timer);
-// static void rtd_timer_enable(DM7820_Board_Descriptor*, dm7820_tmrctr_timer);
-static void rtd_fifo_setup(DM7820_Board_Descriptor*, dm7820_fifo_queue, uint8_t);
-static void rtd_fifo_disable(DM7820_Board_Descriptor*, dm7820_fifo_queue);
-// static void rtd_fifo_enable(DM7820_Board_Descriptor*, dm7820_fifo_queue);
-static void rtd_prgclk_set_mode(DM7820_Board_Descriptor*, dm7820_prgclk_clock, dm7820_prgclk_mode);
-static void rtd_prgclk_disable(DM7820_Board_Descriptor*, dm7820_prgclk_clock);
-static void rtd_prgclk_enable_continuous(DM7820_Board_Descriptor*, dm7820_prgclk_clock);
-static void rtd_pwm_setup(DM7820_Board_Descriptor*, dm7820_pwm_modulator, uint8_t);
-static void rtd_pwm_disable(DM7820_Board_Descriptor*, dm7820_pwm_modulator);
-// static void rtd_pwm_enable(DM7820_Board_Descriptor*, dm7820_pwm_modulator);
-static void rtd_interrupt_setup(DM7820_Board_Descriptor*, dm7820_interrupt_source, uint8_t);
-static void rtd_interrupt_disable(DM7820_Board_Descriptor*, dm7820_interrupt_source);
-// static void rtd_interrupt_enable(DM7820_Board_Descriptor*, dm7820_interrupt_source);
-static void rtd_open(unsigned long minor_number, DM7820_Board_Descriptor**);
-static void rtd_reset(DM7820_Board_Descriptor*);
-static void rtd_clear_all(DM7820_Board_Descriptor*);
+static DM7820_Error rtd_timer_select_gate(DM7820_Board_Descriptor*, dm7820_tmrctr_timer, dm7820_tmrctr_gate);
+static DM7820_Error rtd_timer_disable(DM7820_Board_Descriptor*, dm7820_tmrctr_timer);
+static DM7820_Error rtd_timer_enable(DM7820_Board_Descriptor*, dm7820_tmrctr_timer);
+static DM7820_Error rtd_fifo_setup(DM7820_Board_Descriptor*, dm7820_fifo_queue, uint8_t);
+static DM7820_Error rtd_fifo_disable(DM7820_Board_Descriptor*, dm7820_fifo_queue);
+static DM7820_Error rtd_fifo_enable(DM7820_Board_Descriptor*, dm7820_fifo_queue);
+static DM7820_Error rtd_prgclk_set_mode(DM7820_Board_Descriptor*, dm7820_prgclk_clock, dm7820_prgclk_mode);
+static DM7820_Error rtd_prgclk_disable(DM7820_Board_Descriptor*, dm7820_prgclk_clock);
+static DM7820_Error rtd_prgclk_enable_continuous(DM7820_Board_Descriptor*, dm7820_prgclk_clock);
+static DM7820_Error rtd_pwm_setup(DM7820_Board_Descriptor*, dm7820_pwm_modulator, uint8_t);
+static DM7820_Error rtd_pwm_disable(DM7820_Board_Descriptor*, dm7820_pwm_modulator);
+static DM7820_Error rtd_pwm_enable(DM7820_Board_Descriptor*, dm7820_pwm_modulator);
+static DM7820_Error rtd_interrupt_setup(DM7820_Board_Descriptor*, dm7820_interrupt_source, uint8_t);
+static DM7820_Error rtd_interrupt_disable(DM7820_Board_Descriptor*, dm7820_interrupt_source);
+static DM7820_Error rtd_interrupt_enable(DM7820_Board_Descriptor*, dm7820_interrupt_source);
+DM7820_Error rtd_open(unsigned long, DM7820_Board_Descriptor**);
+DM7820_Error rtd_reset(DM7820_Board_Descriptor*);
+DM7820_Error rtd_clear_all(DM7820_Board_Descriptor*);
+DM7820_Error rtd_close(DM7820_Board_Descriptor*);
 
-static void rtd_init(void);
-static void rtd_start_timer(void);
-static void rtd_stop_timer(void);
-static void rtd_close(void);
-static void rtd_cleanup(void);
-static void rtd_write_dma_fifo(char*, uint32_t);
+static DM7820_Error rtd_init(DM7820_Board_Descriptor*, uint16_t);
+static DM7820_Error rtd_start_timer(DM7820_Board_Descriptor*);
+static DM7820_Error rtd_stop_timer(DM7820_Board_Descriptor*);
+static DM7820_Error rtd_cleanup(DM7820_Board_Descriptor*);
+static DM7820_Error rtd_write_dma_fifo(DM7820_Board_Descriptor*, char*);
 /* ------------------------------------------------------------- */
-
-DM7820_Board_Descriptor rtd_board;
-DM7820_Board_Descriptor* p_rtd_board = &rtd_board;
 
 
 
@@ -256,17 +263,16 @@ DM7820_Board_Descriptor* p_rtd_board = &rtd_board;
   *  \brief   Interrupt service routine for the rtd interrupts.
   *           Enable the interrupts to use this function.
   *           Check if a certain condition occurred in the fifo or not.
-  *           Internal function.
   *  @param   [in]    dm7820_interrupt_info interrupt_info - the structure with the interrupt information.
   *  @return  void
   */
-volatile uint64_t dm7820_interrupt_fifo_0_empty_count;
-volatile uint64_t dm7820_interrupt_fifo_0_full_count;
-volatile uint64_t dm7820_interrupt_fifo_0_overflow_count;
-volatile uint64_t dm7820_interrupt_fifo_0_read_request_count;
-volatile uint64_t dm7820_interrupt_fifo_0_underflow_count;
-volatile uint64_t dm7820_interrupt_fifo_0_write_request_count;
-volatile uint64_t dm7820_interrupt_fifo_0_dma_done_count;
+static volatile uint64_t dm7820_interrupt_fifo_0_empty_count;
+static volatile uint64_t dm7820_interrupt_fifo_0_full_count;
+static volatile uint64_t dm7820_interrupt_fifo_0_overflow_count;
+static volatile uint64_t dm7820_interrupt_fifo_0_read_request_count;
+static volatile uint64_t dm7820_interrupt_fifo_0_underflow_count;
+static volatile uint64_t dm7820_interrupt_fifo_0_write_request_count;
+static volatile uint64_t dm7820_interrupt_fifo_0_dma_done_count;
 
 static void rtd_interrupt_service_routine(dm7820_interrupt_info interrupt_info) {
   DM7820_Return_Status(interrupt_info.error, "ISR Failed\n");
@@ -308,16 +314,14 @@ static void rtd_interrupt_service_routine(dm7820_interrupt_info interrupt_info) 
 /**
   *  \brief   Get the status of the fifo.
   *           Check if a certain condition occurred in the fifo or not.
-  *           Internal function.
-  *  @param   [in]    DM7820_Board_Descriptor* pboard - A pointer to the board discriptor.
+  *  @param   [in]    DM7820_Board_Descriptor* p_rtd_board - A pointer to the board discriptor.
   *  @param   [in]    dm7820_fifo_queue fifo - The fifo to check the status of.
   *  @param   [in]    dm7820_fifo_status_condition condition - The condition flag to check.
   *  @param   [out]   uint8_t* status - A pointer to a variable that will return the result of the check (i.e. whether the condition occurred or not).
-  *  @return  void
+  *  @return  DM7820_Error
   */
-static void rtd_get_fifo_status(DM7820_Board_Descriptor* pboard, dm7820_fifo_queue fifo, dm7820_fifo_status_condition condition, uint8_t* status) {
-  if (DM7820_FIFO_Get_Status(pboard, fifo, condition, status) == -1)
-    error(EXIT_FAILURE, errno, "DM7820_FIFO_Get_Status() FAILED");
+static DM7820_Error rtd_get_fifo_status(DM7820_Board_Descriptor* p_rtd_board, dm7820_fifo_queue fifo, dm7820_fifo_status_condition condition, uint8_t* status) {
+  return DM7820_FIFO_Get_Status(p_rtd_board, fifo, condition, status);
 }
 
 
@@ -332,19 +336,23 @@ static void rtd_get_fifo_status(DM7820_Board_Descriptor* pboard, dm7820_fifo_que
   *  \brief   Check and exit on specified condition or clear that condition of the fifo.
   *           Check if a certain condition occurred in the fifo or not.
   *           This function will cause EXIT_FAILURE if a given condition occurres and exit_on is set.
-  *           Internal function.
   *  @param   [in]    DM7820_Board_Descriptor* pboard - A pointer to the board discriptor.
   *  @param   [in]    dm7820_fifo_status_condition condition - The fifo condition to check.
   *  @param   [in]    uint8_t exit_on - set to 1 to exit on condition set to 0 to not exit.
   *  @return  void
   */
-static const char* dm7820_fifo_status_condition_string[] = {"read request", "write request", "full", "empty", "overflow", "underflow"};
+static const char* dm7820_fifo_status_condition_string[] = {"read request",
+                                                            "write request",
+                                                            "full",
+                                                            "empty",
+                                                            "overflow",
+                                                            "underflow"};
 static void rtd_exit_on_fifo_status(DM7820_Board_Descriptor* pboard, dm7820_fifo_status_condition condition, uint8_t exit_on) {
+#if RTD_PRINT_DEBUG
+  printf("rtd_exit_on_fifo_status() : %s is %d\n", dm7820_fifo_status_condition_string[condition], fifo_status); 
+#endif
   uint8_t fifo_status;
   rtd_get_fifo_status(pboard, DM7820_FIFO_QUEUE_0, condition, &fifo_status);
-#if RTD_PRINT_DEBUG
-  printf("rtd_get_fifo_status() : %s is %d\n", dm7820_fifo_status_condition_string[condition], fifo_status);
-#endif
   if (fifo_status)
     if (exit_on)
       error(EXIT_FAILURE, 0, "rtd_exit_on_fifo_status() : fifo condition %s", dm7820_fifo_status_condition_string[condition]);
@@ -361,17 +369,13 @@ static void rtd_exit_on_fifo_status(DM7820_Board_Descriptor* pboard, dm7820_fifo
 /**
   *  \brief   Clear that condition of the fifo.
   *           Check if a certain condition occurred in the fifo or not.
-  *           Internal function.
   *  @param   [in]    DM7820_Board_Descriptor* pboard - A pointer to the board discriptor.
   *  @param   [in]    dm7820_fifo_status_condition condition - The fifo condition to clear.
   *  @return  void
   */
-static void rtd_clear_fifo_status(DM7820_Board_Descriptor* pboard, dm7820_fifo_status_condition condition) {
+static DM7820_Error rtd_clear_fifo_status(DM7820_Board_Descriptor* pboard, dm7820_fifo_status_condition condition) {
   uint8_t fifo_status;
-  rtd_get_fifo_status(pboard, DM7820_FIFO_QUEUE_0, condition, &fifo_status);
-#if RTD_PRINT_DEBUG
-  printf("rtd_get_fifo_status() : %s is %d\n", dm7820_fifo_status_condition_string[condition], fifo_status);
-#endif
+  return rtd_get_fifo_status(pboard, DM7820_FIFO_QUEUE_0, condition, &fifo_status);
 }
 
 
@@ -384,46 +388,77 @@ static void rtd_clear_fifo_status(DM7820_Board_Descriptor* pboard, dm7820_fifo_s
 
 /**
   *  \brief   Select the gate of the specified timer.
-  *           Internal function.
-  *  @param   [in]    DM7820_Board_Descriptor* pboard - A pointer to the board discriptor.
+  *  @param   [in]    DM7820_Board_Descriptor* p_rtd_board - A pointer to the board discriptor.
   *  @param   [in]    dm7820_tmrctr_timer timer - The timer.
   *  @param   [in]    dm7820_tmrctr_gate gate - The gate to set for the timer
   *  @return  void
   */
 #if RTD_PRINT_DEBUG
-static const char* dm7820_tmrctr_timer_string[] = {"Timer 0 on first 8254 chip", "Timer 1 on first 8254 chip", "Timer 2 on first 8254 chip", "Timer 0 on second 8254 chip", "Timer 1 on second 8254 chip", "Timer 2 on second 8254 chip"};
-static const char* dm7820_tmrctr_gate_string[] = {"Logic 0", "Logic 1", "8254 timer/counter A0", "8254 timer/counter A1", "8254 timer/counter A2", "8254 timer/counter B0", "8254 timer/counter B1", "8254 timer/counter B2", "Programmable clock 0", "Programmable clock 1", "Programmable clock 2", "Programmable clock 3", "Strobe signal 1", "Strobe signal 2", "Inverted strobe signal 1", "Inverted strobe signal 2", "Digital I/O port 2 bit 0", "Digital I/O port 2 bit 1", "Digital I/O port 2 bit 2", "Digital I/O port 2 bit 3", "Digital I/O port 2 bit 4", "Digital I/O port 2 bit 5", "Digital I/O port 2 bit 6", "Digital I/O port 2 bit 7", "Digital I/O port 2 bit 8", "Digital I/O port 2 bit 9", "Digital I/O port 2 bit 10", "Digital I/O port 2 bit 11", "Digital I/O port 2 bit 12", "Digital I/O port 2 bit 13", "Digital I/O port 2 bit 14", "Digital I/O port 2 bit 15"};
+static const char* dm7820_tmrctr_timer_string[] = {"Timer 0 on first 8254 chip",
+                                                   "Timer 1 on first 8254 chip",
+                                                   "Timer 2 on first 8254 chip",
+                                                   "Timer 0 on second 8254 chip",
+                                                   "Timer 1 on second 8254 chip",
+                                                   "Timer 2 on second 8254 chip"};
+static const char* dm7820_tmrctr_gate_string[] = {"Logic 0",
+                                                  "Logic 1",
+                                                  "8254 timer/counter A0",
+                                                  "8254 timer/counter A1",
+                                                  "8254 timer/counter A2",
+                                                  "8254 timer/counter B0",
+                                                  "8254 timer/counter B1",
+                                                  "8254 timer/counter B2",
+                                                  "Programmable clock 0",
+                                                  "Programmable clock 1",
+                                                  "Programmable clock 2",
+                                                  "Programmable clock 3",
+                                                  "Strobe signal 1",
+                                                  "Strobe signal 2",
+                                                  "Inverted strobe signal 1",
+                                                  "Inverted strobe signal 2",
+                                                  "Digital I/O port 2 bit 0",
+                                                  "Digital I/O port 2 bit 1",
+                                                  "Digital I/O port 2 bit 2",
+                                                  "Digital I/O port 2 bit 3",
+                                                  "Digital I/O port 2 bit 4",
+                                                  "Digital I/O port 2 bit 5",
+                                                  "Digital I/O port 2 bit 6",
+                                                  "Digital I/O port 2 bit 7",
+                                                  "Digital I/O port 2 bit 8",
+                                                  "Digital I/O port 2 bit 9",
+                                                  "Digital I/O port 2 bit 10",
+                                                  "Digital I/O port 2 bit 11",
+                                                  "Digital I/O port 2 bit 12",
+                                                  "Digital I/O port 2 bit 13",
+                                                  "Digital I/O port 2 bit 14",
+                                                  "Digital I/O port 2 bit 15"};
 #endif
-static void rtd_timer_select_gate(DM7820_Board_Descriptor* pboard, dm7820_tmrctr_timer timer, dm7820_tmrctr_gate gate) {
-  DM7820_Error dm7820_status;
+static DM7820_Error rtd_timer_select_gate(DM7820_Board_Descriptor* p_rtd_board, dm7820_tmrctr_timer timer, dm7820_tmrctr_gate gate) {
 #if RTD_PRINT_DEBUG
   printf("rtd_timer_select_gate() : %s gate set to %s\n", dm7820_tmrctr_timer_string[timer], dm7820_tmrctr_gate_string[gate]);
 #endif
-  dm7820_status = DM7820_TmrCtr_Select_Gate(pboard, timer, gate);
-  DM7820_Return_Status(dm7820_status, "DM7820_TmrCtr_Select_Gate()");
+  return DM7820_TmrCtr_Select_Gate(p_rtd_board, timer, gate);
 }
 /**
   *  \brief   Disable the specified timer.
   *           Disables the specified timer by settings the gate to DM7820_TMRCTR_GATE_LOGIC_0
-  *           Internal function.
-  *  @param   [in]    DM7820_Board_Descriptor* pboard - A pointer to the board discriptor.
+  *  @param   [in]    DM7820_Board_Descriptor* p_rtd_board - A pointer to the board discriptor.
   *  @param   [in]    dm7820_tmrctr_timer timer - The timer.
   *  @return  void
   */
-static void rtd_timer_disable(DM7820_Board_Descriptor* pboard, dm7820_tmrctr_timer timer) {
-  rtd_timer_select_gate(pboard, timer, DM7820_TMRCTR_GATE_LOGIC_0);
+static DM7820_Error rtd_timer_disable(DM7820_Board_Descriptor* p_rtd_board, dm7820_tmrctr_timer timer) {
+  return rtd_timer_select_gate(p_rtd_board, timer, DM7820_TMRCTR_GATE_LOGIC_0);
 }
-// /**
-//   *  \brief   Enable the specified timer.
-//   *           Enable the specified timer by settings the gate to DM7820_TMRCTR_GATE_LOGIC_1
-//   *           Internal function.
-//   *  @param   [in]    DM7820_Board_Descriptor* pboard - A pointer to the board discriptor.
-//   *  @param   [in]    dm7820_tmrctr_timer timer - The timer.
-//   *  @return  void
-//   */
-// static void rtd_timer_enable(DM7820_Board_Descriptor* pboard, dm7820_tmrctr_timer timer) {
-//   rtd_timer_select_gate(pboard, timer, DM7820_TMRCTR_GATE_LOGIC_1);
-// }
+/**
+  *  \brief   Enable the specified timer.
+  *           Enable the specified timer by settings the gate to DM7820_TMRCTR_GATE_LOGIC_1
+  *  @param   [in]    DM7820_Board_Descriptor* p_rtd_board - A pointer to the board discriptor.
+  *  @param   [in]    dm7820_tmrctr_timer timer - The timer.
+  *  @return  void
+  */
+static DM7820_Error rtd_timer_enable(DM7820_Board_Descriptor* p_rtd_board, dm7820_tmrctr_timer timer) {
+  return rtd_timer_select_gate(p_rtd_board, timer, DM7820_TMRCTR_GATE_LOGIC_1);
+}
 
 
 
@@ -435,43 +470,39 @@ static void rtd_timer_disable(DM7820_Board_Descriptor* pboard, dm7820_tmrctr_tim
 
 /**
   *  \brief   Enable or disable the specified fifo.
-  *           Internal function.
-  *  @param   [in]    DM7820_Board_Descriptor* pboard - A pointer to the board discriptor.
+  *  @param   [in]    DM7820_Board_Descriptor* p_rtd_board - A pointer to the board discriptor.
   *  @param   [in]    dm7820_fifo_queue fifo1 - The fifo.
   *  @param   [in]    uint8_t enable - 0x00 to disable nonzero to enable
   *  @return  void
   */
 #if RTD_PRINT_DEBUG
-static const char* dm7820_fifo_queue_string[] = {"FIFO 0", "FIFO 1"};
+static const char* dm7820_fifo_queue_string[] = {"FIFO 0",
+                                                 "FIFO 1"};
 #endif
-static void rtd_fifo_setup(DM7820_Board_Descriptor* pboard, dm7820_fifo_queue fifo, uint8_t enable) {
-  DM7820_Error dm7820_status;
+static DM7820_Error rtd_fifo_setup(DM7820_Board_Descriptor* p_rtd_board, dm7820_fifo_queue fifo, uint8_t enable) {
 #if RTD_PRINT_DEBUG
   printf("rtd_fifo_setup() : %s enable set to 0x%02X\n", dm7820_fifo_queue_string[fifo],enable);
 #endif
-  dm7820_status = DM7820_FIFO_Enable(pboard, fifo, enable);
-  DM7820_Return_Status(dm7820_status, "DM7820_FIFO_Enable()");
+  return DM7820_FIFO_Enable(p_rtd_board, fifo, enable);
 }
 /**
   *  \brief   Disable the specified fifo.
-  *           Internal function.
-  *  @param   [in]    DM7820_Board_Descriptor* pboard - A pointer to the board discriptor.
+  *  @param   [in]    DM7820_Board_Descriptor* p_rtd_board - A pointer to the board discriptor.
   *  @param   [in]    dm7820_fifo_queue fifo1 - The fifo.
   *  @return  void
   */
-static void rtd_fifo_disable(DM7820_Board_Descriptor* pboard, dm7820_fifo_queue fifo) {
-  rtd_fifo_setup(pboard, fifo, 0x00);
+static DM7820_Error rtd_fifo_disable(DM7820_Board_Descriptor* p_rtd_board, dm7820_fifo_queue fifo) {
+  return rtd_fifo_setup(p_rtd_board, fifo, 0x00);
 }
-// /**
-//   *  \brief   Enable the specified fifo.
-//   *           Internal function.
-//   *  @param   [in]    DM7820_Board_Descriptor* pboard - A pointer to the board discriptor.
-//   *  @param   [in]    dm7820_fifo_queue fifo1 - The fifo.
-//   *  @return  void
-//   */
-// static void rtd_fifo_enable(DM7820_Board_Descriptor* pboard, dm7820_fifo_queue fifo) {
-//   rtd_fifo_setup(pboard, fifo, 0xFF);
-// }
+/**
+  *  \brief   Enable the specified fifo.
+  *  @param   [in]    DM7820_Board_Descriptor* p_rtd_board - A pointer to the board discriptor.
+  *  @param   [in]    dm7820_fifo_queue fifo1 - The fifo.
+  *  @return  void
+  */
+static DM7820_Error rtd_fifo_enable(DM7820_Board_Descriptor* p_rtd_board, dm7820_fifo_queue fifo) {
+  return rtd_fifo_setup(p_rtd_board, fifo, 0xFF);
+}
 
 
 
@@ -483,45 +514,46 @@ static void rtd_fifo_disable(DM7820_Board_Descriptor* pboard, dm7820_fifo_queue 
 
 /**
   *  \brief   Set the mode of the specified programmable clock.
-  *           Internal function.
-  *  @param   [in]    DM7820_Board_Descriptor* pboard - A pointer to the board discriptor.
+  *  @param   [in]    DM7820_Board_Descriptor* p_rtd_board - A pointer to the board discriptor.
   *  @param   [in]    dm7820_prgclk_clock prgclk - The programmable clock.
   *  @param   [in]    dm7820_prgclk_mode mode - The mode.
-  *  @return  void
+  *  @return  DM7820_Error
   */
 #if RTD_PRINT_DEBUG
-static const char* dm7820_prgclk_clock_string[] = {"Programmable clock 0", "Programmable clock 1", "Programmable clock 2", "Programmable clock 3"};
-static const char* dm7820_prgclk_mode_string[] = {"Disabled", "Continuous mode", "Reserved (do not use)", "One shot mode"};
+static const char* dm7820_prgclk_clock_string[] = {"Programmable clock 0",
+                                                   "Programmable clock 1",
+                                                   "Programmable clock 2",
+                                                   "Programmable clock 3"};
+static const char* dm7820_prgclk_mode_string[] = {"Disabled",
+                                                  "Continuous mode",
+                                                  "Reserved (do not use)",
+                                                  "One shot mode"};
 #endif
-static void rtd_prgclk_set_mode(DM7820_Board_Descriptor* pboard, dm7820_prgclk_clock prgclk, dm7820_prgclk_mode mode) {
-  DM7820_Error dm7820_status;
+static DM7820_Error rtd_prgclk_set_mode(DM7820_Board_Descriptor* p_rtd_board, dm7820_prgclk_clock prgclk, dm7820_prgclk_mode mode) {
 #if RTD_PRINT_DEBUG
   printf("rtd_prgclk_set_mode() : %s mode set to %s\n", dm7820_prgclk_clock_string[prgclk], dm7820_prgclk_mode_string[mode]);
 #endif
-  dm7820_status = DM7820_PrgClk_Set_Mode(pboard, prgclk, mode);
-  DM7820_Return_Status(dm7820_status, "DM7820_PrgClk_Set_Mode()");
+  return DM7820_PrgClk_Set_Mode(p_rtd_board, prgclk, mode);
 }
 /**
   *  \brief   Disable the specified programmable clock.
   *           Disables the specified programmable clock by settings the mode to DM7820_PRGCLK_MODE_DISABLED.
-  *           Internal function.
-  *  @param   [in]    DM7820_Board_Descriptor* pboard - A pointer to the board discriptor.
+  *  @param   [in]    DM7820_Board_Descriptor* p_rtd_board - A pointer to the board discriptor.
   *  @param   [in]    dm7820_prgclk_clock prgclk - The programmable clock.
-  *  @return  void
+  *  @return  DM7820_Error
   */
-static void rtd_prgclk_disable(DM7820_Board_Descriptor* pboard, dm7820_prgclk_clock prgclk) {
-  rtd_prgclk_set_mode(pboard, prgclk, DM7820_PRGCLK_MODE_DISABLED);
+static DM7820_Error rtd_prgclk_disable(DM7820_Board_Descriptor* p_rtd_board, dm7820_prgclk_clock prgclk) {
+  return rtd_prgclk_set_mode(p_rtd_board, prgclk, DM7820_PRGCLK_MODE_DISABLED);
 }
 /**
   *  \brief   Put the the specified programmable clock in continuos mode.
   *           Enables the specified programmable clock in continuos mode by settings the mode to DM7820_PRGCLK_MODE_CONTINUOUS.
-  *           Internal function.
-  *  @param   [in]    DM7820_Board_Descriptor* pboard - A pointer to the board discriptor.
+  *  @param   [in]    DM7820_Board_Descriptor* p_rtd_board - A pointer to the board discriptor.
   *  @param   [in]    dm7820_prgclk_clock prgclk - The programmable clock.
-  *  @return  void
+  *  @return  DM7820_Error
   */
-static void rtd_prgclk_enable_continuous(DM7820_Board_Descriptor* pboard, dm7820_prgclk_clock prgclk) {
-  rtd_prgclk_set_mode(pboard, prgclk, DM7820_PRGCLK_MODE_CONTINUOUS);
+static DM7820_Error rtd_prgclk_enable_continuous(DM7820_Board_Descriptor* p_rtd_board, dm7820_prgclk_clock prgclk) {
+  return rtd_prgclk_set_mode(p_rtd_board, prgclk, DM7820_PRGCLK_MODE_CONTINUOUS);
 }
 
 
@@ -534,43 +566,39 @@ static void rtd_prgclk_enable_continuous(DM7820_Board_Descriptor* pboard, dm7820
 
 /**
   *  \brief   Enable or disable the specified pulse width modulator.
-  *           Internal function.
-  *  @param   [in]    DM7820_Board_Descriptor* pboard - A pointer to the board discriptor.
+  *  @param   [in]    DM7820_Board_Descriptor* p_rtd_board - A pointer to the board discriptor.
   *  @param   [in]    dm7820_pwm_modulator pwm1 - The pulse width modulator.
   *  @param   [in]    uint8_t enable - 0x00 to disable nonzero to enable
-  *  @return  void
+  *  @return  DM7820_Error
   */
 #if RTD_PRINT_DEBUG
-static const char* dm7820_pwm_string[] = {"Pulse width modulator 0", "Pulse width modulator 1"};
+static const char* dm7820_pwm_string[] = {"Pulse width modulator 0",
+                                          "Pulse width modulator 1"};
 #endif
-static void rtd_pwm_setup(DM7820_Board_Descriptor* pboard, dm7820_pwm_modulator pwm, uint8_t enable) {
-  DM7820_Error dm7820_status;
+static DM7820_Error rtd_pwm_setup(DM7820_Board_Descriptor* p_rtd_board, dm7820_pwm_modulator pwm, uint8_t enable) {
 #if RTD_PRINT_DEBUG
   printf("rtd_pwm_setup() : %s enable set to 0x%02X\n", dm7820_pwm_string[pwm], enable);
 #endif
-  dm7820_status = DM7820_PWM_Enable(pboard, pwm, enable);
-  DM7820_Return_Status(dm7820_status, "DM7820_PWM_Enable()");
+  return DM7820_PWM_Enable(p_rtd_board, pwm, enable);
 }
 /**
   *  \brief   Disable the specified pulse width modulator.
-  *           Internal function.
-  *  @param   [in]    DM7820_Board_Descriptor* pboard - A pointer to the board discriptor.
+  *  @param   [in]    DM7820_Board_Descriptor* p_rtd_board - A pointer to the board discriptor.
   *  @param   [in]    dm7820_pwm_modulator pwm1 - The pulse width modulator.
-  *  @return  void
+  *  @return  DM7820_Error
   */
-static void rtd_pwm_disable(DM7820_Board_Descriptor* pboard, dm7820_pwm_modulator pwm) {
-  rtd_pwm_setup(pboard, pwm, 0x00);
+static DM7820_Error rtd_pwm_disable(DM7820_Board_Descriptor* p_rtd_board, dm7820_pwm_modulator pwm) {
+  return rtd_pwm_setup(p_rtd_board, pwm, 0x00);
 }
-// /**
-//   *  \brief   Enable the specified pulse width modulator.
-//   *           Internal function.
-//   *  @param   [in]    DM7820_Board_Descriptor* pboard - A pointer to the board discriptor.
-//   *  @param   [in]    dm7820_pwm_modulator pwm1 - The pulse width modulator.
-//   *  @return  void
-//   */
-// static void rtd_pwm_enable(DM7820_Board_Descriptor* pboard, dm7820_pwm_modulator pwm) {
-//   rtd_pwm_setup(pboard, pwm, 0xFF);
-// }
+/**
+  *  \brief   Enable the specified pulse width modulator.
+  *  @param   [in]    DM7820_Board_Descriptor* p_rtd_board - A pointer to the board discriptor.
+  *  @param   [in]    dm7820_pwm_modulator pwm1 - The pulse width modulator.
+  *  @return  DM7820_Error
+  */
+static DM7820_Error rtd_pwm_enable(DM7820_Board_Descriptor* p_rtd_board, dm7820_pwm_modulator pwm) {
+  return rtd_pwm_setup(p_rtd_board, pwm, 0xFF);
+}
 
 
 
@@ -582,11 +610,10 @@ static void rtd_pwm_disable(DM7820_Board_Descriptor* pboard, dm7820_pwm_modulato
 
 /**
   *  \brief   Enable or disable the specified interrupt source.
-  *           Internal function.
-  *  @param   [in]    DM7820_Board_Descriptor* pboard - A pointer to the board discriptor.
+  *  @param   [in]    DM7820_Board_Descriptor* p_rtd_board - A pointer to the board discriptor.
   *  @param   [in]    dm7820_interrupt_source source - The interrupt source.
   *  @param   [in]    uint8_t enable - 0x00 to disable nonzero to enable
-  *  @return  void
+  *  @return  DM7820_Error
   */
 #if RTD_PRINT_DEBUG
 static const char* dm7820_interrupt_source_string[] = {"Advanced interrupt block 0 interrupt",
@@ -627,34 +654,30 @@ static const char* dm7820_interrupt_source_string[] = {"Advanced interrupt block
                                                        "FIFO block FIFO 1 DMA done interrupt (35) [Applications cannot control this interrupt but they can get its status.]",
                                                        "Value which indicates no interrupt source (36) [User level ignores this. The kernel uses this in the interrupt handler. This must be the last entry.]"};
 #endif
-static void rtd_interrupt_setup(DM7820_Board_Descriptor* pboard, dm7820_interrupt_source source, uint8_t enable) {
-  DM7820_Error dm7820_status;
+static DM7820_Error rtd_interrupt_setup(DM7820_Board_Descriptor* p_rtd_board, dm7820_interrupt_source source, uint8_t enable) {
 #if RTD_PRINT_DEBUG
   printf("rtd_interrupt_setup() : %s enable set to 0x%02X\n", dm7820_interrupt_source_string[source], enable);
 #endif
-  dm7820_status = DM7820_General_Enable_Interrupt(pboard, source, enable);
-  DM7820_Return_Status(dm7820_status,"DM7820_General_Enable_Interrupt()");
+  return DM7820_General_Enable_Interrupt(p_rtd_board, source, enable);
 }
 /**
   *  \brief   Enable the specified interrupt source.
-  *           Internal function.
-  *  @param   [in]    DM7820_Board_Descriptor* pboard - A pointer to the board discriptor.
+  *  @param   [in]    DM7820_Board_Descriptor* p_rtd_board - A pointer to the board discriptor.
   *  @param   [in]    dm7820_interrupt_source source - The interrupt source.
-  *  @return  void
+  *  @return  DM7820_Error
   */
-static void rtd_interrupt_disable(DM7820_Board_Descriptor* pboard, dm7820_interrupt_source source) {
-  rtd_interrupt_setup(pboard, source, 0x00);
+static DM7820_Error rtd_interrupt_disable(DM7820_Board_Descriptor* p_rtd_board, dm7820_interrupt_source source) {
+  return rtd_interrupt_setup(p_rtd_board, source, 0x00);
 }
-// /**
-//   *  \brief   Disable the specified interrupt source.
-//   *           Internal function.
-//   *  @param   [in]    DM7820_Board_Descriptor* pboard - A pointer to the board discriptor.
-//   *  @param   [in]    dm7820_interrupt_source source - The interrupt source.
-//   *  @return  void
-//   */
-// static void rtd_interrupt_enable(DM7820_Board_Descriptor* pboard, dm7820_interrupt_source source) {
-//   rtd_interrupt_setup(pboard, source, 0xFF);
-// }
+/**
+  *  \brief   Disable the specified interrupt source.
+  *  @param   [in]    DM7820_Board_Descriptor* p_rtd_board - A pointer to the board discriptor.
+  *  @param   [in]    dm7820_interrupt_source source - The interrupt source.
+  *  @return  DM7820_Error
+  */
+static DM7820_Error rtd_interrupt_enable(DM7820_Board_Descriptor* p_rtd_board, dm7820_interrupt_source source) {
+  return rtd_interrupt_setup(p_rtd_board, source, 0xFF);
+}
 
 
 
@@ -666,18 +689,15 @@ static void rtd_interrupt_disable(DM7820_Board_Descriptor* pboard, dm7820_interr
 
 /**
   *  \brief   Open the RTD DM7820 board for configuration.
-  *           Internal function.
-  *  @param   [in]    DM7820_Board_Descriptor** pboard - The pointer a pointer of the board discriptor
+  *  @param   [in]    DM7820_Board_Descriptor** p_p_rtd_board - The pointer a pointer of the board discriptor
   *  @return  void
   */
-static void rtd_open(unsigned long minor_number, DM7820_Board_Descriptor** pboard) {
-  DM7820_Error dm7820_status;
+DM7820_Error rtd_open(unsigned long minor_number, DM7820_Board_Descriptor** p_p_rtd_board) {
   /* ---------------- Device initialization ---------------- */
 #if RTD_PRINT_DEBUG 
   printf("rtd_open() : Opening device with minor number %lu\n", minor_number);
 #endif
-  dm7820_status = DM7820_General_Open_Board(minor_number, pboard);
-  DM7820_Return_Status(dm7820_status, "DM7820_General_Open_Board()");
+  return DM7820_General_Open_Board(minor_number, p_p_rtd_board);
 }
 
 
@@ -690,18 +710,15 @@ static void rtd_open(unsigned long minor_number, DM7820_Board_Descriptor** pboar
 
 /**
   *  \brief   Reset the RTD DM7820 board.
-  *           Internal function.
-  *  @param   [in]    DM7820_Board_Descriptor* pboard - The pointer to the board discriptor
+  *  @param   [in]    DM7820_Board_Descriptor* p_rtd_board - The pointer to the board discriptor
   *  @return  void
   */
-static void rtd_reset(DM7820_Board_Descriptor* pboard) {
-  DM7820_Error dm7820_status;
+DM7820_Error rtd_reset(DM7820_Board_Descriptor* p_rtd_board) {
   /* ---------------- Device Reset ---------------- */
 #if RTD_PRINT_DEBUG
   printf("rtd_reset() : Resetting device\n");
 #endif
-  dm7820_status = DM7820_General_Reset(pboard);
-  DM7820_Return_Status(dm7820_status, "DM7820_General_Reset()");
+  return DM7820_General_Reset(p_rtd_board);
 }
 
 
@@ -720,63 +737,66 @@ static void rtd_reset(DM7820_Board_Descriptor* pboard) {
   *            3. all Programmable clocks\n
   *            3. all PWMs\n
   *            3. all interrupt sources\n
-  *           Internal function.
-  *  @param   [in]    DM7820_Board_Descriptor* pboard - The pointer to the board discriptor
+  *  @param   [in]    DM7820_Board_Descriptor* p_rtd_board - The pointer to the board discriptor
   *  @return  void
   */
-static void rtd_clear_all(DM7820_Board_Descriptor* pboard) {
-  rtd_fifo_disable(pboard, DM7820_FIFO_QUEUE_0);
-  rtd_fifo_disable(pboard, DM7820_FIFO_QUEUE_1);
+DM7820_Error rtd_clear_all(DM7820_Board_Descriptor* p_rtd_board) {
+  DM7820_Error dm7820_status;
 
-  rtd_timer_disable(pboard, DM7820_TMRCTR_TIMER_A_0);
-  rtd_timer_disable(pboard, DM7820_TMRCTR_TIMER_A_1);
-  rtd_timer_disable(pboard, DM7820_TMRCTR_TIMER_A_2);
-  rtd_timer_disable(pboard, DM7820_TMRCTR_TIMER_B_0);
-  rtd_timer_disable(pboard, DM7820_TMRCTR_TIMER_B_1);
-  rtd_timer_disable(pboard, DM7820_TMRCTR_TIMER_B_2);
+  dm7820_status = rtd_fifo_disable(p_rtd_board, DM7820_FIFO_QUEUE_0);
+  dm7820_status = rtd_fifo_disable(p_rtd_board, DM7820_FIFO_QUEUE_1);
 
-  rtd_prgclk_disable(pboard, DM7820_PRGCLK_CLOCK_0);
-  rtd_prgclk_disable(pboard, DM7820_PRGCLK_CLOCK_1);
-  rtd_prgclk_disable(pboard, DM7820_PRGCLK_CLOCK_2);
-  rtd_prgclk_disable(pboard, DM7820_PRGCLK_CLOCK_3);
+  dm7820_status = rtd_timer_disable(p_rtd_board, DM7820_TMRCTR_TIMER_A_0);
+  dm7820_status = rtd_timer_disable(p_rtd_board, DM7820_TMRCTR_TIMER_A_1);
+  dm7820_status = rtd_timer_disable(p_rtd_board, DM7820_TMRCTR_TIMER_A_2);
+  dm7820_status = rtd_timer_disable(p_rtd_board, DM7820_TMRCTR_TIMER_B_0);
+  dm7820_status = rtd_timer_disable(p_rtd_board, DM7820_TMRCTR_TIMER_B_1);
+  dm7820_status = rtd_timer_disable(p_rtd_board, DM7820_TMRCTR_TIMER_B_2);
 
-  rtd_pwm_disable(pboard, DM7820_PWM_MODULATOR_0);
-  rtd_pwm_disable(pboard, DM7820_PWM_MODULATOR_1);
+  dm7820_status = rtd_prgclk_disable(p_rtd_board, DM7820_PRGCLK_CLOCK_0);
+  dm7820_status = rtd_prgclk_disable(p_rtd_board, DM7820_PRGCLK_CLOCK_1);
+  dm7820_status = rtd_prgclk_disable(p_rtd_board, DM7820_PRGCLK_CLOCK_2);
+  dm7820_status = rtd_prgclk_disable(p_rtd_board, DM7820_PRGCLK_CLOCK_3);
   
-  rtd_interrupt_disable(pboard, DM7820_INTERRUPT_ADVINT_0);
-  rtd_interrupt_disable(pboard, DM7820_INTERRUPT_ADVINT_1);
-  rtd_interrupt_disable(pboard, DM7820_INTERRUPT_FIFO_0_EMPTY);
-  rtd_interrupt_disable(pboard, DM7820_INTERRUPT_FIFO_0_FULL);
-  rtd_interrupt_disable(pboard, DM7820_INTERRUPT_FIFO_0_OVERFLOW);
-  rtd_interrupt_disable(pboard, DM7820_INTERRUPT_FIFO_0_READ_REQUEST);
-  rtd_interrupt_disable(pboard, DM7820_INTERRUPT_FIFO_0_UNDERFLOW);
-  rtd_interrupt_disable(pboard, DM7820_INTERRUPT_FIFO_0_WRITE_REQUEST);
-  rtd_interrupt_disable(pboard, DM7820_INTERRUPT_FIFO_1_EMPTY);
-  rtd_interrupt_disable(pboard, DM7820_INTERRUPT_FIFO_1_FULL);
-  rtd_interrupt_disable(pboard, DM7820_INTERRUPT_FIFO_1_OVERFLOW);
-  rtd_interrupt_disable(pboard, DM7820_INTERRUPT_FIFO_1_READ_REQUEST);
-  rtd_interrupt_disable(pboard, DM7820_INTERRUPT_FIFO_1_UNDERFLOW);
-  rtd_interrupt_disable(pboard, DM7820_INTERRUPT_FIFO_1_WRITE_REQUEST);
-  rtd_interrupt_disable(pboard, DM7820_INTERRUPT_INCENC_0_CHANNEL_A_NEGATIVE_ROLLOVER);
-  rtd_interrupt_disable(pboard, DM7820_INTERRUPT_INCENC_0_CHANNEL_A_POSITIVE_ROLLOVER);
-  rtd_interrupt_disable(pboard, DM7820_INTERRUPT_INCENC_0_CHANNEL_B_NEGATIVE_ROLLOVER);
-  rtd_interrupt_disable(pboard, DM7820_INTERRUPT_INCENC_0_CHANNEL_B_POSITIVE_ROLLOVER);
-  rtd_interrupt_disable(pboard, DM7820_INTERRUPT_INCENC_1_CHANNEL_A_NEGATIVE_ROLLOVER);
-  rtd_interrupt_disable(pboard, DM7820_INTERRUPT_INCENC_1_CHANNEL_A_POSITIVE_ROLLOVER);
-  rtd_interrupt_disable(pboard, DM7820_INTERRUPT_INCENC_1_CHANNEL_B_NEGATIVE_ROLLOVER);
-  rtd_interrupt_disable(pboard, DM7820_INTERRUPT_INCENC_1_CHANNEL_B_POSITIVE_ROLLOVER);
-  rtd_interrupt_disable(pboard, DM7820_INTERRUPT_PRGCLK_0);
-  rtd_interrupt_disable(pboard, DM7820_INTERRUPT_PRGCLK_1);
-  rtd_interrupt_disable(pboard, DM7820_INTERRUPT_PRGCLK_2);
-  rtd_interrupt_disable(pboard, DM7820_INTERRUPT_PRGCLK_3);
-  rtd_interrupt_disable(pboard, DM7820_INTERRUPT_PWM_0);
-  rtd_interrupt_disable(pboard, DM7820_INTERRUPT_PWM_1);
-  rtd_interrupt_disable(pboard, DM7820_INTERRUPT_TMRCTR_A_0);
-  rtd_interrupt_disable(pboard, DM7820_INTERRUPT_TMRCTR_A_1);
-  rtd_interrupt_disable(pboard, DM7820_INTERRUPT_TMRCTR_A_2);
-  rtd_interrupt_disable(pboard, DM7820_INTERRUPT_TMRCTR_B_0);
-  rtd_interrupt_disable(pboard, DM7820_INTERRUPT_TMRCTR_B_1);
-  rtd_interrupt_disable(pboard, DM7820_INTERRUPT_TMRCTR_B_2);
+  dm7820_status = rtd_pwm_disable(p_rtd_board, DM7820_PWM_MODULATOR_0);
+  dm7820_status = rtd_pwm_disable(p_rtd_board, DM7820_PWM_MODULATOR_1);
+
+  dm7820_status = rtd_interrupt_disable(p_rtd_board, DM7820_INTERRUPT_ADVINT_0);
+  dm7820_status = rtd_interrupt_disable(p_rtd_board, DM7820_INTERRUPT_ADVINT_1);
+  dm7820_status = rtd_interrupt_disable(p_rtd_board, DM7820_INTERRUPT_FIFO_0_EMPTY);
+  dm7820_status = rtd_interrupt_disable(p_rtd_board, DM7820_INTERRUPT_FIFO_0_FULL);
+  dm7820_status = rtd_interrupt_disable(p_rtd_board, DM7820_INTERRUPT_FIFO_0_OVERFLOW);
+  dm7820_status = rtd_interrupt_disable(p_rtd_board, DM7820_INTERRUPT_FIFO_0_READ_REQUEST);
+  dm7820_status = rtd_interrupt_disable(p_rtd_board, DM7820_INTERRUPT_FIFO_0_UNDERFLOW);
+  dm7820_status = rtd_interrupt_disable(p_rtd_board, DM7820_INTERRUPT_FIFO_0_WRITE_REQUEST);
+  dm7820_status = rtd_interrupt_disable(p_rtd_board, DM7820_INTERRUPT_FIFO_1_EMPTY);
+  dm7820_status = rtd_interrupt_disable(p_rtd_board, DM7820_INTERRUPT_FIFO_1_FULL);
+  dm7820_status = rtd_interrupt_disable(p_rtd_board, DM7820_INTERRUPT_FIFO_1_OVERFLOW);
+  dm7820_status = rtd_interrupt_disable(p_rtd_board, DM7820_INTERRUPT_FIFO_1_READ_REQUEST);
+  dm7820_status = rtd_interrupt_disable(p_rtd_board, DM7820_INTERRUPT_FIFO_1_UNDERFLOW);
+  dm7820_status = rtd_interrupt_disable(p_rtd_board, DM7820_INTERRUPT_FIFO_1_WRITE_REQUEST);
+  dm7820_status = rtd_interrupt_disable(p_rtd_board, DM7820_INTERRUPT_INCENC_0_CHANNEL_A_NEGATIVE_ROLLOVER);
+  dm7820_status = rtd_interrupt_disable(p_rtd_board, DM7820_INTERRUPT_INCENC_0_CHANNEL_A_POSITIVE_ROLLOVER);
+  dm7820_status = rtd_interrupt_disable(p_rtd_board, DM7820_INTERRUPT_INCENC_0_CHANNEL_B_NEGATIVE_ROLLOVER);
+  dm7820_status = rtd_interrupt_disable(p_rtd_board, DM7820_INTERRUPT_INCENC_0_CHANNEL_B_POSITIVE_ROLLOVER);
+  dm7820_status = rtd_interrupt_disable(p_rtd_board, DM7820_INTERRUPT_INCENC_1_CHANNEL_A_NEGATIVE_ROLLOVER);
+  dm7820_status = rtd_interrupt_disable(p_rtd_board, DM7820_INTERRUPT_INCENC_1_CHANNEL_A_POSITIVE_ROLLOVER);
+  dm7820_status = rtd_interrupt_disable(p_rtd_board, DM7820_INTERRUPT_INCENC_1_CHANNEL_B_NEGATIVE_ROLLOVER);
+  dm7820_status = rtd_interrupt_disable(p_rtd_board, DM7820_INTERRUPT_INCENC_1_CHANNEL_B_POSITIVE_ROLLOVER);
+  dm7820_status = rtd_interrupt_disable(p_rtd_board, DM7820_INTERRUPT_PRGCLK_0);
+  dm7820_status = rtd_interrupt_disable(p_rtd_board, DM7820_INTERRUPT_PRGCLK_1);
+  dm7820_status = rtd_interrupt_disable(p_rtd_board, DM7820_INTERRUPT_PRGCLK_2);
+  dm7820_status = rtd_interrupt_disable(p_rtd_board, DM7820_INTERRUPT_PRGCLK_3);
+  dm7820_status = rtd_interrupt_disable(p_rtd_board, DM7820_INTERRUPT_PWM_0);
+  dm7820_status = rtd_interrupt_disable(p_rtd_board, DM7820_INTERRUPT_PWM_1);
+  dm7820_status = rtd_interrupt_disable(p_rtd_board, DM7820_INTERRUPT_TMRCTR_A_0);
+  dm7820_status = rtd_interrupt_disable(p_rtd_board, DM7820_INTERRUPT_TMRCTR_A_1);
+  dm7820_status = rtd_interrupt_disable(p_rtd_board, DM7820_INTERRUPT_TMRCTR_A_2);
+  dm7820_status = rtd_interrupt_disable(p_rtd_board, DM7820_INTERRUPT_TMRCTR_B_0);
+  dm7820_status = rtd_interrupt_disable(p_rtd_board, DM7820_INTERRUPT_TMRCTR_B_1);
+  dm7820_status = rtd_interrupt_disable(p_rtd_board, DM7820_INTERRUPT_TMRCTR_B_2);
+
+  return dm7820_status;
 }
 
 
@@ -803,24 +823,19 @@ static void rtd_clear_all(DM7820_Board_Descriptor* pboard) {
   *           The FIFO0 input clock is set to the PCI data input.\n
   *           This function opens the board and initialized the above configuration
   *           The board handle is kept internal.
-  *           Externally accesible function.
   *  @param   void
   *  @return  void
   */
-uint16_t* dma_buffer; // DMA Buffer
-uint16_t sleep_time_us = (uint16_t)(RTD_DMA_BUFFER_SIZE*1000000.0/RTD_CLK_FREQUENCY);
-static void rtd_init(void) {
+static uint16_t* rtd_dma_buffer; // DMA buffer : global to this unit to be used in the rtd_cleanup() and rtd_write_dma_fifo() functions
+static uint16_t rtd_dma_buffer_size; // buffer size : global to this unit to be used in the rtd_cleanup() and rtd_write_dma_fifo() functions
+static DM7820_Error rtd_init(DM7820_Board_Descriptor* p_rtd_board, uint16_t dma_buffer_size) {
   DM7820_Error dm7820_status;
 
-  rtd_open(0, &p_rtd_board);
-
-  rtd_reset(p_rtd_board);
-
-  rtd_clear_all(p_rtd_board);
+  rtd_dma_buffer_size = dma_buffer_size;
 
   /* ================================ Standard output initialization ================================ */
 #if RTD_PRINT_DEBUG
-  printf("rtd_init() : Initialize standard ouptouts ...\n");
+  printf("rtd_init() : Initialize standard outputs ...\n");
 #endif
 
   /* Set Port 0 to peripheral output */
@@ -951,23 +966,23 @@ static void rtd_init(void) {
   
   /* create the DMA buffer */
 #if RTD_PRINT_DEBUG
-  printf("rtd_init() : Allocating DMA buffer of %d bytes\n", RTD_DMA_BUFFER_SIZE);
+  printf("rtd_init() : Allocating DMA buffer of %d bytes\n", rtd_dma_buffer_size);
 #endif
-  dm7820_status = DM7820_FIFO_DMA_Create_Buffer(&dma_buffer, RTD_DMA_BUFFER_SIZE);
+  dm7820_status = DM7820_FIFO_DMA_Create_Buffer(&rtd_dma_buffer, rtd_dma_buffer_size);
   DM7820_Return_Status(dm7820_status, "DM7820_FIFO_DMA_Create_Buffer()");
 
   /* initialize the DMA buffer */
 #if RTD_PRINT_DEBUG
   printf("rtd_init() :   Initializing DMA\n");
 #endif
-  dm7820_status = DM7820_FIFO_DMA_Initialize(p_rtd_board, DM7820_FIFO_QUEUE_0, RTD_DMA_BUFFER_COUNT, RTD_DMA_BUFFER_SIZE);
+  dm7820_status = DM7820_FIFO_DMA_Initialize(p_rtd_board, DM7820_FIFO_QUEUE_0, RTD_DMA_BUFFER_COUNT, rtd_dma_buffer_size);
   DM7820_Return_Status(dm7820_status, "DM7820_FIFO_DMA_Initialize()");
 
   /* configure DMA direction*/
 #if RTD_PRINT_DEBUG
   printf("rtd_init() :   Configuring DMA: PCI_TO_DM7820\n");
 #endif
-  dm7820_status = DM7820_FIFO_DMA_Configure(p_rtd_board, DM7820_FIFO_QUEUE_0, DM7820_DMA_DEMAND_ON_PCI_TO_DM7820, RTD_DMA_BUFFER_SIZE);
+  dm7820_status = DM7820_FIFO_DMA_Configure(p_rtd_board, DM7820_FIFO_QUEUE_0, DM7820_DMA_DEMAND_ON_PCI_TO_DM7820, rtd_dma_buffer_size);
   DM7820_Return_Status(dm7820_status, "DM7820_FIFO_DMA_Configure()");
 
   /* ========================== Secondary FIFO 0 configuration ========================== */
@@ -984,13 +999,13 @@ static void rtd_init(void) {
 #if RTD_PRINT_DEBUG
   printf("rtd_init() :     Resetting interrupt counters\n");
 #endif
-  dm7820_interrupt_fifo_0_empty_count=0;
-  dm7820_interrupt_fifo_0_full_count=0;
-  dm7820_interrupt_fifo_0_overflow_count=0;
-  dm7820_interrupt_fifo_0_read_request_count=0;
-  dm7820_interrupt_fifo_0_underflow_count=0;
-  dm7820_interrupt_fifo_0_write_request_count=0;
-  dm7820_interrupt_fifo_0_dma_done_count=0;
+  dm7820_interrupt_fifo_0_empty_count = 0;
+  dm7820_interrupt_fifo_0_full_count = 0;
+  dm7820_interrupt_fifo_0_overflow_count = 0;
+  dm7820_interrupt_fifo_0_read_request_count = 0;
+  dm7820_interrupt_fifo_0_underflow_count = 0;
+  dm7820_interrupt_fifo_0_write_request_count = 0;
+  dm7820_interrupt_fifo_0_dma_done_count = 0;
 
 #if RTD_PRINT_DEBUG
   printf("rtd_init() :     register and prioritize interrupt service routine\n");
@@ -1002,10 +1017,10 @@ static void rtd_init(void) {
   DM7820_Return_Status(dm7820_status, "DM7820_General_SetISRPriority()");
   
   /* ---------------- clear all fifo status flags ---------------- */
-  rtd_clear_fifo_status(p_rtd_board, DM7820_FIFO_STATUS_EMPTY);
-  rtd_clear_fifo_status(p_rtd_board, DM7820_FIFO_STATUS_FULL);
-  rtd_clear_fifo_status(p_rtd_board, DM7820_FIFO_STATUS_OVERFLOW);
-  rtd_clear_fifo_status(p_rtd_board, DM7820_FIFO_STATUS_UNDERFLOW);
+  dm7820_status = rtd_clear_fifo_status(p_rtd_board, DM7820_FIFO_STATUS_EMPTY);
+  dm7820_status = rtd_clear_fifo_status(p_rtd_board, DM7820_FIFO_STATUS_FULL);
+  dm7820_status = rtd_clear_fifo_status(p_rtd_board, DM7820_FIFO_STATUS_OVERFLOW);
+  dm7820_status = rtd_clear_fifo_status(p_rtd_board, DM7820_FIFO_STATUS_UNDERFLOW);
 
 #if RTD_PRINT_DEBUG
   printf("rtd_init() :       Check initial FIFO 0 status ...\n");
@@ -1016,6 +1031,8 @@ static void rtd_init(void) {
   rtd_exit_on_fifo_status(p_rtd_board, DM7820_FIFO_STATUS_FULL, 1);
   rtd_exit_on_fifo_status(p_rtd_board, DM7820_FIFO_STATUS_OVERFLOW, 1);
   rtd_exit_on_fifo_status(p_rtd_board, DM7820_FIFO_STATUS_UNDERFLOW, 0);
+
+  return dm7820_status;
 }
 
 
@@ -1029,15 +1046,14 @@ static void rtd_init(void) {
 /**
   *  \brief   Start the timer
   *           The board handle is kept internal.
-  *           Externally accesible function.
   *  @param   [in]    DM7820_Board_Descriptor* p_rtd_board - The pointer to the board discriptor
   *  @return  void
   */
-static void rtd_start_timer(void) {
+static DM7820_Error rtd_start_timer(DM7820_Board_Descriptor* p_rtd_board) {
 #if RTD_PRINT_DEBUG
   printf("rtd_start_timer() : start timer\n");
 #endif
-  rtd_prgclk_enable_continuous(p_rtd_board, DM7820_PRGCLK_CLOCK_0);
+  return rtd_prgclk_enable_continuous(p_rtd_board, DM7820_PRGCLK_CLOCK_0);
 }
 
 
@@ -1051,15 +1067,14 @@ static void rtd_start_timer(void) {
 /**
   *  \brief   Stop the timer
   *           The board handle is kept internal.
-  *           Externally accesible function.
   *  @param   [in]    DM7820_Board_Descriptor* p_rtd_board - The pointer to the board discriptor
   *  @return  void
   */
-static void rtd_stop_timer(void) {
+static DM7820_Error rtd_stop_timer(DM7820_Board_Descriptor* p_rtd_board) {
 #if RTD_PRINT_DEBUG
   printf("rtd_stop_timer() : stop timer\n");
 #endif
-  rtd_prgclk_disable(p_rtd_board, DM7820_PRGCLK_CLOCK_0);
+  return rtd_prgclk_disable(p_rtd_board, DM7820_PRGCLK_CLOCK_0);
 }
 
 
@@ -1072,20 +1087,16 @@ static void rtd_stop_timer(void) {
 
 /**
   *  \brief   Close the board opended by the rtd_open() function.
-  *           Internal function.
   *  @param   [in]    DM7820_Board_Descriptor* p_rtd_board - The pointer to the board discriptor
   *  @return  void
   */
-static void rtd_close(void) {
-  DM7820_Error dm7820_status;
-
+DM7820_Error rtd_close(DM7820_Board_Descriptor* p_rtd_board) {
   /* ---------------- Final processing before exit ---------------- */
 #if RTD_PRINT_DEBUG
   printf("rtd_close() : Closing device\n");
 #endif
-  dm7820_status = DM7820_General_Close_Board(p_rtd_board);
-  DM7820_Return_Status(dm7820_status, "DM7820_General_Close_Board()");
-  p_rtd_board=NULL;
+  return DM7820_General_Close_Board(p_rtd_board);
+  // p_rtd_board=NULL;
 }
 
 
@@ -1098,42 +1109,21 @@ static void rtd_close(void) {
 
 /**
   *  \brief   Clean and close the board opended and initialized by rtd_init()
-  *           The board handle is kept internal.
-  *           Externally accesible function.
-  *  @param   void
+  *  @param   [in]    DM7820_Board_Descriptor* p_rtd_board - The pointer to the board discriptor
   *  @return  void
   */
-static void rtd_cleanup(void) {
+static DM7820_Error rtd_cleanup(DM7820_Board_Descriptor* p_rtd_board) {
+#if RTD_PRINT_DEBUG
+  printf("rtd_cleanup():\n");
+#endif
   DM7820_Error dm7820_status;
-
-#if RTD_PRINT_DEBUG
-  printf("rtd_cleanup() :     remove interrupt service routine\n");
-#endif
   dm7820_status = DM7820_General_RemoveISR(p_rtd_board);
-  DM7820_Return_Status(dm7820_status, "DM7820_General_RemoveISR()");
-
-#if RTD_DMA
-#if RTD_PRINT_DEBUG
-  printf("rtd_cleanup() : De-allocating DMA buffer of %d bytes\n", RTD_DMA_BUFFER_SIZE);
-#endif
-  dm7820_status = DM7820_FIFO_DMA_Free_Buffer(&dma_buffer, RTD_DMA_BUFFER_SIZE);
-  DM7820_Return_Status(dm7820_status, "DM7820_FIFO_DMA_Create_Buffer()");
-
-  // ************* disable DMA transfer
-#if RTD_PRINT_DEBUG
-  printf("rtd_cleanup() : disable DMA\n");
-#endif
-  dm7820_status = DM7820_FIFO_DMA_Enable(p_rtd_board, DM7820_FIFO_QUEUE_0, 0x00, 0x00);
-  DM7820_Return_Status(dm7820_status, "DM7820_FIFO_DMA_Enable()");
-#endif
-
-  rtd_timer_disable(p_rtd_board, DM7820_TMRCTR_TIMER_A_0);
-
-  rtd_prgclk_disable(p_rtd_board, DM7820_PRGCLK_CLOCK_0);
-
-  rtd_fifo_disable(p_rtd_board, DM7820_FIFO_QUEUE_1);
-
-  rtd_close();
+  dm7820_status = DM7820_FIFO_DMA_Free_Buffer(&rtd_dma_buffer, rtd_dma_buffer_size);
+  dm7820_status = DM7820_FIFO_DMA_Enable(p_rtd_board, DM7820_FIFO_QUEUE_0, 0x00, 0x00); // disable DMA transfer
+  dm7820_status = rtd_timer_disable(p_rtd_board, DM7820_TMRCTR_TIMER_A_0);
+  dm7820_status = rtd_prgclk_disable(p_rtd_board, DM7820_PRGCLK_CLOCK_0);
+  dm7820_status = rtd_fifo_disable(p_rtd_board, DM7820_FIFO_QUEUE_1);
+  return dm7820_status;
 }
 
 
@@ -1153,14 +1143,14 @@ static void rtd_cleanup(void) {
   *  @param   [in]    uint32_t size - The size of the buffer in bytes.
   *  @return  void
   */
-uint64_t fifo_0_dma_done_count, fifo_0_empty_count;
-static void rtd_write_dma_fifo(char* buffer, uint32_t size) {
+static uint64_t fifo_0_dma_done_count, fifo_0_empty_count;
+static DM7820_Error rtd_write_dma_fifo(DM7820_Board_Descriptor* p_rtd_board, char* buffer) {
   // size - the size of the transfer in bytes
   DM7820_Error dm7820_status;
   uint8_t fifo_status;
 
   //Everything written must be an integer number of 16bit words
-  if(size % 2)
+  if(rtd_dma_buffer_size % 2)
     printf("rtd_write_dma_fifo() : rtd_write_fifo: BAD DATA SIZE\n");
 
   /* ========================== write source buffer to FIFO 0 via the PCI bus ========================== */
@@ -1169,8 +1159,8 @@ static void rtd_write_dma_fifo(char* buffer, uint32_t size) {
 #endif
 
   /* copy source buffer to DMA */
-  memset(dma_buffer, 0, RTD_DMA_BUFFER_SIZE);
-  memcpy(dma_buffer, buffer, size);
+  memset(rtd_dma_buffer, 0, rtd_dma_buffer_size);
+  memcpy(rtd_dma_buffer, buffer, rtd_dma_buffer_size);
 
 
   //Sleep until fifo is empty (NOT SURE WHY WE NEED THIS)
@@ -1186,23 +1176,25 @@ static void rtd_write_dma_fifo(char* buffer, uint32_t size) {
 #if RTD_PRINT_DEBUG
   printf("rtd_write_dma_fifo() : Copy the userspace DMA buffer to fifo\n");
 #endif
-  dm7820_status = DM7820_FIFO_DMA_Write(p_rtd_board, DM7820_FIFO_QUEUE_0, dma_buffer, RTD_DMA_BUFFER_COUNT);
-  DM7820_Return_Status(dm7820_status, "DM7820_FIFO_DMA_Write()");
-
+  dm7820_status = DM7820_FIFO_DMA_Write(p_rtd_board, DM7820_FIFO_QUEUE_0, rtd_dma_buffer, RTD_DMA_BUFFER_COUNT);
+  if(dm7820_status != 0)
+    return dm7820_status;
 
   /* Reconfigure DMA */
 #if RTD_PRINT_DEBUG
   printf("rtd_write_dma_fifo() : Reconfigure DMA\n");
 #endif
-  dm7820_status = DM7820_FIFO_DMA_Configure(p_rtd_board, DM7820_FIFO_QUEUE_0, DM7820_DMA_DEMAND_ON_PCI_TO_DM7820, RTD_DMA_BUFFER_SIZE);
-  DM7820_Return_Status(dm7820_status, "DM7820_FIFO_DMA_Configure()");
+  dm7820_status = DM7820_FIFO_DMA_Configure(p_rtd_board, DM7820_FIFO_QUEUE_0, DM7820_DMA_DEMAND_ON_PCI_TO_DM7820, rtd_dma_buffer_size);
+  if(dm7820_status != 0)
+    return dm7820_status;
 
   /* Enable & Start DMA transfer */
 #if RTD_PRINT_DEBUG
   printf("rtd_write_dma_fifo() : re-enable DMA\n");
 #endif
   dm7820_status = DM7820_FIFO_DMA_Enable(p_rtd_board, DM7820_FIFO_QUEUE_0, 0xFF, 0xFF);
-  DM7820_Return_Status(dm7820_status, "DM7820_FIFO_DMA_Enable()");
+  if(dm7820_status != 0)
+    return dm7820_status;
 
   /* Wait for DMA transfer to finish */
   while(fifo_0_dma_done_count==dm7820_interrupt_fifo_0_dma_done_count)
@@ -1252,18 +1244,12 @@ static void rtd_write_dma_fifo(char* buffer, uint32_t size) {
 /* %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% RTD ALPAO Section begin %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% */
 
 #define RTDALPAO_HARDWARE 1
-
-uint16_t rtdalpao_dma_data[RTDALPAO_DATA_LENGTH]; 
-
+static uint16_t* rtdalpao_dma_data_buffer;
 /* -------------------- function prototypes -------------------- */
-static void rtdalpao_send_analog_frame(double[ALPAO_DEV_N_CHANNEL]);
-static void rtdalpao_send_digital_frame(char*, uint32_t);
-#ifdef RTDALPAO_DITHER
-static void rtdalpao_send_analog_dither_frames(const double[ALPAO_DEV_N_CHANNEL]);
-static void rtdalpao_send_digital_dither_frames(char*);
-static void rtdalpao_build_dither_frames(const double[ALPAO_DEV_N_CHANNEL], uint16_t[RTDALPAO_DATA_LENGTH]);
+static DM7820_Error rtdalpao_send_analog_dither_frames(DM7820_Board_Descriptor*, double[ALPAO_DEV_N_CHANNEL]);
+static DM7820_Error rtdalpao_send_digital_dither_frames(DM7820_Board_Descriptor*, char*);
+static void rtdalpao_build_dither_frames(const double[ALPAO_DEV_N_CHANNEL], uint16_t*);
 static uint8_t is_actuator_up_down(size_t, double);
-#endif
 /* ------------------------------------------------------------- */
 
 
@@ -1279,12 +1265,19 @@ static uint8_t is_actuator_up_down(size_t, double);
   *  @param   [in]    void
   *  @return  void
   */
-void rtdalpao_init(void) {
-#if RTDALPAO_HARDWARE
-  rtd_init();
-#endif
+static uint16_t rtdalpao_dithers_per_frame, rtdalpao_data_length, rtdalpao_data_size; // needs to be global because used in rtdalpao_print_data()
+DM7820_Error rtdalpao_init(DM7820_Board_Descriptor* p_rtd_board, uint16_t dithers_per_frame) {
+  rtdalpao_dithers_per_frame = dithers_per_frame;
+  rtdalpao_data_length = ((rtdalpao_dithers_per_frame<3)?0x200:(rtdalpao_dithers_per_frame*ALPAO_DATA_LENGTH)); // in uint16_t
+  rtdalpao_data_size = rtdalpao_data_length*2; // in bytes
+  rtdalpao_dma_data_buffer = (uint16_t*)malloc(rtdalpao_data_size);
 #if RTDALPAO_PRINT_DEBUG
   printf("rtdalpao_init() : initializing the board\n");
+#endif
+#if RTDALPAO_HARDWARE
+  return rtd_init(p_rtd_board, rtdalpao_data_size);
+#else
+  return 0;
 #endif
 }
 
@@ -1301,12 +1294,14 @@ void rtdalpao_init(void) {
   *  @param   [in]    void
   *  @return  void
   */
-void rtdalpao_start_timer(void) {
-#if RTDALPAO_HARDWARE
-  rtd_start_timer();
-#endif
+DM7820_Error rtdalpao_start_timer(DM7820_Board_Descriptor* p_rtd_board) {
 #if RTDALPAO_PRINT_DEBUG
   printf("rtdalpao_start_timer() : starting timer\n");
+#endif
+#if RTDALPAO_HARDWARE
+  return rtd_start_timer(p_rtd_board);
+#else
+  return 0;
 #endif
 }
 
@@ -1323,52 +1318,14 @@ void rtdalpao_start_timer(void) {
   *  @param   [in]    void
   *  @return  void
   */
-void rtdalpao_stop_timer(void) {
-#if RTDALPAO_HARDWARE
-  rtd_stop_timer();
-#endif
+DM7820_Error rtdalpao_stop_timer(DM7820_Board_Descriptor* p_rtd_board) {
 #if RTDALPAO_PRINT_DEBUG
   printf("rtdalpao_stop_timer() : stopping timer\n");
 #endif
-}
-
-
-
-
-
-
-
-
-
-/**
-  *  \brief   Send an analog frame out without dithering.
-  *           Just outputs the frame to digital pins.
-  *           The power limitation and AD conversion is kept internal.
-  *  @param   [in]    char* block - digital block data to be sent out
-  *  @return  void
-  */
-static void rtdalpao_send_analog_frame(double in_data[ALPAO_DEV_N_CHANNEL]) {
-  alpao_limit_power(in_data);
-  alpao_build_frame(in_data, rtdalpao_dma_data);
-  rtdalpao_send_digital_frame((char*)rtdalpao_dma_data,ALPAO_FRAME_SIZE);
-}
-
-
-
-
-
-
-
-
-
-/**
-  *  \brief   Send digital data frame out, the frame size is kept internally.
-  *  @param   [in]    char* frame - digital frame to be sent out
-  *  @return  void
-  */
-void rtdalpao_send_digital_frame(char* frame, uint32_t size) {
 #if RTDALPAO_HARDWARE
-  rtd_write_dma_fifo(frame, size);
+  return rtd_stop_timer(p_rtd_board);
+#else
+  return 0;
 #endif
 }
 
@@ -1380,7 +1337,6 @@ void rtdalpao_send_digital_frame(char* frame, uint32_t size) {
 
 
 
-#ifdef RTDALPAO_DITHER
 /**
   *  \brief   Function to decide wheather to make the dither step high or not based on the frame number on the block and the fraction of the round up.
   *  @param   [in]    size_t frame_number - Frame number (in range [1,dither_frames_per_block]) in the block
@@ -1416,58 +1372,40 @@ static uint8_t is_actuator_up_down(size_t frame_number, double fraction) {
 
 
 /**
-  *  \brief   Build a block of RTDALPAO_DITHERS_PER_FRAME frames with dithering based on the roundup remainder.
+  *  \brief   Build a block of rtdalpao_dithers_per_frame frames with dithering based on the roundup remainder.
   *  @param   [in]    const double in_data[ALPAO_N_CHANNEL] - Deformable mirror command input buffer with ALPAO_N_CHANNEL values in range [-0.25, +0.25]
-  *  @param   [out]   uint16_t out_block[RTDALPAO_DATA_LENGTH] - Preallocated output buffer of RTDALPAO_DATA_LENGTH elements
+  *  @param   [out]   uint16_t out_block - Preallocated output buffer of rtdalpao_data_length elements
   *  @return  void
   */
-void rtdalpao_build_dither_frames(const double in_data[ALPAO_DEV_N_CHANNEL], uint16_t out_block[RTDALPAO_DATA_LENGTH]) {
+void rtdalpao_build_dither_frames(const double in_data[ALPAO_DEV_N_CHANNEL], uint16_t* out_block) {
 
-  size_t frame_number, channel_index, main_index, sub_index, index;
-  uint32_t sum;
-  uint8_t *p_sum = (uint8_t*)&sum;
+  size_t frame_number, channel_index, main_index, sub_index, frame_index;
   double fraction[ALPAO_DEV_N_CHANNEL];
   uint16_t frame[ALPAO_DEV_N_CHANNEL];
-  int i;
-  
-  /* Initialize out_block */
-  for(i=0;i<RTDALPAO_DATA_LENGTH;i++)
-    out_block[i]=ALPAO_MID_SCALE;
-  
+
   for ( channel_index = 0; channel_index < ALPAO_DEV_N_CHANNEL; channel_index++ ) {
     frame[channel_index] = (uint16_t) ( (alpao_device.multiplier[channel_index]*(in_data[channel_index]+alpao_device.offset[channel_index])+1.0) * ALPAO_MID_SCALE );
     fraction[channel_index] = fmod(in_data[channel_index],ALPAO_MIN_ANALOG_STEP)/ALPAO_MIN_ANALOG_STEP + ((in_data[channel_index]<=0.0)?1.0:0.0);
   }
 
-  for (frame_number = 1; frame_number <= RTDALPAO_DITHERS_PER_FRAME; frame_number++) {
+  for (frame_number = 1; frame_number <= rtdalpao_dithers_per_frame; frame_number++) {
+    frame_index = frame_number-1;
+    main_index = frame_index*ALPAO_DATA_LENGTH;
 
-    index = frame_number-1;
-    main_index = index*ALPAO_DATA_LENGTH;
-
-    /* Initialize Header */
-    out_block[main_index+0] = ALPAO_START_WORD;
-    out_block[main_index+1] = ALPAO_INIT_COUNTER;
-    
+    alpao_init_buffer(&out_block[main_index]);
+    out_block[main_index+0] = ALPAO_START_WORD; // Start of frame
+    out_block[main_index+1] = ALPAO_INIT_COUNTER; // Reset internal counter
+    /* Convert double to UINT16 */
     for ( channel_index = 0; channel_index < ALPAO_DEV_N_CHANNEL; channel_index++ ) {
-      sub_index = main_index+alpao_device.mapping[channel_index]+2;
+      sub_index = main_index+alpao_device.mapping[channel_index]+ALPAO_HEADER_LENGTH;
       out_block[sub_index] = frame[channel_index] + is_actuator_up_down(frame_number,fraction[channel_index]);
       if ( out_block[sub_index] > ALPAO_MAX_SAFE ) out_block[sub_index] = ALPAO_MAX_SAFE;
       if ( out_block[sub_index] < ALPAO_MIN_SAFE ) out_block[sub_index] = ALPAO_MIN_SAFE;
     }
-    sub_index = main_index+ALPAO_N_CHANNEL+2;
+    sub_index = main_index+ALPAO_N_CHANNEL+ALPAO_HEADER_LENGTH;
     out_block[sub_index] = ALPAO_END_WORD;
-
-    /* Calculate Checksum */
-    sum=0;
-    for(i=main_index+1;i<=main_index+ALPAO_N_CHANNEL+2;i++)
-      sum += out_block[i];
-
-    while (sum > 0xFF) {
-      sum = p_sum[0] + p_sum[1] + p_sum[2] + p_sum[3];
-    }
-    out_block[sub_index] += (uint8_t)(~p_sum[0]);
-    out_block[sub_index+1] = 0xFEED;// End of frame
-
+    out_block[sub_index] += alpao_checksum(&out_block[main_index]);
+    out_block[sub_index+ALPAO_PAD_LENGTH] = 0xFEED;// End of frame
   }
 }
 
@@ -1485,10 +1423,10 @@ void rtdalpao_build_dither_frames(const double in_data[ALPAO_DEV_N_CHANNEL], uin
   *  @param   [in]    char* block - digital block data to be sent out
   *  @return  void
   */
-static void rtdalpao_send_analog_dither_frames(const double in_data[ALPAO_DEV_N_CHANNEL]) {
+static DM7820_Error rtdalpao_send_analog_dither_frames(DM7820_Board_Descriptor* p_rtd_board, double in_data[ALPAO_DEV_N_CHANNEL]) {
   alpao_limit_power(in_data);
-  rtdalpao_build_dither_frames(in_data, rtdalpao_dma_data);
-  rtdalpao_send_digital_dither_frames((char*)rtdalpao_dma_data);
+  rtdalpao_build_dither_frames(in_data, rtdalpao_dma_data_buffer);
+  return rtdalpao_send_digital_dither_frames(p_rtd_board, (char*)rtdalpao_dma_data_buffer);
 }
 
 
@@ -1504,12 +1442,13 @@ static void rtdalpao_send_analog_dither_frames(const double in_data[ALPAO_DEV_N_
   *  @param   [in]    char* block - digital block data to be sent out
   *  @return  void
   */
-static void rtdalpao_send_digital_dither_frames(char* block) {
+static DM7820_Error rtdalpao_send_digital_dither_frames(DM7820_Board_Descriptor* p_rtd_board, char* block) {
 #if RTDALPAO_HARDWARE
-  rtd_write_dma_fifo(block, RTD_DMA_BUFFER_SIZE);
+  return rtd_write_dma_fifo(p_rtd_board, block);
+#else
+  return 0;
 #endif
 }
-#endif
 
 
 
@@ -1524,12 +1463,8 @@ static void rtdalpao_send_digital_dither_frames(char* block) {
   *  @param   [in]    char* block - digital block data to be sent out
   *  @return  void
   */
-void rtdalpao_send_analog_data(double in_data[ALPAO_DEV_N_CHANNEL]) {
-#ifdef RTDALPAO_DITHER
-  rtdalpao_send_analog_dither_frames(in_data);
-#else
-  rtdalpao_send_analog_frame(in_data);
-#endif
+DM7820_Error rtdalpao_send_analog_data(DM7820_Board_Descriptor* p_rtd_board, double in_data[ALPAO_DEV_N_CHANNEL]) {
+  return rtdalpao_send_analog_dither_frames(p_rtd_board, in_data);
 }
 
 
@@ -1541,15 +1476,16 @@ void rtdalpao_send_analog_data(double in_data[ALPAO_DEV_N_CHANNEL]) {
 
 
 /**
-  *  \brief   Print a block of RTDALPAO_DITHERS_PER_FRAME frames
-  *  @param   [in]    const uint16_t block[RTDALPAO_DATA_LENGTH] - Block to print (RTDALPAO_DITHERS_PER_FRAME frames of ALPAO_DATA_LENGTH words each)
+  *  \brief   Print the block of rtdalpao_dithers_per_frame frames
+  *           The data is rtdalpao_dma_data_buffer internal to this unit
+  *  @param   [in]    void
   *  @return  void
   */
 void rtdalpao_print_data(void) {
   uint16_t frame_number;
-  for (frame_number = 0; frame_number < RTDALPAO_DITHERS_PER_FRAME; frame_number++) {
+  for (frame_number = 0; frame_number < rtdalpao_dithers_per_frame; frame_number++) {
     printf("\n--------------- fr = %02d ---------------\n",frame_number);
-    alpao_print_frame(rtdalpao_dma_data+(frame_number*ALPAO_DATA_LENGTH));
+    alpao_print_frame(rtdalpao_dma_data_buffer+(frame_number*ALPAO_DATA_LENGTH));
     printf("\n---------------------------------------\n");
   }
 }
@@ -1570,11 +1506,10 @@ void rtdalpao_print_data(void) {
   */
 static uint8_t write_header = 1;
 void rtdalpao_write_data_to_file(FILE* p_file, const double data[ALPAO_DEV_N_CHANNEL]) {
-  uint16_t frames_per_block = RTDALPAO_DITHERS_PER_FRAME;
   uint16_t frame_length = ALPAO_DATA_LENGTH;
   if (write_header) {
     fwrite(&(alpao_device.n_act), sizeof(uint8_t), 1, p_file);
-    fwrite(&frames_per_block, sizeof(uint16_t), 1, p_file);
+    fwrite(&rtdalpao_dithers_per_frame, sizeof(uint16_t), 1, p_file);
     fwrite(&frame_length, sizeof(uint16_t), 1, p_file);
     fwrite(&(alpao_device.mapping), sizeof(uint8_t), ALPAO_DEV_N_CHANNEL, p_file);
     fwrite(&(alpao_device.multiplier), sizeof(int8_t), ALPAO_DEV_N_CHANNEL, p_file);
@@ -1582,7 +1517,7 @@ void rtdalpao_write_data_to_file(FILE* p_file, const double data[ALPAO_DEV_N_CHA
     write_header = 0;
   }
   fwrite(data, sizeof(double), ALPAO_DEV_N_CHANNEL, p_file);
-  fwrite(rtdalpao_dma_data, sizeof(uint16_t), RTDALPAO_DATA_LENGTH, p_file);
+  fwrite(rtdalpao_dma_data_buffer, sizeof(uint16_t), rtdalpao_data_length, p_file);
 }
 
 
@@ -1601,11 +1536,11 @@ void rtdalpao_write_data_to_file(FILE* p_file, const double data[ALPAO_DEV_N_CHA
 void rtdalpao_print_info(void) {
   printf("---------------------- RTD board info ----------------------\n");
   printf("RTD clock frequency                  = %f [Hz]\n", RTD_CLK_FREQUENCY);
-  printf("RTD DMA length                       = %d (%dx%d) [words]\n", RTDALPAO_DATA_LENGTH, ALPAO_DATA_LENGTH, RTDALPAO_DITHERS_PER_FRAME);
-  printf("Maximum possible refresh rate        = %f [Hz]\n", RTDALPAO_REFRESH_RATE);
-  printf("Dithering                            = %sabled\n", (RTDALPAO_DITHERS_PER_FRAME==1)?"dis":"en");
-  printf("Dithers per frame                    = %d [frames]\n", RTDALPAO_DITHERS_PER_FRAME);
-  printf("Time to clock-out 1 data transfer    = %f [us]\n", RTDALPAO_DATA_TRANSFER_TIME);
+  printf("RTD DMA length                       = %d (%dx%d) [words]\n", rtdalpao_data_length, ALPAO_DATA_LENGTH, rtdalpao_dithers_per_frame);
+  printf("Maximum possible refresh rate        = %f [Hz]\n",  (RTD_CLK_FREQUENCY/rtdalpao_data_length));
+  printf("Dithering                            = %sabled\n", (rtdalpao_dithers_per_frame>1)?"en":"dis");
+  printf("Dithers per frame                    = %d [frames]\n", rtdalpao_dithers_per_frame);
+  printf("Time to clock-out 1 data transfer    = %f [us]\n", (1000000.0*rtdalpao_data_length/RTD_CLK_FREQUENCY));
   printf("------------------------ ALPAO info ------------------------\n");
   printf("ALPAO Frame length (with pad)        = %d [words]\n", ALPAO_DATA_LENGTH);
   printf("---------------------- ALPAO dev info ----------------------\n");
@@ -1638,10 +1573,17 @@ void rtdalpao_print_info(void) {
   *  @param   [in]    void
   *  @return  void
   */
-void rtdalpao_clean_close(void) {
+DM7820_Error rtdalpao_clean(DM7820_Board_Descriptor* p_rtd_board) {
+#if RTDALPAO_PRINT_DEBUG
+  printf("rtdalpao_clean()\n");
+#endif
 #if RTDALPAO_HARDWARE
-  rtd_cleanup();
+  return rtd_cleanup(p_rtd_board);
+#else
+  return 0;
 #endif
 }
-
 /* %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% RTD ALPAO Section end %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% */
+
+
+
