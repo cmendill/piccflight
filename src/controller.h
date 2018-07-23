@@ -154,7 +154,7 @@ enum states { STATE_STANDBY,
 #define SHK2ZERNIKE_FILE  "data/shk/shk2zern.dat"
 #define ASTIG2TILT_FILE   "data/shk/astig2tilt.dat"
 #define SHK_HEX_CALFILE   "data/test_data/shk_hex_%s_caldata.dat"
-#define SHK_ALP_CALFILE   "data/test_data/shk_alp_caldata.dat"
+#define SHK_ALP_CALFILE   "data/test_data/shk_alp_%s_caldata.dat"
 #define SHK2ZERN_OUTFILE  "data/shk/shk2zern_flight_output.dat"
 #define ZERN2SHK_OUTFILE  "data/shk/zern2shk_flight_output.dat"
 #define MAX_FILENAME      128
@@ -354,7 +354,7 @@ enum bufids {SCIEVENT, SCIFULL,
 #define SHK_SPOT_UPPER_THRESH 200
 #define SHK_SPOT_LOWER_THRESH 100
 #define SHK_CELL_XOFF         67 //1px = 0.24 microns tilt
-#define SHK_CELL_YOFF         54 
+#define SHK_CELL_YOFF         74 
 #define SHK_CELL_ROTATION     0.0
 #define SHK_CELL_XSCALE       1.0
 #define SHK_CELL_YSCALE       1.0

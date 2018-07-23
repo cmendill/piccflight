@@ -70,7 +70,7 @@ int handle_command(char *line, sm_t *sm_p){
   int   cmdfound=0;
   int   i=0,hex_axis=0;
   double hex_poke=0;
-  int   hex_calmode=0;
+  int    calmode=0;
   static double trl_poke = HEX_TRL_POKE;//0.01;
   static double rot_poke = HEX_ROT_POKE;///0.01;
   static calmode_t alpcalmodes[ALP_NCALMODES];
@@ -165,28 +165,6 @@ int handle_command(char *line, sm_t *sm_p){
     return(CMD_NORMAL);
   }
   
-  //ALP Calibration
-  if(!strncasecmp(line,"shk calibrate alp",17)){
-    printf("CMD: Running SHK ALP calibration\n");
-    //Change calibration output filename
-    sprintf((char *)sm_p->calfile,SHK_HEX_CALFILE);
-    //Start data recording
-    printf("  -- Starting data recording\n");
-    sm_p->w[DIAID].launch = getshk_proc;
-    sm_p->w[DIAID].run    = 1;
-    sleep(3);
-    //Start probe pattern
-    sm_p->alp_calmode = ALP_CALMODE_POKE;
-    printf("  -- Changing ALP calibration mode to %s\n",alpcalmodes[sm_p->alp_calmode].name);
-    while(sm_p->alp_calmode == ALP_CALMODE_POKE)
-      sleep(1);
-    //Stop data recording
-    printf("  -- Stopping data recording\n");
-    sm_p->w[DIAID].run    = 0;
-    printf("  -- Done\n");
-    
-    return(CMD_NORMAL);
-  }
 
   //States
   if(!strncasecmp(line,"state",5)){
@@ -387,7 +365,7 @@ int handle_command(char *line, sm_t *sm_p){
     cmdfound = 0;
     for(i=0;i<HEX_NCALMODES;i++){
       if(!strncasecmp(line+18,hexcalmodes[i].cmd,strlen(hexcalmodes[i].cmd))){
-	hex_calmode=i;
+	calmode  = i;
 	cmdfound = 1;
       }
     }
@@ -396,18 +374,18 @@ int handle_command(char *line, sm_t *sm_p){
       print_hex_calmodes(hexcalmodes);
       return(CMD_NORMAL);
     }
-    printf("CMD: Running HEX AXS calibration\n");
+    printf("CMD: Running HEX calibration\n");
     //Change calibration output filename
-    sprintf((char *)sm_p->calfile,SHK_HEX_CALFILE,(char *)hexcalmodes[hex_calmode].cmd);
+    sprintf((char *)sm_p->calfile,SHK_HEX_CALFILE,(char *)hexcalmodes[calmode].cmd);
     //Start data recording
     printf("  -- Starting data recording to file: %s\n",sm_p->calfile);
     sm_p->w[DIAID].launch = getshk_proc;
     sm_p->w[DIAID].run    = 1;
     sleep(3);
     //Start probe pattern
-    sm_p->hex_calmode = hex_calmode;
+    sm_p->hex_calmode = calmode;
     printf("  -- Changing HEX calibration mode to %s\n",hexcalmodes[sm_p->hex_calmode].name);
-    while(sm_p->hex_calmode == hex_calmode)
+    while(sm_p->hex_calmode == calmode)
       sleep(1);
     printf("  -- Stopping data recording\n");
     //Stop data recording
@@ -416,6 +394,40 @@ int handle_command(char *line, sm_t *sm_p){
     return(CMD_NORMAL);
   }
 
+  //ALP Calibration
+  if(!strncasecmp(line,"shk calibrate alp",17)){
+    //Get calmode
+    cmdfound = 0;
+    for(i=0;i<ALP_NCALMODES;i++){
+      if(!strncasecmp(line+18,alpcalmodes[i].cmd,strlen(alpcalmodes[i].cmd))){
+	calmode  = i;
+	cmdfound = 1;
+      }
+    }
+    if(!cmdfound){
+      printf("CMD: Could not find alp calmode\n");
+      print_alp_calmodes(alpcalmodes);
+      return(CMD_NORMAL);
+    }
+    printf("CMD: Running ALP calibration\n");
+    //Change calibration output filename
+    sprintf((char *)sm_p->calfile,SHK_ALP_CALFILE,(char *)alpcalmodes[calmode].cmd);
+    //Start data recording
+    printf("  -- Starting data recording to file: %s\n",sm_p->calfile);
+    sm_p->w[DIAID].launch = getshk_proc;
+    sm_p->w[DIAID].run    = 1;
+    sleep(3);
+    //Start probe pattern
+    sm_p->alp_calmode = calmode;
+    printf("  -- Changing ALP calibration mode to %s\n",alpcalmodes[sm_p->alp_calmode].name);
+    while(sm_p->alp_calmode == calmode)
+      sleep(1);
+    printf("  -- Stopping data recording\n");
+    //Stop data recording
+    sm_p->w[DIAID].run    = 0;
+    printf("  -- Done\n");
+    return(CMD_NORMAL);
+  }
 
   //Reset Commands
   if(!strncasecmp(line,"shk reset",9)){
