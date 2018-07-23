@@ -26,6 +26,11 @@ void alp_init_calmode(int calmode, calmode_t *alp){
     sprintf(alp->name,"ALP_CALMODE_NONE");
     sprintf(alp->cmd,"none");
   }
+  //ALP_CALMODE_ZERO
+  if(calmode == ALP_CALMODE_ZERO){
+    sprintf(alp->name,"ALP_CALMODE_ZERO");
+    sprintf(alp->cmd,"zero");
+  }
   //ALP_CALMODE_POKE
   if(calmode == ALP_CALMODE_POKE){
     sprintf(alp->name,"ALP_CALMODE_POKE");
@@ -85,6 +90,7 @@ int alp_zern2alp(double *zernikes,double *actuators){
     }
     //--close file
     fclose(matrix);
+    printf("ALP: Read: %s\n",matrix_file);
     
     //--set init flag
     init=1;
@@ -141,7 +147,7 @@ int alp_calibrate(int calmode, alp_t *alp, int reset){
     //--check file size
     fseek(fileptr, 0L, SEEK_END);
     if(ftell(fileptr) != sizeof(zernike_errors)){
-      printf("SHK: incorrect zernike_errors file size %lu != %lu\n",ftell(fileptr),sizeof(zernike_errors));
+      printf("ALP: incorrect zernike_errors file size %lu != %lu\n",ftell(fileptr),sizeof(zernike_errors));
       goto endofinit;
     }
     rewind(fileptr);
@@ -152,7 +158,10 @@ int alp_calibrate(int calmode, alp_t *alp, int reset){
     }
   endofinit:
     //--close file
-    if(fileptr != NULL) fclose(fileptr);
+    if(fileptr != NULL){
+      printf("ALP: Read: %s\n",filename);
+      fclose(fileptr);
+    }
     init=1;
   }
 
@@ -166,6 +175,16 @@ int alp_calibrate(int calmode, alp_t *alp, int reset){
   if(calmode==ALP_CALMODE_NONE){
     countA=0;
     countB=0;
+    return calmode;
+  }
+
+  /* ALP_CALMODE_ZERO: Set all actuators to Zero */
+  if(calmode==ALP_CALMODE_ZERO){
+    countA=0;
+    countB=0;
+    //set all ALP actuators to bias
+    for(i=0;i<ALP_NACT;i++)
+      alp->act_cmd[i]=ALP_BIAS;
     return calmode;
   }
   
@@ -207,7 +226,7 @@ int alp_calibrate(int calmode, alp_t *alp, int reset){
       
       //poke one zernike by adding it on top of the bias
       if((countA/ALP_NCALIM) % 2 == 1){
-	alp->zernike_cmd[(countB/ALP_NCALIM) % LOWFS_N_ZERNIKE] = 0.1;
+	alp->zernike_cmd[(countB/ALP_NCALIM) % LOWFS_N_ZERNIKE] = ALP_ZPOKE;
 	alp_zern2alp(alp->zernike_cmd,act);
 	for(i=0; i<ALP_NACT; i++)
 	  alp->act_cmd[i] += act[i];

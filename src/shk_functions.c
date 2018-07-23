@@ -370,7 +370,7 @@ void shk_zernike_matrix(shkcell_t *cells, double *matrix_inv){
   }
   //Close file
   fclose(matrix);
-  printf("SHK: Wrote zernike matrix file: %s\n",matrix_file);
+  printf("SHK: Wrote: %s\n",matrix_file);
   
   //Set up file names
   sprintf(matrix_file, SHK2ZERN_OUTFILE);
@@ -386,7 +386,7 @@ void shk_zernike_matrix(shkcell_t *cells, double *matrix_inv){
   }
   //Close file
   fclose(matrix);
-  printf("SHK: Wrote zernike matrix file: %s\n",matrix_file);
+  printf("SHK: Wrote: %s\n",matrix_file);
 }
 
 /**************************************************************/
@@ -435,7 +435,7 @@ void shk_zernike_fit(shkcell_t *cells, double *zernikes){
       }
       //Close file
       fclose(matrix);
-      printf("SHK: Read zernike matrix file: %s\n",matrix_file);
+      printf("SHK: Read: %s\n",matrix_file);
     }
     else{
       //Generate the zernike matrix
@@ -504,6 +504,7 @@ int shk_cells2alp(shkcell_t *cells, double *actuators){
     }
     //--close file
     fclose(matrix);
+    printf("SHK: Read: %s\n",matrix_file);
     
     //--set init flag
     init=1;
@@ -567,6 +568,7 @@ int shk_cells2hex(shkcell_t *cells, double *axes){
       return 1;
     }
     //--close file
+    printf("SHK: Read: %s\n",matrix_file);
     fclose(matrix);
     
     //--set init flag

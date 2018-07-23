@@ -15,6 +15,8 @@
  *  - Define state settings
  *************************************************/
 void init_state(int state_number, state_t *state){
+  int i;
+  
   //Clear state
   memset(state,0,sizeof(state_t));
 
@@ -223,17 +225,45 @@ void init_state(int state_number, state_t *state){
     return;
   }
 
-  //STATE_SHK_LOWFC
-  if(state_number == STATE_SHK_LOWFC){
+  //STATE_SHK_ZERN_LOWFC
+  if(state_number == STATE_SHK_ZERN_LOWFC){
     //Set name
-    sprintf(state->name,"STATE_SHK_LOWFC");
+    sprintf(state->name,"STATE_SHK_ZERN_LOWFC");
     //Set cmd
-    sprintf(state->cmd,"swc");
+    sprintf(state->cmd,"szc");
     //Config Cameras
     state->shk.run_camera = 1;
     state->lyt.run_camera = 1;
     state->sci.run_camera = 1;
     state->acq.run_camera = 1;
+    //Set SHKID as alp commander
+    state->alp_commander = SHKID;
+    //SHK Settings
+    state->shk.fit_zernikes = 1;
+    state->shk.pid_zernikes = 1;
+    for(i=0;i<22;i++)
+      state->shk.zernike_control[i] = ACTUATOR_ALP;
+
+    return;
+  }
+
+  //STATE_SHK_CELL_LOWFC
+  if(state_number == STATE_SHK_CELL_LOWFC){
+    //Set name
+    sprintf(state->name,"STATE_SHK_CELL_LOWFC");
+    //Set cmd
+    sprintf(state->cmd,"scc");
+    //Config Cameras
+    state->shk.run_camera = 1;
+    state->lyt.run_camera = 1;
+    state->sci.run_camera = 1;
+    state->acq.run_camera = 1;
+    //Set SHKID as alp commander
+    state->alp_commander = SHKID;
+    //SHK Settings
+    state->shk.fit_zernikes = 1;
+    state->shk.pid_cells = 1;
+    state->shk.cell_control = 1;
     return;
   }
 

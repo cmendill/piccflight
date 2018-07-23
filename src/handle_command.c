@@ -205,8 +205,10 @@ int handle_command(char *line, sm_t *sm_p){
   //Start Manual Data Recording
   if(!strncasecmp(line, "shk start rec", 13)){
     printf("CMD: Start Manual Data Recording\n");
+    //Setup filename
+    sprintf((char *)sm_p->calfile,SHK_OUTFILE);
     //Start data recording
-    printf("  --Starting data recording\n");
+    printf("  --Starting data recording to: %s\n",sm_p->calfile);
     sm_p->w[DIAID].launch = getshk_proc;
     sm_p->w[DIAID].run    = 1;
     sleep(3);

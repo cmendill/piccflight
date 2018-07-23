@@ -14,6 +14,7 @@ int alp_zero(int devId);
 
 //Calibration Modes
 enum alpcalmodes {ALP_CALMODE_NONE,
+		  ALP_CALMODE_ZERO,
 		  ALP_CALMODE_POKE,
 		  ALP_CALMODE_ZPOKE,
 		  ALP_CALMODE_FLIGHT,

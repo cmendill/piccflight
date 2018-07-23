@@ -82,7 +82,8 @@ enum states { STATE_STANDBY,
 	      STATE_M2_ALIGN,
 	      STATE_SHK_HEX_CALIBRATE,
 	      STATE_SHK_ALP_CALIBRATE,
-	      STATE_SHK_LOWFC,
+	      STATE_SHK_ZERN_LOWFC,
+	      STATE_SHK_CELL_LOWFC,
 	      STATE_LYT_LOWFC,
 	      STATE_SCI_DARK_HOLE,
 	      NSTATES};
@@ -157,6 +158,7 @@ enum states { STATE_STANDBY,
 #define SHK_ALP_CALFILE   "data/test_data/shk_alp_%s_caldata.dat"
 #define SHK2ZERN_OUTFILE  "data/shk/shk2zern_flight_output.dat"
 #define ZERN2SHK_OUTFILE  "data/shk/zern2shk_flight_output.dat"
+#define SHK_OUTFILE       "data/shk/shk_output.dat"
 #define MAX_FILENAME      128
 
 
@@ -285,6 +287,7 @@ enum bufids {SCIEVENT, SCIFULL,
 #define ALP_DMID     ((ALP_DMIN+ALP_DMAX)/2)
 #define ALP_BIAS     0.0
 #define ALP_POKE     0.05
+#define ALP_ZPOKE    0.1 //zernike microns RMS
 #define ALP_NCALIM   25  //number of calibration images to take per step
 
 /*************************************************
