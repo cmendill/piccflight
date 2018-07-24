@@ -135,6 +135,10 @@ int main( int argc, char *argv[] ) {
   zernike_array[0]=zernike;
   alp_zern2alp(zernike_array,data);
 
+  //Print tilt command
+  for(i=0;i<ALP_NACT;i++)
+    printf("ACT %d:  %f\n",i,data[i]);
+  
   //Add flat to command
   for(i=0;i<ALP_NACT;i++)
     data[i]+=flat[i];
