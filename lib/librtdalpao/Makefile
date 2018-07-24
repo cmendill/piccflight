@@ -11,7 +11,7 @@ INCLUDE_FLAGS:=$(LIBRTD_INCLUDE_FLAGS) $(LIBRTDALPAO_INCLUDE_FLAGS)
 
 CFLAGS:=$(DEBUG_FLAGS) $(INCLUDE_FLAGS) $(OPTIMIZE_FLAGS) $(WARNING_FLAGS)
 
-all: clean librtdalpao.a
+all: librtdalpao.a
 
 librtdalpao.a: librtdalpao.o
 	ar -cr librtdalpao.a librtdalpao.o

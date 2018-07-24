@@ -6,9 +6,9 @@ MKLOPTS = -I$(MKL_INCLUDE_DIR)
 
 #COMPILER OPTIONS
 CC = gcc
-INCLUDE_FLAGS = -Ilib/libfli -Ilib/phx/include -Ilib/rtd/include -Ilib/hex/include -I/usr/include/libusb-1.0 -I/usr/local/include/libuvc -Ilib/librtdalpao/include
+INCLUDE_FLAGS = -Ilib/libfli -Ilib/phx/include -Ilib/rtd/include -Ilib/hex/include -I/usr/include/libusb-1.0 -I/usr/local/include/libuvc -Ilib/librtdalpao/include -Ilib/libnumeric/include
 USER_CFLAGS = -Wall -Wno-unused -O6 -m64 -D_PHX_LINUX $(MKLOPTS) $(INCLUDE_FLAGS)
-LINK = -L/usr/local/lib -Llib/phx -Llib/rtd -Llib/libfli -Llib/librtdalpao -lrtdalpao -lasdk -lphx -lpfw -lpbu -lfli -lm -lpthread -lrt -lrtd-dm7820 -lpi_pi_gcs2 -luvc -lusb-1.0 $(MKLLINKLINE)
+LINK = -L/usr/local/lib -Llib/phx -Llib/rtd -Llib/libfli -Llib/librtdalpao -Llib/libnumeric -lrtdalpao -lasdk -lphx -lpfw -lpbu -lfli -lm -lpthread -lrt -lrtd-dm7820 -lnumeric -lpi_pi_gcs2 -luvc -lusb-1.0 $(MKLLINKLINE)
 
 #FILES
 TARGET  = bin/
