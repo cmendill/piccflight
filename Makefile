@@ -31,18 +31,22 @@ $(TARGET)watchdog: $(OBJECT) $(LIBRARY)
 
 #LIBRARIES
 libfli:
-	cd lib/libfli && make
+	make -C lib/libfli
 libalp:
-	cd lib/libalp && make
+	make -C lib/libalp
 libnum:
-	cd lib/libnum && make
+	make -C lib/libnum
 librtd:
-	cd lib/librtd && make
+	make -C lib/librtd
 
 
 #CLEAN
 clean:
 	rm -f ./src/*.o $(TARGET)watchdog
+	make clean -C lib/libfli
+	make clean -C lib/libalp
+	make clean -C lib/libnum
+	make clean -C lib/librtd
 
 #REMOVE *~ files
 remove_backups:
