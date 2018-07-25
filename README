@@ -62,8 +62,14 @@ SETTINGS
     - this is where you turn processes on and off
 
 REQUIRED PACKAGES
- - cmake (apt-get install cmake)
- - libusb (apt-get install libusb-1.0-0-dev, create simlink of /usr/include/libusb-1.0/libusb.h to /usr/include/libusb.h)
+ - cmake
+	sudo apt-get install cmake
+ - libusb
+	sudo apt-get install libusb-1.0-0-dev
+	sudo ln -s /usr/include/libusb-1.0/libusb.h /usr/include/libusb.h
+	
+ - mkl 
+	Download l_mkl_2018.3.222.tgz and run install script
 
 BUILD INSTRUCTIONS
  - type: make

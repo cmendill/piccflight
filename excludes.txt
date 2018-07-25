@@ -4,7 +4,6 @@ sync.sh
 .gitignore
 *~
 *.o
-*.a
 *.ko
 #executables
 bin/watchdog
@@ -12,5 +11,10 @@ bin/getshk
 bin/shkevent
 bin/iwctest
 lib/libuvc/build
+lib/libuvc/CMakeFiles
 doc
 test/*/bin
+lib/libfli/*.a
+lib/libnum/*.a
+lib/libalp/*.a
+lib/librtd/*.a

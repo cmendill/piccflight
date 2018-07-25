@@ -7,7 +7,6 @@
 #include <fcntl.h>
 #include <ctype.h>
 #include <time.h>
-#include <acedev5.h>
 
 /* piccflight headers */
 #include "controller.h"

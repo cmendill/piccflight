@@ -10,8 +10,8 @@
 #define LOWFS_N_ZERNIKE  23
 #define ALP_NACT         97
 #define MAX_FILENAME     128
-#define ZERNIKE2ALP_FILE "data/shk/zern2alp.dat"
-#define ALP_FLAT_FILE    "data/alp/alpao_flat_zern.dat";
+#define ZERNIKE2ALP_FILE "config/zern2alp.dat"
+#define ALP_FLAT_FILE    "config/alpao_flat_zern.dat";
 int cleanup = 0;
 
 /**************************************************************/
