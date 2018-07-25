@@ -19,7 +19,6 @@
 
 /* LYT config */
 #define LYT_BOARD_NUMBER PHX_BOARD_NUMBER_2
-#define LYT_CONFIG_FILE "phx_config/lyt.cfg"
 
 /* Process File Descriptor */
 int lyt_shmfd;

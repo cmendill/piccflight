@@ -62,6 +62,7 @@ typedef int8_t int8;
 #define RAD2AS       206264.81
 #define LAMBDA       0.600         // Central Wavelength [microns]
 #define PHASE_RAD2NM (LAMBDA*1000./TWOPI)
+#define MAX_FILENAME 128
 
 /*************************************************
  * Process ID Numbers
@@ -139,27 +140,26 @@ enum states { STATE_STANDBY,
 #define LOWFS_FAKE        5
 
 /*************************************************
- * Base Addresses & Files
+ * Files
  *************************************************/
-#define DARKFILE_SCI      "data/darkframe.sci.%3.3d.%3.3d.%2.2dC.dat"
-#define FLATFILE_SCI      "data/flatframe.sci.%3.3d.dat"
-#define FAKEFILE_SCI      "data/fakeframe.sci.%3.3d.%s.dat"
-#define HOSTPORT          "ANY:24924"
-#define DATAPATH          "data/flight_data/folder_%5.5d/"
-#define DATANAME          "data/flight_data/folder_%5.5d/picture.%s.%8.8d.dat"
-#define CELLS2ALP_FILE    "data/shk/shk2alp.dat"
-#define CELLS2HEX_FILE    "data/shk/shk2hex.dat"
-#define ZERNIKE2HEX_FILE  "data/shk/zern2hex.dat"
-#define HEX2ZERNIKE_FILE  "data/shk/hex2zern.dat"
-#define ZERNIKE2ALP_FILE  "data/shk/zern2alp.dat"
-#define SHK2ZERNIKE_FILE  "data/shk/shk2zern.dat"
-#define ASTIG2TILT_FILE   "data/shk/astig2tilt.dat"
-#define SHK_HEX_CALFILE   "data/test_data/shk_hex_%s_caldata.dat"
-#define SHK_ALP_CALFILE   "data/test_data/shk_alp_%s_caldata.dat"
-#define SHK2ZERN_OUTFILE  "data/shk/shk2zern_flight_output.dat"
-#define ZERN2SHK_OUTFILE  "data/shk/zern2shk_flight_output.dat"
-#define SHK_OUTFILE       "data/shk/shk_output.dat"
-#define MAX_FILENAME      128
+#define DARKFILE_SCI      "config/darkframe.sci.%3.3d.%3.3d.%2.2dC.dat"
+#define FLATFILE_SCI      "config/flatframe.sci.%3.3d.dat"
+#define FAKEFILE_SCI      "config/fakeframe.sci.%3.3d.%s.dat"
+#define CELLS2ALP_FILE    "config/shk2alp.dat"
+#define CELLS2HEX_FILE    "config/shk2hex.dat"
+#define ZERNIKE2HEX_FILE  "config/zern2hex.dat"
+#define HEX2ZERNIKE_FILE  "config/hex2zern.dat"
+#define ZERNIKE2ALP_FILE  "config/zern2alp.dat"
+#define SHK2ZERNIKE_FILE  "config/shk2zern.dat"
+#define SHK_CONFIG_FILE   "config/shk.cfg"
+#define LYT_CONFIG_FILE   "config/lyt.cfg"
+#define DATAPATH          "output/flight_data/folder_%5.5d/"
+#define DATANAME          "output/flight_data/folder_%5.5d/picture.%s.%8.8d.dat"
+#define SHK_HEX_CALFILE   "output/calibration/shk_hex_%s_caldata.dat"
+#define SHK_ALP_CALFILE   "output/calibration/shk_alp_%s_caldata.dat"
+#define SHK2ZERN_OUTFILE  "output/calibration/shk2zern_flight_output.dat"
+#define ZERN2SHK_OUTFILE  "output/calibration/zern2shk_flight_output.dat"
+#define SHK_OUTFILE       "output/calibraiton/shk_output.dat"
 
 
 /*************************************************
@@ -167,6 +167,7 @@ enum states { STATE_STANDBY,
  *************************************************/
 #define GSE_ADDR  "192.168.0.6"
 #define GSE_PORT  "1337"
+#define HOSTPORT  "ANY:24924"
 
 /*************************************************
  * Circular Buffer Info
@@ -344,7 +345,6 @@ enum bufids {SCIEVENT, SCIFULL,
 /*************************************************
  * Shack-Hartmann (SHK) Settings
  *************************************************/
-#define SHK_CONFIG_FILE       "phx_config/shk.cfg"
 #define SHK_PX_PITCH_UM       5.5
 #define SHK_XCELLS            16
 #define SHK_YCELLS            16
