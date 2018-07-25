@@ -1143,7 +1143,7 @@ static DM7820_Error rtd_cleanup(DM7820_Board_Descriptor* p_rtd_board) {
   *  @param   [in]    uint32_t size - The size of the buffer in bytes.
   *  @return  void
   */
-static uint64_t fifo_0_dma_done_count, fifo_0_empty_count;
+static uint64_t fifo_0_dma_done_count;
 static DM7820_Error rtd_write_dma_fifo(DM7820_Board_Descriptor* p_rtd_board, char* buffer) {
   // size - the size of the transfer in bytes
   DM7820_Error dm7820_status;
@@ -1209,6 +1209,7 @@ static DM7820_Error rtd_write_dma_fifo(DM7820_Board_Descriptor* p_rtd_board, cha
 #if RTD_PRINT_DEBUG
   printf("rtd_write_dma_fifo() : done\n");
 #endif
+  return 0;
 }
 
 /* %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% RTD Section end %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% */
