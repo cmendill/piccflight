@@ -5961,7 +5961,7 @@ DM7820_TmrCtr_Select_Gate(DM7820_Board_Descriptor * handle,
 }
 
 DM7820_Error
-DM7820_General_InstallISR(DM7820_Board_Descriptor * handle, void (*isr_fnct))
+DM7820_General_InstallISR(DM7820_Board_Descriptor * handle, void (*isr_fnct), void *isr_pass)
 {
 	/*
 	 * Check for ISR already installed
@@ -5977,6 +5977,11 @@ DM7820_General_InstallISR(DM7820_Board_Descriptor * handle, void (*isr_fnct))
 
 	handle->isr = isr_fnct;
 
+	/*
+	 * Set passthrough pointer
+	 */
+	handle->isr_pass = isr_pass;
+	
 	/*
 	 * Start the thread to wait for the interrupt
 	 */
@@ -6075,7 +6080,7 @@ void *DM7820_General_WaitForInterrupt(void *ptr)
 			 */
 
 			interrupt_status.error = -1;
-			(*(handle->isr)) (interrupt_status);
+			(*(handle->isr)) (interrupt_status, handle->isr_pass);
 			break;
 		}
 
@@ -6088,7 +6093,7 @@ void *DM7820_General_WaitForInterrupt(void *ptr)
 
 			interrupt_status.error = -1;
 			errno = -ENODATA;
-			(*(handle->isr)) (interrupt_status);
+			(*(handle->isr)) (interrupt_status, handle->isr_pass);
 			break;
 		}
 		/*
@@ -6099,7 +6104,7 @@ void *DM7820_General_WaitForInterrupt(void *ptr)
 		if (FD_ISSET(handle->file_descriptor, &exception_fds)) {
 			interrupt_status.error = -1;
 			errno = -EIO;
-			(*(handle->isr)) (interrupt_status);
+			(*(handle->isr)) (interrupt_status, handle->isr_pass);
 			break;
 		}
 
@@ -6116,7 +6121,7 @@ void *DM7820_General_WaitForInterrupt(void *ptr)
 
 			interrupt_status.error = -1;
 			errno = -ENODATA;
-			(*(handle->isr)) (interrupt_status);
+			(*(handle->isr)) (interrupt_status, handle->isr_pass);
 			break;
 		}
 
@@ -6126,7 +6131,7 @@ void *DM7820_General_WaitForInterrupt(void *ptr)
 
 		if (status != 0) {
 			interrupt_status.error = -1;
-			(*(handle->isr)) (interrupt_status);
+			(*(handle->isr)) (interrupt_status, handle->isr_pass);
 			return handle;
 		}
 
@@ -6136,7 +6141,7 @@ void *DM7820_General_WaitForInterrupt(void *ptr)
 			 * Call the Interrupt Service Routine and pass through the status
 			 */
 
-			(*(handle->isr)) (interrupt_status);
+			(*(handle->isr)) (interrupt_status, handle->isr_pass);
 
 			/*
 			 * Get Next Status
@@ -6149,7 +6154,7 @@ void *DM7820_General_WaitForInterrupt(void *ptr)
 
 			if (status != 0) {
 				interrupt_status.error = -1;
-				(*(handle->isr)) (interrupt_status);
+				(*(handle->isr)) (interrupt_status, handle->isr_pass);
 			}
 		}
 	}

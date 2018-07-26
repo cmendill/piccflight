@@ -650,6 +650,11 @@ typedef volatile struct {
   //RTD board descriptor
   DM7820_Board_Descriptor* p_rtd_board;
 
+  //RTD board interrupt counters
+  uint64_t rtd_fifo_0_dma_done;
+  uint64_t rtd_fifo_1_dma_done;
+
+
   //State
   int state;                    //Current operational state
   state_t state_array[NSTATES]; //Array of states

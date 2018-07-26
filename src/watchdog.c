@@ -388,22 +388,20 @@ int main(int argc,char **argv){
   sm_p->circbuf[ACQFULL].bufsize = ACQFULLSIZE;
   sprintf((char *)sm_p->circbuf[ACQFULL].name,"ACQFULL");
   
-  /* Init RTD ALPAO Driver */
-  if(ALP_ENABLE){
-    //Open driver
-    if((dm7820_status = rtd_open(0, &sm_p->p_rtd_board)))
-      perror("rtd_open");
-
-    //Reset board
-    if((dm7820_status = rtd_reset(sm_p->p_rtd_board)))
-      perror("rtd_reset");
-
-    //Clear all
-    if((dm7820_status = rtd_clear_all(sm_p->p_rtd_board)))
-      perror("rtd_clear_all");
-  }
-  else printf("WAT: ALPAO disabled\n");
-
+  /* Init RTD Driver */
+  //Open driver
+  if((dm7820_status = rtd_open(0, &sm_p->p_rtd_board)))
+    perror("rtd_open");
+  
+  //Reset board
+  if((dm7820_status = rtd_reset(sm_p->p_rtd_board)))
+    perror("rtd_reset");
+  
+  //Install interrupt handler -- pass pointer to shmem
+  if((dm7820_status = rtd_install_isr(sm_p->p_rtd_board,sm_p)))
+    perror("rtd_install_isr");
+    
+  
   /* Launch Watchdog */
   if(sm_p->w[WATID].run){
     if(sm_p->w[WATID].pid == -1){
@@ -455,29 +453,11 @@ int main(int argc,char **argv){
     printf("WAT: cleanup done.\n");
 
 
-  //Close ALPAO driver
-  if(ALP_ENABLE){
-    /* Sleep before stop timer */
-    usleep(1500);
+  //Close RTD driver
+  if((dm7820_status = rtd_close(sm_p->p_rtd_board)))
+    perror("rtd_close");
 
-    /* Stop timer */
-    if((dm7820_status = rtdalpao_stop_timer(sm_p->p_rtd_board)))
-      perror("rtdalpao_stop_timer");
-
-    /* Sleep before cleanup */
-    usleep(1500);
-
-  
-    //Cleanup ALPAO interface
-    if((dm7820_status = rtdalpao_clean(sm_p->p_rtd_board)))
-      perror("rtdalpao_clean");
-
-    //Close driver
-    if((dm7820_status = rtd_close(sm_p->p_rtd_board)))
-      perror("rtd_close");
-  }
-
-
+  //Close shared memory
   close(shmfd);
 
 

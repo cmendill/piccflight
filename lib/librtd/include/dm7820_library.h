@@ -220,16 +220,21 @@ Structures
 		int file_descriptor;
 
     /**
-     * Function pointer to the user ISR callback function.
+     * Function pointer to the user ISR callback function. (mendillo,2018)
      */
 
-		void (*isr) (dm7820_interrupt_info status);
+	        void (*isr) (dm7820_interrupt_info status, void *isr_pass);
 
     /**
      * Process ID of the child process which will monitor DMA done interrupts.
      */
 
 		pthread_t pid;
+    /**
+     * Optional void pointer to pass along to ISR (mendillo,2018)
+     */
+
+	        void *isr_pass;
 	};
 
 /**

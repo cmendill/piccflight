@@ -6,9 +6,9 @@ MKLOPTS = -I$(MKL_INCLUDE_DIR)
 
 #COMPILER OPTIONS
 CC = gcc
-INCLUDE_FLAGS = -Ilib/libfli -Ilib/libphx/include -Ilib/librtd/include -Ilib/libhex/include -Ilib/libalp/include -Ilib/libnum/include -I/usr/local/include/libuvc
+INCLUDE_FLAGS = -Ilib/libfli -Ilib/libphx/include -Ilib/librtd/include -Ilib/libhex/include -I/usr/local/include/libuvc
 CFLAGS = -Wall -Wno-unused -O6 -m64 -D_PHX_LINUX $(MKLOPTS) $(INCLUDE_FLAGS)
-LFLAGS = -L/usr/local/lib -Llib/libhex -Llib/libphx -Llib/librtd -Llib/libfli -Llib/libalp -Llib/libnum -Llib/libuvc/build -lalp -lasdk -lphx -lpfw -lpbu -lfli -lm -lpthread -lrt -lrtd-dm7820 -lnum -lpi_pi_gcs2 -luvc -lusb-1.0 $(MKLLINKLINE)
+LFLAGS = -L/usr/local/lib -Llib/libhex -Llib/libphx -Llib/librtd -Llib/libfli -Llib/libuvc/build -lasdk -lphx -lpfw -lpbu -lfli -lm -lpthread -lrt -lrtd-dm7820 -lpi_pi_gcs2 -luvc -lusb-1.0 $(MKLLINKLINE)
 
 #DEPENDANCIES
 COMDEP  = Makefile $(wildcard ./src/*.h)
@@ -17,11 +17,10 @@ COMDEP  = Makefile $(wildcard ./src/*.h)
 TARGET   = bin/
 SOURCE   = $(wildcard ./src/*.c)
 OBJECT   = $(patsubst %.c,%.o,$(SOURCE))
-LIBRARY  = libfli libalp libnum librtd
 
 
 #WATCHDOG
-$(TARGET)watchdog: $(OBJECT) $(LIBRARY)
+$(TARGET)watchdog: $(OBJECT) 
 	$(CC) $(CFLAGS) -o $(TARGET)watchdog $(OBJECT) $(LFLAGS) 
 
 
@@ -30,12 +29,10 @@ $(TARGET)watchdog: $(OBJECT) $(LIBRARY)
 	$(CC) $(CFLAGS) -o $@ -c $<
 
 #LIBRARIES
+libs: libfli librtd
+
 libfli:
 	make -C lib/libfli
-libalp:
-	make -C lib/libalp
-libnum:
-	make -C lib/libnum
 librtd:
 	make -C lib/librtd
 
@@ -43,10 +40,6 @@ librtd:
 #CLEAN
 clean:
 	rm -f ./src/*.o $(TARGET)watchdog
-	make clean -C lib/libfli
-	make clean -C lib/libalp
-	make clean -C lib/libnum
-	make clean -C lib/librtd
 
 #REMOVE *~ files
 remove_backups:
