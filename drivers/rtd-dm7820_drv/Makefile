@@ -17,7 +17,7 @@
 #
 
 
-MY_CFLAGS := -I$(shell pwd)/../../lib/rtd/include
+MY_CFLAGS := -I$(shell pwd)/../../lib/librtd/include
 
 #
 # Kernel build environment directory.  Supposedly it is safer to use this
