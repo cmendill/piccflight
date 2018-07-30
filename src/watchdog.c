@@ -13,7 +13,6 @@
 #include <sys/ipc.h>
 #include <sys/sem.h>
 #include <sys/io.h>
-#include <rtdalpao_library.h>
 #include <dm7820_library.h>
 
 /* piccflight headers */
@@ -22,6 +21,7 @@
 #include "controller.h"
 #include "common_functions.h"
 #include "alp_functions.h"
+#include "rtd_functions.h"
 
 /* Constants */
 #define STDIN 0  // file descriptor for standard input

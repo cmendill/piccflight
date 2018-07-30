@@ -20,31 +20,14 @@
 #define SLEEP_TIME 10000
 #define NFAKE 100000
 #define FAKEMAX 65536
-#define TLM_RTD 0
-#define TLM_DEVICE TLM_RTD
 
 /* Globals */
 //--shared memory
 int tlm_shmfd;
 //--ethernet server
 volatile int ethfd=-1;
-//--RTD DM7820 device descriptor
-DM7820_Board_Descriptor *board;
 
-//--number of interrupts counted
-volatile unsigned long fifo_empty_interrupts = 0;  
-volatile unsigned long dma_done_interrupts = 0;  
-volatile unsigned long dma_done_frames = 0;
-
-
-/*RTD Prototypes*/
-void rtd_cleanup(void);
-void rtd_init(void);
-void rtd_write_fifo(char *buf, uint32_t num, int replace_empty);
-void rtd_write_dma(char *buf, uint32_t num, int replace_empty);
-
-
-/* Listener stuff */
+/* Listener Setup */
 void *tlm_listener(void *t);
 pthread_t listener_thread;
 
@@ -92,16 +75,11 @@ void tlmctrlC(int sig){
   printf("TLM: ctrlC! exiting.\n");
 #endif
   close(tlm_shmfd);
-
-#if TLM_DEVICE == TLM_RTD
-  rtd_cleanup();
-#endif
-
   close(ethfd);
   exit(sig);
 }
 
-void write_block(char *hed,char *buf, uint32 num, int invert_buf){
+void write_block(sm_t *sm_p, char *hed,char *buf, uint32 num){
   static uint32 presync  = TLM_PRESYNC;
   static uint32 postsync = TLM_POSTSYNC;
   static unsigned long message;
@@ -123,27 +101,16 @@ void write_block(char *hed,char *buf, uint32 num, int invert_buf){
   }
   else{
     /*Send TM over RTD*/
-    if(board != NULL){
-      if(RTD_DMA){
-	/*Write presync to dma */
-	rtd_write_dma((char *)&presync,sizeof(presync),1);
-	/*Write header to dma */
-	rtd_write_dma(hed,sizeof(pkthed_t),1);
-	/*Write image to dma */
-	rtd_write_dma(buf,num,1);
-	/*Write postsync to dma */
-	rtd_write_dma((char *)&postsync,sizeof(postsync),1);
-      }
-      else{
-	/*Write presync to fifo */
-	rtd_write_fifo((char *)&presync,sizeof(presync),1);
-	/*Write header to fifo */
-	rtd_write_fifo(hed,sizeof(pkthed_t),1);
-	/*Write image to fifo */
-	rtd_write_fifo(buf,num,1);
-	/*Write postsync to fifo */
-	rtd_write_fifo((char *)&postsync,sizeof(postsync),1);
-      }
+    if(sm_p->p_rtd_board != NULL){
+      /*Write presync to dma */
+      rtd_send_tlm(sm_p->p_rtd_board, (char *)&presync,sizeof(presync),&sm_p->rtd_tlm_dma_done);
+      /*Write header to dma */
+      rtd_send_tlm(sm_p->p_rtd_board, hed,sizeof(pkthed_t),&sm_p->rtd_tlm_dma_done);
+      /*Write image to dma */
+      rtd_send_tlm(sm_p->p_rtd_board, buf,num,&sm_p->rtd_tlm_dma_done);
+      /*Write postsync to dma */
+      rtd_send_tlm(sm_p->p_rtd_board, (char *)&postsync,sizeof(postsync),&sm_p->rtd_tlm_dma_done);
+      
 #if TLM_DEBUG
       printf("TLM: write_block sent over RTD\n");
 #endif
@@ -209,7 +176,7 @@ void tlm_proc(void){
   pthread_create(&listener_thread,NULL,tlm_listener,(void *)0);
 
   /* Init RTD */
-  rtd_init();
+  rtd_init_tlm(sm_p->p_rtd_board,TLM_BUFFER_SIZE);
  
   /*Create fake data */
   static uint32 ilast=0;
@@ -222,13 +189,13 @@ void tlm_proc(void){
   
   /*Create empty data*/
   uint16 *emptybuf;
-  if((emptybuf = (uint16 *)malloc(sizeof(uint16)*RTD_BUF_SAMPLES))==NULL){
+  if((emptybuf = (uint16 *)malloc(sizeof(uint16)*TLM_BUFFER_LENGTH))==NULL){
     perror("malloc");
     free(emptybuf);
     exit(0);
   }
-  for(i=0;i<RTD_BUF_SAMPLES;i++)
-    emptybuf[i]=RTD_EMPTY_CODE;
+  for(i=0;i<TLM_BUFFER_LENGTH;i++)
+    emptybuf[i]=TLM_EMPTY_CODE;
 
   
   /* Create folder for saved data */
@@ -254,7 +221,7 @@ void tlm_proc(void){
       for(i=0;i<NFAKE;i++){
 	fakeword[i] = ilast++ % FAKEMAX;
 	//skip empty code
-	if(fakeword[i]==RTD_EMPTY_CODE){
+	if(fakeword[i]==TLM_EMPTY_CODE){
 	  fakeword[i]++;
 	  ilast++;
 	}
@@ -271,11 +238,8 @@ void tlm_proc(void){
 	
       }else{
 	//RTD write fake data
-	if(board != NULL){
-	  if(RTD_DMA)
-	    rtd_write_dma((char *)fakeword,sizeof(uint16)*NFAKE,1);
-	  else
-	    rtd_write_fifo((char *)fakeword,sizeof(uint16)*NFAKE,1);
+	if(sm_p->p_rtd_board != NULL){
+	  rtd_send_tlm(sm_p->p_rtd_board,(char *)fakeword,sizeof(uint16)*NFAKE,&sm_p->rtd_tlm_dma_done);
 	}
 	//sleep (time @ 200000 Wps)
 	usleep((long)(ONE_MILLION * ((double)NFAKE / (double)200000)));
@@ -289,21 +253,10 @@ void tlm_proc(void){
       
       //Check for new data
       if(!checkdata(sm_p)){
-	if(ethfd >= 0){
-	  //Do nothing
-	}
-	else{
-	  //Flush DMA buffer
-	  if(board != NULL){
-	    if(RTD_DMA){
-	      rtd_write_dma((char *)emptybuf,sizeof(uint16)*RTD_BUF_SAMPLES,0);
-	    }
-	  }
-	}
 	usleep(100000);
       }
       else{
-
+	
 	/*Get SCI data*/
 	if(read_from_buffer(sm_p, &sci, SCIEVENT, TLMID)){
 	  /*Check in with watchdog*/
@@ -318,14 +271,11 @@ void tlm_proc(void){
 	  
 	  if(SEND_SCI){
 	    //write data
-	    write_block((char *)&pkthed, (char *)&sci.image, sizeof(sci.image),0);
+	    write_block(sm_p,(char *)&pkthed, (char *)&sci.image, sizeof(sci.image));
 	    if(TLM_DEBUG)
 	      printf("TLM: Frame %d - SCI\n",pkthed.frame_number);
 	  }
 	}
-
-
-	
       }
     }
   }

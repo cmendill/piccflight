@@ -283,8 +283,8 @@ enum bufids {SCIEVENT, SCIFULL,
 #define ALP_STROKE   2.0
 #define ALPXS        10
 #define ALPYS        10
-#define ALP_DMAX     0.9
-#define ALP_DMIN     -0.9
+#define ALP_DMAX     ((1<<14) - 1)
+#define ALP_DMIN     0
 #define ALP_DMID     ((ALP_DMIN+ALP_DMAX)/2)
 #define ALP_BIAS     0.0
 #define ALP_POKE     0.05
@@ -367,6 +367,14 @@ enum bufids {SCIEVENT, SCIFULL,
 #define SHK_YMIN              0
 #define SHK_YMAX              (SHKYS-1)
 #define SHK_READ_MATRIX       1      //Read Zernike fitting matrix instead of building it
+
+/*************************************************
+ * Telemetry (TLM) Settings
+ *************************************************/
+#define TLM_EMPTY_CODE     0xFADE              //Code to send when there is no data
+#define TLM_REPLACE_CODE   0xFFFF              //Code to replace empty codes with in data
+#define TLM_BUFFER_SIZE    0x1000              //TLM DMA buffer size
+#define TLM_BUFFER_LENGTH  (TLM_BUFFER_SIZE/2) //TLM DMA buffer length
 
 /*************************************************
  * Config Structure
@@ -651,8 +659,8 @@ typedef volatile struct {
   DM7820_Board_Descriptor* p_rtd_board;
 
   //RTD board interrupt counters
-  uint64_t rtd_fifo_0_dma_done;
-  uint64_t rtd_fifo_1_dma_done;
+  uint64_t rtd_alp_dma_done;
+  uint64_t rtd_tlm_dma_done;
 
 
   //State

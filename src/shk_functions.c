@@ -6,7 +6,6 @@
 #include <string.h>
 #include <fcntl.h>
 #include <ctype.h>
-#include <rtdalpao_library.h>
 
 
 /* piccflight headers */
@@ -16,6 +15,7 @@
 #include "hex_functions.h"
 #include "alp_functions.h"
 #include "phx_config.h"
+#include "rtd_functions.h"
 
 /**************************************************************/
 /* SHK_INIT_CELLS                                             */
@@ -754,11 +754,11 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     hex_last_recv = 0;
     alp_last_recv = 0;
     //Init ALPAO interface
-    if((dm7820_status = rtdalpao_init(sm_p->p_rtd_board,n_dither)))
-      perror("rtdalpao_init");
+    if((dm7820_status = rtd_init_alp(sm_p->p_rtd_board,n_dither)))
+      perror("rtd_init_alp");
     //Start ALPAO timer 
-    if((dm7820_status = rtdalpao_start_timer(sm_p->p_rtd_board)))
-      perror("rtdalpao_start_timer");
+    if((dm7820_status = rtd_start_alp_clock(sm_p->p_rtd_board)))
+      perror("rtd_start_alp_clock");
     //Reset start time
     memcpy(&first,&start,sizeof(struct timespec));
     //Set init flag
@@ -931,7 +931,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   //Send command to ALP
   if(ALP_ENABLE && move_alp){
     // - send command
-    dm7820_status = rtdalpao_send_analog_data(sm_p->p_rtd_board,alp.act_cmd);
+    dm7820_status = rtd_send_alp(sm_p->p_rtd_board,alp.act_cmd,&sm_p->rtd_alp_dma_done);
     // - copy command to shkevent
     memcpy(&shkevent.alp,&alp,sizeof(alp_t));
   }

@@ -1794,7 +1794,7 @@ General functions
 	DM7820_Error DM7820_General_Reset(DM7820_Board_Descriptor * handle);
 
 	DM7820_Error DM7820_General_InstallISR(DM7820_Board_Descriptor * handle,
-					       void (*isr_fnct));
+					       void (*isr_fnct), void *isr_pass);
 
 /**
 ********************************************************************************
