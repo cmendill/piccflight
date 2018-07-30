@@ -51,7 +51,6 @@ LIST OF DRIVERS
  
 LIST OF LIBRARIES
  - PI C887 Hexapod
- - ALPAO DM
  - Active Silicon Pheonix (phx) Framegrabber
  - RTD DM7820
 
@@ -71,11 +70,15 @@ REQUIRED PACKAGES
  - mkl 
 	Download l_mkl_2018.3.222.tgz and run install script
 
+LINUX SETUP
+- sudo addgroup wheel
+
 BUILD INSTRUCTIONS
- - type: make
- - binaries are written into the bin folder
- - After installing the drivers to /lib/modules insert driver names into /etc/modules for auto-loading
+ - To build libraries: make libs
+ - To build watchdog: make
+ - To build drivers: source found in ./drivers/xxx/. Build each driver with make && sudo make install. 
+ - After installing the drivers to /lib/modules/... insert driver names into /etc/modules for auto-loading
 
 RUN INSTRUCTIONS
  - cd bin/
- - ./watchdog
+ - sudo ./watchdog
