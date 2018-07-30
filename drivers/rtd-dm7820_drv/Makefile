@@ -29,20 +29,10 @@ KERNEL_DIR := /lib/modules/$(shell uname -r)/build
 obj-m := rtd-dm7820.o
 
 DRIVER_MODULE=rtd-dm7820.ko
-FILES_TO_CLEAN= \
-	*.o \
-	rtd-dm7820.ko \
-	.*.cmd \
-	*.ko \
-	.tmp_versions \
-	rtd-dm7820.mod.c \
-	.*.d \
-	*.symvers \
-	*.order \
-    *.markers \
-	*~
 
-driver:		rtd-dm7820.c
+all: driver cleanup
+
+driver:	rtd-dm7820.c
 	make -C $(KERNEL_DIR) SUBDIRS=`pwd` EXTRA_CFLAGS="$(MY_CFLAGS)" modules
 
 install:
@@ -51,26 +41,8 @@ install:
 	/sbin/depmod -a
 	/sbin/modprobe rtd-dm7820
 
+cleanup:
+	rm -f *.o .*.cmd *.mod.c *.order *.symvers; rm -rf .tmp_versions
 
-.PHONY: debug
-debug:
-	make -C $(KERNEL_DIR) SUBDIRS=`pwd` EXTRA_CFLAGS="$(MY_CFLAGS) -DDM7820_DEBUG_INTERRUPTS" modules
-
-.PHONY: debug_dma
-debug_dma:
-	make -C $(KERNEL_DIR) SUBDIRS=`pwd` EXTRA_CFLAGS="$(MY_CFLAGS) -DDM7820_DEBUG_DMA" modules
-
-
-clean:
-	rm -rf $(FILES_TO_CLEAN)
-
-load:
-	insmod ./$(DRIVER_MODULE)
-	chmod 666 /dev/rtd-dm7820-*
-
-unload:
-	rmmod rtd-dm7820
-	@echo "Removing old device files ..."; \
-	rm -f /dev/rtd-dm7820-* \
-	echo ""; \
-
+clean: cleanup
+	rm -f *.ko test

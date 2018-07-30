@@ -19,7 +19,7 @@ install:
 	/sbin/modprobe phddrv
 
 cleanup:
-	rm -f *.o .*.cmd *.mod.c; rm -rf .tmp_versions
+	rm -f *.o .*.cmd *.mod.c *.order *.symvers; rm -rf .tmp_versions
 
 clean: cleanup
 	rm -f *.ko test
