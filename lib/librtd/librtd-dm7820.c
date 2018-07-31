@@ -6022,6 +6022,16 @@ DM7820_Error DM7820_General_RemoveISR(DM7820_Board_Descriptor * handle)
 	return pthread_join(handle->pid, NULL);
 }
 
+DM7820_Error DM7820_General_Check_DMA_0_Transfer(DM7820_Board_Descriptor * handle)
+{
+  return ioctl(handle->file_descriptor, DM7820_IOCTL_CHECK_DMA_0_TRANSFER);
+}
+
+DM7820_Error DM7820_General_Check_DMA_1_Transfer(DM7820_Board_Descriptor * handle)
+{
+  return ioctl(handle->file_descriptor, DM7820_IOCTL_CHECK_DMA_1_TRANSFER);
+}
+
 void *DM7820_General_WaitForInterrupt(void *ptr)
 {
 	dm7820_interrupt_info interrupt_status;

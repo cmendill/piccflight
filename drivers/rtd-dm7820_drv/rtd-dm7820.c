@@ -2836,10 +2836,9 @@ dm7820_ioctl(struct file *file, unsigned int request_code,
 		break;
 
 	case DM7820_IOCTL_GET_INTERRUPT_STATUS:
-		status =
-		    dm7820_get_interrupt_status(dm7820_device, ioctl_param);
+	        status = dm7820_get_interrupt_status(dm7820_device, ioctl_param);
 		break;
-
+	
 	case DM7820_IOCTL_DMA_FUNCTION:
 		status =
 		    dm7820_service_dma_function(dm7820_device, ioctl_param);
@@ -2861,6 +2860,13 @@ dm7820_ioctl(struct file *file, unsigned int request_code,
 		status = dm7820_get_interrupt_info(dm7820_device, ioctl_param);
 		break;
 
+	case DM7820_IOCTL_CHECK_DMA_0_TRANSFER:
+	        status = dm7820_dma_check_xfer(dm7820_device, DM7820_FIFO_QUEUE_0);
+	        break;
+
+	case DM7820_IOCTL_CHECK_DMA_1_TRANSFER:
+	        status = dm7820_dma_check_xfer(dm7820_device, DM7820_FIFO_QUEUE_1);
+	        break;
 	default:
 		status = -EINVAL;
 		break;

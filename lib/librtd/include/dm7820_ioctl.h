@@ -451,6 +451,30 @@ Macros
     )
 
 /**
+ * @brief
+ *      ioctl() check DMA 0 transfer
+ */
+
+#define DM7820_IOCTL_CHECK_DMA_0_TRANSFER \
+    _IOW( \
+    DM7820_IOCTL_MAGIC, \
+    (DM7820_IOCTL_REQUEST_BASE + 8), \
+    dm7820_ioctl_argument_t \
+    )
+
+/**
+ * @brief
+ *      ioctl() check DMA 1 transfer
+ */
+
+#define DM7820_IOCTL_CHECK_DMA_1_TRANSFER \
+    _IOW( \
+    DM7820_IOCTL_MAGIC, \
+    (DM7820_IOCTL_REQUEST_BASE + 9), \
+    dm7820_ioctl_argument_t \
+    )
+  
+  /**
  * @} DM7820_Ioctl_Macros
  */
 

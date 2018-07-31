@@ -1911,6 +1911,12 @@ General functions
 	    DM7820_General_SetISRPriority(DM7820_Board_Descriptor * handle,
 					  int priority);
 
+
+  //Mendillo Functions
+  DM7820_Error DM7820_General_Check_DMA_0_Transfer(DM7820_Board_Descriptor * handle);
+  DM7820_Error DM7820_General_Check_DMA_1_Transfer(DM7820_Board_Descriptor * handle);
+  
+  
 /**
  * @} DM7820_Library_General_Functions
  */
