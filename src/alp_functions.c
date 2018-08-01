@@ -13,7 +13,7 @@
 #include "common_functions.h"
 #include "numeric.h"
 #include "alp_functions.h"
-
+#include "alpao_map.h"
 
 /**************************************************************/
 /* ALP_INIT_CALMODE                                           */
@@ -25,10 +25,10 @@ void alp_init_calmode(int calmode, calmode_t *alp){
     sprintf(alp->name,"ALP_CALMODE_NONE");
     sprintf(alp->cmd,"none");
   }
-  //ALP_CALMODE_ZERO
-  if(calmode == ALP_CALMODE_ZERO){
-    sprintf(alp->name,"ALP_CALMODE_ZERO");
-    sprintf(alp->cmd,"zero");
+  //ALP_CALMODE_FLAT
+  if(calmode == ALP_CALMODE_FLAT){
+    sprintf(alp->name,"ALP_CALMODE_FLAT");
+    sprintf(alp->cmd,"flat");
   }
   //ALP_CALMODE_POKE
   if(calmode == ALP_CALMODE_POKE){
@@ -119,7 +119,8 @@ int alp_calibrate(int calmode, alp_t *alp, int reset){
   double dt=0,dt0=0,period=0;
   double zernikes[LOWFS_N_ZERNIKE]={0};
   double act[ALP_NACT];
- 
+  const double flat[ALP_NACT] = ALP_OFFSET;
+  
   /* Reset */
   if(reset){
     countA=0;
@@ -177,13 +178,13 @@ int alp_calibrate(int calmode, alp_t *alp, int reset){
     return calmode;
   }
 
-  /* ALP_CALMODE_ZERO: Set all actuators to Zero */
-  if(calmode==ALP_CALMODE_ZERO){
+  /* ALP_CALMODE_FLAT: Set all actuators to flat map */
+  if(calmode==ALP_CALMODE_FLAT){
     countA=0;
     countB=0;
-    //set all ALP actuators to bias
+    //set all ALP actuators to flat
     for(i=0;i<ALP_NACT;i++)
-      alp->act_cmd[i]=ALP_BIAS;
+      alp->act_cmd[i]=flat[i];
     return calmode;
   }
   
@@ -191,13 +192,13 @@ int alp_calibrate(int calmode, alp_t *alp, int reset){
   /*                   Set flat in between each poke.              */
   if(calmode == ALP_CALMODE_POKE){
     if(countA >= 0 && countA < (2*ALP_NACT*ALP_NCALIM)){
-      //set all ALP actuators to bias
+      //set all ALP actuators to flat
       for(i=0;i<ALP_NACT;i++)
-	alp->act_cmd[i]=ALP_BIAS;
+	alp->act_cmd[i]=flat[i];
 
       //poke one actuator
       if((countA/ALP_NCALIM) % 2 == 1){
-	alp->act_cmd[(countB/ALP_NCALIM) % ALP_NACT] = ALP_BIAS + ALP_POKE;
+	alp->act_cmd[(countB/ALP_NCALIM) % ALP_NACT] += ALP_POKE;
 	countB++;
       }
       countA++;
@@ -219,11 +220,11 @@ int alp_calibrate(int calmode, alp_t *alp, int reset){
       for(i=0;i<LOWFS_N_ZERNIKE;i++)
 	alp->zernike_cmd[i] = 0.0;
       
-      //set all ALP actuators to bias
+      //set all ALP actuators to flat
       for(i=0;i<ALP_NACT;i++)
-	alp->act_cmd[i]=ALP_BIAS;
+	alp->act_cmd[i]=flat[i];
       
-      //poke one zernike by adding it on top of the bias
+      //poke one zernike by adding it on top of the flat
       if((countA/ALP_NCALIM) % 2 == 1){
 	alp->zernike_cmd[(countB/ALP_NCALIM) % LOWFS_N_ZERNIKE] = ALP_ZPOKE;
 	alp_zern2alp(alp->zernike_cmd,act);

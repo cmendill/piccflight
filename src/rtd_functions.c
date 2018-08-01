@@ -16,13 +16,14 @@
 /* piccflight headers */
 #include "controller.h"
 #include "rtd_functions.h"
-#include "rtdalpao.h"
+#include "alpao_map.h"
 
 //DMA Buffers
-uint16_t *rtd_alp_dma_buffer;      // ALP DMA buffer pointer
-uint16_t *rtd_tlm_dma_buffer;      // TLM DMA buffer pointer
-uint32_t  rtd_alp_dma_buffer_size; // ALP DMA buffer size
-uint32_t  rtd_tlm_dma_buffer_size; // TLM DMA buffer size
+uint16_t *rtd_alp_dma_buffer=NULL;     // ALP DMA buffer pointer
+uint16_t *rtd_tlm_dma_buffer=NULL;     // TLM DMA buffer pointer
+uint32_t  rtd_alp_dma_buffer_size=0;   // ALP DMA buffer size
+uint32_t  rtd_tlm_dma_buffer_size=0;   // TLM DMA buffer size
+uint32_t  rtd_alp_dithers_per_frame=1; // Number of dither steps per frame
 
 /**************************************************************/
 /* RTD_OPEN                                                   */
@@ -37,15 +38,34 @@ DM7820_Error rtd_open(unsigned long minor_number, DM7820_Board_Descriptor** p_p_
 /*  - Reset the RTD board                                     */
 /**************************************************************/
 DM7820_Error rtd_reset(DM7820_Board_Descriptor* p_rtd_board) {
-  return DM7820_General_Reset(p_rtd_board);
-}
+  DM7820_Error dm7820_status=0,dm7820_return=0;
+  int i;
+
+  //Reset board
+  if((dm7820_status=DM7820_General_Reset(p_rtd_board)))
+    perror("DM7820_General_Reset");
+  dm7820_return |= dm7820_status;
+
+  //Disable all interrupts
+  for(i=0;i<DM7820_INTERRUPT_NONE;i++){
+    //Users cannot disable DMA_DONE interrupts
+    if(i==DM7820_INTERRUPT_FIFO_0_DMA_DONE)
+      continue;
+    if(i==DM7820_INTERRUPT_FIFO_1_DMA_DONE)
+      continue;
+    if((dm7820_status = DM7820_General_Enable_Interrupt(p_rtd_board, i, 0x00))){
+      perror("DM7820_General_Enable_Interrupt");
+    }
+    dm7820_return |= dm7820_status;
+  }
+  return dm7820_return;
+ }
 
 /**************************************************************/
 /* RTD_CLOSE                                                  */
 /*  - Close the RTD board                                     */
 /**************************************************************/
 DM7820_Error rtd_close(DM7820_Board_Descriptor* p_rtd_board) {
-  DM7820_General_RemoveISR(p_rtd_board);
   return DM7820_General_Close_Board(p_rtd_board);
 }
 
@@ -54,11 +74,32 @@ DM7820_Error rtd_close(DM7820_Board_Descriptor* p_rtd_board) {
 /*  - Clean up ALPAO resources before closing                 */
 /**************************************************************/
 DM7820_Error rtd_alp_cleanup(DM7820_Board_Descriptor* p_rtd_board) {
-  DM7820_Error dm7820_status;
-  dm7820_status = DM7820_FIFO_DMA_Free_Buffer(&rtd_alp_dma_buffer, rtd_alp_dma_buffer_size);
-  dm7820_status = DM7820_FIFO_DMA_Enable(p_rtd_board, DM7820_FIFO_QUEUE_0, 0x00, 0x00);
-  dm7820_status = rtd_stop_alp_clock(p_rtd_board);
-  return dm7820_status;
+  DM7820_Error dm7820_status=0,dm7820_return=0;
+  int i;
+  
+  //Disable DMA
+  if((dm7820_status = DM7820_FIFO_DMA_Enable(p_rtd_board, DM7820_FIFO_QUEUE_0, 0x00, 0x00)))
+    perror("DM7820_FIFO_DMA_Enable");
+  dm7820_return |= dm7820_status;
+  
+  //Free DMA buffer
+  if(rtd_alp_dma_buffer_size > 0){
+    if((dm7820_status = DM7820_FIFO_DMA_Free_Buffer(&rtd_alp_dma_buffer, rtd_alp_dma_buffer_size)))
+      perror("DM7820_FIFO_DMA_Free_Buffer");
+    dm7820_return |= dm7820_status;
+  }
+  
+  //Stop output clock
+  if((dm7820_status = DM7820_PrgClk_Set_Mode(p_rtd_board, DM7820_PRGCLK_CLOCK_0, DM7820_PRGCLK_MODE_DISABLED)))
+    perror("DM7820_PrgClk_Set_Mode");
+  dm7820_return |= dm7820_status;
+
+  //Disable FIFO
+  if((dm7820_status = DM7820_FIFO_Enable(p_rtd_board, DM7820_FIFO_QUEUE_0, 0x00)))
+    perror("DM7820_FIFO_Enable");
+  dm7820_return |= dm7820_status;
+  
+  return dm7820_return;
 }
 
 /**************************************************************/
@@ -66,68 +107,26 @@ DM7820_Error rtd_alp_cleanup(DM7820_Board_Descriptor* p_rtd_board) {
 /*  - Clean up TLM resources before closing                   */
 /**************************************************************/
 DM7820_Error rtd_tlm_cleanup(DM7820_Board_Descriptor* p_rtd_board) {
-  DM7820_Error dm7820_status;
-  dm7820_status = DM7820_FIFO_DMA_Free_Buffer(&rtd_tlm_dma_buffer, rtd_tlm_dma_buffer_size);
-  dm7820_status = DM7820_FIFO_DMA_Enable(p_rtd_board, DM7820_FIFO_QUEUE_1, 0x00, 0x00);
-  return dm7820_status;
-}
-
-/**************************************************************/
-/* RTD_ISR                                                    */
-/*  - Interrupt servicing routine for RTD board               */
-/**************************************************************/
-static void rtd_isr(dm7820_interrupt_info interrupt_info, void *isr_pass) {
-  DM7820_Return_Status(interrupt_info.error, "ISR Failed\n");
-
-  //Assign shared memory pointer from passthrough pointer
-  sm_t *sm_p = (sm_t *)isr_pass;
+  DM7820_Error dm7820_status=0,dm7820_return=0;
+  //Disable DMA
+  if((dm7820_status = DM7820_FIFO_DMA_Enable(p_rtd_board, DM7820_FIFO_QUEUE_1, 0x00, 0x00)))
+    perror("DM7820_FIFO_DMA_Enable");
+  dm7820_return |= dm7820_status;
   
-  switch(interrupt_info.source){
-  case DM7820_INTERRUPT_FIFO_0_DMA_DONE:
-    sm_p->rtd_alp_dma_done++;
-    break;
-  case DM7820_INTERRUPT_FIFO_1_DMA_DONE:
-    sm_p->rtd_tlm_dma_done++;
-    break;
-  default:
-    break;
+  //Free DMA buffer
+  if(rtd_tlm_dma_buffer_size > 0){
+    if((dm7820_status = DM7820_FIFO_DMA_Free_Buffer(&rtd_tlm_dma_buffer, rtd_tlm_dma_buffer_size)))
+      perror("DM7820_FIFO_DMA_Free_Buffer");
+    dm7820_return |= dm7820_status;
   }
-}
-/**************************************************************/
-/* RTD_INSTALL_ISR                                            */
-/*  - Install ISR on RTD board                                */
-/**************************************************************/
-DM7820_Error rtd_install_isr(DM7820_Board_Descriptor* p_rtd_board, void *isr_pass) {
-  DM7820_Error dm7820_status;
-  int i;
   
-  /* Remove current ISR */
-  dm7820_status = DM7820_General_RemoveISR(p_rtd_board);
-  DM7820_Return_Status(dm7820_status, "DM7820_General_RemoveISR()");
-
-  /* Disable all interrupts */
-  for(i=0;i<DM7820_INTERRUPT_NONE;i++){
-    dm7820_status = DM7820_General_Enable_Interrupt(p_rtd_board, i, 0x00);
-    DM7820_Return_Status(dm7820_status, "DM7820_General_Enable_Interrupt()");
-  }
-    
-  /* Register interrupt service routine */
-  dm7820_status = DM7820_General_InstallISR(p_rtd_board, rtd_isr, isr_pass);
-  DM7820_Return_Status(dm7820_status, "DM7820_General_InstallISR()");
+  //Disable FIFO
+  if((dm7820_status = DM7820_FIFO_Enable(p_rtd_board, DM7820_FIFO_QUEUE_1, 0x00)))
+    perror("DM7820_FIFO_Enable");
+  dm7820_return |= dm7820_status;
   
-  /* Set ISR Priority */
-  dm7820_status = DM7820_General_SetISRPriority(p_rtd_board, 99);
-  DM7820_Return_Status(dm7820_status, "DM7820_General_SetISRPriority()");
-
-  /* Enable select interrupts */
-  dm7820_status = DM7820_General_Enable_Interrupt(p_rtd_board,DM7820_INTERRUPT_FIFO_0_DMA_DONE, 0xFF);
-  DM7820_Return_Status(dm7820_status, "DM7820_General_Enable_Interrupt()");
-  dm7820_status = DM7820_General_Enable_Interrupt(p_rtd_board,DM7820_INTERRUPT_FIFO_1_DMA_DONE, 0xFF);
-  DM7820_Return_Status(dm7820_status, "DM7820_General_Enable_Interrupt()");
-
-  return dm7820_status;
+  return dm7820_return;
 }
-
 
 /**************************************************************/
 /* RTD_START_ALP_CLOCK                                        */
@@ -144,7 +143,6 @@ DM7820_Error rtd_start_alp_clock(DM7820_Board_Descriptor* p_rtd_board) {
 DM7820_Error rtd_stop_alp_clock(DM7820_Board_Descriptor* p_rtd_board) {
   return DM7820_PrgClk_Set_Mode(p_rtd_board, DM7820_PRGCLK_CLOCK_0, DM7820_PRGCLK_MODE_DISABLED);
 }
-
 
 /**************************************************************/
 /* RTD_ALP_LIMIT_COMMAND                                      */
@@ -194,17 +192,81 @@ static uint8_t rtd_alp_checksum(uint16_t *frame) {
     sum = p_sum[0] + p_sum[1] + p_sum[2] + p_sum[3];
   return ~p_sum[0];
 }
-  
+
+
+/**************************************************************/
+/* rtd_alp_dither_bit                                         */
+/* - Set the dither bit up or down based on the analog        */
+/*   fraction and frame index                                 */
+/**************************************************************/
+static uint16_t rtd_alp_dither_bit(int frame_index, double fraction) {
+  uint16_t on, off;
+  if (fraction == 1.0) {
+    return 0;
+  } else if ((fraction < 1.0) && (fraction >= 0.5)) {
+    on = 0;
+    fraction = 1.0 - fraction;
+    off = 1;
+  } else if ((fraction < 0.5) && (fraction > 0.0)) {
+    on = 1;
+    off = 0;
+  } else if (fraction == 0.0) {
+    return 0;
+  } else {
+    on = 1;
+    off = 0;
+  }
+  return ( (((frame_index+1)%((int16_t)(1.0/fraction))) == 0)?on:off );
+}
+
 /**************************************************************/
 /* RTD_ALP_BUILD_DITHER_BLOCK                                 */
 /* - Build a block of dither command frames                   */
 /**************************************************************/
 static void rtd_alp_build_dither_block(double *cmd) {
-  uint32_t frame_number, channel_index, main_index, sub_index, frame_index;
+  int      iframe, iact, imain, isub;
   double   fraction[ALP_NACT];
   uint16_t frame[ALP_NACT];
   double   multiplier[ALP_NACT] = ALP_MULTIPLIER;
+  double   devcmd[ALP_NACT]     = {0};
+  int      mapping[ALP_NACT]    = ALP_MAPPING;
+  int      i;
+  int      dma_buffer_length    = rtd_alp_dma_buffer_size/2;
   
+  //Initialize the DMA buffer
+  for(i=0;i<dma_buffer_length;i++)
+    rtd_alp_dma_buffer[i]=ALP_DMID;
+
+  //Do driver multiplictaion, initial A2D conversion and set dither fraction
+  for(iact=0;iact<ALP_NACT;iact++){
+    devcmd[iact]   = multiplier[iact]*cmd[iact];
+    frame[iact]    = (uint16_t) ((devcmd[iact]+1.0) * ALP_DMID);
+    fraction[iact] = fmod(devcmd[iact],ALP_MIN_ANALOG_STEP)/ALP_MIN_ANALOG_STEP + ((devcmd[iact]<=0.0)?1.0:0.0);
+  }
+
+  //Loop through dither frames -- add one by one to the output DMA buffer
+  for(iframe = 0; iframe < rtd_alp_dithers_per_frame; iframe++) {
+    //Set buffer index of the start of this frame
+    imain = iframe*ALP_DATA_LENGTH;
+    
+    //Insert frame header
+    rtd_alp_dma_buffer[imain+0] = ALP_START_WORD;
+    rtd_alp_dma_buffer[imain+1] = ALP_INIT_COUNTER;
+    
+    //Choose the dither bits for this frame
+    for(iact=0;iact<ALP_NACT;iact++){
+      isub = imain+mapping[iact]+ALP_HEADER_LENGTH;
+      rtd_alp_dma_buffer[isub] = frame[iact] + rtd_alp_dither_bit(iframe,fraction[iact]);
+      if(rtd_alp_dma_buffer[isub] > ALP_DMAX) rtd_alp_dma_buffer[isub] = ALP_DMAX;
+      if(rtd_alp_dma_buffer[isub] < ALP_DMIN) rtd_alp_dma_buffer[isub] = ALP_DMIN;
+    }
+
+    //Closeout frame
+    isub = imain+ALP_N_CHANNEL+ALP_HEADER_LENGTH;
+    rtd_alp_dma_buffer[isub]  = ALP_END_WORD;
+    rtd_alp_dma_buffer[isub] += rtd_alp_checksum(&rtd_alp_dma_buffer[imain]);
+    rtd_alp_dma_buffer[isub+ALP_PAD_LENGTH] = ALP_FRAME_END;
+  }
 }
 
 
@@ -212,80 +274,93 @@ static void rtd_alp_build_dither_block(double *cmd) {
 /* RTD_ALP_WRITE_DMA_FIFO                                     */
 /* - Write data to the ALPAO FIFO via DMA                     */
 /**************************************************************/
-static DM7820_Error rtd_alp_write_dma_fifo(DM7820_Board_Descriptor* p_rtd_board, volatile uint64_t *dma_done_count) {
-  DM7820_Error dm7820_status;
+static DM7820_Error rtd_alp_write_dma_fifo(DM7820_Board_Descriptor* p_rtd_board) {
+  DM7820_Error dm7820_status=0,dm7820_return=0;
   uint8_t fifo_status;
-  uint64_t last_dma_done_count;
+  int fifo_warning=0;
   
-  //Sleep until fifo is empty (NOT SURE WHY WE NEED THIS)
-  do {
-    dm7820_status = DM7820_FIFO_Get_Status(p_rtd_board,DM7820_FIFO_QUEUE_0,DM7820_FIFO_STATUS_EMPTY,&fifo_status);
+  //Sleep until current DMA transfer is done
+  while(DM7820_General_Check_DMA_0_Transfer(p_rtd_board) == 0)
     usleep(10);
-  } while(!fifo_status);
+  
+  //Sleep until fifo is empty (FIFO MUST BE EMPTY, WARN IF IT ISN'T)
+  if((dm7820_status = DM7820_FIFO_Get_Status(p_rtd_board,DM7820_FIFO_QUEUE_0,DM7820_FIFO_STATUS_EMPTY,&fifo_status)))
+    perror("DM7820_FIFO_Get_Status");
+  dm7820_return |= dm7820_status;
+  while(!fifo_status){
+    if(!fifo_warning){
+      printf("RTD: ALP FIFO NOT EMPTY!\n");
+      fifo_warning=1;
+    }
+    usleep(10);
+    if((dm7820_status = DM7820_FIFO_Get_Status(p_rtd_board,DM7820_FIFO_QUEUE_0,DM7820_FIFO_STATUS_EMPTY,&fifo_status)))
+      perror("DM7820_FIFO_Get_Status");
+    dm7820_return |= dm7820_status;
+  }
 
-  //Save current DMA count
-  last_dma_done_count = *dma_done_count;
-  
-  //Write data
-  dm7820_status = DM7820_FIFO_DMA_Write(p_rtd_board, DM7820_FIFO_QUEUE_0, rtd_alp_dma_buffer, 1);
-  
-  /* Reconfigure DMA */
-  dm7820_status = DM7820_FIFO_DMA_Configure(p_rtd_board, DM7820_FIFO_QUEUE_0, DM7820_DMA_DEMAND_ON_PCI_TO_DM7820, rtd_alp_dma_buffer_size);
+  //Write data to driver's DMA buffer
+  if((dm7820_status = DM7820_FIFO_DMA_Write(p_rtd_board, DM7820_FIFO_QUEUE_0, rtd_alp_dma_buffer, 1)))
+    perror("DM7820_FIFO_DMA_Write");
+  dm7820_return |= dm7820_status;
   
   /* Enable & Start DMA transfer */
-  dm7820_status = DM7820_FIFO_DMA_Enable(p_rtd_board, DM7820_FIFO_QUEUE_0, 0xFF, 0xFF);
+  if((dm7820_status = DM7820_FIFO_DMA_Enable(p_rtd_board, DM7820_FIFO_QUEUE_0, 0xFF, 0xFF)))
+    perror("DM7820_FIFO_DMA_Enable");
+  dm7820_return |= dm7820_status;
 
-  /* Wait for DMA transfer to finish  (NOT SURE WHY WE NEED THIS)*/
-  while(last_dma_done_count==*dma_done_count)
-    usleep(10);
 
-  return dm7820_status;
+  return dm7820_return;
 }
 
 /**************************************************************/
 /* RTD_TLM_WRITE_DMA_FIFO                                     */
 /* - Write data to the TLM FIFO via DMA                     */
 /**************************************************************/
-static DM7820_Error rtd_tlm_write_dma_fifo(DM7820_Board_Descriptor* p_rtd_board, volatile uint64_t *dma_done_count) {
-  DM7820_Error dm7820_status;
+static DM7820_Error rtd_tlm_write_dma_fifo(DM7820_Board_Descriptor* p_rtd_board) {
+  DM7820_Error dm7820_status=0,dm7820_return=0;
   uint8_t fifo_status;
-  uint64_t last_dma_done_count;
   
-  //Sleep until fifo is empty (NOT SURE WHY WE NEED THIS)
-  do {
-    dm7820_status = DM7820_FIFO_Get_Status(p_rtd_board,DM7820_FIFO_QUEUE_0,DM7820_FIFO_STATUS_EMPTY,&fifo_status);
+  //Sleep until current DMA transfer is done
+  while(DM7820_General_Check_DMA_1_Transfer(p_rtd_board) == 0)
     usleep(10);
-  } while(!fifo_status);
+  
+  //Sleep until fifo is ready
+  if((dm7820_status = DM7820_FIFO_Get_Status(p_rtd_board,DM7820_FIFO_QUEUE_1,DM7820_FIFO_STATUS_READ_REQUEST,&fifo_status)))
+    perror("DM7820_FIFO_Get_Status");
+  dm7820_return |= dm7820_status;
+  while(fifo_status){
+    //READ_REQUEST returns 1 when there is at least 256 words in the fifo
+    //READ_REQUEST returns 0 when the data in the fifo drops below 128 words --> wait for this 
+    usleep(100);
+    if((dm7820_status = DM7820_FIFO_Get_Status(p_rtd_board,DM7820_FIFO_QUEUE_1,DM7820_FIFO_STATUS_READ_REQUEST,&fifo_status)))
+      perror("DM7820_FIFO_Get_Status");
+    dm7820_return |= dm7820_status;
+  }
 
-  //Save current DMA count
-  last_dma_done_count = *dma_done_count;
-  
-  //Write data
-  dm7820_status = DM7820_FIFO_DMA_Write(p_rtd_board, DM7820_FIFO_QUEUE_0, rtd_tlm_dma_buffer, 1);
-  
-  /* Reconfigure DMA */
-  dm7820_status = DM7820_FIFO_DMA_Configure(p_rtd_board, DM7820_FIFO_QUEUE_0, DM7820_DMA_DEMAND_ON_PCI_TO_DM7820, rtd_tlm_dma_buffer_size);
+  //Write data to driver's DMA buffer
+  if((dm7820_status = DM7820_FIFO_DMA_Write(p_rtd_board, DM7820_FIFO_QUEUE_1, rtd_tlm_dma_buffer, 1)))
+    perror("DM7820_FIFO_DMA_Write");
+  dm7820_return |= dm7820_status;
   
   /* Enable & Start DMA transfer */
-  dm7820_status = DM7820_FIFO_DMA_Enable(p_rtd_board, DM7820_FIFO_QUEUE_0, 0xFF, 0xFF);
+  if((dm7820_status = DM7820_FIFO_DMA_Enable(p_rtd_board, DM7820_FIFO_QUEUE_1, 0xFF, 0xFF)))
+    perror("DM7820_FIFO_DMA_Enable");
+  dm7820_return |= dm7820_status;
 
-  /* Wait for DMA transfer to finish  (NOT SURE WHY WE NEED THIS)*/
-  while(last_dma_done_count==*dma_done_count)
-    usleep(10);
-
-  return dm7820_status;
+  return dm7820_return;
 }
+
 
 /**************************************************************/
 /* RTD_SEND_ALP                                               */
 /* - Send a command to the ALPAO controller                   */
 /**************************************************************/
-DM7820_Error rtd_send_alp(DM7820_Board_Descriptor* p_rtd_board, double *cmd, volatile uint64_t *dma_done_count ) {
+DM7820_Error rtd_send_alp(DM7820_Board_Descriptor* p_rtd_board, double *cmd) {
   //dma_done_count links back through the user code to the ISR through shared memory
   rtd_alp_limit_command(cmd);
   rtd_alp_limit_power(cmd);
   rtd_alp_build_dither_block(cmd);
-  return rtd_alp_write_dma_fifo(p_rtd_board,dma_done_count);
+  return rtd_alp_write_dma_fifo(p_rtd_board);
 }
 
 
@@ -294,7 +369,7 @@ DM7820_Error rtd_send_alp(DM7820_Board_Descriptor* p_rtd_board, double *cmd, vol
 /*  - Write telemetry data out the RTD interface              */
 /*  - Buffer data until the DMA buffer is full. Then send.    */
 /**************************************************************/
-DM7820_Error rtd_send_tlm(DM7820_Board_Descriptor* p_rtd_board, char *buf, uint32_t num, volatile uint64_t *dma_done_count){
+DM7820_Error rtd_send_tlm(DM7820_Board_Descriptor* p_rtd_board, char *buf, uint32_t num){
   DM7820_Error dm7820_status=0;
   static volatile uint32_t m=0;
   uint32_t nwords = 0;
@@ -338,7 +413,7 @@ DM7820_Error rtd_send_tlm(DM7820_Board_Descriptor* p_rtd_board, char *buf, uint3
       rtd_tlm_dma_buffer[m]=TLM_EMPTY_CODE;
 
       //Write data
-      dm7820_status = rtd_tlm_write_dma_fifo(p_rtd_board, dma_done_count);
+      dm7820_status = rtd_tlm_write_dma_fifo(p_rtd_board);
       
       //Zero out m
       m=0;
@@ -353,8 +428,8 @@ DM7820_Error rtd_send_tlm(DM7820_Board_Descriptor* p_rtd_board, char *buf, uint3
 /**************************************************************/
 DM7820_Error rtd_init_alp(DM7820_Board_Descriptor* p_rtd_board, uint32_t dithers_per_frame) {
   DM7820_Error dm7820_status;
-  uint32_t dma_buffer_size,dma_buffer_length;
-
+  uint32_t dma_buffer_size,dma_buffer_length,i;
+  
   /*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     Setup Definition
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -370,12 +445,15 @@ DM7820_Error rtd_init_alp(DM7820_Board_Descriptor* p_rtd_board, uint32_t dithers
     Port 2:   Output ALPAO clock signal
   */
 
+  /* ========================== Cleanup ALP Settings ========================== */
+  dm7820_status = rtd_alp_cleanup(p_rtd_board);
+  DM7820_Return_Status(dm7820_status, "rtd_cleanup_alp()");
   
-  
-  //Setup buffer length and size
+  /* ================================ Setup DMA buffer size ================================ */
   dma_buffer_length = ((dithers_per_frame<3)?0x200:(dithers_per_frame*ALP_DATA_LENGTH)); //in 16bit words
   dma_buffer_size   = dma_buffer_length*2; // in bytes
   rtd_alp_dma_buffer_size = dma_buffer_size;
+  rtd_alp_dithers_per_frame = dithers_per_frame;
 
   /* ================================ Standard output initialization ================================ */
 
@@ -452,7 +530,7 @@ DM7820_Error rtd_init_alp(DM7820_Board_Descriptor* p_rtd_board, uint32_t dithers
   DM7820_Return_Status(dm7820_status, "DM7820_FIFO_Set_DMA_Request()");
   
   /* Create the DMA buffer */
-  dm7820_status = DM7820_FIFO_DMA_Create_Buffer(&rtd_alp_dma_buffer, dma_buffer_size);
+  dm7820_status = DM7820_FIFO_DMA_Create_Buffer(&rtd_alp_dma_buffer, rtd_alp_dma_buffer_size);
   DM7820_Return_Status(dm7820_status, "DM7820_FIFO_DMA_Create_Buffer()");
   
   /* Initialize the DMA buffer */
@@ -469,6 +547,10 @@ DM7820_Error rtd_init_alp(DM7820_Board_Descriptor* p_rtd_board, uint32_t dithers
   dm7820_status = DM7820_FIFO_Enable(p_rtd_board, DM7820_FIFO_QUEUE_0, 0xFF);
   DM7820_Return_Status(dm7820_status, "DM7820_FIFO_Enable()");
  
+  //Start output clock 
+  dm7820_status = DM7820_PrgClk_Set_Mode(p_rtd_board, DM7820_PRGCLK_CLOCK_0, DM7820_PRGCLK_MODE_CONTINUOUS);
+  DM7820_Return_Status(dm7820_status, "DM7820_PrgClk_Set_Mode()");
+  
   return dm7820_status;
 }
 
@@ -507,6 +589,10 @@ DM7820_Error rtd_init_tlm(DM7820_Board_Descriptor* p_rtd_board, uint32_t dma_siz
 
   /*============================== FIFO 1 Initialization ================================*/
 
+  /* Disable FIFO 1*/
+  dm7820_status = DM7820_FIFO_Enable(p_rtd_board, DM7820_FIFO_QUEUE_1, 0x00);
+  DM7820_Return_Status(dm7820_status, "DM7820_FIFO_Enable()");
+
   /* Set input clock to PCI write for FIFO 1 Read/Write Port Register */
   dm7820_status = DM7820_FIFO_Set_Input_Clock(p_rtd_board,DM7820_FIFO_QUEUE_1,DM7820_FIFO_INPUT_CLOCK_PCI_WRITE);
   DM7820_Return_Status(dm7820_status, "DM7820_FIFO_Set_Input_Clock()");
@@ -533,12 +619,6 @@ DM7820_Error rtd_init_tlm(DM7820_Board_Descriptor* p_rtd_board, uint32_t dma_siz
   dm7820_status = DM7820_StdIO_Set_Periph_Mode(p_rtd_board,DM7820_STDIO_PORT_1,0xFFFF,DM7820_STDIO_PERIPH_FIFO_1);
   DM7820_Return_Status(dm7820_status, "DM7820_StdIO_Set_Periph_Mode()");
 
-  /*============================== Secondary FIFO 1 Setup  ================================*/
-  
-  /* Enable FIFO 1 */
-  dm7820_status = DM7820_FIFO_Enable(p_rtd_board, DM7820_FIFO_QUEUE_1, 0xFF);
-  DM7820_Return_Status(dm7820_status, "DM7820_FIFO_Enable()");
-
   /*============================== DMA Setup  ================================*/
 
   /* Allocate DMA buffer */
@@ -552,6 +632,12 @@ DM7820_Error rtd_init_tlm(DM7820_Board_Descriptor* p_rtd_board, uint32_t dma_siz
   /* Configuring DMA 1 */
   dm7820_status = DM7820_FIFO_DMA_Configure(p_rtd_board,DM7820_FIFO_QUEUE_1,DM7820_DMA_DEMAND_ON_PCI_TO_DM7820,rtd_tlm_dma_buffer_size);
   DM7820_Return_Status(dm7820_status, "DM7820_FIFO_DMA_Configure()");
+
+  /*============================== Secondary FIFO 1 Setup  ================================*/
+  
+  /* Enable FIFO 1 */
+  dm7820_status = DM7820_FIFO_Enable(p_rtd_board, DM7820_FIFO_QUEUE_1, 0xFF);
+  DM7820_Return_Status(dm7820_status, "DM7820_FIFO_Enable()");
 
   return dm7820_status;
 }

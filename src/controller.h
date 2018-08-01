@@ -278,18 +278,35 @@ enum bufids {SCIEVENT, SCIFULL,
 /*************************************************
  * ALPAO DM Parameters
  *************************************************/
-#define ALP_NAME     "BAX197"
-#define ALP_NACT     97
-#define ALP_STROKE   2.0
-#define ALPXS        10
-#define ALPYS        10
-#define ALP_DMAX     ((1<<14) - 1)
-#define ALP_DMIN     0
-#define ALP_DMID     ((ALP_DMIN+ALP_DMAX)/2)
-#define ALP_BIAS     0.0
-#define ALP_POKE     0.05
-#define ALP_ZPOKE    0.1 //zernike microns RMS
-#define ALP_NCALIM   25  //number of calibration images to take per step
+#define ALP_NAME              "BAX197"
+#define ALP_NACT              97
+#define ALP_STROKE            2.0
+#define ALPXS                 10
+#define ALPYS                 10
+#define ALP_AMIN             -1.0
+#define ALP_AMAX              1.0
+#define ALP_AMID              0.0
+#define ALP_DMAX              0x3FFF
+#define ALP_DMIN              0x0000
+#define ALP_DMID              0x2000
+#define ALP_MAX_POWER         2.54841998
+#define ALP_N_CHANNEL         128 // data size for the ALPAO DM controller
+#define ALP_HEADER_LENGTH     2   // leading uint16_ts for the header
+#define ALP_CHECKSUM_LENGTH   1   // trailing uint16_t for the checksum
+#define ALP_PAD_LENGTH        1   // pad end with an empty word
+#define ALP_FRAME_LENGTH      (ALP_HEADER_LENGTH+ALP_N_CHANNEL+ALP_CHECKSUM_LENGTH) //[uint16_t]
+#define ALP_FRAME_SIZE        (2*ALP_FRAME_LENGTH) //[bytes]
+#define ALP_DATA_LENGTH       (ALP_FRAME_LENGTH+ALP_PAD_LENGTH) //[uint16_t]
+#define ALP_DATA_SIZE         (2*ALP_DATA_LENGTH) //[bytes]
+#define ALP_MIN_ANALOG_STEP   0.000122070312500 // hardcoded pow(2.0,-13);
+#define ALP_START_WORD        0xF800
+#define ALP_INIT_COUNTER      0x5C00
+#define ALP_END_WORD          0xF100
+#define ALP_FRAME_END         0xFEED
+#define ALP_BIAS              0.0
+#define ALP_POKE              0.05
+#define ALP_ZPOKE             0.1 //zernike microns RMS
+#define ALP_NCALIM            25  //number of calibration images to take per step
 
 /*************************************************
  * HEXAPOD Parameters
@@ -367,6 +384,13 @@ enum bufids {SCIEVENT, SCIFULL,
 #define SHK_YMIN              0
 #define SHK_YMAX              (SHKYS-1)
 #define SHK_READ_MATRIX       1      //Read Zernike fitting matrix instead of building it
+
+/*************************************************
+ * RTD Settings
+ *************************************************/
+#define RTD_PRGCLK_0_DIVISOR           8 // Programmable clock frequency = 25/RTD_PRGCLK_0_DIVISOR [MHz]
+#define RTD_TIMER_A0_DIVISOR           2 // Output clock frequency = (25/RTD_PRGCLK_0_DIVISOR)/RTD_TIMER_A0_DIVISOR [MHz]
+#define RTD_CLK_FREQUENCY              ((25000000.0/RTD_PRGCLK_0_DIVISOR)/RTD_TIMER_A0_DIVISOR) //[Hz]
 
 /*************************************************
  * Telemetry (TLM) Settings
@@ -657,11 +681,6 @@ typedef volatile struct {
 
   //RTD board descriptor
   DM7820_Board_Descriptor* p_rtd_board;
-
-  //RTD board interrupt counters
-  uint64_t rtd_alp_dma_done;
-  uint64_t rtd_tlm_dma_done;
-
 
   //State
   int state;                    //Current operational state

@@ -16,6 +16,7 @@
 #include "alp_functions.h"
 #include "phx_config.h"
 #include "rtd_functions.h"
+#include "alpao_map.h"
 
 /**************************************************************/
 /* SHK_INIT_CELLS                                             */
@@ -718,8 +719,9 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   double hex_delta[HEX_NAXES]={0};
   double zernike_delta[LOWFS_N_ZERNIKE]={0};
   hexevent_t hexevent;
-  uint16 n_dither=1;
-  
+  uint32_t n_dither=1;
+  const double alpflat[ALP_NACT] = ALP_OFFSET;
+
   //Get time immidiately
   clock_gettime(CLOCK_REALTIME,&start);
 
@@ -739,6 +741,9 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     memset(&shkevent,0,sizeof(shkevent_t));
     memset(&alp,0,sizeof(alp_t));
     memset(&last_hex,0,sizeof(hex_t));
+    memset(&last_alp,0,sizeof(alp_t));
+    //Initialize alp to flat
+    memcpy(last_alp.act_cmd,alpflat,sizeof(alpflat));
     //Init cells
     shk_init_cells(&shkevent);
     //Reset calibration routines
@@ -756,9 +761,6 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     //Init ALPAO interface
     if((dm7820_status = rtd_init_alp(sm_p->p_rtd_board,n_dither)))
       perror("rtd_init_alp");
-    //Start ALPAO timer 
-    if((dm7820_status = rtd_start_alp_clock(sm_p->p_rtd_board)))
-      perror("rtd_start_alp_clock");
     //Reset start time
     memcpy(&first,&start,sizeof(struct timespec));
     //Set init flag
@@ -931,7 +933,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   //Send command to ALP
   if(ALP_ENABLE && move_alp){
     // - send command
-    dm7820_status = rtd_send_alp(sm_p->p_rtd_board,alp.act_cmd,&sm_p->rtd_alp_dma_done);
+    dm7820_status = rtd_send_alp(sm_p->p_rtd_board,alp.act_cmd);
     // - copy command to shkevent
     memcpy(&shkevent.alp,&alp,sizeof(alp_t));
   }

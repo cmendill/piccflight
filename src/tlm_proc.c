@@ -103,13 +103,13 @@ void write_block(sm_t *sm_p, char *hed,char *buf, uint32 num){
     /*Send TM over RTD*/
     if(sm_p->p_rtd_board != NULL){
       /*Write presync to dma */
-      rtd_send_tlm(sm_p->p_rtd_board, (char *)&presync,sizeof(presync),&sm_p->rtd_tlm_dma_done);
+      rtd_send_tlm(sm_p->p_rtd_board, (char *)&presync,sizeof(presync));
       /*Write header to dma */
-      rtd_send_tlm(sm_p->p_rtd_board, hed,sizeof(pkthed_t),&sm_p->rtd_tlm_dma_done);
+      rtd_send_tlm(sm_p->p_rtd_board, hed,sizeof(pkthed_t));
       /*Write image to dma */
-      rtd_send_tlm(sm_p->p_rtd_board, buf,num,&sm_p->rtd_tlm_dma_done);
+      rtd_send_tlm(sm_p->p_rtd_board, buf,num);
       /*Write postsync to dma */
-      rtd_send_tlm(sm_p->p_rtd_board, (char *)&postsync,sizeof(postsync),&sm_p->rtd_tlm_dma_done);
+      rtd_send_tlm(sm_p->p_rtd_board, (char *)&postsync,sizeof(postsync));
       
 #if TLM_DEBUG
       printf("TLM: write_block sent over RTD\n");
@@ -239,7 +239,7 @@ void tlm_proc(void){
       }else{
 	//RTD write fake data
 	if(sm_p->p_rtd_board != NULL){
-	  rtd_send_tlm(sm_p->p_rtd_board,(char *)fakeword,sizeof(uint16)*NFAKE,&sm_p->rtd_tlm_dma_done);
+	  rtd_send_tlm(sm_p->p_rtd_board,(char *)fakeword,sizeof(uint16)*NFAKE);
 	}
 	//sleep (time @ 200000 Wps)
 	usleep((long)(ONE_MILLION * ((double)NFAKE / (double)200000)));

@@ -236,6 +236,7 @@ int main(int argc,char **argv){
   int retval;
   int shutdown=0;
   DM7820_Error dm7820_status;
+  DM7820_Board_Descriptor* p_rtd_board;
   
   /* Open Shared Memory */
   sm_t *sm_p;
@@ -390,17 +391,16 @@ int main(int argc,char **argv){
   
   /* Init RTD Driver */
   //Open driver
-  if((dm7820_status = rtd_open(0, &sm_p->p_rtd_board)))
+  if((dm7820_status = rtd_open(0, &p_rtd_board)))
     perror("rtd_open");
   
   //Reset board
-  if((dm7820_status = rtd_reset(sm_p->p_rtd_board)))
+  if((dm7820_status = rtd_reset(p_rtd_board)))
     perror("rtd_reset");
   
-  //Install interrupt handler -- pass pointer to shmem
-  if((dm7820_status = rtd_install_isr(sm_p->p_rtd_board,sm_p)))
-    perror("rtd_install_isr");
-    
+  //Set device handle
+  sm_p->p_rtd_board = p_rtd_board;
+  printf("WAT: RTD board ready\n");
   
   /* Launch Watchdog */
   if(sm_p->w[WATID].run){
@@ -452,9 +452,14 @@ int main(int argc,char **argv){
   else
     printf("WAT: cleanup done.\n");
 
-
+  //Cleanup RTD
+  if((dm7820_status = rtd_alp_cleanup(p_rtd_board)))
+    perror("rtd_alp_cleanup");
+  if((dm7820_status = rtd_tlm_cleanup(p_rtd_board)))
+    perror("rtd_tlm_cleanup");
+  
   //Close RTD driver
-  if((dm7820_status = rtd_close(sm_p->p_rtd_board)))
+  if((dm7820_status = rtd_close(p_rtd_board)))
     perror("rtd_close");
 
   //Close shared memory
