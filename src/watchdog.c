@@ -13,6 +13,7 @@
 #include <sys/ipc.h>
 #include <sys/sem.h>
 #include <sys/io.h>
+#include <sys/prctl.h>
 #include <dm7820_library.h>
 
 /* piccflight headers */
@@ -89,6 +90,8 @@ void launch_proc(sm_t *sm_p,int id){
   int pid=-1;
   void (*launch)(void);
   char insmod[100] = "insmod ";
+  char procname[100];
+  
   launch = sm_p->w[id].launch;
   //reset values
   sm_p->w[id].die  =  0;
@@ -98,7 +101,9 @@ void launch_proc(sm_t *sm_p,int id){
   sm_p->w[id].rec  =  0;
   sm_p->w[id].cnt  =  0;
 
-
+  //set procname
+  sprintf(procname,"picc_%s",sm_p->w[id].name);
+  
   // User-Space Process
   // --fork
   pid = fork();
@@ -114,7 +119,11 @@ void launch_proc(sm_t *sm_p,int id){
   }
   else{
     //we are the child
+    //--set the process name (as shown in top)
+    prctl(PR_SET_NAME, (unsigned long)procname, 0, 0, 0);
+    //--launch the process routine
     launch();
+    //--kill the process when the routine returns
     exit(0);
   }
 }
