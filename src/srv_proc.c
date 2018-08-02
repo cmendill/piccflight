@@ -42,6 +42,7 @@ void srv_proc(void) {
   int nbytes,i;
   void *buffer;
   int max_buf_size=0;
+  unsigned long data_ready;
   
   /* Set soft interrupt handler */
   sigset(SIGINT, srvctrlC);	/* usually ^C */
@@ -76,23 +77,34 @@ void srv_proc(void) {
   
   while(1){
     if(clientfd >= 0){
-      for(i=0;i<NCIRCBUF;i++){
-	if(srv_send[i]){
-	  if(read_from_buffer(sm_p, buffer, i, SRVID)){
-	    //write data to socket
-	    if(SRV_DEBUG) printf("SRV: Writing Packet %d\n",i);
-	    nbytes=write_to_socket(clientfd,buffer,sm_p->circbuf[i].nbytes);
-	    if(nbytes <=0){
-	      close(clientfd);
-	      clientfd=-1;
-	      memset((void *)srv_send,0,sizeof srv_send);
+      //first check if there is any data
+      data_ready = 0;
+      for(i=0;i<NCIRCBUF;i++)
+	if(srv_send[i])
+	  data_ready += check_buffer(sm_p,i,SRVID);
+      //read data if its ready
+      if(data_ready){
+	for(i=0;i<NCIRCBUF;i++){
+	  if(srv_send[i]){
+	    if(read_from_buffer(sm_p, buffer, i, SRVID)){
+	      //write data to socket
+	      if(SRV_DEBUG) printf("SRV: Writing Packet %d\n",i);
+	      nbytes=write_to_socket(clientfd,buffer,sm_p->circbuf[i].nbytes);
+	      if(nbytes <=0){
+		close(clientfd);
+		clientfd=-1;
+		memset((void *)srv_send,0,sizeof srv_send);
+	      }
+	      //increment packet counter
+	      srv_packet_count++;
+	      //check in with watchdog -- make this slower
+	      checkin(sm_p,SRVID);
 	    }
-	    //increment packet counter
-	    srv_packet_count++;
-	    //check in with watchdog -- make this slower
-	    checkin(sm_p,SRVID);
 	  }
 	}
+      }else{
+	//sleep if there is no data
+	usleep(100000);
       }
     }else{
       //sleep

@@ -80,18 +80,15 @@ void tlmctrlC(int sig){
   exit(sig);
 }
 
-void write_block(sm_t *sm_p, char *hed,char *buf, uint32 num){
+void write_block(DM7820_Board_Descriptor* p_rtd_board, char *buf, uint32 num){
   static uint32 presync  = TLM_PRESYNC;
   static uint32 postsync = TLM_POSTSYNC;
-  static unsigned long message;
   
   /*Send TM over ethernet*/
   if(ethfd >= 0){
     /*Write presync to socket */
     write_to_socket(ethfd,&presync,sizeof(presync));
-    /*Write header to socket */
-    write_to_socket(ethfd,hed,sizeof(pkthed_t));
-    /*Write image to socket */
+    /*Write buffer to socket */
     write_to_socket(ethfd,buf,num);
     /*Write postsync to socket */
     write_to_socket(ethfd,&postsync,sizeof(postsync));
@@ -102,15 +99,13 @@ void write_block(sm_t *sm_p, char *hed,char *buf, uint32 num){
   }
   else{
     /*Send TM over RTD*/
-    if(sm_p->p_rtd_board != NULL){
+    if(p_rtd_board != NULL){
       /*Write presync to dma */
-      rtd_send_tlm(sm_p->p_rtd_board, (char *)&presync,sizeof(presync));
-      /*Write header to dma */
-      rtd_send_tlm(sm_p->p_rtd_board, hed,sizeof(pkthed_t));
-      /*Write image to dma */
-      rtd_send_tlm(sm_p->p_rtd_board, buf,num);
+      rtd_send_tlm(p_rtd_board, (char *)&presync,sizeof(presync));
+      /*Write buffer to dma */
+      rtd_send_tlm(p_rtd_board, buf,num);
       /*Write postsync to dma */
-      rtd_send_tlm(sm_p->p_rtd_board, (char *)&postsync,sizeof(postsync));
+      rtd_send_tlm(p_rtd_board, (char *)&postsync,sizeof(postsync));
       
 #if TLM_DEBUG
       printf("TLM: write_block sent over RTD\n");
@@ -149,7 +144,6 @@ void save_data(void *buf, uint32 num, char *tag, uint32 framenumber, uint32 fold
 void tlm_proc(void){
   uint32 i,j;
   unsigned long count=0;
-  unsigned long message;
   char tag[3];
   uint32 folderindex=0;
   char datpath[200];
@@ -159,7 +153,6 @@ void tlm_proc(void){
   static shkevent_t shk;
   static lytevent_t lyt;
   static acqevent_t acq;
-  static pkthed_t   pkthed;
   
   
   /* Open Shared Memory */
@@ -267,16 +260,85 @@ void tlm_proc(void){
 	    sprintf(tag,"sci");
 	      save_data(&sci, sizeof(sci),tag,sci.hed.frame_number,folderindex);
 	  }
-	  /*Fill out packet header*/
-	  pkthed.packet_type  = TLM_SCI;
-	  
 	  if(SEND_SCI){
 	    //write data
-	    write_block(sm_p,(char *)&pkthed, (char *)&sci.image, sizeof(sci.image));
+	    write_block(sm_p->p_rtd_board,(char *)&sci, sizeof(sci));
 	    if(TLM_DEBUG)
-	      printf("TLM: Frame %d - SCI\n",pkthed.frame_number);
+	      printf("TLM: Frame %d - SCI\n",sci.hed.frame_number);
 	  }
 	}
+
+	/*Get SCI data*/
+	if(read_from_buffer(sm_p, &sci, SCIEVENT, TLMID)){
+	  //check in with watchdog
+	  checkin(sm_p,TLMID);
+	  //save sci data 
+	  if(SAVE_SCI){
+	    sprintf(tag,"sci");
+	      save_data(&sci, sizeof(sci),tag,sci.hed.frame_number,folderindex);
+	  }
+	  //send sci data
+	  if(SEND_SCI){
+	    write_block(sm_p->p_rtd_board,(char *)&sci, sizeof(sci));
+	    if(TLM_DEBUG)
+	      printf("TLM: Frame %d - SCI\n",sci.hed.frame_number);
+	  }
+	}
+	
+	/*Get SHK data*/
+	if(read_from_buffer(sm_p, &shk, SHKEVENT, TLMID)){
+	  //check in with watchdog
+	  checkin(sm_p,TLMID);
+	  //save shk data 
+	  if(SAVE_SHK){
+	    sprintf(tag,"shk");
+	      save_data(&shk, sizeof(shk),tag,shk.hed.frame_number,folderindex);
+	  }
+	  //send shk data
+	  if(SEND_SHK){
+	    write_block(sm_p->p_rtd_board,(char *)&shk, sizeof(shk));
+	    if(TLM_DEBUG)
+	      printf("TLM: Frame %d - SHK\n",shk.hed.frame_number);
+	  }
+	}
+	
+	/*Get LYT data*/
+	if(read_from_buffer(sm_p, &lyt, LYTEVENT, TLMID)){
+	  //check in with watchdog
+	  checkin(sm_p,TLMID);
+	  //save lyt data 
+	  if(SAVE_LYT){
+	    sprintf(tag,"lyt");
+	      save_data(&lyt, sizeof(lyt),tag,lyt.hed.frame_number,folderindex);
+	  }
+	  //send lyt data
+	  if(SEND_LYT){
+	    write_block(sm_p->p_rtd_board,(char *)&lyt, sizeof(lyt));
+	    if(TLM_DEBUG)
+	      printf("TLM: Frame %d - LYT\n",lyt.hed.frame_number);
+	  }
+	}
+	
+	/*Get ACQ data*/
+	if(read_from_buffer(sm_p, &acq, ACQEVENT, TLMID)){
+	  //check in with watchdog
+	  checkin(sm_p,TLMID);
+	  //save acq data 
+	  if(SAVE_ACQ){
+	    sprintf(tag,"acq");
+	      save_data(&acq, sizeof(acq),tag,acq.hed.frame_number,folderindex);
+	  }
+	  //send acq data
+	  if(SEND_ACQ){
+	    write_block(sm_p->p_rtd_board,(char *)&acq, sizeof(acq));
+	    if(TLM_DEBUG)
+	      printf("TLM: Frame %d - ACQ\n",acq.hed.frame_number);
+	  }
+	}
+	
+
+
+	
       }
     }
   }

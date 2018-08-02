@@ -143,7 +143,7 @@ void *srv_listen(void *t) {
 	    // we got some data from a client
 	    if(recvcmd == CMD_SENDDATA){
 	      printf("SRV: Listener got CMD: Send Data\n");
-	      //select buffers to send
+	      //select buffers to send (could add individual buffer requests here)
 	      memset((void *)srv_send,0,sizeof srv_send);
 	      srv_send[SHKFULL]=1;
 	      srv_send[LYTFULL]=1;
