@@ -13,8 +13,7 @@
 #include "common_functions.h"
 #include "numeric.h"
 #include "phx_config.h"
-
-#define LYT_FULL_IMAGE_TIME 0.5 //seconds
+#include "fakemodes.h"
 
 /**************************************************************/
 /*                      LYT_PROCESS_IMAGE                     */
@@ -110,22 +109,11 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     lytfull.hed.packet_type = LYTFULL;
  
     //Fake data
-    if(sm_p->lyt_fake_mode > 0){
-      if(sm_p->lyt_fake_mode == 1){
+    if(sm_p->lyt_fakemode > FAKEMODE_NONE){
+      if(sm_p->lyt_fakemode == FAKEMODE_GEN_IMAGE_CAMERA_SYNC)
 	for(i=0;i<LYTXS;i++)
 	  for(j=0;j<LYTYS;j++)
 	    lytfull.image.data[i][j]=fakepx++;
-      }
-      if(sm_p->lyt_fake_mode == 2){
-	for(i=0;i<LYTXS;i++)
-	  for(j=0;j<LYTYS;j++)
-	    lytfull.image.data[i][j]=2*fakepx++;
-      }
-      if(sm_p->lyt_fake_mode == 3){
-	for(i=0;i<LYTXS;i++)
-	  for(j=0;j<LYTYS;j++)
-	    lytfull.image.data[i][j]=3*fakepx++;
-      }
     }
     else{
       //Copy full image

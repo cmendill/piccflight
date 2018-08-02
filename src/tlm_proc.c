@@ -16,6 +16,7 @@
 #include "common_functions.h"
 #include "rtd_functions.h"
 #include "tlm_proc.h"
+#include "fakemodes.h"
 
 #define SLEEP_TIME 10000
 #define NFAKE 100000
@@ -28,7 +29,7 @@ int tlm_shmfd;
 volatile int ethfd=-1;
 
 /* Listener Setup */
-void *tlm_listener(void *t);
+void *tlm_listen(void *t);
 pthread_t listener_thread;
 
 
@@ -173,7 +174,7 @@ void tlm_proc(void){
   
   /* Start listener */
   printf("TLM: Starting listener\n");
-  pthread_create(&listener_thread,NULL,tlm_listener,(void *)0);
+  pthread_create(&listener_thread,NULL,tlm_listen,(void *)0);
 
   /* Init RTD */
   rtd_init_tlm(sm_p->p_rtd_board,TLM_BUFFER_SIZE);
@@ -217,34 +218,34 @@ void tlm_proc(void){
   while(1){
     
     //check if we want to fake the TM data
-    if(sm_p->tlm_fake_mode & FAKE_TM_TEST_PATTERN){
-      for(i=0;i<NFAKE;i++){
-	fakeword[i] = ilast++ % FAKEMAX;
-	//skip empty code
-	if(fakeword[i]==TLM_EMPTY_CODE){
-	  fakeword[i]++;
-	  ilast++;
+    if(sm_p->tlm_fakemode > FAKEMODE_NONE){
+      if(sm_p->tlm_fakemode == FAKEMODE_TM_TEST_PATTERN){
+	for(i=0;i<NFAKE;i++){
+	  fakeword[i] = ilast++ % FAKEMAX;
+	  //skip empty code
+	  if(fakeword[i]==TLM_EMPTY_CODE){
+	    fakeword[i]++;
+	    ilast++;
+	  }
 	}
-      }
-      ilast%=FAKEMAX;
-      
-      checkin(sm_p,TLMID);
-      
-      /*Write Data*/
-      if(ethfd >= 0){
-	write_to_socket(ethfd,fakeword,sizeof(uint16)*NFAKE);
-	//sleep (time @ 200000 Wps)
-	usleep((long)(ONE_MILLION * ((double)NFAKE / (double)200000)));
+	ilast%=FAKEMAX;
 	
-      }else{
-	//RTD write fake data
-	if(sm_p->p_rtd_board != NULL){
-	  rtd_send_tlm(sm_p->p_rtd_board,(char *)fakeword,sizeof(uint16)*NFAKE);
+	checkin(sm_p,TLMID);
+	
+	/*Write Data*/
+	if(ethfd >= 0){
+	  write_to_socket(ethfd,fakeword,sizeof(uint16)*NFAKE);
+	  //sleep (time @ 250000 Wps)
+	  usleep((long)(ONE_MILLION * ((double)NFAKE / (double)TLM_DATA_RATE)));
+	  
+	}else{
+	  //RTD write fake data
+	  if(sm_p->p_rtd_board != NULL){
+	    rtd_send_tlm(sm_p->p_rtd_board,(char *)fakeword,sizeof(uint16)*NFAKE);
+	    usleep(50000);
+	  }
 	}
-	//sleep (time @ 200000 Wps)
-	usleep((long)(ONE_MILLION * ((double)NFAKE / (double)200000)));
       }
-     
     }
     else{
       //Check if we've been asked to exit

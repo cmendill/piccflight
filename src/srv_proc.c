@@ -24,7 +24,7 @@ int srv_shmfd;    // shared memory file desciptor
 uint32 srv_packet_count=0;
 
 /* Prototypes */
-void *srv_listener(void *t);
+void *srv_listen(void *t);
 
 void srvctrlC(int sig)
 {
@@ -72,7 +72,7 @@ void srv_proc(void) {
   }
   
   /* Start Listener */
-  pthread_create(&listener_thread,NULL,srv_listener,(void *)0);
+  pthread_create(&listener_thread,NULL,srv_listen,(void *)0);
   
   while(1){
     if(clientfd >= 0){

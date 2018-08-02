@@ -15,9 +15,11 @@
 #include "hex_functions.h"
 #include "alp_functions.h"
 #include "common_functions.h"
+#include "fakemodes.h"
 
 /* Prototypes */
 void getshk_proc(void); //get shkevents
+void init_fakemode(int fakemode, calmode_t *fake);
 
 /**************************************************************/
 /* PRINT_STATES                                               */
@@ -60,6 +62,19 @@ void print_hex_calmodes(calmode_t *hex){
 }
 
 /**************************************************************/
+/* PRINT_FAKEMODES                                            */
+/*  - Print available fake data modes                         */
+/**************************************************************/
+void print_fakemodes(calmode_t *fake){
+  int i;
+  printf("******************* Available Fake Modes  *******************\n");
+  printf("#    Command                Name\n");
+  for(i=0;i<NFAKEMODES;i++)
+    printf("%02d   %-18s     %s\n",i,fake[i].cmd,fake[i].name);
+  printf("*************************************************************\n");
+}
+
+/**************************************************************/
 /* HANDLE_COMMAND                                             */
 /*  - Handle user commands                                    */
 /**************************************************************/
@@ -75,6 +90,7 @@ int handle_command(char *line, sm_t *sm_p){
   static double rot_poke = HEX_ROT_POKE;///0.01;
   static calmode_t alpcalmodes[ALP_NCALMODES];
   static calmode_t hexcalmodes[HEX_NCALMODES];
+  static calmode_t fakemodes[NFAKEMODES];
   static int init=0;
   static hexevent_t hexrecv = {0},hexsend = {0};
   const char hex_str_axes[HEX_NAXES][5] = {"X","Y","Z","U","V","W"};
@@ -92,6 +108,9 @@ int handle_command(char *line, sm_t *sm_p){
     //Init HEX calmodes
     for(i=0;i<HEX_NCALMODES;i++)
       hex_init_calmode(i,&hexcalmodes[i]);
+    //Init fake modes
+    for(i=0;i<NFAKEMODES;i++)
+      init_fakemode(i,&fakemodes[i]);
     //Set init flag
     init=1;
   }
@@ -107,29 +126,70 @@ int handle_command(char *line, sm_t *sm_p){
   /****************************************
    * SHARED MEMORY COMMANDS
    ***************************************/
-  //Fake Data
-  if(!strncasecmp(line,"shk fake",8)){
-    itemp = atoi(line+8);
-    sm_p->shk_fake_mode = itemp;
-    printf("CMD: Changed SHK fake mode to %d\n",sm_p->shk_fake_mode);
+  //Fake Data Modes
+  if(!strncasecmp(line,"shk fakemode",12)){
+    cmdfound = 0;
+    for(i=0;i<NFAKEMODES;i++){
+      if(!strncasecmp(line+13,fakemodes[i].cmd,strlen(fakemodes[i].cmd))){
+	sm_p->shk_fakemode=i;
+	printf("CMD: Changed SHK fake mode to %s\n",fakemodes[i].name);
+	cmdfound = 1;
+      }
+    }
+    if(!cmdfound)
+      print_fakemodes(fakemodes);
     return(CMD_NORMAL);
   }
-  if(!strncasecmp(line,"lyt fake",8)){
-    itemp = atoi(line+8);
-    sm_p->lyt_fake_mode = itemp;
-    printf("CMD: Changed LYT fake mode to %d\n",sm_p->lyt_fake_mode);
+  if(!strncasecmp(line,"lyt fakemode",12)){
+    cmdfound = 0;
+    for(i=0;i<NFAKEMODES;i++){
+      if(!strncasecmp(line+13,fakemodes[i].cmd,strlen(fakemodes[i].cmd))){
+	sm_p->lyt_fakemode=i;
+	printf("CMD: Changed LYT fake mode to %s\n",fakemodes[i].name);
+	cmdfound = 1;
+      }
+    }
+    if(!cmdfound)
+      print_fakemodes(fakemodes);
     return(CMD_NORMAL);
   }
-  if(!strncasecmp(line,"sci fake",8)){
-    itemp = atoi(line+8);
-    sm_p->sci_fake_mode = itemp;
-    printf("CMD: Changed SCI fake mode to %d\n",sm_p->sci_fake_mode);
+  if(!strncasecmp(line,"sci fakemode",12)){
+    cmdfound = 0;
+    for(i=0;i<NFAKEMODES;i++){
+      if(!strncasecmp(line+13,fakemodes[i].cmd,strlen(fakemodes[i].cmd))){
+	sm_p->sci_fakemode=i;
+	printf("CMD: Changed SCI fake mode to %s\n",fakemodes[i].name);
+	cmdfound = 1;
+      }
+    }
+    if(!cmdfound)
+      print_fakemodes(fakemodes);
     return(CMD_NORMAL);
   }
-  if(!strncasecmp(line,"acq fake",8)){
-    itemp = atoi(line+8);
-    sm_p->acq_fake_mode = itemp;
-    printf("CMD: Changed ACQ fake mode to %d\n",sm_p->acq_fake_mode);
+  if(!strncasecmp(line,"acq fakemode",12)){
+    cmdfound = 0;
+    for(i=0;i<NFAKEMODES;i++){
+      if(!strncasecmp(line+13,fakemodes[i].cmd,strlen(fakemodes[i].cmd))){
+	sm_p->acq_fakemode=i;
+	printf("CMD: Changed ACQ fake mode to %s\n",fakemodes[i].name);
+	cmdfound = 1;
+      }
+    }
+    if(!cmdfound)
+      print_fakemodes(fakemodes);
+    return(CMD_NORMAL);
+  }
+  if(!strncasecmp(line,"tlm fakemode",12)){
+    cmdfound = 0;
+    for(i=0;i<NFAKEMODES;i++){
+      if(!strncasecmp(line+13,fakemodes[i].cmd,strlen(fakemodes[i].cmd))){
+	sm_p->tlm_fakemode=i;
+	printf("CMD: Changed TLM fake mode to %s\n",fakemodes[i].name);
+	cmdfound = 1;
+      }
+    }
+    if(!cmdfound)
+      print_fakemodes(fakemodes);
     return(CMD_NORMAL);
   }
 

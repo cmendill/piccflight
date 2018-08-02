@@ -19,15 +19,12 @@
 #include "controller.h"
 #include "common_functions.h"
 
-#define LISTEN_PORT "14000"
-#define CMD_SENDDATA  0x0ABACABB
-
 /* Globals */
 extern volatile int clientfd;
 extern volatile int srv_send[NCIRCBUF];
 
 /* Main Listener */
-void *srv_listener(void *t) {
+void *srv_listen(void *t) {
   /* Start Networking Code */
   fd_set master;    // master file descriptor list
   fd_set read_fds;  // temp file descriptor list for select()
@@ -56,7 +53,7 @@ void *srv_listener(void *t) {
   hints.ai_family   = AF_UNSPEC;
   hints.ai_socktype = SOCK_STREAM;
   hints.ai_flags    = AI_PASSIVE;
-  if ((rv = getaddrinfo(NULL, LISTEN_PORT, &hints, &ai)) != 0) {
+  if ((rv = getaddrinfo(NULL, SRV_PORT, &hints, &ai)) != 0) {
     fprintf(stderr, "selectserver: %s\n", gai_strerror(rv));
     exit(2);
   }

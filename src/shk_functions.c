@@ -17,6 +17,7 @@
 #include "phx_config.h"
 #include "rtd_functions.h"
 #include "alpao_map.h"
+#include "fakemodes.h"
 
 /**************************************************************/
 /* SHK_INIT_CELLS                                             */
@@ -978,21 +979,11 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     shkfull.hed.packet_type = SHKFULL;
 
     //Fake data
-    if(sm_p->shk_fake_mode > 0){
-      if(sm_p->shk_fake_mode == 1)
+    if(sm_p->shk_fakemode > FAKEMODE_NONE){
+      if(sm_p->shk_fakemode == FAKEMODE_GEN_IMAGE_CAMERA_SYNC)
 	for(i=0;i<SHKXS;i++)
 	  for(j=0;j<SHKYS;j++)
 	    shkfull.image.data[i][j]=fakepx++;
-
-      if(sm_p->shk_fake_mode == 2)
-	for(i=0;i<SHKXS;i++)
-	  for(j=0;j<SHKYS;j++)
-	    shkfull.image.data[i][j]=2*fakepx++;
-
-      if(sm_p->shk_fake_mode == 3)
-	for(i=0;i<SHKXS;i++)
-	  for(j=0;j<SHKYS;j++)
-	    shkfull.image.data[i][j]=3*fakepx++;
     }
     else{
       //Copy full image -- takes about 700 us

@@ -21,7 +21,7 @@
 /* Globals */
 extern volatile int ethfd;
 
-void *tlm_listener(void *t) {
+void *tlm_listen(void *t) {
   /* Start Networking Code */
   //might need to be global
   int listenerfd;     // listening socket descriptor
@@ -51,7 +51,7 @@ void *tlm_listener(void *t) {
   hints.ai_family   = AF_UNSPEC;
   hints.ai_socktype = SOCK_STREAM;
   hints.ai_flags    = AI_PASSIVE;
-  if ((rv = getaddrinfo(NULL, GSE_PORT, &hints, &ai)) != 0) {
+  if ((rv = getaddrinfo(NULL, TLM_PORT, &hints, &ai)) != 0) {
     fprintf(stderr, "selectserver: %s\n", gai_strerror(rv));
     exit(2);
   }

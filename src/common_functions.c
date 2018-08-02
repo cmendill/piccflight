@@ -414,10 +414,3 @@ int eth_send(char *addr,char *port,void *data,int nbytes){
   
 }
 
-/******************************************************************************
-        SEND DATA TO GSE
-******************************************************************************/
-int send2gse(void *data, int nbytes){
-  return(eth_send(GSE_ADDR,GSE_PORT,data,nbytes));
-}
-

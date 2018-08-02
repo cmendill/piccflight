@@ -14,6 +14,7 @@
 /* piccflight headers */
 #include "controller.h"
 #include "common_functions.h"
+#include "fakemodes.h"
 
 #define SCI_EXP_TIME 2000  //Milliseconds
 #define SCI_TEMP 20        //Degrees C
@@ -207,21 +208,11 @@ void sci_process_image(sm_t *sm_p,uint16 *img_buffer,double ccdtemp){
     scifull.hed.packet_type = SCIFULL;
 
     //Fake data
-    if(sm_p->sci_fake_mode > 0){
-      if(sm_p->sci_fake_mode == 1)
+    if(sm_p->sci_fakemode > FAKEMODE_NONE){
+      if(sm_p->sci_fakemode == FAKEMODE_GEN_IMAGE_CAMERA_SYNC)
 	for(i=0;i<SCIXS;i++)
 	  for(j=0;j<SCIYS;j++)
 	    scifull.image.data[i][j]=fakepx++;
-
-      if(sm_p->sci_fake_mode == 2)
-	for(i=0;i<SCIXS;i++)
-	  for(j=0;j<SCIYS;j++)
-	    scifull.image.data[i][j]=2*fakepx++;
-
-      if(sm_p->sci_fake_mode == 3)
-	for(i=0;i<SCIXS;i++)
-	  for(j=0;j<SCIYS;j++)
-	    scifull.image.data[i][j]=3*fakepx++;
     }
     else{
       /* Copy image */

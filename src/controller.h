@@ -117,19 +117,6 @@ enum states { STATE_STANDBY,
 #define ACTUATOR_MOT 7
 
 /*************************************************
-* Software Switches
-*************************************************/
-#define PUT_SOMETHING_HERE 4
-
-/*************************************************
- * Fake Mode Bits
- *************************************************/
-#define FAKE_IMAGES          1<<0 // Fake images
-#define FAKE_TM_TEST_PATTERN 1<<1 // Send TM test pattern
-#define FAKE_GEN             1<<2 // 1:Generate fake images, 0:Read from disk
-#define FAKE_TIMER           1<<3 // 1:Sync to timer, 0:Sync to Interrupts
-
-/*************************************************
  * LOWFS Status
  *************************************************/
 #define LOWFS_NOT_LOCKED  0
@@ -165,9 +152,9 @@ enum states { STATE_STANDBY,
 /*************************************************
  * Network Addresses & Ports
  *************************************************/
-#define GSE_ADDR  "192.168.0.6"
-#define GSE_PORT  "1337"
-#define HOSTPORT  "ANY:24924"
+#define TLM_PORT     "1337"
+#define SRV_PORT     "14000"
+#define CMD_SENDDATA  0x0ABACABB
 
 /*************************************************
  * Circular Buffer Info
@@ -395,10 +382,11 @@ enum bufids {SCIEVENT, SCIFULL,
 /*************************************************
  * Telemetry (TLM) Settings
  *************************************************/
-#define TLM_EMPTY_CODE     0xFADE              //Code to send when there is no data
-#define TLM_REPLACE_CODE   0xFFFF              //Code to replace empty codes with in data
-#define TLM_BUFFER_SIZE    0x1000              //TLM DMA buffer size
-#define TLM_BUFFER_LENGTH  (TLM_BUFFER_SIZE/2) //TLM DMA buffer length
+#define TLM_DATA_RATE      250000                //Words per second = 4Mbps = 4us/word
+#define TLM_EMPTY_CODE     0xFADE                //Code to send when there is no data
+#define TLM_REPLACE_CODE   0xFFFF                //Code to replace empty codes with in data
+#define TLM_BUFFER_LENGTH  (TLM_DATA_RATE/10)    //TLM DMA buffer length (10 updates/sec)
+#define TLM_BUFFER_SIZE    (TLM_BUFFER_LENGTH*2) //TLM DMA buffer size
 
 /*************************************************
  * Config Structure
@@ -687,11 +675,11 @@ typedef volatile struct {
   state_t state_array[NSTATES]; //Array of states
 
   //Fake modes
-  int tlm_fake_mode;        //Telemetry fake mode
-  int sci_fake_mode;        //Science camera fake mode
-  int lyt_fake_mode;        //Lyot LOWFS camera fake mode
-  int shk_fake_mode;        //Shack-Hartmann camera fake mode
-  int acq_fake_mode;        //Acquisition camera fake mode
+  int tlm_fakemode;        //Telemetry fake mode
+  int sci_fakemode;        //Science camera fake mode
+  int lyt_fakemode;        //Lyot LOWFS camera fake mode
+  int shk_fakemode;        //Shack-Hartmann camera fake mode
+  int acq_fakemode;        //Acquisition camera fake mode
 
   //Camera modes
   int sci_mode;        //Science camera mode
