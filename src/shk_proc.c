@@ -16,12 +16,11 @@
 #include "common_functions.h"
 #include "phx_config.h"
 
-/* Process File Descriptor */
-int shk_shmfd;
+/* SHK config */
+#define SHK_BOARD_NUMBER PHX_BOARD_NUMBER_1
 
 /* Global Variables */
-tHandle shkCamera = 0; /* Camera Handle   */
-uint32 shk_frame_count=0;
+int shk_run=1;
 
 /* Prototypes */
 void shk_process_image(stImageBuff *buffer,sm_t *sm_p,uint32 frame_number);
@@ -31,42 +30,48 @@ void shkctrlC(int sig)
 {
 #if MSG_CTRLC
   printf("SHK: ctrlC! exiting.\n");
-  printf("SHK: Got %d frames.\n",shk_frame_count);
 #endif
-  close(shk_shmfd);
-  if ( shkCamera ) PHX_StreamRead( shkCamera, PHX_ABORT, NULL ); /* Now cease all captures */
-
-  if ( shkCamera ) { /* Release the Phoenix board */
-    PHX_Close( &shkCamera ); /* Close the Phoenix board */
-    PHX_Destroy( &shkCamera ); /* Destroy the Phoenix handle */
-  }
-
-
-  exit(sig);
+  //Trigger cleanup
+  shk_run=0;
 }
 
-/* Define an application specific structure to hold user information */
+/* Define callback structure */
 typedef struct {
-  sm_t *sm_p; /* Shared memory pointer */
+  sm_t *sm_p;           
+  uint64_t frame_count;
 } tContext;
 
 /* Callback Function */
-static void shk_callback( tHandle shkCamera, ui32 dwInterruptMask, void *pvParams ) {
-  if ( dwInterruptMask & PHX_INTRPT_BUFFER_READY ) {
+static void shk_callback(tHandle shkCamera, ui32 dwInterruptMask, void *pvParams) {
+  if (dwInterruptMask & PHX_INTRPT_BUFFER_READY) {
     stImageBuff stBuffer;
     tContext *aContext = (tContext *)pvParams;
-
+    
     etStat eStat = PHX_StreamRead( shkCamera, PHX_BUFFER_GET, &stBuffer );
-    if ( PHX_OK == eStat ) {
+    if(PHX_OK == eStat) {
       //Process image
-      shk_process_image(&stBuffer,aContext->sm_p,shk_frame_count);
+      shk_process_image(&stBuffer,aContext->sm_p,aContext->frame_count);
       //Check in with watchdog
       checkin(aContext->sm_p,SHKID);
       //Increment frame counter
-      shk_frame_count++;
+      aContext->frame_count++;
     }
-    PHX_StreamRead( shkCamera, PHX_BUFFER_RELEASE, NULL );
+    PHX_StreamRead(shkCamera, PHX_BUFFER_RELEASE, NULL);
   }
+}
+
+/* Cleanup Function */
+static void shk_cleanup(tHandle *camera_p,int shmfd){
+  //Close shared memory
+  close(shmfd);
+  //Close camera
+  if(*camera_p){
+    PHX_StreamRead(*camera_p, PHX_ABORT, NULL );
+    PHX_Close(camera_p);
+    PHX_Destroy(camera_p);
+  }
+  //Exit
+  exit(0);
 }
 
 /* Main Process */
@@ -80,56 +85,58 @@ int shk_proc(void){
   ui64 dwParamValue;
   etParamValue roiWidth, roiHeight, bufferWidth, bufferHeight;
   int camera_running = 0;
-
+  tHandle shkCamera = 0;
+  int shmfd;
+  
   
   /* Open Shared Memory */
   sm_t *sm_p;
-  if((sm_p = openshm(&shk_shmfd)) == NULL){
+  if((sm_p = openshm(&shmfd)) == NULL){
     printf("openshm fail: shk_proc\n");
-    shkctrlC(0);
+    shk_cleanup(&shkCamera,shmfd);
   }
 
   /* Set soft interrupt handler */
   sigset(SIGINT, shkctrlC);	/* usually ^C */
 
   /* Set up context for callback */
-  memset( &shkContext, 0, sizeof( tContext ) );
+  memset(&shkContext, 0, sizeof(tContext));
   shkContext.sm_p = sm_p;
 
   /* Create a Phoenix handle */
-  eStat = PHX_Create( &shkCamera, PHX_ErrHandlerDefault );
-  if ( PHX_OK != eStat ){
+  eStat = PHX_Create(&shkCamera, PHX_ErrHandlerDefault);
+  if (PHX_OK != eStat){
     printf("SHK: Error PHX_Create\n");
-    shkctrlC(0);
+    shk_cleanup(&shkCamera,shmfd);
   }
   
   /* Set the board number */
-  eParamValue = PHX_BOARD_NUMBER_1;
-  eStat = PHX_ParameterSet( shkCamera, PHX_BOARD_NUMBER, &eParamValue );
-  if ( PHX_OK != eStat ){
+  eParamValue = SHK_BOARD_NUMBER;
+  eStat = PHX_ParameterSet(shkCamera, PHX_BOARD_NUMBER, &eParamValue);
+  if (PHX_OK != eStat){
     printf("SHK: Error PHX_ParameterSet --> Board Number\n");
-    shkctrlC(0);
+    shk_cleanup(&shkCamera,shmfd);
   }
 
   /* Open the Phoenix board */
-  eStat = PHX_Open( shkCamera );
-  if ( PHX_OK != eStat ){
+  eStat = PHX_Open(shkCamera);
+  if (PHX_OK != eStat){
     printf("SHK: Error PHX_Open\n");
-    shkctrlC(0);
+    shk_cleanup(&shkCamera,shmfd);
   }
 
   /* Run the config file */
-  eStat = CONFIG_RunFile( shkCamera, &configFileName );
-  if ( PHX_OK != eStat ){
+  eStat = CONFIG_RunFile(shkCamera, &configFileName);
+  if (PHX_OK != eStat){
     printf("SHK: Error CONFIG_RunFile\n");
-    shkctrlC(0);
+    shk_cleanup(&shkCamera,shmfd);
   }
 
   /* Setup our own event context */
-  eStat = PHX_ParameterSet( shkCamera, PHX_EVENT_CONTEXT, (void *) &shkContext );
-  if ( PHX_OK != eStat ){
+  eStat = PHX_ParameterSet(shkCamera, PHX_EVENT_CONTEXT, (void *) &shkContext);
+  if (PHX_OK != eStat){
     printf("SHK: Error PHX_ParameterSet --> PHX_EVENT_CONTEXT\n");
-    shkctrlC(0);
+    shk_cleanup(&shkCamera,shmfd);
   }
 
   /* Get debugging info */
@@ -152,18 +159,18 @@ int shk_proc(void){
   eStat = PHX_StreamRead( shkCamera, PHX_STOP, (void*)shk_callback );
   if ( PHX_OK != eStat ){
     printf("SHK: PHX_StreamRead --> PHX_STOP\n");
-    shkctrlC(0);
+    shk_cleanup(&shkCamera,shmfd);
   }
   camera_running = 0;
 
   /* -------------------- Enter Waiting Loop -------------------- */
-  while(1){
+  while(shk_run){
     /* Check if camera should start/stop */
     if(!camera_running && sm_p->state_array[sm_p->state].shk.run_camera){
       eStat = PHX_StreamRead( shkCamera, PHX_START, (void*)shk_callback );
       if ( PHX_OK != eStat ){
 	printf("SHK: PHX_StreamRead --> PHX_START\n");
-	shkctrlC(0);
+	break;
       }
       camera_running = 1;
     }
@@ -171,15 +178,15 @@ int shk_proc(void){
       eStat = PHX_StreamRead( shkCamera, PHX_STOP, (void*)shk_callback );
       if ( PHX_OK != eStat ){
 	printf("SHK: PHX_StreamRead --> PHX_STOP\n");
-	shkctrlC(0);
+	break;
       }
       camera_running = 0;
     }
     
     /* Check if we've been asked to exit */
     if(sm_p->w[SHKID].die)
-      shkctrlC(0);
-
+      break;
+    
     /* Check in with the watchdog */
     if(!camera_running)
       checkin(sm_p,SHKID);
@@ -187,7 +194,9 @@ int shk_proc(void){
     /* Sleep */
     sleep(sm_p->w[SHKID].per);
   }
+  
+  //Cleanup
+  shk_cleanup(&shkCamera,shmfd);
 
-  shkctrlC(0);
   return 0;
 }

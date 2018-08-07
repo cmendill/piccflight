@@ -75,9 +75,9 @@ LINUX SETUP
 
 BUILD INSTRUCTIONS
  - To build libraries: make libs
- - To build watchdog: make
  - To build drivers: source found in ./drivers/xxx/. Build each driver with make && sudo make install. 
  - After installing the drivers to /lib/modules/... insert driver names into /etc/modules for auto-loading
+ - To build watchdog: make
 
 RUN INSTRUCTIONS
  - cd bin/
