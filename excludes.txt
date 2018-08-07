@@ -10,7 +10,7 @@ bin/watchdog
 bin/getshk
 bin/shkevent
 bin/iwctest
-lib/libuvc/build
+lib/libuvc/build/*
 lib/libuvc/CMakeFiles
 doc
 test/*/bin
