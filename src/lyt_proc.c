@@ -39,7 +39,7 @@ void lytctrlC(int sig)
 /* Define callback structure */
 typedef struct {
   sm_t *sm_p;           
-  uint64_t frame_count;
+  uint32_t frame_count;
 } tContext;
 
 /* Callback Function */
