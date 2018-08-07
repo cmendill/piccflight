@@ -6,9 +6,10 @@ MKLOPTS = -I$(MKL_INCLUDE_DIR)
 
 #COMPILER OPTIONS
 CC = gcc
+
 INCLUDE_FLAGS = -Ilib/libfli -Ilib/libphx/include -Ilib/librtd/include -Ilib/libhex/include -I/usr/local/include/libuvc
-CFLAGS = -Wall -Wno-unused -O6 -m64 -D_PHX_LINUX $(MKLOPTS) $(INCLUDE_FLAGS)
-LFLAGS = -L/usr/local/lib -Llib/libhex -Llib/libphx -Llib/librtd -Llib/libfli -Llib/libuvc/build -lasdk -lphx -lpfw -lpbu -lfli -lm -lpthread -lrt -lrtd-dm7820 -lpi_pi_gcs2 -luvc -lusb-1.0 $(MKLLINKLINE)
+CFLAGS = -Wall -Wno-unused -O6 -m64 -D_PHX_LINUX $(MKLOPTS) $(INCLUDE_FLAGS) 
+LFLAGS = -L/usr/local/lib -Llib/libhex -Llib/libphx -Llib/librtd -Llib/libfli -Llib/libuvc/build -lasdk -lphx -lpfw -lpbu -lfli -lm -lpthread -lrt -lrtd-dm7820 -lpi_pi_gcs2 -luvc -lusb-1.0 $(MKLLINKLINE) -Wl,-rpath $(shell pwd)/lib/libhex -Wl,-rpath $(shell pwd)/lib/libuvc/build
 
 #DEPENDANCIES
 COMDEP  = Makefile $(wildcard ./src/*.h)
@@ -29,12 +30,14 @@ $(TARGET)watchdog: $(OBJECT)
 	$(CC) $(CFLAGS) -o $@ -c $<
 
 #LIBRARIES
-libs: libfli librtd
+libs: libfli librtd libuvc
 
 libfli:
 	make -C lib/libfli
 librtd:
 	make -C lib/librtd
+libuvc:
+	cd lib/libuvc/build && cmake ../ && make
 
 
 #CLEAN
