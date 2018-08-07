@@ -15,6 +15,7 @@ driver:
 install: 
 	-/sbin/modprobe -r phddrv > /dev/null 2>&1
 	install -D -gwheel -oroot -m744 phddrv.ko /lib/modules/$(shell uname -r)/kernel/drivers/usb/fli/phddrv.ko
+	$(PWD)/scripts/create_special_phx 243 > /dev/null 2>&1
 	/sbin/depmod -a
 	/sbin/modprobe phddrv
 
