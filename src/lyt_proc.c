@@ -11,17 +11,20 @@
 #include <phx_api.h>
 #include <pbl_api.h>
 
-
 /* piccflight headers */
 #include "controller.h"
 #include "common_functions.h"
 #include "phx_config.h"
 
-/* LYT config */
+/* LYT board number */
 #define LYT_BOARD_NUMBER PHX_BOARD_NUMBER_2
 
+/* Process File Descriptor */
+int lyt_shmfd;
+
 /* Global Variables */
-int lyt_run=1;
+tHandle lytCamera = 0; /* Camera Handle   */
+uint32 lyt_frame_count=0;
 
 /* Prototypes */
 void lyt_process_image(stImageBuff *buffer,sm_t *sm_p,uint32 frame_number);
@@ -31,48 +34,42 @@ void lytctrlC(int sig)
 {
 #if MSG_CTRLC
   printf("LYT: ctrlC! exiting.\n");
+  printf("LYT: Got %d frames.\n",lyt_frame_count);
 #endif
-  //Trigger cleanup
-  lyt_run=0;
+  close(lyt_shmfd);
+  if ( lytCamera ) PHX_StreamRead( lytCamera, PHX_ABORT, NULL ); /* Now cease all captures */
+
+  if ( lytCamera ) { /* Release the Phoenix board */
+    PHX_Close( &lytCamera ); /* Close the Phoenix board */
+    PHX_Destroy( &lytCamera ); /* Destroy the Phoenix handle */
+  }
+
+
+  exit(sig);
 }
 
-/* Define callback structure */
+/* Define an application specific structure to hold user information */
 typedef struct {
-  sm_t *sm_p;           
-  uint32_t frame_count;
+  sm_t *sm_p; /* Shared memory pointer */
 } tContext;
 
 /* Callback Function */
-static void lyt_callback(tHandle lytCamera, ui32 dwInterruptMask, void *pvParams) {
-  if (dwInterruptMask & PHX_INTRPT_BUFFER_READY) {
+static void lyt_callback( tHandle lytCamera, ui32 dwInterruptMask, void *pvParams ) {
+  if ( dwInterruptMask & PHX_INTRPT_BUFFER_READY ) {
     stImageBuff stBuffer;
     tContext *aContext = (tContext *)pvParams;
-    
+
     etStat eStat = PHX_StreamRead( lytCamera, PHX_BUFFER_GET, &stBuffer );
-    if(PHX_OK == eStat) {
+    if ( PHX_OK == eStat ) {
       //Process image
-      lyt_process_image(&stBuffer,aContext->sm_p,aContext->frame_count);
+      lyt_process_image(&stBuffer,aContext->sm_p,lyt_frame_count);
       //Check in with watchdog
       checkin(aContext->sm_p,LYTID);
       //Increment frame counter
-      aContext->frame_count++;
+      lyt_frame_count++;
     }
-    PHX_StreamRead(lytCamera, PHX_BUFFER_RELEASE, NULL);
+    PHX_StreamRead( lytCamera, PHX_BUFFER_RELEASE, NULL );
   }
-}
-
-/* Cleanup Function */
-static void lyt_cleanup(tHandle *camera_p,int shmfd){
-  //Close shared memory
-  close(shmfd);
-  //Close camera
-  if(*camera_p){
-    PHX_StreamRead(*camera_p, PHX_ABORT, NULL );
-    PHX_Close(camera_p);
-    PHX_Destroy(camera_p);
-  }
-  //Exit
-  exit(0);
 }
 
 /* Main Process */
@@ -86,58 +83,56 @@ int lyt_proc(void){
   ui64 dwParamValue;
   etParamValue roiWidth, roiHeight, bufferWidth, bufferHeight;
   int camera_running = 0;
-  tHandle lytCamera = 0;
-  int shmfd;
-  
+
   
   /* Open Shared Memory */
   sm_t *sm_p;
-  if((sm_p = openshm(&shmfd)) == NULL){
+  if((sm_p = openshm(&lyt_shmfd)) == NULL){
     printf("openshm fail: lyt_proc\n");
-    lyt_cleanup(&lytCamera,shmfd);
+    lytctrlC(0);
   }
 
   /* Set soft interrupt handler */
   sigset(SIGINT, lytctrlC);	/* usually ^C */
 
   /* Set up context for callback */
-  memset(&lytContext, 0, sizeof(tContext));
+  memset( &lytContext, 0, sizeof( tContext ) );
   lytContext.sm_p = sm_p;
 
   /* Create a Phoenix handle */
-  eStat = PHX_Create(&lytCamera, PHX_ErrHandlerDefault);
-  if (PHX_OK != eStat){
+  eStat = PHX_Create( &lytCamera, PHX_ErrHandlerDefault );
+  if ( PHX_OK != eStat ){
     printf("LYT: Error PHX_Create\n");
-    lyt_cleanup(&lytCamera,shmfd);
+    lytctrlC(0);
   }
   
   /* Set the board number */
   eParamValue = LYT_BOARD_NUMBER;
-  eStat = PHX_ParameterSet(lytCamera, PHX_BOARD_NUMBER, &eParamValue);
-  if (PHX_OK != eStat){
+  eStat = PHX_ParameterSet( lytCamera, PHX_BOARD_NUMBER, &eParamValue );
+  if ( PHX_OK != eStat ){
     printf("LYT: Error PHX_ParameterSet --> Board Number\n");
-    lyt_cleanup(&lytCamera,shmfd);
+    lytctrlC(0);
   }
 
   /* Open the Phoenix board */
-  eStat = PHX_Open(lytCamera);
-  if (PHX_OK != eStat){
+  eStat = PHX_Open( lytCamera );
+  if ( PHX_OK != eStat ){
     printf("LYT: Error PHX_Open\n");
-    lyt_cleanup(&lytCamera,shmfd);
+    lytctrlC(0);
   }
 
   /* Run the config file */
-  eStat = CONFIG_RunFile(lytCamera, &configFileName);
-  if (PHX_OK != eStat){
+  eStat = CONFIG_RunFile( lytCamera, &configFileName );
+  if ( PHX_OK != eStat ){
     printf("LYT: Error CONFIG_RunFile\n");
-    lyt_cleanup(&lytCamera,shmfd);
+    lytctrlC(0);
   }
 
   /* Setup our own event context */
-  eStat = PHX_ParameterSet(lytCamera, PHX_EVENT_CONTEXT, (void *) &lytContext);
-  if (PHX_OK != eStat){
+  eStat = PHX_ParameterSet( lytCamera, PHX_EVENT_CONTEXT, (void *) &lytContext );
+  if ( PHX_OK != eStat ){
     printf("LYT: Error PHX_ParameterSet --> PHX_EVENT_CONTEXT\n");
-    lyt_cleanup(&lytCamera,shmfd);
+    lytctrlC(0);
   }
 
   /* Get debugging info */
@@ -160,18 +155,18 @@ int lyt_proc(void){
   eStat = PHX_StreamRead( lytCamera, PHX_STOP, (void*)lyt_callback );
   if ( PHX_OK != eStat ){
     printf("LYT: PHX_StreamRead --> PHX_STOP\n");
-    lyt_cleanup(&lytCamera,shmfd);
+    lytctrlC(0);
   }
   camera_running = 0;
 
   /* -------------------- Enter Waiting Loop -------------------- */
-  while(lyt_run){
+  while(1){
     /* Check if camera should start/stop */
     if(!camera_running && sm_p->state_array[sm_p->state].lyt.run_camera){
       eStat = PHX_StreamRead( lytCamera, PHX_START, (void*)lyt_callback );
       if ( PHX_OK != eStat ){
 	printf("LYT: PHX_StreamRead --> PHX_START\n");
-	break;
+	lytctrlC(0);
       }
       camera_running = 1;
     }
@@ -179,15 +174,15 @@ int lyt_proc(void){
       eStat = PHX_StreamRead( lytCamera, PHX_STOP, (void*)lyt_callback );
       if ( PHX_OK != eStat ){
 	printf("LYT: PHX_StreamRead --> PHX_STOP\n");
-	break;
+	lytctrlC(0);
       }
       camera_running = 0;
     }
     
     /* Check if we've been asked to exit */
     if(sm_p->w[LYTID].die)
-      break;
-    
+      lytctrlC(0);
+
     /* Check in with the watchdog */
     if(!camera_running)
       checkin(sm_p,LYTID);
@@ -195,9 +190,7 @@ int lyt_proc(void){
     /* Sleep */
     sleep(sm_p->w[LYTID].per);
   }
-  
-  //Cleanup
-  lyt_cleanup(&lytCamera,shmfd);
 
+  lytctrlC(0);
   return 0;
 }
