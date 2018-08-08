@@ -148,6 +148,9 @@ void tlm_proc(void){
   uint32 folderindex=0;
   char datpath[200];
   char pathcmd[200];
+  uint16_t fakeword[NFAKE];
+  uint16_t emptybuf[TLM_BUFFER_LENGTH];
+  static uint32 ilast=0;
   struct stat st;
   static scievent_t sci;
   static shkevent_t shk;
@@ -171,26 +174,11 @@ void tlm_proc(void){
 
   /* Init RTD */
   rtd_init_tlm(sm_p->p_rtd_board,TLM_BUFFER_SIZE);
- 
-  /*Create fake data */
-  static uint32 ilast=0;
-  uint16 *fakeword;
-  if((fakeword = (uint16 *)malloc(sizeof(uint16)*NFAKE))==NULL){
-    perror("malloc");
-    free(fakeword);
-    exit(0);
-  }
-  
-  /*Create empty data*/
-  uint16 *emptybuf;
-  if((emptybuf = (uint16 *)malloc(sizeof(uint16)*TLM_BUFFER_LENGTH))==NULL){
-    perror("malloc");
-    free(emptybuf);
-    exit(0);
-  }
+   
+  /* Fill out empty buffer*/
   for(i=0;i<TLM_BUFFER_LENGTH;i++)
     emptybuf[i]=TLM_EMPTY_CODE;
-
+  
   
   /* Create folder for saved data */
   if(SAVE_SCI || SAVE_SHK || SAVE_LYT || SAVE_ACQ){

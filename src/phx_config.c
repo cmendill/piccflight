@@ -155,10 +155,10 @@ etStat CONFIG_ParseCmd( int argc, char* argv[], tPhxCmd* ptPhxCmd ) {
 }
 
 
-int CONFIG_str_to_region(char** str, region* proi) {
+int CONFIG_str_to_region(char* str, region* proi) {
   char *token;
   char comma[2] = ",";
-  token = strtok(*str, comma);
+  token = strtok(str, comma);
   if (token != NULL) {
     proi->x_offset = atol(token);
     token = strtok(NULL, comma);
@@ -184,13 +184,13 @@ int CONFIG_str_to_region(char** str, region* proi) {
     return 0;
   }
   if (token != NULL) {
-    BOBCAT_str_to_bobcatParamValue(&token,&(proi->x_binning));
+    BOBCAT_str_to_bobcatParamValue(token,&(proi->x_binning));
     token = strtok(NULL, comma);
   } else {
     return 0;
   }
   if (token != NULL) {
-    BOBCAT_str_to_bobcatParamValue(&token,&(proi->y_binning));
+    BOBCAT_str_to_bobcatParamValue(token,&(proi->y_binning));
   } else {
     return 0;
   }
@@ -198,7 +198,7 @@ int CONFIG_str_to_region(char** str, region* proi) {
 }
 
 
-etStat CONFIG_RunFile(tHandle handle, char** pszConfigFileName) {
+etStat CONFIG_RunFile(tHandle handle, char* pszConfigFileName) {
   etStat eStat = PHX_OK;
 
   FILE* fp;
@@ -209,12 +209,14 @@ etStat CONFIG_RunFile(tHandle handle, char** pszConfigFileName) {
   char strPhoenix[] = "[phoenix]";
   char strSystem[] = "[system]";
   char strBobcat[] = "[bobcat]";
-  char *token, *strParam, *strParamValue;
+  char *token;
+  char strParam[PHX_CONFIG_MAX_LINE];
+  char strParamValue[PHX_CONFIG_MAX_LINE];
 
   eStat = BOBCAT_LoadFromFactory(handle);
-  printf("PHX: Opening config: %s\n",*pszConfigFileName);
+  printf("PHX: Opening config: %s\n",pszConfigFileName);
 
-  fp = fopen(*pszConfigFileName, "r");
+  fp = fopen(pszConfigFileName, "r");
   if(fp==NULL){
     printf("Config file\r\n");
     perror("fopen()");
@@ -246,20 +248,18 @@ etStat CONFIG_RunFile(tHandle handle, char** pszConfigFileName) {
     } else {
 
       token = strtok(strLine, delimit);
-      strParam = malloc(sizeof(char)*strlen(token)+1);
       strcpy(strParam, token);
       token = strtok(NULL, delimit);
-      strParamValue = malloc(sizeof(char)*strlen(token)+1);
       strcpy(strParamValue, token);
 
       if (fsystem) {
         phxbobcatParam pbParam;
-        if (PHX_BOBCAT_str_to_phxbobcatParam(&strParam, &pbParam)<0) {
+        if (PHX_BOBCAT_str_to_phxbobcatParam(strParam, &pbParam)<0) {
           eStat = PHX_ERROR_BAD_PARAM;
         } else {
           if (pbParam==PHX_BOBCAT_ROI) {
             region roi;
-            if (CONFIG_str_to_region(&strParamValue, &roi)<0) {
+            if (CONFIG_str_to_region(strParamValue, &roi)<0) {
               eStat = PHX_ERROR_BAD_PARAM_VALUE;
             } else {
               #ifdef _VERBOSE
@@ -269,7 +269,7 @@ etStat CONFIG_RunFile(tHandle handle, char** pszConfigFileName) {
             }
           } else {
             phxbobcatParamValue pbParamValue;
-            if (PHX_BOBCAT_str_to_phxbobcatParamValue(&strParamValue, &pbParamValue)<0) {
+            if (PHX_BOBCAT_str_to_phxbobcatParamValue(strParamValue, &pbParamValue)<0) {
               eStat = PHX_ERROR_BAD_PARAM_VALUE;
             } else {
               #ifdef _VERBOSE
@@ -282,10 +282,10 @@ etStat CONFIG_RunFile(tHandle handle, char** pszConfigFileName) {
       } else if (fbobcat) {
         bobcatParam bParam;
         bobcatParamValue bParamValue;
-        if (BOBCAT_str_to_bobcatParam(&strParam, &bParam)<0) {
+        if (BOBCAT_str_to_bobcatParam(strParam, &bParam)<0) {
           eStat = PHX_ERROR_BAD_PARAM;
         } else {
-          if (BOBCAT_str_to_bobcatParamValues(&strParamValue, &bParamValue)<0) {
+          if (BOBCAT_str_to_bobcatParamValues(strParamValue, &bParamValue)<0) {
             eStat = PHX_ERROR_BAD_PARAM_VALUE;
           } else{
             #ifdef _VERBOSE
@@ -297,10 +297,10 @@ etStat CONFIG_RunFile(tHandle handle, char** pszConfigFileName) {
       } else if (fphx) {
         etParam pParam;
         etParamValue pParamValue;
-        if (PHX_str_to_etParam(&strParam, &pParam)<0) {
+        if (PHX_str_to_etParam(strParam, &pParam)<0) {
           eStat = PHX_ERROR_BAD_PARAM;
         } else {
-          if (PHX_str_to_etParamValues(&strParamValue, &pParamValue)<0) {
+          if (PHX_str_to_etParamValues(strParamValue, &pParamValue)<0) {
             eStat = PHX_ERROR_BAD_PARAM_VALUE;
           } else {
             #ifdef _VERBOSE
@@ -310,10 +310,6 @@ etStat CONFIG_RunFile(tHandle handle, char** pszConfigFileName) {
           }
         }
       }
-
-      free(strParam);
-      free(strParamValue);
-
     }
   }
   if (feof(fp)) {

@@ -122,7 +122,7 @@ int lyt_proc(void){
   }
 
   /* Run the config file */
-  eStat = CONFIG_RunFile( lytCamera, &configFileName );
+  eStat = CONFIG_RunFile( lytCamera, configFileName );
   if ( PHX_OK != eStat ){
     printf("LYT: Error CONFIG_RunFile\n");
     lytctrlC(0);

@@ -201,12 +201,12 @@ etStat PHX_BOBCAT_Configure(tHandle hpb, phxbobcatParam parameter, void* value) 
 }
 
 
-int PHX_BOBCAT_str_to_phxbobcatParam(char** str, phxbobcatParam* ppbParam) {
-  if (strcmp(*str, "PHX_BOBCAT_BIT_DEPTH")==0) {
+int PHX_BOBCAT_str_to_phxbobcatParam(char* str, phxbobcatParam* ppbParam) {
+  if (strcmp(str, "PHX_BOBCAT_BIT_DEPTH")==0) {
     *ppbParam = PHX_BOBCAT_BIT_DEPTH;
-  } else if (strcmp(*str, "PHX_BOBCAT_TAPS")==0) {
+  } else if (strcmp(str, "PHX_BOBCAT_TAPS")==0) {
     *ppbParam = PHX_BOBCAT_TAPS;
-  } else if (strcmp(*str, "PHX_BOBCAT_ROI")==0) {
+  } else if (strcmp(str, "PHX_BOBCAT_ROI")==0) {
     *ppbParam = PHX_BOBCAT_ROI;
   } else {
     return 0;
@@ -215,16 +215,16 @@ int PHX_BOBCAT_str_to_phxbobcatParam(char** str, phxbobcatParam* ppbParam) {
 }
 
 
-int PHX_BOBCAT_str_to_phxbobcatParamValue(char** str, phxbobcatParamValue* ppbParamValue) {
-  if (strcmp(*str, "PHX_BOBCAT_8BIT")==0) {
+int PHX_BOBCAT_str_to_phxbobcatParamValue(char* str, phxbobcatParamValue* ppbParamValue) {
+  if (strcmp(str, "PHX_BOBCAT_8BIT")==0) {
     *ppbParamValue = PHX_BOBCAT_8BIT;
-  } else if (strcmp(*str, "PHX_BOBCAT_10BIT")==0) {
+  } else if (strcmp(str, "PHX_BOBCAT_10BIT")==0) {
     *ppbParamValue = PHX_BOBCAT_10BIT;
-  } else if (strcmp(*str, "PHX_BOBCAT_12BIT")==0) {
+  } else if (strcmp(str, "PHX_BOBCAT_12BIT")==0) {
     *ppbParamValue = PHX_BOBCAT_12BIT;
-  } else if (strcmp(*str, "PHX_BOBCAT_DOUBLE_TAP")==0) {
+  } else if (strcmp(str, "PHX_BOBCAT_DOUBLE_TAP")==0) {
     *ppbParamValue = PHX_BOBCAT_DOUBLE_TAP;
-  } else if (strcmp(*str, "PHX_BOBCAT_SINGLE_TAP")==0) {
+  } else if (strcmp(str, "PHX_BOBCAT_SINGLE_TAP")==0) {
     *ppbParamValue = PHX_BOBCAT_SINGLE_TAP;
   } else {
     return 0;

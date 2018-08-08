@@ -122,7 +122,7 @@ int shk_proc(void){
   }
 
   /* Run the config file */
-  eStat = CONFIG_RunFile( shkCamera, &configFileName );
+  eStat = CONFIG_RunFile( shkCamera, configFileName );
   if ( PHX_OK != eStat ){
     printf("SHK: Error CONFIG_RunFile\n");
     shkctrlC(0);

@@ -452,8 +452,8 @@
   } region;
 
   /* Function prototypes */
-  etStat BOBCAT_ControlRead(tHandle, ui8**, ui8*);
-  etStat BOBCAT_ControlWrite(tHandle, ui8**, ui8*);
+  etStat BOBCAT_ControlRead(tHandle, ui8*, ui8*);
+  etStat BOBCAT_ControlWrite(tHandle, ui8*, ui8);
   etStat BOBCAT_ParameterGet(tHandle, bobcatParam, void*);
   etStat BOBCAT_ParameterSet(tHandle, bobcatParam, void*);
   etStat BOBCAT_SoftReset(tHandle);
@@ -464,8 +464,8 @@
   etStat BOBCAT_SaveToUser2(tHandle);
   etStat BOBCAT_SoftwareTriggerStart(tHandle);
 
-  int BOBCAT_str_to_bobcatParam(char**, bobcatParam*);
-  int BOBCAT_str_to_bobcatParamValue(char**, bobcatParamValue*);
-  int BOBCAT_str_to_bobcatParamValues(char**, bobcatParamValue*);
+  int BOBCAT_str_to_bobcatParam(char*, bobcatParam*);
+  int BOBCAT_str_to_bobcatParamValue(char*, bobcatParamValue*);
+  int BOBCAT_str_to_bobcatParamValues(char*, bobcatParamValue*);
 
 #endif   /* _BOBCAT */

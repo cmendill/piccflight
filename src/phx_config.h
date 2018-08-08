@@ -30,7 +30,7 @@
 
   etStat CONFIG_ParseCmd( int, char*[], tPhxCmd* );
 
-  int CONFIG_str_to_region(char**, region*);
-  etStat CONFIG_RunFile(tHandle, char**);
+  int CONFIG_str_to_region(char*, region*);
+  etStat CONFIG_RunFile(tHandle, char*);
 
 #endif /* _CONFIG */

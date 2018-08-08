@@ -23,7 +23,7 @@
 
   etStat PHX_BOBCAT_Configure(tHandle, phxbobcatParam, void*);
   
-  int PHX_BOBCAT_str_to_phxbobcatParam(char**, phxbobcatParam*);
-  int PHX_BOBCAT_str_to_phxbobcatParamValue(char**, phxbobcatParamValue*);
+  int PHX_BOBCAT_str_to_phxbobcatParam(char*, phxbobcatParam*);
+  int PHX_BOBCAT_str_to_phxbobcatParamValue(char*, phxbobcatParamValue*);
 
 #endif   /* _ADDONS */
