@@ -40,6 +40,20 @@ libuvc:
 	cd lib/libuvc/build && cmake ../ && make
 	cp lib/libuvc/include/libuvc/libuvc.h lib/libuvc/build/include/
 
+#DRIVERS
+drivers: flidrv phxdrv rtddrv
+
+flidrv:
+	make -C drivers/flidrv
+	sudo make -C drivers/flidrv install 
+
+phxdrv:
+	make -C drivers/phxdrv
+	sudo make -C drivers/phxdrv install 
+
+rtddrv:
+	make -C drivers/rtddrv
+	sudo make -C drivers/rtddrv install 
 
 #CLEAN
 clean:
