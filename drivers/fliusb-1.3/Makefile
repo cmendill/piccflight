@@ -1,27 +1,22 @@
-obj-m		:= fliusb.o
+KERNEL_DIR := /lib/modules/$(shell uname -r)/build
 
-KDIR		?= /lib/modules/$(shell uname -r)/build
-PWD		:= $(shell pwd)
+obj-m := fliusb.o
 
-EXTRA_CFLAGS		+= -O2 -Wall
+DRIVER_MODULE=fliusb.ko
 
-#EXTRA_CFLAGS		+= -DDEBUG	# enable debug messages
-#EXTRA_CFLAGS		+= -DASYNCWRITE	# enable asynchronous writes
-EXTRA_CFLAGS		+= -DSGREAD	# enable scatter-gather reads
+all: driver cleanup
 
-all: module cleanup
+driver:	fliusb.c
+	make -C $(KERNEL_DIR) SUBDIRS=`pwd` EXTRA_CFLAGS="$(MY_CFLAGS)" modules
 
-module:
-	$(MAKE) -C $(KDIR) SUBDIRS=$(PWD) modules
-
-install: 
+install:
 	-/sbin/modprobe -r fliusb > /dev/null 2>&1
-	install -D -gwheel -oroot -m744 fliusb.ko /lib/modules/$(shell uname -r)/kernel/drivers/usb/fli/fliusb.ko
+	install -D -gwheel -oroot -m744 fliusb.ko /lib/modules/$(shell uname -r)/kernel/drivers/pci/rtd/fliusb.ko
 	/sbin/depmod -a
 	/sbin/modprobe fliusb
 
 cleanup:
-	rm -f *.o .*.cmd *.mod.c; rm -rf .tmp_versions
+	rm -f *.o .*.cmd *.mod.c *.order *.symvers; rm -rf .tmp_versions
 
 clean: cleanup
 	rm -f *.ko test
