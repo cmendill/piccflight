@@ -5,44 +5,83 @@
 #****************************************************************#
 
 OVERVIEW
- - The PICTURE-C computer serves as the only uplink/downlink console to the flight electronics.  
+ - The PICTURE-C computer serves as the only uplink/downlink console to the flight electronics.
+ - The flight software consists of a single executable (bin/watchdog) that launches many sub-processes
+   to control all of the hardware elements.
+ - The watchdog monitors all sub-processes and kills/restarts them if there is a problem.
 
 TELEMETRY INTERFACES
  - RS232 @ 1200 baud uplink and downlink
  - 4Mbps 16bit parallel data written out by the RTD DM7820 FPGA and encoded by the WFF93 encoder. 
-
-HARDWARE CONTROL
- - Science Camera
- - Acquisition Camera
 
 DEFINITIONS
  - SCI: Flight 1 Science camera
  - LYT: Lyot LOWFS camera
  - SHK: Shack-Hartmann LOWFS camera
  - ACQ: Acquisition camera
+ - DIA: Diagnostic
+ - HEX: Hexapod
+ - MOT: Motor
+ - SRV: Non-Flight data server
+ - THM: Thermal
+ - TLM: Flight telemetry
+ 
  
 LIST OF PROCESSES
  - watchdog
-    - watchdog: launch and monitor all other processes and to start the cameras
-      provides a console to receive terminal commands
+    - launch and monitor all other processes and to start the cameras
+    - provides a console to receive terminal commands
 
  - tlm_proc
-    - telemetry: sends image packets down thru the paralell interface
+    - sends image packets down through the parallel interface
     - all packets share a common header, which contains information to indentify the image
 
- - hsk_proc
-    - poll the CTU for housekeeping data
+ - sci_proc
+    - operates the SCI camera
+
+ - lyt_proc
+    - operates the LYT camera
+
+ - shk_proc
+    - operates the SHK camera
+
+ - acq_proc
+    - operates the ACQ camera
+
+ - hex_proc
+    - operates the PI hexapod
+
+ - mot_proc
+    - operates the door motors
+
+ - thm_proc
+    - runs the thermal control system
+    - cycles heaters on and off
+    - records temperature sensor data
+
+ - srv_proc
+    - non-flight data server
+    - sends full image data over ethernet
+
+ - dia_proc
+    - default diagnostic program (placeholder)
+
+ - getshk_proc
+    - a diagnostic program that is used to get SHK events during calibration
+
 
 LIST OF DRIVERS
- - RTD DM7820
- - Active Silicon Pheonix (phx) Framegrabber
- - FLI USB
+ - drivers/rtddrv --> RTD DM7820
+ - drivers/phxdrv --> Active Silicon Pheonix (phx) Framegrabber
+ - drivers/flidrv --> FLI USB 
  
 LIST OF LIBRARIES
- - PI C887 Hexapod
- - Active Silicon Pheonix (phx) Framegrabber
- - RTD DM7820
-
+ - lib/libhex --> PI C887 Hexapod
+ - lib/libphx --> Active Silicon Pheonix (phx) Framegrabber
+ - lib/librtd --> RTD DM7820
+ - lib/libfli --> FLI USB
+ - lib/libuvc --> UVC video library for acquisition camera
+ 
 SETTINGS
  - Most settings are held in the global header file: ./src/controller.h
     - this is where you turn hardware on and off
@@ -50,11 +89,10 @@ SETTINGS
     - this is where you turn processes on and off
 
 BUILD INSTRUCTIONS
- - To build libraries: make libs
- - To build drivers: source found in ./drivers/xxx/. Build each driver with make && sudo make install. 
- - After installing the drivers to /lib/modules/... insert driver names into /etc/modules for auto-loading
- - To build watchdog: make
-
+ - make drivers
+ - make libs
+ - make
+ 
 RUN INSTRUCTIONS
  - cd bin/
  - sudo ./watchdog
