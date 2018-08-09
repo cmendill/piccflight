@@ -18,7 +18,36 @@ PC104 STACK
  - ALP: Winford BRKAVH68FV1-R-FT ----------------> VHDCI breakout board for ALPAO DM 
 
 BIOS Setup
- - 
+ - Boot-->Boot Priority Order
+     - 1. USB HDD
+     - 2. ATA HDD1
+ - Advanced-->VersaLogic Features
+     - Mini Card Mode = Force mSATA SSD Mode
+     - UART1 = Disabled
+     - UART2 = Disabled
+     - ISA IRQ 3 = Enabled (all others disabled)
+ - Advanced-->CPU Configuration-->CPU Power Management
+     - Intel SpeedStep = Disable
+     - Intel Turbo Boost Technology = Disable
+     - Intel C-States = Disable
+ - Advanced-->South Cluster Configuration-->Audio Configuration
+     - Audio Controller = Disable
+ - Advanced-->South Cluster Configuration-->SATA Drives
+     - Chipset Sata = Enable
+     - Chipset SATA Mode = AHCI
+ - Advanced-->South Cluster Configuration-->LPSS & SCC Configuration
+     - LPSS Devices Mode = ACPI Mode
+     - SCC SDIO Support = Disable
+     - SCC SD Card Support = Disable
+     - LPSS DMA #1 Support = Disable
+     - LPSS DMA #2 Support = Disable
+ - Advanced-->South Cluster Configuration-->Miscellaneous Configuration
+     - High Precision Timer = Enable
+     - Boot Time with HPET Timer = Disable
+     - State After G3 = S0 State
+     - SoC Debug UART = Disable
+     - SMM Lock = Disable
+     - PCI MMIO Size = 2GB
 
 LINUX INSTALLATION
  - The flight computer runs Ubuntu Server 12.04.5 64bit
