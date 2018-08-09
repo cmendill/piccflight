@@ -1,0 +1,100 @@
+#*****************************************************************#
+#  This describes the PICTURE-C flight computer setup procedure.  #
+#  For information on the flight software, see README.            #
+#*****************************************************************#
+
+PC104 STACK
+ - CPU: Versalogic Baycat VL-EPM-31EBP (Dual Core)
+ - DIO: RTD DM7820HR ----------------------------> Telemetry & ALPAO DM
+ - CL1: Active Silicon AS-PHX-D24CL-PC104P32-B --> SH LOWFS
+ - CL2: Active Silicon AS-PHX-D24CL-PC104P32-B --> Lyot LOWFS
+ - PCI: Custom PCI Breakout Board ---------------> Debugging interrupts
+ - SER: Diamond Systems EMM-4M-XT ---------------> 4x Serial Ports
+ - AD1: Diamond Systems DMM-32X-AT --------------> 4-Wire Temperature sensors
+ - AD2: Diamond Systems DMM-32X-AT --------------> 2-Wire Temperature sensors
+ - AD3: Diamond Systems DMM-32X-AT --------------> 2-Wire Temperature sensors
+ - SSR: Access IO 104-IDIO-16-XT ----------------> Heater control
+ - REL: RTD DM6956HR-H --------------------------> Motor control
+ - ALP: Winford BRKAVH68FV1-R-FT ----------------> VHDCI breakout board for ALPAO DM 
+
+BIOS Setup
+ - 
+
+LINUX INSTALLATION
+ - The flight computer runs Ubuntu Server 12.04.5 64bit
+ - Download ubuntu-12.04.5-server-amd64.iso from releases.ubuntu.com/12.04/
+ - Create bootable USB key with the iso (tested with Startup Disk Creator on Ubuntu)
+ - Connect a USB mouse and VGA monitor to the flight comoputer
+ - No network needed for install
+ - Insert the USB key and boot to install Ubuntu     
+ - Install Options:
+   - Choose not to setup network during install
+   - Hostname: picture
+   - User Full Name: PICTURE
+   - Username: picture
+   - Choose to use the entire disk (may change for readonly)
+   - Do not select any additional software to install
+ - First boot instructions
+   - You will need to disable the PCI bus on the first boot to fix a driver conflict
+   - Bios-->Advanced-->South Cluster-->PCI Express-->PCI Express Root Port 1 (DISABLE)
+   - See BLACKLIST DRIVERS below
+   - Once drivers are blacklisted, reboot and re-enable the PCI bus
+   - The system should now boot normally
+ - Now procede with the following setup steps
+
+BLACKLIST DRIVERS
+ - Create/etc/modprobe.d/picture.blacklist.conf and add the lines:
+     blacklist solos-pci  #conflicts with PHX driver preventing boot
+     blacklist sdhci_acpi #produces kernel messages for each PHX interrupt
+     blacklist sdhci_pci  #produces kernel messages for each PHX interrupt
+     blacklist sdhci      #produces kernel messages for each PHX interrupt
+ - Run: sudo depmod -ae -F/boot/System.map-$(uname -r)
+ - Run: sudo update-initramfs -u
+
+CONFIGURE NETWORKING
+ - Edit /etc/network/interfaces to look like the following:
+     auto eth0
+     iface eth0 inet static
+     	   address 192.168.0.1
+    	   netmask 255.255.255.0
+ - For DHCP use:
+     auto eth0
+     iface eth0 inet dhcp
+ - Run: sudo /etc/init.d/networking restart
+
+INSTALL PACKAGES
+ - Configure network for DHCP
+ - Regenerate apt lists and update apt
+     sudo rm -rf /var/lib/apt/lists
+     sudo apt-get update
+ - ssh
+     sudo apt-get install openssh-server
+ - make
+     sudo apt-get install make
+ - cmake
+     sudo apt-get install cmake
+ - g++
+     sudo apt-get install g++
+ - libusb
+     sudo apt-get install libusb-1.0-0-dev
+     sudo ln -s /usr/include/libusb-1.0/libusb.h /usr/include/libusb.h	
+ - mkl 
+     Download Intel MKL library (l_mkl_2018.3.222.tgz)
+     Transfer to flight computer
+     Run install script
+     Elect to ignore "Unsupported operating system" and "Missing system commands" errors
+
+CONFIGURE SSH KEY LOGIN
+ - mkdir ~/.ssh
+ - chmod 700 ~/.ssh
+ - cat id_rsa.pub >> ~/.ssh/authorized_keys
+
+LINUX SETUP
+ - sudo addgroup wheel
+
+AUTO MODULE LOADING
+ - edit /etc/modules and add the following lines:
+    phddrv
+    rtd_dm7820
+    fliusb
+   

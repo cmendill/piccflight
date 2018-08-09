@@ -1,6 +1,7 @@
 #****************************************************************#
-#   This is the flight code for the PICTURE-C flight computer.   #
+#  This is the flight code for the PICTURE-C flight computer.    #
 #  More detailed documentation can be found in the doc/ folder.  #
+#  For computer setup instructions, see SETUP.                   #
 #****************************************************************#
 
 OVERVIEW
@@ -19,17 +20,6 @@ DEFINITIONS
  - LYT: Lyot LOWFS camera
  - SHK: Shack-Hartmann LOWFS camera
  - ACQ: Acquisition camera
-
-PC104 STACK
- - CPU: Versalogic Baycat
- - TLM: RTD DM7820 FPGA
- - CL1: Camera link 1 --> SH LOWFS
- - CL2: Camera link 2 --> Lyot LOWFS
- - AD1: Analog to digital converter 1
- - AD2: Analog to digital converter 1
- - AD3: Analog to digital converter 1
- - RB1: Relay board 1
- - RB2: Relay board 2
  
 LIST OF PROCESSES
  - watchdog
@@ -42,7 +32,6 @@ LIST OF PROCESSES
 
  - hsk_proc
     - poll the CTU for housekeeping data
-
 
 LIST OF DRIVERS
  - RTD DM7820
@@ -59,19 +48,6 @@ SETTINGS
     - this is where you turn hardware on and off
  - Operational settings are held in ./src/watchdog.h
     - this is where you turn processes on and off
-
-REQUIRED PACKAGES
- - cmake
-	sudo apt-get install cmake
- - libusb
-	sudo apt-get install libusb-1.0-0-dev
-	sudo ln -s /usr/include/libusb-1.0/libusb.h /usr/include/libusb.h
-	
- - mkl 
-	Download l_mkl_2018.3.222.tgz and run install script
-
-LINUX SETUP
-- sudo addgroup wheel
 
 BUILD INSTRUCTIONS
  - To build libraries: make libs
