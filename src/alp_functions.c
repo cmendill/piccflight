@@ -14,6 +14,7 @@
 #include "numeric.h"
 #include "alp_functions.h"
 #include "alpao_map.h"
+#include "rtd_functions.h"
 
 /**************************************************************/
 /* ALP_INIT_CALMODE                                           */
@@ -102,10 +103,61 @@ int alp_zern2alp(double *zernikes,double *actuators){
 }
 
 /**************************************************************/
+/* ALP_COMMAND                                                */
+/* - Function to command the ALPAO DM                         */
+/* - Use atomic operations to prevent two processes from      */
+/*   sending commands at the same time                        */
+/* - Return 1 if the command was sent and 0 if it wasn't      */
+/**************************************************************/
+int alp_command(sm_t *sm_p, double *cmd, int proc_id, int cmdtype, uint32_t n_dither){
+  int state;
+  int retval=0; //Default command failure
+  int i;
+  static int last_proc_id=-1;
+  
+  //Atomically test and set ALP command lock using GCC built-in function
+  if(__sync_lock_test_and_set(&sm_p->alp_command_lock,1)==0){
+    //Check if the commanding process is the ALP commander
+    state = sm_p->state;
+    if(proc_id == sm_p->state_array[state].alp_commander){
+      //Check if we need to re-initalize the RTD board
+      if(proc_id != last_proc_id){
+	//Init ALPAO RTD interface
+	if((dm7820_status = rtd_init_alp(sm_p->p_rtd_board,n_dither)))
+	  perror("rtd_init_alp");
+	last_proc_id=proc_id;
+      }
+      //Setup the command
+      if(cmdtype == CMDTYPE_RELATIVE){
+	//Add command to current position
+	for(i=0;i<ALP_NACT;i++){
+	  sm_p->alp_command[i] += cmd[i];
+	  //Return the absolute command that was sent
+	  cmd[i] = sm_p->alp_command[i];
+	}
+      }
+      if(cmdtype = CMDTYPE_ABSOLUTE){
+	//Copy command to current position
+	memcpy((double *)sm_p->alp_command,cmd,sizeof(sm_p->alp_command));
+      }
+      //Send the command
+      if(rtd_send_alp(sm_p->p_rtd_board,cmd) == 0)
+	retval=1; //Successful command
+    }
+    //Release lock
+    __sync_lock_release(&sm_p->alp_command_lock);
+  }
+  
+  //Return
+  return retval;
+}
+
+
+/**************************************************************/
 /* ALP_CALIBRATE                                              */
 /* - Run calibration routines for ALPAO DM                    */
 /**************************************************************/
-int alp_calibrate(int calmode, alp_t *alp, int reset){
+int alp_calibrate(int calmode, alp_t *alp, int *cmdtype, int reset){
   int i,j,index;
   static struct timespec start,this,last,delta;
   static uint64 countA=0,countB=0;
@@ -180,17 +232,24 @@ int alp_calibrate(int calmode, alp_t *alp, int reset){
 
   /* ALP_CALMODE_FLAT: Set all actuators to flat map */
   if(calmode==ALP_CALMODE_FLAT){
+    //Set command type
+    *cmdtype=CMDTYPE_ABSOLUTE;
+    //Reset counters
     countA=0;
     countB=0;
-    //set all ALP actuators to flat
+    //Set all ALP actuators to flat
     for(i=0;i<ALP_NACT;i++)
       alp->act_cmd[i]=flat[i];
+    *cmddelta=0;
     return calmode;
   }
   
   /* ALP_CALMODE_POKE: Scan through acuators poking one at a time. */
   /*                   Set flat in between each poke.              */
   if(calmode == ALP_CALMODE_POKE){
+    //Set command type
+    *cmdtype=CMDTYPE_ABSOLUTE;
+    //Check counters
     if(countA >= 0 && countA < (2*ALP_NACT*ALP_NCALIM)){
       //set all ALP actuators to flat
       for(i=0;i<ALP_NACT;i++)
@@ -215,6 +274,9 @@ int alp_calibrate(int calmode, alp_t *alp, int reset){
   /* ALP_CALMODE_ZPOKE: Poke Zernikes one at a time    */
   /*                    Set flat in between each poke. */
   if(calmode == ALP_CALMODE_ZPOKE){
+    //Set command type
+    *cmdtype=CMDTYPE_ABSOLUTE;
+    //Check counters
     if(countA >= 0 && countA < (2*LOWFS_N_ZERNIKE*ALP_NCALIM)){
       //set all Zernikes to zero
       for(i=0;i<LOWFS_N_ZERNIKE;i++)
@@ -243,6 +305,9 @@ int alp_calibrate(int calmode, alp_t *alp, int reset){
 
   /* ALP_CALMODE_FLIGHT: Flight Simulator */
   if(calmode == ALP_CALMODE_FLIGHT){
+    //Set command type
+    *cmdtype=CMDTYPE_RELATIVE;
+    //Setup counters
     if(countA == 0)
       dt0 = dt;
     if(countA == 1)
@@ -271,3 +336,8 @@ int alp_calibrate(int calmode, alp_t *alp, int reset){
   //Return calmode
   return calmode;
 }
+
+
+
+
+

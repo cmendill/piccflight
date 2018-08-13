@@ -64,6 +64,54 @@ void hex_disconnect(int id){
   PI_CloseConnection(id);
 }
 
+
+
+/**************************************************************/
+/* HEX_INIT                                                   */
+/*  - Initialize Hexapod                                      */
+/**************************************************************/
+int hex_init(int *hexfd){
+  int bFlag;
+  
+  /* Connect to Hexapod */
+  if((*hexfd=hex_connect()) < 0){
+    printf("HEX: hex_connect error!\n");
+    return 1;
+  }
+  
+  /* Reference Hexapod */
+  if(hex_reference(*hexfd, 0)){
+    printf("HEX: hex_reference error!\n");
+    return 1;
+  }
+  
+  /* Wait for Referencing to Finish */
+  for(i=0;i<HEX_REF_TIMEOUT;i++){
+    bFlag = 0;
+    if(!PI_IsControllerReady(*hexfd, &bFlag)){
+      printf("HEX: PI_IsControllerReady error!\n");
+      return 1;
+    }
+    if(bFlag) break;
+    //Sleep 1 second
+    sleep(1);
+  }
+  if(i==HEX_REF_TIMEOUT){
+    printf("HEX: Referencing timeout!!\n");
+    return 1;
+  }else{
+    printf("HEX: Referencing complete after %d seconds\n",i);
+  }
+  
+  /* Set Pivot Point*/
+  if(hex_setpivot(*hexfd, pivot)){
+    printf("HEX: hex_setpivot error!\n");
+    return 1;
+  }
+  
+  return 0;
+}
+
 /**************************************************************/
 /* HEX_HEX2SCOPE                                              */
 /*  - Convert from hexapod coords to scope coords             */
@@ -174,8 +222,35 @@ int hex_getpos(int id, double *pos){
       printf("HEX: PI_qPOS error!\n");
       return 1;
     }
+  
   return 0;
 }
+
+/**************************************************************/
+/* HEX_PRINTPOS                                               */
+/*  - Get position of all hexapod axes and print them out     */
+/**************************************************************/
+int hex_printpos(int id){
+  double hexpos[6]={0};
+  double scopepos[6]={0};
+  if(hex_getpos(hexfd,hexpos)){
+    printf("HEX: hex_getpos error!\n");
+    return 1;
+  }
+  //Convert to telescope coordinates
+  hex_hex2scope(hexpos, scopepos);
+  //Print position
+  printf("HEX: X = %f \n",scopepos[0]);
+  printf("HEX: Y = %f \n",scopepos[1]);
+  printf("HEX: Z = %f \n",scopepos[2]);
+  printf("HEX: U = %f \n",scopepos[3]);
+  printf("HEX: V = %f \n",scopepos[4]);
+  printf("HEX: W = %f \n",scopepos[5]);
+  printf("HEX: {%f,%f,%f,%f,%f,%f}\n",scopepos[0],scopepos[1],scopepos[2],scopepos[3],scopepos[4],scopepos[5]);
+
+  return 0;
+}
+
 
 /**************************************************************/
 /* HEX_SETPIVOT                                               */
@@ -300,7 +375,7 @@ int hex_zern2hex_alt(double *zernikes, double *axes){
 /* HEX_CALIBRATE                                              */
 /*  - Run hexapod calibration routines                        */
 /**************************************************************/
-int hex_calibrate(int calmode, hex_t *hex, uint64 *step, int reset){
+int hex_calibrate(int calmode, hex_t *hex, uint64 step, int reset){
   int i;
   const double hexdef[HEX_NAXES] = HEX_POS_DEFAULT;
   static struct timespec start,this,last,delta;
@@ -459,3 +534,72 @@ int hex_calibrate(int calmode, hex_t *hex, uint64 *step, int reset){
   //Return calmode
   return calmode;
 }
+
+/**************************************************************/
+/* HEX_COMMAND                                                */
+/* - Function to command the HEX                              */
+/* - Use atomic operations to prevent two processes from      */
+/*   sending commands at the same time                        */
+/* - Return 1 if the command was sent and 0 if it wasn't      */
+/**************************************************************/
+int hex_command(sm_t *sm_p, double *cmd, int proc_id, int cmdtype){
+  int state;
+  int retval=0; //Default command failure
+  int i;
+  static struct timespec delta,this,last;
+  static int init=0;
+  
+  //Get time (this) 
+  clock_gettime(CLOCK_REALTIME,&this);
+
+  //Initalize
+  if(!init){
+    //Reset timers
+    memcpy(&last,&this,sizeof(struct timespec));
+    //Set init flag
+    init=1;
+  }
+  
+  //Measure elapsed time since last update
+  if(timespec_subtract(&delta,&this,&last))
+    printf("HEX: hex_command --> timespec_subtract error!\n");
+  ts2double(&delta,&dt);
+  
+  //Accept commands only so often
+  if(dt > HEX_PERIOD){
+    //Get time (last)
+    clock_gettime(CLOCK_REALTIME,&last);
+    
+    //Atomically test and set HEX command lock using GCC built-in function
+    if(__sync_lock_test_and_set(&sm_p->hex_command_lock,1)==0){
+      //Check if the commanding process is the HEX commander
+      state = sm_p->state;
+      if(proc_id == sm_p->state_array[state].hex_commander){
+	//Setup the command
+	if(cmdtype == CMDTYPE_RELATIVE){
+	  //Add command to current position
+	  for(i=0;i<HEX_NAXES;i++){
+	    sm_p->hex_command[i] += cmd[i];
+	    //Return the absolute command that was sent
+	    cmd[i] = sm_p->hex_command[i];
+	  }
+	}
+	if(cmdtype == CMDTYPE_ABSOLUTE){
+	  //Copy command to current position
+	  memcpy((double *)sm_p->hex_command,cmd,sizeof(sm_p->hex_command));
+	}
+	//Send the command
+	if(hex_move(sm_p->hexfd,cmd) == 0)
+	  retval=1; //Successful command
+      }
+      //Release lock
+      __sync_lock_release(&sm_p->hex_command_lock);
+    }
+  }
+  
+  //Return
+  return retval;
+}
+
+
+

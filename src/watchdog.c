@@ -246,6 +246,7 @@ int main(int argc,char **argv){
   int shutdown=0;
   DM7820_Error dm7820_status;
   DM7820_Board_Descriptor* p_rtd_board;
+  int hexfd;
   
   /* Open Shared Memory */
   sm_t *sm_p;
@@ -410,6 +411,12 @@ int main(int argc,char **argv){
   //Set device handle
   sm_p->p_rtd_board = p_rtd_board;
   printf("WAT: RTD board ready\n");
+
+  /* Init HEX Driver */
+  if(hex_init(&hexfd))
+    perror("hex_init");
+  sm_p->hexfd = hexfd;
+  printf("WAT: HEX ready\n");
   
   /* Launch Watchdog */
   if(sm_p->w[WATID].run){

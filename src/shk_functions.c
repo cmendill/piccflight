@@ -16,8 +16,8 @@
 #include "alp_functions.h"
 #include "phx_config.h"
 #include "rtd_functions.h"
-#include "alpao_map.h"
 #include "fakemodes.h"
+
 
 /**************************************************************/
 /* SHK_INIT_CELLS                                             */
@@ -701,28 +701,26 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   shkevent_t *shkevent_p;
   static struct timespec first,start,end,delta,last;
   static int init=0;
-  DM7820_Error dm7820_status;
   double dt;
-  int32 i,j;
-  uint16 fakepx=0;
-  static int countA=0;
+  int i,j;
+  uint16_t fakepx=0;
   int state;
-  static uint64 alp_last_sent=0;
-  static uint64 alp_last_recv=0;
-  static uint64 hex_last_sent=0;
-  static uint64 hex_last_recv=0;
-  static alp_t last_alp;
-  static hex_t last_hex;
   hex_t hex;
   alp_t alp;
-  int hex_ready=0,move_hex=0,alp_ready=0,move_alp=0,found_zernike=0;
+  int found_zernike=0;
   double alp_delta[ALP_NACT]={0};
   double hex_delta[HEX_NAXES]={0};
   double zernike_delta[LOWFS_N_ZERNIKE]={0};
-  hexevent_t hexevent;
   uint32_t n_dither=1;
-  const double alpflat[ALP_NACT] = ALP_OFFSET;
 
+  //Default commanding method is relative
+  int alp_cmdtype = CMDTYPE_RELATIVE;
+  int hex_cmdtype = CMDTYPE_RELATIVE;
+
+  //Zero out commands
+  memset(&hex,0,sizeof(hex));
+  memset(&alp,0,sizeof(alp));
+  
   //Get time immidiately
   clock_gettime(CLOCK_REALTIME,&start);
 
@@ -740,28 +738,15 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     //Zero out events & commands
     memset(&shkfull,0,sizeof(shkfull_t));
     memset(&shkevent,0,sizeof(shkevent_t));
-    memset(&alp,0,sizeof(alp_t));
-    memset(&last_hex,0,sizeof(hex_t));
-    memset(&last_alp,0,sizeof(alp_t));
-    //Initialize alp to flat
-    memcpy(last_alp.act_cmd,alpflat,sizeof(alpflat));
     //Init cells
     shk_init_cells(&shkevent);
     //Reset calibration routines
     alp_calibrate(0,&alp,1);
     hex_calibrate(0,&hex,NULL,1);
     //Reset PID controllers
-    shk_alp_cellpid(&shkevent,1);
-    shk_alp_zernpid(&shkevent,1);
-    shk_hex_zernpid(&shkevent,1);
-    //Reset command counters
-    hex_last_sent = 0;
-    alp_last_sent = 0;
-    hex_last_recv = 0;
-    alp_last_recv = 0;
-    //Init ALPAO interface
-    if((dm7820_status = rtd_init_alp(sm_p->p_rtd_board,n_dither)))
-      perror("rtd_init_alp");
+    shk_alp_cellpid(&shkevent,FUNCTION_RESET);
+    shk_alp_zernpid(&shkevent,FUNCTION_RESET);
+    shk_hex_zernpid(&shkevent,FUNCTION_RESET);
     //Reset start time
     memcpy(&first,&start,sizeof(struct timespec));
     //Set init flag
@@ -774,28 +759,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   if(timespec_subtract(&delta,&start,&last))
     printf("SHK: shk_process_image --> timespec_subtract error!\n");
   ts2double(&delta,&dt);
-  
-  //Read current hex position
-  while(read_from_buffer(sm_p,&hexevent,HEXRECV,SHKID)){
-    //Copy accepted command to current position
-    memcpy(&last_hex,&hexevent.hex,sizeof(hex_t));
-  }
-  memcpy(&hex,&last_hex,sizeof(hex_t));
-
-  //Check if last command was executed
-  while(read_from_buffer(sm_p,&hexevent,SHK_HEXRECV,SHKID))
-    hex_last_recv = hexevent.command_number;
-  
-  //Read current alp position
-  //--need buffer code here
-  memcpy(&alp,&last_alp,sizeof(alp_t));
-  
-  //Check if hex is ready for next command and we are commander
-  hex_ready = (hex_last_sent == hex_last_recv) && (sm_p->state_array[state].hex_commander == SHKID);
-  
-  //Check if alp is ready for next command and we are commander
-  alp_ready = 1 && (sm_p->state_array[state].alp_commander == SHKID);
-  
+    
   //Fill out event header
   shkevent.hed.packet_type  = SHKEVENT;
   shkevent.hed.frame_number = frame_number;
@@ -836,29 +800,14 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   
   //Run PIDs
   if(sm_p->state_array[state].shk.pid_zernikes){
-    shk_alp_zernpid(&shkevent, 0);
-    shk_hex_zernpid(&shkevent, 0);
+    shk_alp_zernpid(&shkevent, FUNCTION_NO_RESET);
+    shk_hex_zernpid(&shkevent, FUNCTION_NO_RESET);
   }
   if(sm_p->state_array[state].shk.pid_cells){
-    shk_alp_cellpid(&shkevent, 0);
+    shk_alp_cellpid(&shkevent, FUNCTION_NO_RESET);
   }
   
-  //Calibrate ALP
-  if(sm_p->alp_calmode != ALP_CALMODE_NONE){
-    if(alp_ready){
-      sm_p->alp_calmode = alp_calibrate(shkevent.alp_calmode,&alp,0);
-      move_alp = 1;
-    }
-  }
-  
-  //Calibrate HEX
-  if(sm_p->hex_calmode != HEX_CALMODE_NONE){
-    if(hex_ready){
-      sm_p->hex_calmode = hex_calibrate(shkevent.hex_calmode,&hex,&shkevent.cal_step,0);
-      move_hex = 1;
-    }
-  }
-
+ 
   //Offload tilt to hexapod
   if(sm_p->state_array[state].shk.offload_tilt_to_hex){
     //How to deal with latency?
@@ -868,87 +817,72 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   if(sm_p->state_array[state].shk.offload_tilt_to_wasp){
     //How to deal with latency?
   }
-  
-  //Apply cell commands to ALPAO DM
-  if(alp_ready){
+
+  //Setup ALP Command
+  if(sm_p->state_array[state].alp_commander == SHKID){
+    //Apply cell commands to ALP
     if(sm_p->state_array[state].shk.cell_control == ACTUATOR_ALP){
-      // - zero out deltas
-      memset(alp_delta,0,sizeof(alp_delta));
-      // - convert cells to actuators
-      if(shk_cells2alp(shkevent.cells,alp_delta))
+      // - convert cell commands to actuator deltas
+      if(shk_cells2alp(shkevent.cells,alp.act_cmd))
 	printf("SHK: shk_cells2alp failed!\n");
-      // - add command deltas
-      for(i=0;i<ALP_NACT;i++)
-	alp.act_cmd[i] += alp_delta[i];
-      // - trigger alp command
-      move_alp = 1;
     }
-  }
-  
-  //Apply zernike commands to ALP
-  if(alp_ready){
-    // - zero out deltas
-    memset(alp_delta,0,sizeof(alp_delta));
-    memset(zernike_delta,0,sizeof(zernike_delta));
-    found_zernike = 0;
+    
+    //Apply zernike commands to ALP
+    found_zernike=0;
     for(i=0;i<LOWFS_N_ZERNIKE;i++){
       if(sm_p->state_array[state].shk.zernike_control[i] == ACTUATOR_ALP){
-	zernike_delta[i]    = shkevent.alp_zernike_delta[i];
-	alp.zernike_cmd[i] += zernike_delta[i];
-	found_zernike = 1;
+	alp.zernike_cmd[i] = shkevent.alp_zernike_delta[i];
+	found_zernike1=1;
       }
     }
-    // - convert zernike deltas to actuators and add to current command
-    if(found_zernike){
-      alp_zern2alp(zernike_delta,alp_delta);
-      for(i=0;i<ALP_NACT;i++)
-	alp.act_cmd[i] += alp_delta[i];
-      // - trigger alp command
-      move_alp = 1;
-    }
-  }
-
-  //Apply zernike commands to HEX
-  if(hex_ready){
-    // - zero out deltas
-    memset(hex_delta,0,sizeof(hex_delta));
-    memset(zernike_delta,0,sizeof(zernike_delta));
-    found_zernike = 0;
+    
+    //Convert zernike deltas to actuator deltas
+    if(found_zernike) alp_zern2alp(alp.zernike_cmd,alp.act_cmd);
+  }  
+  
+  //Setup HEX Command
+  if(sm_p->state_array[state].hex_commander == SHKID){
+    //Apply zernike commands to HEX
+    found_zernike=0;
     for(i=0;i<LOWFS_N_ZERNIKE;i++){
       if(sm_p->state_array[state].shk.zernike_control[i] == ACTUATOR_HEX){
-	zernike_delta[i]    = shkevent.hex_zernike_delta[i];
-	hex.zernike_cmd[i] += zernike_delta[i];
+	hex.zernike_cmd[i] = shkevent.hex_zernike_delta[i];
 	found_zernike = 1;
       }
     }
-    // - convert zernikes to axes and add to current command
-    if(found_zernike){
-      hex_zern2hex_alt(zernike_delta,hex_delta);
-      for(i=0;i<HEX_NAXES;i++)
-	hex.axis_cmd[i] += hex_delta[i];
-      // - trigger hex command
-      move_hex = 1;
+    
+    //Convert zernike deltas to axis deltas
+    if(found_zernike) hex_zern2hex_alt(hex.zernike_cmd,hex.axis_cmd);
+  }
+  
+  //Calibrate ALP
+  if(sm_p->alp_calmode != ALP_CALMODE_NONE)
+    sm_p->alp_calmode = alp_calibrate(shkevent.alp_calmode,&alp,&alp_cmdtype,shkevent.alp_count,FUNCTION_NO_RESET);
+ 
+  //Calibrate HEX
+  if(sm_p->hex_calmode != HEX_CALMODE_NONE)
+    sm_p->hex_calmode = hex_calibrate(shkevent.hex_calmode,&hex,&hex_cmdtype,shkevent.hex_count,FUNCTION_NO_RESET);
+
+
+  //Send command to ALP
+  if(ALP_ENABLE){
+    // - send command
+    if(alp_command(sm_p,alp.act_cmd,SHKID,alp_cmdtype,n_dither)){
+      // - copy command to shkevent
+      memcpy(&shkevent.alp,&alp,sizeof(alp_t));
+      // - increment command counter
+      shkevent.alp_count++;
     }
   }
   
-  //Send command to ALP
-  if(ALP_ENABLE && move_alp){
-    // - send command
-    dm7820_status = rtd_send_alp(sm_p->p_rtd_board,alp.act_cmd);
-    // - copy command to shkevent
-    memcpy(&shkevent.alp,&alp,sizeof(alp_t));
-  }
-
   //Send command to HEX
-  if(HEX_ENABLE && move_hex){
-    // - send command
-    hexevent.clientid = SHKID;
-    hexevent.command_number = ++hex_last_sent;
-    memcpy(&hexevent.hex,&hex,sizeof(hex_t));
-    if(HEX_DEBUG) fprintf(stderr,"SHK: Writing HEX command %lu\n",hex_last_sent);
-    write_to_buffer(sm_p,&hexevent,SHK_HEXSEND);
-    // - copy to shkevent
-    memcpy(&shkevent.hex,&hex,sizeof(hex_t));
+  if(HEX_ENABLE){
+    if(hex_command(sm_p,hex.axis_cmd,SHKID,hex_cmdtype)){
+      // - copy to shkevent
+      memcpy(&shkevent.hex,&hex,sizeof(hex_t));
+      // - increment command counter
+      shkevent.hex_count++;
+    }
   }
   
   //Open circular buffer

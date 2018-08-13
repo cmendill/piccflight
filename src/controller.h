@@ -67,7 +67,7 @@ typedef int8_t int8;
 /*************************************************
  * Process ID Numbers
  *************************************************/
-enum procids {WATID, SCIID, SHKID, LYTID, TLMID, ACQID, MOTID, THMID, SRVID, HEXID, DIAID, NCLIENTS};
+enum procids {WATID, SCIID, SHKID, LYTID, TLMID, ACQID, MOTID, THMID, SRVID, DIAID, NCLIENTS};
 
 /*************************************************
  * States
@@ -93,6 +93,8 @@ enum states { STATE_STANDBY,
  * Commands
  *************************************************/
 #define CMD_SENDDATA  0x0ABACABB
+#define CMDTYPE_ABSOLUTE 0
+#define CMDTYPE_RELATIVE 1
 
 /*************************************************
 * Actuator Enable Switches
@@ -163,11 +165,8 @@ enum bufids {SCIEVENT, SCIFULL,
 	     SHKEVENT, SHKFULL,
 	     LYTEVENT, LYTFULL,
 	     ACQEVENT, ACQFULL,
-	     SHK_HEXSEND,  LYT_HEXSEND,
-	     ACQ_HEXSEND,  WAT_HEXSEND,
-	     SHK_HEXRECV,  LYT_HEXRECV,
-	     ACQ_HEXRECV,  WAT_HEXRECV,
-	     HEXRECV, NCIRCBUF};
+	     NCIRCBUF};
+
 #define SCIEVENTSIZE     3
 #define SHKEVENTSIZE     3
 #define LYTEVENTSIZE     3
@@ -176,20 +175,18 @@ enum bufids {SCIEVENT, SCIFULL,
 #define SHKFULLSIZE      3
 #define LYTFULLSIZE      3
 #define ACQFULLSIZE      3
-#define HEXSENDSIZE      3
-#define HEXRECVSIZE      3
-
-/*************************************************
- * Define Errors
- *************************************************/
-#define _ERROR	       -1
-#define _NO_ERROR	0
 
 /*************************************************
  * LOWFS Settings
  *************************************************/
 #define LOWFS_N_ZERNIKE         23 //no piston
 #define LOWFS_N_HEX_ZERNIKE     5  //no piston
+
+/*************************************************
+ * Function Reset Commands
+ *************************************************/
+#define FUNCTION_RESET    1
+#define FUNCTION_NO_RESET 0 
 
 /*************************************************
  * Zernike Errors
@@ -342,9 +339,8 @@ enum bufids {SCIEVENT, SCIFULL,
 #define SIN_Y             sin(THETA_Y)
 #define COS_Z             cos(THETA_Z)
 #define SIN_Z             sin(THETA_Z)
-#define HEX_REF_TIMEOUT   20 //seconds
-#define HEX_PER_SHKEVENT  5  //number of shk images per HEX update
-#define HEX_CMD_PER_SEC   2  //commands per second by hex_proc
+#define HEX_REF_TIMEOUT   20  //seconds
+#define HEX_PERIOD        0.5 //seconds, time between commands
 
 /*************************************************
  * Shack-Hartmann (SHK) Settings
@@ -587,7 +583,8 @@ typedef struct shkevent_struct{
   double    zernike_target[LOWFS_N_ZERNIKE];
   double    alp_zernike_delta[LOWFS_N_ZERNIKE];
   double    hex_zernike_delta[LOWFS_N_ZERNIKE];
-  uint64    cal_step;
+  uint64    alp_count;
+  uint64    hex_count;
   hex_t     hex;
   alp_t     alp;
   wsp_t     wsp;
@@ -611,12 +608,6 @@ typedef struct acqevent_struct{
   hex_t     hex;
   wsp_t     wsp;
 } acqevent_t;
-
-typedef struct hexevent_struct{
-  int    clientid;
-  uint64 command_number;
-  hex_t  hex;
-} hexevent_t;
 
 /*************************************************
  * Full Frame Structures
@@ -670,6 +661,9 @@ typedef volatile struct {
   //RTD board descriptor
   DM7820_Board_Descriptor* p_rtd_board;
 
+  //Hexapod file descriptor
+  int hexfd;
+
   //State
   int state;                    //Current operational state
   state_t state_array[NSTATES]; //Array of states
@@ -686,6 +680,18 @@ typedef volatile struct {
   int lyt_mode;        //Lyot LOWFS camera mode
   int shk_mode;        //Shack-Hartmann camera mode
   int acq_mode;        //Acquisition camera mode
+
+  //ALP Command
+  int alp_command_lock;
+  double alp_command[ALP_NACT];
+
+  //BMC Command
+  int bmc_command_lock;
+  double bmc_command[BMC_NACT];
+
+  //HEX Command
+  int hex_command_lock;
+  double hex_command[HEX_NAXES];
 
   //ALP Calibration Mode
   int alp_calmode;
