@@ -103,49 +103,57 @@ int alp_zern2alp(double *zernikes,double *actuators){
 }
 
 /**************************************************************/
-/* ALP_COMMAND                                                */
+/* ALP_GET_COMMAND                                            */
+/* - Function to get the last command sent to the ALPAO DM    */
+/* - Use atomic operations to prevent two processes from      */
+/*   accessing the commands at the same time                  */
+/**************************************************************/
+void alp_get_command(sm_t *sm_p, alp_t *cmd){
+  //Atomically test and set ALP command lock using GCC built-in function
+  while(__sync_lock_test_and_set(&sm_p->alp_command_lock,1));
+  //Copy command
+  memcpy(cmd,&sm_p->alp_command,sizeof(alp_t));
+  //Release lock
+  __sync_lock_release(&sm_p->alp_command_lock);
+}
+
+/**************************************************************/
+/* ALP_SEND_COMMAND                                           */
 /* - Function to command the ALPAO DM                         */
 /* - Use atomic operations to prevent two processes from      */
 /*   sending commands at the same time                        */
 /* - Return 1 if the command was sent and 0 if it wasn't      */
 /**************************************************************/
-int alp_command(sm_t *sm_p, double *cmd, int proc_id, int cmdtype, uint32_t n_dither){
-  int state;
-  int retval=0; //Default command failure
-  int i;
-  static int last_proc_id=-1;
+int alp_send_command(sm_t *sm_p, double *cmd, int proc_id, uint32_t n_dither){
+  int retval=0;
+  static int last_n_dither=0;
   
-  //Atomically test and set ALP command lock using GCC built-in function
-  if(__sync_lock_test_and_set(&sm_p->alp_command_lock,1)==0){
-    //Check if the commanding process is the ALP commander
-    state = sm_p->state;
-    if(proc_id == sm_p->state_array[state].alp_commander){
+  //Check if the commanding process is the ALP commander
+  if(proc_id == sm_p->state_array[sm_p->state].alp_commander){
+
+    //Atomically test and set ALP command lock using GCC built-in function
+    if(__sync_lock_test_and_set(&sm_p->alp_command_lock,1)==0){
+      
       //Check if we need to re-initalize the RTD board
-      if(proc_id != last_proc_id){
+      if(n_dither != last_n_dither){
 	//Init ALPAO RTD interface
-	if((dm7820_status = rtd_init_alp(sm_p->p_rtd_board,n_dither)))
+	if(rtd_init_alp(sm_p->p_rtd_board,n_dither))
 	  perror("rtd_init_alp");
-	last_proc_id=proc_id;
+	else
+	  last_n_dither = n_dither;
       }
-      //Setup the command
-      if(cmdtype == CMDTYPE_RELATIVE){
-	//Add command to current position
-	for(i=0;i<ALP_NACT;i++){
-	  sm_p->alp_command[i] += cmd[i];
-	  //Return the absolute command that was sent
-	  cmd[i] = sm_p->alp_command[i];
-	}
-      }
-      if(cmdtype = CMDTYPE_ABSOLUTE){
-	//Copy command to current position
-	memcpy((double *)sm_p->alp_command,cmd,sizeof(sm_p->alp_command));
-      }
+  
       //Send the command
-      if(rtd_send_alp(sm_p->p_rtd_board,cmd) == 0)
-	retval=1; //Successful command
+      if(rtd_send_alp(sm_p->p_rtd_board,cmd) == 0){
+	//Copy command to current position
+	memcpy((double *)sm_p->alp_command,cmd,sizeof(alp_t));
+ 	//Set return value
+	retval=1;
+      }
+      
+      //Release lock
+      __sync_lock_release(&sm_p->alp_command_lock);
     }
-    //Release lock
-    __sync_lock_release(&sm_p->alp_command_lock);
   }
   
   //Return
@@ -157,7 +165,7 @@ int alp_command(sm_t *sm_p, double *cmd, int proc_id, int cmdtype, uint32_t n_di
 /* ALP_CALIBRATE                                              */
 /* - Run calibration routines for ALPAO DM                    */
 /**************************************************************/
-int alp_calibrate(int calmode, alp_t *alp, int *cmdtype, int reset){
+int alp_calibrate(int calmode, alp_t *alp, uint32_t *step, int reset){
   int i,j,index;
   static struct timespec start,this,last,delta;
   static uint64 countA=0,countB=0;
@@ -232,8 +240,6 @@ int alp_calibrate(int calmode, alp_t *alp, int *cmdtype, int reset){
 
   /* ALP_CALMODE_FLAT: Set all actuators to flat map */
   if(calmode==ALP_CALMODE_FLAT){
-    //Set command type
-    *cmdtype=CMDTYPE_ABSOLUTE;
     //Reset counters
     countA=0;
     countB=0;
@@ -247,13 +253,14 @@ int alp_calibrate(int calmode, alp_t *alp, int *cmdtype, int reset){
   /* ALP_CALMODE_POKE: Scan through acuators poking one at a time. */
   /*                   Set flat in between each poke.              */
   if(calmode == ALP_CALMODE_POKE){
-    //Set command type
-    *cmdtype=CMDTYPE_ABSOLUTE;
     //Check counters
     if(countA >= 0 && countA < (2*ALP_NACT*ALP_NCALIM)){
       //set all ALP actuators to flat
       for(i=0;i<ALP_NACT;i++)
 	alp->act_cmd[i]=flat[i];
+
+      //set step counter
+      *step = (countA/ALP_NCALIM);
 
       //poke one actuator
       if((countA/ALP_NCALIM) % 2 == 1){
@@ -274,8 +281,6 @@ int alp_calibrate(int calmode, alp_t *alp, int *cmdtype, int reset){
   /* ALP_CALMODE_ZPOKE: Poke Zernikes one at a time    */
   /*                    Set flat in between each poke. */
   if(calmode == ALP_CALMODE_ZPOKE){
-    //Set command type
-    *cmdtype=CMDTYPE_ABSOLUTE;
     //Check counters
     if(countA >= 0 && countA < (2*LOWFS_N_ZERNIKE*ALP_NCALIM)){
       //set all Zernikes to zero
@@ -285,7 +290,10 @@ int alp_calibrate(int calmode, alp_t *alp, int *cmdtype, int reset){
       //set all ALP actuators to flat
       for(i=0;i<ALP_NACT;i++)
 	alp->act_cmd[i]=flat[i];
-      
+
+      //set step counter
+      *step = (countA/ALP_NCALIM);
+
       //poke one zernike by adding it on top of the flat
       if((countA/ALP_NCALIM) % 2 == 1){
 	alp->zernike_cmd[(countB/ALP_NCALIM) % LOWFS_N_ZERNIKE] = ALP_ZPOKE;
@@ -305,13 +313,13 @@ int alp_calibrate(int calmode, alp_t *alp, int *cmdtype, int reset){
 
   /* ALP_CALMODE_FLIGHT: Flight Simulator */
   if(calmode == ALP_CALMODE_FLIGHT){
-    //Set command type
-    *cmdtype=CMDTYPE_RELATIVE;
     //Setup counters
     if(countA == 0)
       dt0 = dt;
     if(countA == 1)
       period = dt-dt0;
+    //Set step counter
+    *step = countA;
     //Set index
     index = (int)((dt-dt0)/zernike_timestep);
     if(index < ZERNIKE_ERRORS_NUMBER){

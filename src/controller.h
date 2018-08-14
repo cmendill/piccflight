@@ -420,8 +420,6 @@ typedef struct calmode_struct{
 typedef struct shkctrl_struct{
   int run_camera;
   int fit_zernikes;
-  int pid_cells;
-  int pid_zernikes;
   int zernike_control[LOWFS_N_ZERNIKE];
   int cell_control;
   int offload_tilt_to_hex;
@@ -567,6 +565,8 @@ typedef struct shkevent_struct{
   uint32    boxsize;
   uint32    hex_calmode;
   uint32    alp_calmode;
+  uint32    hex_calstep;
+  uint32    alp_calstep;
   double    xtilt;
   double    ytilt;
   double    kP_alp_cell;
@@ -581,10 +581,6 @@ typedef struct shkevent_struct{
   shkcell_t cells[SHK_NCELLS];
   double    zernike_measured[LOWFS_N_ZERNIKE];
   double    zernike_target[LOWFS_N_ZERNIKE];
-  double    alp_zernike_delta[LOWFS_N_ZERNIKE];
-  double    hex_zernike_delta[LOWFS_N_ZERNIKE];
-  uint64    alp_count;
-  uint64    hex_count;
   hex_t     hex;
   alp_t     alp;
   wsp_t     wsp;
@@ -658,6 +654,11 @@ typedef volatile struct {
   //Process information
   procinfo_t w[NCLIENTS];
 
+  //Device ready flags
+  int rtd_ready;
+  int bmc_ready;
+  int hex_ready;
+    
   //RTD board descriptor
   DM7820_Board_Descriptor* p_rtd_board;
 
@@ -683,15 +684,15 @@ typedef volatile struct {
 
   //ALP Command
   int alp_command_lock;
-  double alp_command[ALP_NACT];
+  alp_t alp_command;
 
   //BMC Command
   int bmc_command_lock;
-  double bmc_command[BMC_NACT];
+  bmc_t bmc_command;
 
   //HEX Command
   int hex_command_lock;
-  double hex_command[HEX_NAXES];
+  hex_t hex_command;
 
   //ALP Calibration Mode
   int alp_calmode;

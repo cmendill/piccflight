@@ -40,7 +40,6 @@ extern void acq_proc(void); //acquisition camera
 extern void mot_proc(void); //motor controller
 extern void thm_proc(void); //thermal controller
 extern void srv_proc(void); //data server
-extern void hex_proc(void); //hexapod controller
 extern void dia_proc(void); //diagnostic program
 
 /* Kill Process */
@@ -297,7 +296,6 @@ int main(int argc,char **argv){
     case MOTID:sm_p->w[i].launch = mot_proc; break;
     case THMID:sm_p->w[i].launch = thm_proc; break;
     case SRVID:sm_p->w[i].launch = srv_proc; break;
-    case HEXID:sm_p->w[i].launch = hex_proc; break;
     case DIAID:sm_p->w[i].launch = dia_proc; break;
     }
   }
@@ -344,42 +342,6 @@ int main(int argc,char **argv){
   sm_p->circbuf[ACQEVENT].nbytes  = sizeof(acqevent_t);
   sm_p->circbuf[ACQEVENT].bufsize = ACQEVENTSIZE;
   sprintf((char *)sm_p->circbuf[ACQEVENT].name,"ACQEVENT");
-  sm_p->circbuf[HEXRECV].buffer  = (void *)sm_p->hexrecv;
-  sm_p->circbuf[HEXRECV].nbytes  = sizeof(hexevent_t);
-  sm_p->circbuf[HEXRECV].bufsize = HEXRECVSIZE;
-  sprintf((char *)sm_p->circbuf[HEXRECV].name,"HEXRECV");
-  sm_p->circbuf[SHK_HEXSEND].buffer  = (void *)sm_p->shk_hexsend;
-  sm_p->circbuf[SHK_HEXSEND].nbytes  = sizeof(hexevent_t);
-  sm_p->circbuf[SHK_HEXSEND].bufsize = HEXSENDSIZE;
-  sprintf((char *)sm_p->circbuf[SHK_HEXSEND].name,"SHK_HEXSEND");
-  sm_p->circbuf[LYT_HEXSEND].buffer  = (void *)sm_p->lyt_hexsend;
-  sm_p->circbuf[LYT_HEXSEND].nbytes  = sizeof(hexevent_t);
-  sm_p->circbuf[LYT_HEXSEND].bufsize = HEXSENDSIZE;
-  sprintf((char *)sm_p->circbuf[LYT_HEXSEND].name,"LYT_HEXSEND");
-  sm_p->circbuf[ACQ_HEXSEND].buffer  = (void *)sm_p->acq_hexsend;
-  sm_p->circbuf[ACQ_HEXSEND].nbytes  = sizeof(hexevent_t);
-  sm_p->circbuf[ACQ_HEXSEND].bufsize = HEXSENDSIZE;
-  sprintf((char *)sm_p->circbuf[ACQ_HEXSEND].name,"ACQ_HEXSEND");
-  sm_p->circbuf[WAT_HEXSEND].buffer  = (void *)sm_p->wat_hexsend;
-  sm_p->circbuf[WAT_HEXSEND].nbytes  = sizeof(hexevent_t);
-  sm_p->circbuf[WAT_HEXSEND].bufsize = HEXSENDSIZE;
-  sprintf((char *)sm_p->circbuf[WAT_HEXSEND].name,"WAT_HEXSEND");
-  sm_p->circbuf[SHK_HEXRECV].buffer  = (void *)sm_p->shk_hexrecv;
-  sm_p->circbuf[SHK_HEXRECV].nbytes  = sizeof(hexevent_t);
-  sm_p->circbuf[SHK_HEXRECV].bufsize = HEXRECVSIZE;
-  sprintf((char *)sm_p->circbuf[SHK_HEXRECV].name,"SHK_HEXRECV");
-  sm_p->circbuf[LYT_HEXRECV].buffer  = (void *)sm_p->lyt_hexrecv;
-  sm_p->circbuf[LYT_HEXRECV].nbytes  = sizeof(hexevent_t);
-  sm_p->circbuf[LYT_HEXRECV].bufsize = HEXRECVSIZE;
-  sprintf((char *)sm_p->circbuf[LYT_HEXRECV].name,"LYT_HEXRECV");
-  sm_p->circbuf[ACQ_HEXRECV].buffer  = (void *)sm_p->acq_hexrecv;
-  sm_p->circbuf[ACQ_HEXRECV].nbytes  = sizeof(hexevent_t);
-  sm_p->circbuf[ACQ_HEXRECV].bufsize = HEXRECVSIZE;
-  sprintf((char *)sm_p->circbuf[ACQ_HEXRECV].name,"ACQ_HEXRECV");
-  sm_p->circbuf[WAT_HEXRECV].buffer  = (void *)sm_p->wat_hexrecv;
-  sm_p->circbuf[WAT_HEXRECV].nbytes  = sizeof(hexevent_t);
-  sm_p->circbuf[WAT_HEXRECV].bufsize = HEXRECVSIZE;
-  sprintf((char *)sm_p->circbuf[WAT_HEXRECV].name,"WAT_HEXRECV");
   
   //-- Full frame buffers
   sm_p->circbuf[SCIFULL].buffer  = (void *)sm_p->scifull;
@@ -401,22 +363,34 @@ int main(int argc,char **argv){
   
   /* Init RTD Driver */
   //Open driver
-  if((dm7820_status = rtd_open(0, &p_rtd_board)))
+  if((dm7820_status = rtd_open(RTD_BOARD_MINOR, &p_rtd_board))){
     perror("rtd_open");
-  
-  //Reset board
-  if((dm7820_status = rtd_reset(p_rtd_board)))
-    perror("rtd_reset");
-  
-  //Set device handle
-  sm_p->p_rtd_board = p_rtd_board;
-  printf("WAT: RTD board ready\n");
+    printf("WAT: RTD init failed!\n");
+  }
+  else{
+    //Reset board
+    if((dm7820_status = rtd_reset(p_rtd_board))){
+      perror("rtd_reset");
+      printf("WAT: RTD init failed!\n");
+    }
+    else{
+      //Set device handle
+      sm_p->p_rtd_board = p_rtd_board;
+      sm_p->rtd_ready = 1;
+      printf("WAT: RTD board ready\n");
+    }
 
   /* Init HEX Driver */
-  if(hex_init(&hexfd))
+  if(hex_init(&hexfd)){
     perror("hex_init");
-  sm_p->hexfd = hexfd;
-  printf("WAT: HEX ready\n");
+    printf("WAT: HEX init failed!\n");
+  }
+  else{
+    sm_p->hexfd = hexfd;
+    sm_p->hex_ready = 1;
+    printf("WAT: HEX ready\n");
+  }
+
   
   /* Launch Watchdog */
   if(sm_p->w[WATID].run){

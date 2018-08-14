@@ -58,13 +58,11 @@ int hex_connect(void){
 
 /**************************************************************/
 /* HEX_DISCONNECT                                             */
-/*  - Close connection to hexapod                              */
+/*  - Close connection to hexapod                             */
 /**************************************************************/
 void hex_disconnect(int id){
   PI_CloseConnection(id);
 }
-
-
 
 /**************************************************************/
 /* HEX_INIT                                                   */
@@ -110,6 +108,54 @@ int hex_init(int *hexfd){
   }
   
   return 0;
+}
+
+/**************************************************************/
+/* HEX_GET_COMMAND                                            */
+/* - Function to get the last command sent to the HEX         */
+/* - Use atomic operations to prevent two processes from      */
+/*   accessing the commands at the same time                  */
+/**************************************************************/
+void hex_get_command(sm_t *sm_p, hex_t *cmd){
+  //Atomically test and set HEX command lock using GCC built-in function
+  while(__sync_lock_test_and_set(&sm_p->hex_command_lock,1));
+  //Copy command
+  memcpy(cmd,&sm_p->hex_command,sizeof(hex_t));
+  //Release lock
+  __sync_lock_release(&sm_p->hex_command_lock);
+}
+
+/**************************************************************/
+/* HEX_SEND_COMMAND                                           */
+/* - Function to command the HEX                              */
+/* - Use atomic operations to prevent two processes from      */
+/*   sending commands at the same time                        */
+/* - Return 1 if the command was sent and 0 if it wasn't      */
+/**************************************************************/
+int hex_send_command(sm_t *sm_p, hex_t *cmd, int proc_id){
+  int retval=0;
+
+  //Check if the commanding process is the HEX commander
+  if(proc_id == sm_p->state_array[sm_p->state].hex_commander){
+
+    //Atomically test and set HEX command lock using GCC built-in function
+    if(__sync_lock_test_and_set(&sm_p->hex_command_lock,1)==0){
+      
+      //Send the command
+      if(hex_move(sm_p->hexfd,cmd->axis_cmd) == 0){
+	//Copy command to current position
+	memcpy(sm_p->hex_command,cmd,sizeof(hex_t));
+	//Set return value
+	retval = 1;
+      }
+      
+      //Release lock
+      __sync_lock_release(&sm_p->hex_command_lock);
+    }
+  }
+  
+  //Return
+  return retval;
 }
 
 /**************************************************************/
@@ -168,25 +214,28 @@ int scope2hex(double *position, double *result){
 /**************************************************************/
 int hex_move(int id, double *pos){
   double result[6] = {0};
-  scope2hex(pos, result);
   const char axes_all[13] = HEX_AXES_ALL;
   char *chkaxis=""; //will check all axes
+  int bIsMoving=0;
 
-  if(!PI_MOV(id, axes_all, result)){
-    printf("HEX: PI_MOV error!\n");
-
-    int err;
-    err=PI_GetError(0);
-    printf("Error: %i\r\n", err);
+  //Check if hexapod is moving
+  if(!PI_IsMoving(id,chkaxis, &bIsMoving)){
+    printf("HEX: PI_IsMoving error!\n");
     return 1;
   }
-  int bIsMoving = 1;
-  while(bIsMoving){
-    if(!PI_IsMoving(id,chkaxis, &bIsMoving)){
-      printf("HEX: PI_IsMoving error!\n");
-      return 1;
-    }
+  if(bIsMoving)
+    return 1;
+
+  //Convert telescope to hexapod coordinates
+  scope2hex(pos, result);
+
+  //Send command to move hexapod
+  if(!PI_MOV(id, axes_all, result)){
+    printf("HEX: (hex_move) Error: %i\r\n", PI_GetError(0));
+    return 1;
   }
+
+  //Return 0 for successful command
   return 0;
 }
 
@@ -194,7 +243,7 @@ int hex_move(int id, double *pos){
 /* HEX_REFERENCE                                              */
 /*  - Reference hexapod, if needed                            */
 /**************************************************************/
-int hex_reference(int id,int force){
+int hex_reference(int id, int force){
   int bReferenced;
   char axis[] = "X";
   if(!PI_qFRF(id, axis, &bReferenced)){
@@ -260,10 +309,7 @@ int hex_setpivot(int id, double *pivot){
   const char axes_piv[7] = "R S T";
 
   if(!PI_SPI(id, axes_piv, pivot)){
-    int err;
-    err=PI_GetError(0);
-    printf("HEX: PI_SPI error!\n");
-    printf("Error: %i\r\n", err);
+    printf("HEX: PI_SPI error %d\n", PI_GetError(0));
     return 1;
   }
   return 0;
@@ -330,7 +376,7 @@ int hex_zern2hex(double *zernikes, double *axes){
 /*  - Convert from zernike commands to hexapod commands       */
 /*  - Alternate Version                                       */
 /**************************************************************/
-int hex_zern2hex_alt(double *zernikes, double *axes){
+void hex_zern2hex_alt(double *zernikes, double *axes){
   double dX=0,dY=0,dZ=0,dU=0,dV=0,dW=0;
 
   //Calibration
@@ -368,14 +414,13 @@ int hex_zern2hex_alt(double *zernikes, double *axes){
   axes[HEX_AXIS_V] = dV;
   axes[HEX_AXIS_W] = dW;
   
-  return 0;
 }
 
 /**************************************************************/
 /* HEX_CALIBRATE                                              */
 /*  - Run hexapod calibration routines                        */
 /**************************************************************/
-int hex_calibrate(int calmode, hex_t *hex, uint64 step, int reset){
+int hex_calibrate(int calmode, hex_t *hex, uint32 *step, int reset){
   int i;
   const double hexdef[HEX_NAXES] = HEX_POS_DEFAULT;
   static struct timespec start,this,last,delta;
@@ -510,7 +555,10 @@ int hex_calibrate(int calmode, hex_t *hex, uint64 step, int reset){
       memcpy(&hex_start[HEX_CALMODE_SPIRAL],hex,sizeof(hex_t));
       mode_init[HEX_CALMODE_SPIRAL]=1;
     }
-      
+    //Set counter
+    *step = countA[calmode];
+
+    //Run spiral search
     if((countA[calmode]) < max_step){
       u_step = countA[calmode] * spiral_radius * cos(countA[calmode] * (PI/180.0));
       v_step = countA[calmode] * spiral_radius * sin(countA[calmode] * (PI/180.0));
@@ -535,71 +583,6 @@ int hex_calibrate(int calmode, hex_t *hex, uint64 step, int reset){
   return calmode;
 }
 
-/**************************************************************/
-/* HEX_COMMAND                                                */
-/* - Function to command the HEX                              */
-/* - Use atomic operations to prevent two processes from      */
-/*   sending commands at the same time                        */
-/* - Return 1 if the command was sent and 0 if it wasn't      */
-/**************************************************************/
-int hex_command(sm_t *sm_p, double *cmd, int proc_id, int cmdtype){
-  int state;
-  int retval=0; //Default command failure
-  int i;
-  static struct timespec delta,this,last;
-  static int init=0;
-  
-  //Get time (this) 
-  clock_gettime(CLOCK_REALTIME,&this);
-
-  //Initalize
-  if(!init){
-    //Reset timers
-    memcpy(&last,&this,sizeof(struct timespec));
-    //Set init flag
-    init=1;
-  }
-  
-  //Measure elapsed time since last update
-  if(timespec_subtract(&delta,&this,&last))
-    printf("HEX: hex_command --> timespec_subtract error!\n");
-  ts2double(&delta,&dt);
-  
-  //Accept commands only so often
-  if(dt > HEX_PERIOD){
-    //Get time (last)
-    clock_gettime(CLOCK_REALTIME,&last);
-    
-    //Atomically test and set HEX command lock using GCC built-in function
-    if(__sync_lock_test_and_set(&sm_p->hex_command_lock,1)==0){
-      //Check if the commanding process is the HEX commander
-      state = sm_p->state;
-      if(proc_id == sm_p->state_array[state].hex_commander){
-	//Setup the command
-	if(cmdtype == CMDTYPE_RELATIVE){
-	  //Add command to current position
-	  for(i=0;i<HEX_NAXES;i++){
-	    sm_p->hex_command[i] += cmd[i];
-	    //Return the absolute command that was sent
-	    cmd[i] = sm_p->hex_command[i];
-	  }
-	}
-	if(cmdtype == CMDTYPE_ABSOLUTE){
-	  //Copy command to current position
-	  memcpy((double *)sm_p->hex_command,cmd,sizeof(sm_p->hex_command));
-	}
-	//Send the command
-	if(hex_move(sm_p->hexfd,cmd) == 0)
-	  retval=1; //Successful command
-      }
-      //Release lock
-      __sync_lock_release(&sm_p->hex_command_lock);
-    }
-  }
-  
-  //Return
-  return retval;
-}
 
 
 

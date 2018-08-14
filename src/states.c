@@ -43,7 +43,7 @@ void init_state(int state_number, state_t *state){
     state->hex_commander = WATID;
     return;
   }
-
+  
   //STATE_LOW_POWER
   if(state_number == STATE_LOW_POWER){
     //Set name
@@ -178,7 +178,6 @@ void init_state(int state_number, state_t *state){
     state->acq.run_camera = 1;
     //SHK Settings
     state->shk.fit_zernikes = 1;
-    state->shk.pid_zernikes = 1;
     state->shk.zernike_control[0] = ACTUATOR_HEX;
     state->shk.zernike_control[1] = ACTUATOR_HEX;
     state->shk.zernike_control[2] = ACTUATOR_HEX;
@@ -239,8 +238,6 @@ void init_state(int state_number, state_t *state){
     //Set SHKID as alp commander
     state->alp_commander = SHKID;
     //SHK Settings
-    state->shk.fit_zernikes = 1;
-    state->shk.pid_zernikes = 1;
     for(i=0;i<22;i++)
       state->shk.zernike_control[i] = ACTUATOR_ALP;
 
@@ -262,7 +259,6 @@ void init_state(int state_number, state_t *state){
     state->alp_commander = SHKID;
     //SHK Settings
     state->shk.fit_zernikes = 1;
-    state->shk.pid_cells = 1;
     state->shk.cell_control = 1;
     return;
   }
