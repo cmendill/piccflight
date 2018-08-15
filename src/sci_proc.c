@@ -16,8 +16,8 @@
 #include "common_functions.h"
 #include "fakemodes.h"
 
-#define SCI_EXP_TIME 2000  //Milliseconds
-#define SCI_TEMP 20        //Degrees C
+#define SCI_EXP_TIME 2000   //Milliseconds
+#define SCI_TEMP_TEC_OFF 20 //Degrees C
 #define SCI_ROI_XSIZE SCIXS
 #define SCI_ROI_YSIZE SCIYS
 #define SCI_HBIN 1
@@ -90,6 +90,10 @@ int sci_expose(sm_t *sm_p, flidev_t dev, uint16 *img_buffer){
 
   /* Wait for exposure to finish */
   for(i=0;i<exp_timeout;i++){
+    /* Check if we've been asked to exit */
+    if(sm_p->w[SCIID].die)
+      scictrlC(0);
+
     /* Check in with the watchdog */
     checkin(sm_p,SCIID);
        
@@ -247,6 +251,7 @@ void sci_proc(void){
   long domain = (FLIDOMAIN_USB | FLIDEVICE_CAMERA);
   uint16 img_buffer[SCI_ROI_XSIZE * SCI_ROI_YSIZE];
   double ccdtemp;
+  int camera_running=0;
   
   /* Open Shared Memory */
   sm_t *sm_p;
@@ -281,13 +286,21 @@ void sci_proc(void){
   }else{
     if(SCI_DEBUG) printf("SCI: FLI device opened\n");
 
+    /* Cancel Exposure, put camera in known state */
+    if((err = FLICancelExposure(dev))){
+      fprintf(stderr, "SCI: Error FLICancelExposure: %s\n", strerror((int)-err));
+    }else{
+      if(SCI_DEBUG) printf("SCI: Exposure stopped\n");
+    }
+    camera_running = 0;
+    
     /* Set temperature */
-    if((err = FLISetTemperature(dev, SCI_TEMP))){
-      fprintf(stderr, "SCI: Error FLISetTemperature: %s\n", strerror((int)-err));
+    if((err = FLISetTemperature(dev, SCI_TEMP_TEC_OFF))){
+	fprintf(stderr, "SCI: Error FLISetTemperature: %s\n", strerror((int)-err));
     }else{
       if(SCI_DEBUG) printf("SCI: FLI temperature set\n");
     }
-
+    
     /* Set exposure time */
     if((err = FLISetExposureTime(dev, SCI_EXP_TIME))){
       fprintf(stderr, "SCI: Error FLISetExposureTime: %s\n", strerror((int)-err));
@@ -332,7 +345,7 @@ void sci_proc(void){
   }
 
 
-  /* Start Loop */
+  /* ----------------------- Enter Main Loop ----------------------- */
   while(1){
     /* Check if we've been asked to exit */
     if(sm_p->w[SCIID].die)
@@ -341,17 +354,42 @@ void sci_proc(void){
     /* Get CCD Temperature */
     ccdtemp = sci_get_temp(dev);
     
-    /* Run Exposure */
-    if(sci_expose(sm_p,dev,img_buffer))
-      printf("SCI: Exposure failed\n");
-    else{
-      /*Process Image*/
-      sci_process_image(sm_p,img_buffer,ccdtemp);
+    /* Check if camera should start/stop */
+    if(!camera_running && sm_p->state_array[sm_p->state].sci.run_camera){
+      camera_running = 1;
+      printf("SCI: Camera started\n");
+    }
+    if(camera_running && !sm_p->state_array[sm_p->state].sci.run_camera){
+      /* Cancel Exposure */
+      if((err = FLICancelExposure(dev))){
+	fprintf(stderr, "SCI: Error FLICancelExposure: %s\n", strerror((int)-err));
+      }else{
+	if(SCI_DEBUG) printf("SCI: Exposure stopped\n");
+      }
+      /* Disable TEC */
+      if((err = FLISetTemperature(dev, SCI_TEMP_TEC_OFF))){
+	fprintf(stderr, "SCI: Error FLISetTemperature: %s\n", strerror((int)-err));
+      }else{
+	if(SCI_DEBUG) printf("SCI: FLI TEC Disabled\n");
+      }
+      camera_running = 0;
+      printf("SCI: Camera stopped\n");
+    }
+    
+    /* Run Camera */
+    if(camera_running){
+      /* Run Exposure */
+      if(sci_expose(sm_p,dev,img_buffer))
+	printf("SCI: Exposure failed\n");
+      else{
+	/*Process Image*/
+	sci_process_image(sm_p,img_buffer,ccdtemp);
+      }
     }
     
     /* Check in with the watchdog */
     checkin(sm_p,SCIID);
-
+    
     /* Sleep */
     sleep(sm_p->w[SCIID].per);
   }

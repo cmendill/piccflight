@@ -162,7 +162,8 @@ void acq_proc(void){
   uvc_stream_ctrl_t ctrl;
   uvc_error_t res;
   int fps=5;
-    
+  int camera_running=0;
+  
   /* Open Shared Memory */
   sm_t *sm_p;
   if((sm_p = openshm(&acq_shmfd)) == NULL){
@@ -186,42 +187,60 @@ void acq_proc(void){
   /* Locates the first attached UVC device, stores in dev */
   if((res = uvc_find_device(ctx, &dev, ACQ_VENDOR_ID, ACQ_PRODUCT_ID, NULL))<0){ /* filter devices: vendor_id, product_id, "serial_num" */
     uvc_perror(res, "uvc_find_device"); /* no devices found */
-  } else {
-    if(ACQ_DEBUG) printf("ACQ: Device found\n");
-
-    /* Try to open the device: requires exclusive access */
-    if((res = uvc_open(dev, &devh))<0){
-      uvc_perror(res, "uvc_open"); /* unable to open device */
-    } else {
-      if(ACQ_DEBUG) printf("ACQ: Device opened\n");
-
-      /* Setup stream profile */
-      if((res = uvc_get_stream_ctrl_format_size(devh, &ctrl, UVC_FRAME_FORMAT_GRAY16, ACQXS, ACQYS, fps))<0){
-        uvc_perror(res, "get_mode"); /* device doesn't provide a matching stream */
-      } else {
-        /* Start stream */
-	if((res = uvc_start_streaming(devh, &ctrl, cb, (void *)sm_p, 0))<0){
-	  uvc_perror(res, "start_streaming"); /* unable to start stream */
-        } else {
-          if(ACQ_DEBUG) printf("ACQ: Streaming...\n");
-
-	  /* Turn on auto exposure */
-          uvc_set_ae_mode(devh, 1);
-
-	  /* Start loop */
-	  while(1){
-	    /* Check if we've been asked to exit */
-	    if(sm_p->w[ACQID].die)
-	      acqctrlC(0);
-	    
-	    /* Sleep */
-	    sleep(sm_p->w[ACQID].per);
-	  }
-        }
-      }
-    }
+    acqctrlC(0);
+  } 
+  if(ACQ_DEBUG) printf("ACQ: Device found\n");
+  
+  /* Try to open the device: requires exclusive access */
+  if((res = uvc_open(dev, &devh))<0){
+    uvc_perror(res, "uvc_open"); /* unable to open device */
+    acqctrlC(0);
   }
+  if(ACQ_DEBUG) printf("ACQ: Device opened\n");
 
+  /* Setup stream profile */
+  if((res = uvc_get_stream_ctrl_format_size(devh, &ctrl, UVC_FRAME_FORMAT_GRAY16, ACQXS, ACQYS, fps))<0){
+    uvc_perror(res, "get_mode"); /* device doesn't provide a matching stream */
+    acqctrlC(0);
+  }
+  if(ACQ_DEBUG) printf("ACQ: Stream profile configured\n");
+
+  /* STOP stream, put camera in known state */
+  uvc_stop_streaming(devh);
+  camera_running = 0;
+  if(ACQ_DEBUG) printf("ACQ: Camera stopped\n");
+  
+
+  /* ----------------------- Enter Main Loop ----------------------- */
+  while(1){
+    
+    /* Check if camera should start/stop */
+    if(!camera_running && sm_p->state_array[sm_p->state].acq.run_camera){
+      /*START stream*/
+      if((res = uvc_start_streaming(devh, &ctrl, cb, (void *)sm_p, 0))<0){
+	uvc_perror(res, "start_streaming"); /* unable to start stream */
+	acqctrlC(0);
+      }
+      /* Turn on auto exposure */
+      uvc_set_ae_mode(devh, 1);
+      camera_running = 1;
+      printf("ACQ: Camera started\n");
+    }
+    if(camera_running && !sm_p->state_array[sm_p->state].acq.run_camera){
+      /* STOP stream, put camera in known state */
+      uvc_stop_streaming(devh);
+      camera_running = 0;
+      printf("ACQ: Camera stopped\n");
+    }
+
+    /* Check if we've been asked to exit */
+    if(sm_p->w[ACQID].die)
+      acqctrlC(0);
+    
+    /* Sleep */
+    sleep(sm_p->w[ACQID].per);
+  }
+  
   /* Exit */
   acqctrlC(0);
   return;

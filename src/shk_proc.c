@@ -159,7 +159,7 @@ int shk_proc(void){
   }
   camera_running = 0;
 
-  /* -------------------- Enter Waiting Loop -------------------- */
+  /* ----------------------- Enter Main Loop ----------------------- */
   while(1){
     /* Check if camera should start/stop */
     if(!camera_running && sm_p->state_array[sm_p->state].shk.run_camera){
@@ -169,6 +169,7 @@ int shk_proc(void){
 	shkctrlC(0);
       }
       camera_running = 1;
+      printf("SHK: Camera started\n");
     }
     if(camera_running && !sm_p->state_array[sm_p->state].shk.run_camera){
       eStat = PHX_StreamRead( shkCamera, PHX_STOP, (void*)shk_callback );
@@ -177,6 +178,7 @@ int shk_proc(void){
 	shkctrlC(0);
       }
       camera_running = 0;
+      printf("SHK: Camera stopped\n");
     }
     
     /* Check if we've been asked to exit */
