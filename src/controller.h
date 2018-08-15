@@ -365,7 +365,6 @@ enum bufids {SCIEVENT, SCIFULL,
 #define SHK_XMAX              (SHKXS-1)
 #define SHK_YMIN              0
 #define SHK_YMAX              (SHKYS-1)
-#define SHK_READ_MATRIX       1      //Read Zernike fitting matrix instead of building it
 
 /*************************************************
  * RTD Settings

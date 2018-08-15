@@ -5,11 +5,8 @@ sync.sh
 *~
 *.o
 *.ko
-#executables
 bin/watchdog
-bin/getshk
-bin/shkevent
-bin/iwctest
+bin/output
 lib/libuvc/build/*
 lib/libuvc/CMakeFiles
 doc

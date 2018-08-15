@@ -282,13 +282,12 @@ void shk_zernike_matrix(shkcell_t *cells, double *matrix_inv){
   //bake in the conversion from pixels to wavefront slope
   unit_conversion[0] = (SHK_FOCAL_LENGTH_UM/SHK_PX_PITCH_UM) * (1./(beam_radius[0]*SHK_PX_PITCH_UM));
   unit_conversion[1] = (SHK_FOCAL_LENGTH_UM/SHK_PX_PITCH_UM) * (1./(beam_radius[1]*SHK_PX_PITCH_UM));
-  printf("SHK: Rebuilding Zernike Matrix\n");
-  printf("SHK: (MinX,MaxX): (%f, %f) [px]\n",min_x,max_x);
-  printf("SHK: (MinY,MaxY): (%f, %f) [px]\n",min_y,max_y);
-  printf("SHK: Beam center: (%f, %f) [px]\n",beam_center[0],beam_center[1]);
-  printf("SHK: Beam radius: (%f, %f) [px]\n",beam_radius[0],beam_radius[1]);
-  printf("SHK: Unit conver: (%f, %f)     \n",unit_conversion[0],unit_conversion[1]);
-  printf("SHK: Beam ncells: %d\n", beam_ncells);
+  printf("SHK: Building Zernike matrix for %d cells\n",beam_ncells);
+  if(SHK_DEBUG) printf("SHK: (MinX,MaxX): (%f, %f) [px]\n",min_x,max_x);
+  if(SHK_DEBUG) printf("SHK: (MinY,MaxY): (%f, %f) [px]\n",min_y,max_y);
+  if(SHK_DEBUG) printf("SHK: Beam center: (%f, %f) [px]\n",beam_center[0],beam_center[1]);
+  if(SHK_DEBUG) printf("SHK: Beam radius: (%f, %f) [px]\n",beam_radius[0],beam_radius[1]);
+  if(SHK_DEBUG) printf("SHK: Unit conver: (%f, %f)     \n",unit_conversion[0],unit_conversion[1]);
 
   for(i=0; i<beam_ncells; i++) {
     x_1 = (cells[beam_cell_index[i]].origin[0] - beam_center[0])/beam_radius[0];    //unitless [px/px] (-1 to +1)
@@ -374,11 +373,11 @@ void shk_zernike_matrix(shkcell_t *cells, double *matrix_inv){
   }
   //Close file
   fclose(matrix);
-  printf("SHK: Wrote zernike matrix file: %s\n",matrix_file);
+  if(SHK_DEBUG) printf("SHK: Wrote Zernike matrix file: %s\n",matrix_file);
 
 
   //Invert Matrix NOTE: This changes the forward matrix
-  printf("SHK: inverting the zernike matrix\n");
+  if(SHK_DEBUG) printf("SHK: Inverting the Zernike matrix\n");
   num_dgesvdi(dz_dxdy, matrix_inv, 2*beam_ncells, LOWFS_N_ZERNIKE);
 
 
@@ -398,7 +397,7 @@ void shk_zernike_matrix(shkcell_t *cells, double *matrix_inv){
   }
   //Close file
   fclose(matrix);
-  printf("SHK: Wrote zernike matrix file: %s\n",matrix_file);
+  if(SHK_DEBUG) printf("SHK: Wrote zernike matrix file: %s\n",matrix_file);
 }
 
 /**************************************************************/
@@ -406,11 +405,8 @@ void shk_zernike_matrix(shkcell_t *cells, double *matrix_inv){
 /*  - Fit Zernikes to SHK centroids                           */
 /**************************************************************/
 void shk_zernike_fit(shkcell_t *cells, double *zernikes){
-  FILE *matrix=NULL;
-  char matrix_file[MAX_FILENAME];
   static double shk2zern[2*SHK_NCELLS*LOWFS_N_ZERNIKE]={0};
   double shk_xydev[2*SHK_NCELLS];
-  uint64 fsize,rsize;
   static int beam_cell_index[SHK_NCELLS] = {0};
   static int beam_ncells=0;
   static int init=0;
@@ -423,40 +419,12 @@ void shk_zernike_fit(shkcell_t *cells, double *zernikes){
     for(i=0;i<SHK_NCELLS;i++)
       if(cells[i].beam_select)
 	beam_cell_index[beam_ncells++]=i;
-    /* Read Fitting Matrix From File */
-    if(SHK_READ_MATRIX){
-      //Set up file names
-      sprintf(matrix_file, SHK2ZERNIKE_FILE);
-      //Open file
-      if((matrix = fopen(matrix_file, "r")) == NULL){
-	perror("fopen");
-	printf("shk2zernike_file\n");
-      }
-      //Check file size
-      fseek(matrix, 0L, SEEK_END);
-      fsize = ftell(matrix);
-      rewind(matrix);
-      rsize = 2*beam_ncells*LOWFS_N_ZERNIKE*sizeof(double);
-      if(fsize != rsize){
-	printf("SHK: incorrect shk2zern matrix file size %lu != %lu\n", fsize, rsize);
-      }
-      //Read matrix
-      if(fread(shk2zern,2*beam_ncells*LOWFS_N_ZERNIKE*sizeof(double),1,matrix) !=1){
-	perror("fread");
-	printf("shk2zern file\r");
-      }
-      //Close file
-      fclose(matrix);
-      printf("SHK: Read: %s\n",matrix_file);
-    }
-    else{
-      //Generate the zernike matrix
-      shk_zernike_matrix(cells, shk2zern);
-    }
+    //Generate the zernike matrix
+    shk_zernike_matrix(cells, shk2zern);
     //Set init flag
     init = 1;
   }
-
+  
   //Format displacement array
   for(i=0;i<beam_ncells;i++){
     shk_xydev[2*i + 0] = cells[beam_cell_index[i]].deviation[0]; //pixels
