@@ -3,13 +3,10 @@
 
 //Function prototypes
 void alp_init_calmode(int calmode, calmode_t *alp);
-int alp_zern2alp(double *zernikes,double *actuators);
-int alp_calibrate(int calmode, alp_t *alp, int reset);
-void alp_check(alp_t *alp);
-int alp_open(char *name);
-int alp_write(int devId, alp_t* alp);
-int alp_close(int devId);
-int alp_zero(int devId);
+int  alp_zern2alp(double *zernikes,double *actuators);
+void alp_get_command(sm_t *sm_p, alp_t *cmd);
+int alp_send_command(sm_t *sm_p, alp_t *cmd, int proc_id, uint32_t n_dither);
+int  alp_calibrate(int calmode, alp_t *alp, uint32_t *step, int reset);
 
 
 //Calibration Modes

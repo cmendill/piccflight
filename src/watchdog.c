@@ -23,6 +23,7 @@
 #include "common_functions.h"
 #include "alp_functions.h"
 #include "rtd_functions.h"
+#include "hex_functions.h"
 
 /* Constants */
 #define STDIN 0  // file descriptor for standard input
@@ -363,6 +364,7 @@ int main(int argc,char **argv){
   
   /* Init RTD Driver */
   if(ALP_ENABLE || TLM_ENABLE){
+    printf("WAT: Opening RTD driver\n");
     //Open driver
     if((dm7820_status = rtd_open(RTD_BOARD_MINOR, &p_rtd_board))){
       perror("rtd_open");
@@ -379,13 +381,14 @@ int main(int argc,char **argv){
 	sm_p->p_rtd_board = p_rtd_board;
 	if(ALP_ENABLE) sm_p->alp_ready = 1;
 	if(TLM_ENABLE) sm_p->tlm_ready = 1;
-	printf("WAT: RTD board ready\n");
+	printf("WAT: RTD ready\n");
       }
     }
   }
   
   /* Init HEX Driver */
   if(HEX_ENABLE){
+    printf("WAT: Opening HEX driver\n");
     if(hex_init(&hexfd)){
       perror("hex_init");
       printf("WAT: HEX init failed!\n");
@@ -448,15 +451,26 @@ int main(int argc,char **argv){
     printf("WAT: cleanup done.\n");
 
   //Cleanup RTD
-  if((dm7820_status = rtd_alp_cleanup(p_rtd_board)))
-    perror("rtd_alp_cleanup");
-  if((dm7820_status = rtd_tlm_cleanup(p_rtd_board)))
-    perror("rtd_tlm_cleanup");
+  if(ALP_ENABLE || TLM_ENABLE){
+    if((dm7820_status = rtd_alp_cleanup(p_rtd_board)))
+      perror("rtd_alp_cleanup");
+    if((dm7820_status = rtd_tlm_cleanup(p_rtd_board)))
+      perror("rtd_tlm_cleanup");
   
-  //Close RTD driver
-  if((dm7820_status = rtd_close(p_rtd_board)))
-    perror("rtd_close");
+    //Close RTD driver
+    if((dm7820_status = rtd_close(p_rtd_board)))
+      perror("rtd_close");
+    else
+      printf("WAT: RTD closed\n");
+    
+  }
 
+  //Cleanup HEX
+  if(HEX_ENABLE){
+    hex_disconnect(hexfd);
+    printf("WAT: HEX closed\n");
+  }
+  
   //Close shared memory
   close(shmfd);
 

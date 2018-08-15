@@ -96,7 +96,9 @@ int handle_command(char *line, sm_t *sm_p){
   const char hex_str_unit[HEX_NAXES][5] = {"mm","mm","mm","deg","deg","deg"};
   const double hexhome[HEX_NAXES] = HEX_POS_HOME;
   const double hexdef[HEX_NAXES]  = HEX_POS_DEFAULT;
-  double hexcmd[HEX_NAXES] = {0}
+  hex_t hexcmd;
+  memset(&hexcmd,0,sizeof(hex_t));
+  
   /****************************************
    * INITIALIZE
    ***************************************/
@@ -326,13 +328,15 @@ int handle_command(char *line, sm_t *sm_p){
       //Commands to Move Hexapod
       if(!strncasecmp(line,"hex gohome",10)){
 	printf("CMD: Moving hexapod to home positon\n");
-	if(!hex_command(sm_p,hexhome,WATID,CMDTYPE_ABSOLUTE))
+	memcpy(hexcmd.axis_cmd,hexhome,sizeof(hexhome));
+	if(!hex_send_command(sm_p,&hexcmd,WATID))
 	  printf("CMD: Hexapod command failed\n");
 	return(CMD_NORMAL);
       }
       if(!strncasecmp(line,"hex godef",9)){
 	printf("CMD: Moving hexapod to default positon\n");
-	if(!hex_command(sm_p,hexdef,WATID,CMDTYPE_ABSOLUTE))
+	memcpy(hexcmd.axis_cmd,hexdef,sizeof(hexdef));
+	if(!hex_send_command(sm_p,&hexcmd,WATID))
 	  printf("CMD: Hexapod command failed\n");
 	return(CMD_NORMAL);
       }
@@ -401,8 +405,9 @@ int handle_command(char *line, sm_t *sm_p){
 	return(CMD_NORMAL);
       move_hex:
 	printf("CMD: Moving hexapod axis %s by %f %s\n",hex_str_axes[hex_axis],hex_poke,hex_str_unit[hex_axis]);
-	hexcmd[hex_axis] = hex_poke;
-	if(!hex_command(sm_p,hexcmd,WATID,CMDTYPE_RELATIVE))
+	hex_get_command(sm_p,&hexcmd);
+	hexcmd.axis_cmd[hex_axis] += hex_poke;
+	if(!hex_send_command(sm_p,&hexcmd,WATID))
 	  printf("CMD: Hexapod command failed\n");
       }
       return(CMD_NORMAL);

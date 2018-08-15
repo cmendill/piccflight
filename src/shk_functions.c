@@ -615,10 +615,6 @@ void shk_alp_cellpid(shkevent_t *shkevent, int reset){
   if(!init || reset){
     memset(xint,0,sizeof(xint));
     memset(yint,0,sizeof(yint));
-    for(i=0;i<SHK_NCELLS;i++){
-      shkevent->cells[i].command[0] = 0;
-      shkevent->cells[i].command[1] = 0;
-    }
     init=1;
     if(reset) return;
   }
@@ -701,7 +697,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   static shkevent_t shkevent;
   shkfull_t *shkfull_p;
   shkevent_t *shkevent_p;
-  static struct timespec start,end,delta,full_last,hex_last;
+  static struct timespec start,end,delta,last,full_last,hex_last;
   static int init=0;
   double dt;
   int i,j;
@@ -709,7 +705,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   int state;
   hex_t hex,hex_delta;
   alp_t alp,alp_delta;
-  int control_zernike=0;
+  int zernike_control=0;
   uint32_t n_dither=1;
   
   //Get time immidiately
@@ -723,7 +719,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     init=0;
     sm_p->shk_reset=0;
   }
-  
+
   //Initialize
   if(!init){
     //Zero out events & commands
@@ -732,21 +728,22 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     //Init cells
     shk_init_cells(&shkevent);
     //Reset calibration routines
-    alp_calibrate(0,&alp,1);
-    hex_calibrate(0,&hex,NULL,1);
+    alp_calibrate(0,NULL,NULL,FUNCTION_RESET);
+    hex_calibrate(0,NULL,NULL,FUNCTION_RESET);
     //Reset PID controllers
-    shk_alp_cellpid(NULL,NULL,FUNCTION_RESET);
+    shk_alp_cellpid(NULL,FUNCTION_RESET);
     shk_alp_zernpid(NULL,NULL,FUNCTION_RESET);
     shk_hex_zernpid(NULL,NULL,FUNCTION_RESET);
     //Reset last times
     memcpy(&full_last,&start,sizeof(struct timespec));
     memcpy(&hex_last,&start,sizeof(struct timespec));
+    memcpy(&last,&start,sizeof(struct timespec));
     //Set init flag
     init=1;
     //Debugging
     if(SHK_DEBUG) printf("SHK: Initialized\n");
   }
-  
+
   //Measure exposure time
   if(timespec_subtract(&delta,&start,&last))
     printf("SHK: shk_process_image --> timespec_subtract error!\n");
@@ -801,6 +798,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
 
   //Check if we will send a command
   if((sm_p->state_array[state].hex_commander == SHKID) && sm_p->hex_ready && (dt > HEX_PERIOD)){
+
     //Get last HEX command
     hex_get_command(sm_p,&hex);
     
@@ -824,7 +822,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
 	  hex.zernike_cmd[i] += hex_delta.zernike_cmd[i];
 
       // - add axis deltas to HEX command
-      for(i=0;i<HEX_N_AXES;i++)
+      for(i=0;i<HEX_NAXES;i++)
 	hex.axis_cmd[i] += hex_delta.axis_cmd[i];
     }
 
@@ -833,7 +831,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
       sm_p->hex_calmode = hex_calibrate(shkevent.hex_calmode,&hex,&shkevent.hex_calstep,FUNCTION_NO_RESET);
     
     //Send command to HEX
-    if(hex_command(sm_p,hex.axis_cmd,SHKID)){
+    if(hex_send_command(sm_p,&hex,SHKID)){
       // - copy to shkevent
       memcpy(&shkevent.hex,&hex,sizeof(hex_t));
     }
@@ -848,6 +846,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   
   //Check if we will send a command
   if((sm_p->state_array[state].alp_commander == SHKID) && sm_p->alp_ready){
+
     //Get last ALP command
     alp_get_command(sm_p,&alp);
     
@@ -893,7 +892,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
       sm_p->alp_calmode = alp_calibrate(shkevent.alp_calmode,&alp,&shkevent.alp_calstep,FUNCTION_NO_RESET);
     
     //Send command to ALP
-    if(alp_command(sm_p,alp.act_cmd,SHKID,alp_cmdtype,n_dither)){
+    if(alp_send_command(sm_p,&alp,SHKID,n_dither)){
       // - copy command to shkevent
       memcpy(&shkevent.alp,&alp,sizeof(alp_t));
     }

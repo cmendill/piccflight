@@ -93,20 +93,18 @@ enum states { STATE_STANDBY,
  * Commands
  *************************************************/
 #define CMD_SENDDATA  0x0ABACABB
-#define CMDTYPE_ABSOLUTE 0
-#define CMDTYPE_RELATIVE 1
 
 /*************************************************
 * Enable Switches
 *************************************************/
 #define ALP_ENABLE      1 // ALPAO DM
 #define BMC_ENABLE      0 // BMC DM
-#define HEX_ENABLE      1 // Hexapod
+#define HEX_ENABLE      0 // Hexapod
 #define WSP_ENABLE      0 // WASP
 #define LED_ENABLE      0 // LED
 #define HTR_ENABLE      0 // Heaters
 #define MOT_ENABLE      0 // Motors
-#define TLM_ENABLE      0 // Telemetry
+#define TLM_ENABLE      1 // Telemetry
 
 /*************************************************
  * Actuator IDs
@@ -372,6 +370,7 @@ enum bufids {SCIEVENT, SCIFULL,
 /*************************************************
  * RTD Settings
  *************************************************/
+#define RTD_BOARD_MINOR                0 // Minor device number of the RTD board
 #define RTD_PRGCLK_0_DIVISOR           8 // Programmable clock frequency = 25/RTD_PRGCLK_0_DIVISOR [MHz]
 #define RTD_TIMER_A0_DIVISOR           2 // Output clock frequency = (25/RTD_PRGCLK_0_DIVISOR)/RTD_TIMER_A0_DIVISOR [MHz]
 #define RTD_CLK_FREQUENCY              ((25000000.0/RTD_PRGCLK_0_DIVISOR)/RTD_TIMER_A0_DIVISOR) //[Hz]
@@ -739,15 +738,6 @@ typedef volatile struct {
   shkevent_t shkevent[SHKEVENTSIZE];
   lytevent_t lytevent[LYTEVENTSIZE];
   acqevent_t acqevent[ACQEVENTSIZE];
-  hexevent_t hexrecv[HEXRECVSIZE];
-  hexevent_t shk_hexsend[HEXSENDSIZE];
-  hexevent_t lyt_hexsend[HEXSENDSIZE];
-  hexevent_t acq_hexsend[HEXSENDSIZE];
-  hexevent_t wat_hexsend[HEXSENDSIZE];
-  hexevent_t shk_hexrecv[HEXRECVSIZE];
-  hexevent_t lyt_hexrecv[HEXRECVSIZE];
-  hexevent_t acq_hexrecv[HEXRECVSIZE];
-  hexevent_t wat_hexrecv[HEXRECVSIZE];
 
   //Full frame circular buffers
   scifull_t scifull[SCIFULLSIZE];

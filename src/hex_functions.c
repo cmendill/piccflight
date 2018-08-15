@@ -69,7 +69,8 @@ void hex_disconnect(int id){
 /*  - Initialize Hexapod                                      */
 /**************************************************************/
 int hex_init(int *hexfd){
-  int bFlag;
+  int bFlag,i;
+  double pivot[3]   = {HEX_PIVOT_X,HEX_PIVOT_Y,HEX_PIVOT_Z};
   
   /* Connect to Hexapod */
   if((*hexfd=hex_connect()) < 0){
@@ -120,7 +121,7 @@ void hex_get_command(sm_t *sm_p, hex_t *cmd){
   //Atomically test and set HEX command lock using GCC built-in function
   while(__sync_lock_test_and_set(&sm_p->hex_command_lock,1));
   //Copy command
-  memcpy(cmd,&sm_p->hex_command,sizeof(hex_t));
+  memcpy(cmd,(hex_t *)&sm_p->hex_command,sizeof(hex_t));
   //Release lock
   __sync_lock_release(&sm_p->hex_command_lock);
 }
@@ -135,23 +136,23 @@ void hex_get_command(sm_t *sm_p, hex_t *cmd){
 int hex_send_command(sm_t *sm_p, hex_t *cmd, int proc_id){
   int retval=0;
 
-  //Check if the commanding process is the HEX commander
-  if(proc_id == sm_p->state_array[sm_p->state].hex_commander){
+  //Atomically test and set HEX command lock using GCC built-in function
+  if(__sync_lock_test_and_set(&sm_p->hex_command_lock,1)==0){
 
-    //Atomically test and set HEX command lock using GCC built-in function
-    if(__sync_lock_test_and_set(&sm_p->hex_command_lock,1)==0){
+    //Check if the commanding process is the HEX commander
+    if(proc_id == sm_p->state_array[sm_p->state].hex_commander){
       
       //Send the command
       if(hex_move(sm_p->hexfd,cmd->axis_cmd) == 0){
 	//Copy command to current position
-	memcpy(sm_p->hex_command,cmd,sizeof(hex_t));
+	memcpy((hex_t *)&sm_p->hex_command,cmd,sizeof(hex_t));
 	//Set return value
 	retval = 1;
       }
-      
-      //Release lock
-      __sync_lock_release(&sm_p->hex_command_lock);
-    }
+    }  
+
+    //Release lock
+    __sync_lock_release(&sm_p->hex_command_lock);
   }
   
   //Return
@@ -187,7 +188,7 @@ int hex_hex2scope(double *position, double *result){
 /* HEX_SCOPE2HEX                                              */
 /*  - Convert from scope coords to hexapod coords             */
 /**************************************************************/
-int scope2hex(double *position, double *result){
+int hex_scope2hex(double *position, double *result){
   int i,j,k;
   double rotation_matrix[9] = { COS_Y*COS_Z,  SIN_X*SIN_Y*COS_Z + COS_X*SIN_Z, -COS_X*SIN_Y*COS_Z + SIN_X*SIN_Z,
                                -COS_Y*SIN_Z, -SIN_X*SIN_Y*SIN_Z + COS_X*COS_Z,  COS_X*SIN_Y*SIN_Z + SIN_X*COS_Z,
@@ -227,7 +228,7 @@ int hex_move(int id, double *pos){
     return 1;
 
   //Convert telescope to hexapod coordinates
-  scope2hex(pos, result);
+  hex_scope2hex(pos, result);
 
   //Send command to move hexapod
   if(!PI_MOV(id, axes_all, result)){
@@ -282,7 +283,7 @@ int hex_getpos(int id, double *pos){
 int hex_printpos(int id){
   double hexpos[6]={0};
   double scopepos[6]={0};
-  if(hex_getpos(hexfd,hexpos)){
+  if(hex_getpos(id,hexpos)){
     printf("HEX: hex_getpos error!\n");
     return 1;
   }
@@ -420,7 +421,7 @@ void hex_zern2hex_alt(double *zernikes, double *axes){
 /* HEX_CALIBRATE                                              */
 /*  - Run hexapod calibration routines                        */
 /**************************************************************/
-int hex_calibrate(int calmode, hex_t *hex, uint32 *step, int reset){
+int hex_calibrate(int calmode, hex_t *hex, uint32_t *step, int reset){
   int i;
   const double hexdef[HEX_NAXES] = HEX_POS_DEFAULT;
   static struct timespec start,this,last,delta;

@@ -26,7 +26,7 @@
 #define ACQ_MODE_DEFAULT 0
 
 //Shack-Hartmann Settings
-#define SHK_BOXSIZE_DEFAULT     7
+#define SHK_BOXSIZE_DEFAULT       7
 #define SHK_KP_ALP_CELL_DEFAULT  -0.5
 #define SHK_KI_ALP_CELL_DEFAULT  -0.2
 #define SHK_KD_ALP_CELL_DEFAULT   0.0
