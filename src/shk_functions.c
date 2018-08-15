@@ -401,7 +401,7 @@ void shk_zernike_matrix(shkcell_t *cells, double *matrix_inv){
 }
 
 /**************************************************************/
-/*                      SHK_ZERNIKE_FIT                       */
+/* SHK_ZERNIKE_FIT                                            */
 /*  - Fit Zernikes to SHK centroids                           */
 /**************************************************************/
 void shk_zernike_fit(shkcell_t *cells, double *zernikes){

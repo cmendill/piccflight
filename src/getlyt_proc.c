@@ -14,39 +14,39 @@
 #include "common_functions.h"
 
 /* Process File Descriptor */
-static int getshk_shmfd;
+static int getlyt_shmfd;
 static FILE *out=NULL;
-static int getshk_run=1;
-static unsigned long int getshk_count=0;
+static int getlyt_run=1;
+static unsigned long int getlyt_count=0;
 static char outfile[MAX_FILENAME];
 
 /* CTRL-C Function */
-void getshkctrlC(int sig)
+void getlytctrlC(int sig)
 {
 #if MSG_CTRLC
-  printf("GETSHK: ctrlC! exiting.\n");
+  printf("GETLYT: ctrlC! exiting.\n");
 #endif
-  getshk_run = 0;
+  getlyt_run = 0;
   sleep(1);
-  printf("GETSHK: Wrote %lu shkevents to %s\n",getshk_count,outfile);
-  close(getshk_shmfd);
+  printf("GETLYT: Wrote %lu lytevents to %s\n",getlyt_count,outfile);
+  close(getlyt_shmfd);
   fclose(out);
   exit(sig);
 }
 
-void getshk_proc(void){
-  static shkevent_t shkevent;
+void getlyt_proc(void){
+  static lytevent_t lytevent;
   
   /* Open Shared Memory */
   sm_t *sm_p;
-  if((sm_p = openshm(&getshk_shmfd)) == NULL){
+  if((sm_p = openshm(&getlyt_shmfd)) == NULL){
     printf("openshm fail: main\n");
-    close(getshk_shmfd);
+    close(getlyt_shmfd);
     exit(0);
   }
 
   /* Set soft interrupt handler */
-  sigset(SIGINT, getshkctrlC);	/* usually ^C */
+  sigset(SIGINT, getlytctrlC);	/* usually ^C */
 
   /* Open output file */
   //--setup filename
@@ -60,15 +60,15 @@ void getshk_proc(void){
   }
   
   /* Enter loop to read shack-hartmann events */
-  while(getshk_run){
-    if(read_from_buffer(sm_p, &shkevent, SHKEVENT, DIAID)){
-      //Save shkevent
-      fwrite(&shkevent,sizeof(shkevent),1,out);
+  while(getlyt_run){
+    if(read_from_buffer(sm_p, &lytevent, LYTEVENT, DIAID)){
+      //Save lytevent
+      fwrite(&lytevent,sizeof(lytevent),1,out);
 
       //Check in with the watchdog
-      if(getshk_count % 10 == 0) checkin(sm_p,DIAID);
+      if(getlyt_count % 10 == 0) checkin(sm_p,DIAID);
 
-      getshk_count++;
+      getlyt_count++;
     }
   }
   sleep(100);

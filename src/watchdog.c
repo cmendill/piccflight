@@ -320,6 +320,9 @@ int main(int argc,char **argv){
   sm_p->shk_kP_hex_zern  = SHK_KP_HEX_ZERN_DEFAULT;
   sm_p->shk_kI_hex_zern  = SHK_KI_HEX_ZERN_DEFAULT;
   sm_p->shk_kD_hex_zern  = SHK_KD_HEX_ZERN_DEFAULT;
+  sm_p->lyt_kP_alp_zern  = LYT_KP_ALP_ZERN_DEFAULT;
+  sm_p->lyt_kI_alp_zern  = LYT_KI_ALP_ZERN_DEFAULT;
+  sm_p->lyt_kD_alp_zern  = LYT_KD_ALP_ZERN_DEFAULT;
   sm_p->hex_tilt_correct = HEX_TILT_CORRECT_DEFAULT;
   /* Initialize States */
   for(i=0;i<NSTATES;i++)

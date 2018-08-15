@@ -85,6 +85,7 @@ enum states { STATE_STANDBY,
 	      STATE_SHK_ALP_CALIBRATE,
 	      STATE_SHK_ZERN_LOWFC,
 	      STATE_SHK_CELL_LOWFC,
+	      STATE_LYT_ALP_CALIBRATE,
 	      STATE_LYT_LOWFC,
 	      STATE_SCI_DARK_HOLE,
 	      NSTATES};
@@ -145,6 +146,7 @@ enum states { STATE_STANDBY,
 #define DATANAME          "output/flight_data/folder_%5.5d/picture.%s.%8.8d.dat"
 #define SHK_HEX_CALFILE   "output/calibration/shk_hex_%s_caldata.dat"
 #define SHK_ALP_CALFILE   "output/calibration/shk_alp_%s_caldata.dat"
+#define LYT_ALP_CALFILE   "output/calibration/lyt_alp_%s_caldata.dat"
 #define SHK2ZERN_OUTFILE  "output/calibration/shk2zern_flight_output.dat"
 #define ZERN2SHK_OUTFILE  "output/calibration/zern2shk_flight_output.dat"
 #define SHK_OUTFILE       "output/calibraiton/shk_output.dat"
@@ -428,6 +430,7 @@ typedef struct shkctrl_struct{
 // Lyot Sensor Control (lyt_proc.c)
 typedef struct lytctrl_struct{
   int run_camera;
+  int fit_zernikes;
   int zernike_control[LOWFS_N_ZERNIKE];
   int offload_tilt_to_hex;
   int offload_tilt_to_wasp;
@@ -587,15 +590,17 @@ typedef struct shkevent_struct{
 
 typedef struct lytevent_struct{
   pkthed_t  hed;
-  double    kP_zernike;
-  double    kI_zernike;
-  double    kD_zernike;
+  uint32    alp_calmode;
+  uint32    alp_calstep;
+  double    xtilt;
+  double    ytilt;
+  double    kP_alp_zern;
+  double    kI_alp_zern;
+  double    kD_alp_zern;
   double    zernike_measured[LOWFS_N_ZERNIKE];
   double    zernike_target[LOWFS_N_ZERNIKE];
-  lyt_t     image;
-  hex_t     hex;
   alp_t     alp;
-  wsp_t     wsp;
+  lyt_t     image;
 } lytevent_t;
 
 typedef struct acqevent_struct{
@@ -619,8 +624,9 @@ typedef struct shkfull_struct{
 } shkfull_t;
 
 typedef struct lytfull_struct{
-  pkthed_t hed;
-  lyt_t    image;
+  pkthed_t   hed;
+  lyt_t      image;
+  lytevent_t lytevent;
 } lytfull_t;
 
 typedef struct acqfull_struct{
@@ -718,6 +724,11 @@ typedef volatile struct {
   double shk_kI_hex_zern;     //SHK HEX zernike gains
   double shk_kD_hex_zern;     //SHK HEX zernike gains
 
+  //Lyot LOWFS Settings
+  double lyt_kP_alp_zern;     //LYT ALP zernike gains
+  double lyt_kI_alp_zern;     //LYT ALP zernike gains
+  double lyt_kD_alp_zern;     //LYT ALP zernike gains
+ 
   //Reset Commands
   int shk_reset;
   int acq_reset;
