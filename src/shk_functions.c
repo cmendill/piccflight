@@ -847,7 +847,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   /*************************************************************/
   
   //Check if we will send a command
-  if((sm_p->state_array[state].alp_commander == SHKID) && sm_p->rtd_ready){
+  if((sm_p->state_array[state].alp_commander == SHKID) && sm_p->alp_ready){
     //Get last ALP command
     alp_get_command(sm_p,&alp);
     

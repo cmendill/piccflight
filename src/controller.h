@@ -97,7 +97,7 @@ enum states { STATE_STANDBY,
 #define CMDTYPE_RELATIVE 1
 
 /*************************************************
-* Actuator Enable Switches
+* Enable Switches
 *************************************************/
 #define ALP_ENABLE      1 // ALPAO DM
 #define BMC_ENABLE      0 // BMC DM
@@ -106,6 +106,7 @@ enum states { STATE_STANDBY,
 #define LED_ENABLE      0 // LED
 #define HTR_ENABLE      0 // Heaters
 #define MOT_ENABLE      0 // Motors
+#define TLM_ENABLE      0 // Telemetry
 
 /*************************************************
  * Actuator IDs
@@ -655,9 +656,10 @@ typedef volatile struct {
   procinfo_t w[NCLIENTS];
 
   //Device ready flags
-  int rtd_ready;
+  int alp_ready;
   int bmc_ready;
   int hex_ready;
+  int tlm_ready;
     
   //RTD board descriptor
   DM7820_Board_Descriptor* p_rtd_board;

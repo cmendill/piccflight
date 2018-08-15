@@ -362,35 +362,40 @@ int main(int argc,char **argv){
   sprintf((char *)sm_p->circbuf[ACQFULL].name,"ACQFULL");
   
   /* Init RTD Driver */
-  //Open driver
-  if((dm7820_status = rtd_open(RTD_BOARD_MINOR, &p_rtd_board))){
-    perror("rtd_open");
-    printf("WAT: RTD init failed!\n");
-  }
-  else{
-    //Reset board
-    if((dm7820_status = rtd_reset(p_rtd_board))){
-      perror("rtd_reset");
+  if(ALP_ENABLE || TLM_ENABLE){
+    //Open driver
+    if((dm7820_status = rtd_open(RTD_BOARD_MINOR, &p_rtd_board))){
+      perror("rtd_open");
       printf("WAT: RTD init failed!\n");
     }
     else{
-      //Set device handle
-      sm_p->p_rtd_board = p_rtd_board;
-      sm_p->rtd_ready = 1;
-      printf("WAT: RTD board ready\n");
+      //Reset board
+      if((dm7820_status = rtd_reset(p_rtd_board))){
+	perror("rtd_reset");
+	printf("WAT: RTD init failed!\n");
+      }
+      else{
+	//Set device handle
+	sm_p->p_rtd_board = p_rtd_board;
+	if(ALP_ENABLE) sm_p->alp_ready = 1;
+	if(TLM_ENABLE) sm_p->tlm_ready = 1;
+	printf("WAT: RTD board ready\n");
+      }
     }
-
+  }
+  
   /* Init HEX Driver */
-  if(hex_init(&hexfd)){
-    perror("hex_init");
-    printf("WAT: HEX init failed!\n");
+  if(HEX_ENABLE){
+    if(hex_init(&hexfd)){
+      perror("hex_init");
+      printf("WAT: HEX init failed!\n");
+    }
+    else{
+      sm_p->hexfd = hexfd;
+      sm_p->hex_ready = 1;
+      printf("WAT: HEX ready\n");
+    }
   }
-  else{
-    sm_p->hexfd = hexfd;
-    sm_p->hex_ready = 1;
-    printf("WAT: HEX ready\n");
-  }
-
   
   /* Launch Watchdog */
   if(sm_p->w[WATID].run){

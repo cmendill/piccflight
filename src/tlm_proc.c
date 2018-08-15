@@ -173,7 +173,8 @@ void tlm_proc(void){
   pthread_create(&listener_thread,NULL,tlm_listen,(void *)0);
 
   /* Init RTD */
-  rtd_init_tlm(sm_p->p_rtd_board,TLM_BUFFER_SIZE);
+  if(sm_p->tlm_ready)
+    rtd_init_tlm(sm_p->p_rtd_board,TLM_BUFFER_SIZE);
    
   /* Fill out empty buffer*/
   for(i=0;i<TLM_BUFFER_LENGTH;i++)
@@ -221,7 +222,7 @@ void tlm_proc(void){
 	  
 	}else{
 	  //RTD write fake data
-	  if(sm_p->p_rtd_board != NULL){
+	  if(sm_p->tlm_ready){
 	    rtd_send_tlm(sm_p->p_rtd_board,(char *)fakeword,sizeof(uint16)*NFAKE);
 	    usleep(50000);
 	  }
@@ -250,29 +251,14 @@ void tlm_proc(void){
 	  }
 	  if(SEND_SCI){
 	    //write data
-	    write_block(sm_p->p_rtd_board,(char *)&sci, sizeof(sci));
-	    if(TLM_DEBUG)
-	      printf("TLM: Frame %d - SCI\n",sci.hed.frame_number);
+	    if(sm_p->tlm_ready){
+	      write_block(sm_p->p_rtd_board,(char *)&sci, sizeof(sci));
+	      if(TLM_DEBUG)
+		printf("TLM: Frame %d - SCI\n",sci.hed.frame_number);
+	    }
 	  }
 	}
 
-	/*Get SCI data*/
-	if(read_from_buffer(sm_p, &sci, SCIEVENT, TLMID)){
-	  //check in with watchdog
-	  checkin(sm_p,TLMID);
-	  //save sci data 
-	  if(SAVE_SCI){
-	    sprintf(tag,"sci");
-	      save_data(&sci, sizeof(sci),tag,sci.hed.frame_number,folderindex);
-	  }
-	  //send sci data
-	  if(SEND_SCI){
-	    write_block(sm_p->p_rtd_board,(char *)&sci, sizeof(sci));
-	    if(TLM_DEBUG)
-	      printf("TLM: Frame %d - SCI\n",sci.hed.frame_number);
-	  }
-	}
-	
 	/*Get SHK data*/
 	if(read_from_buffer(sm_p, &shk, SHKEVENT, TLMID)){
 	  //check in with watchdog
@@ -284,9 +270,11 @@ void tlm_proc(void){
 	  }
 	  //send shk data
 	  if(SEND_SHK){
-	    write_block(sm_p->p_rtd_board,(char *)&shk, sizeof(shk));
-	    if(TLM_DEBUG)
-	      printf("TLM: Frame %d - SHK\n",shk.hed.frame_number);
+	    if(sm_p->tlm_ready){
+	      write_block(sm_p->p_rtd_board,(char *)&shk, sizeof(shk));
+	      if(TLM_DEBUG)
+		printf("TLM: Frame %d - SHK\n",shk.hed.frame_number);
+	    }
 	  }
 	}
 	
@@ -301,9 +289,11 @@ void tlm_proc(void){
 	  }
 	  //send lyt data
 	  if(SEND_LYT){
-	    write_block(sm_p->p_rtd_board,(char *)&lyt, sizeof(lyt));
-	    if(TLM_DEBUG)
-	      printf("TLM: Frame %d - LYT\n",lyt.hed.frame_number);
+	    if(sm_p->tlm_ready){
+	      write_block(sm_p->p_rtd_board,(char *)&lyt, sizeof(lyt));
+	      if(TLM_DEBUG)
+		printf("TLM: Frame %d - LYT\n",lyt.hed.frame_number);
+	    }
 	  }
 	}
 	
@@ -318,15 +308,13 @@ void tlm_proc(void){
 	  }
 	  //send acq data
 	  if(SEND_ACQ){
-	    write_block(sm_p->p_rtd_board,(char *)&acq, sizeof(acq));
-	    if(TLM_DEBUG)
-	      printf("TLM: Frame %d - ACQ\n",acq.hed.frame_number);
+	    if(sm_p->tlm_ready){
+	      write_block(sm_p->p_rtd_board,(char *)&acq, sizeof(acq));
+	      if(TLM_DEBUG)
+		printf("TLM: Frame %d - ACQ\n",acq.hed.frame_number);
+	    }
 	  }
 	}
-	
-
-
-	
       }
     }
   }
