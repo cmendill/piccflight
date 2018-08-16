@@ -195,6 +195,10 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   //Save time
   memcpy(&last,&start,sizeof(struct timespec));
 
+  //Save end timestamps for full image code
+  lytevent.hed.end_sec  = end.tv_sec;
+  lytevent.hed.end_nsec = end.tv_nsec;
+  
 
   /*************************************************************/
   /**********************  Full Image Code  ********************/
