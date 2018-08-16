@@ -120,6 +120,9 @@ CONFIGURE SSH KEY LOGIN
 
 LINUX SETUP
  - sudo addgroup wheel
+ - For PHX driver: 
+   - edit /etc/default/grub and put GRUB_CMDLINE_LINUX="mem=1024M"
+   - run sudo update-grub
 
 AUTO MODULE LOADING
  - edit /etc/modules and add the following lines:
