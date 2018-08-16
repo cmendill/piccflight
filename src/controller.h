@@ -691,6 +691,7 @@ typedef volatile struct {
   //ALP Command
   int   alp_command_lock;
   alp_t alp_command;
+  int   alp_proc_id;
   int   alp_n_dither;
 
   //BMC Command

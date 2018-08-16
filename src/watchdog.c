@@ -324,6 +324,9 @@ int main(int argc,char **argv){
   sm_p->lyt_kI_alp_zern  = LYT_KI_ALP_ZERN_DEFAULT;
   sm_p->lyt_kD_alp_zern  = LYT_KD_ALP_ZERN_DEFAULT;
   sm_p->hex_tilt_correct = HEX_TILT_CORRECT_DEFAULT;
+  sm_p->alp_n_dither     = -1;
+  sm_p->alp_proc_id      = -1;
+  
   /* Initialize States */
   for(i=0;i<NSTATES;i++)
     init_state(i,(state_t *)&sm_p->state_array[i]);

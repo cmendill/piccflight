@@ -23,7 +23,7 @@ uint16_t *rtd_alp_dma_buffer=NULL;     // ALP DMA buffer pointer
 uint16_t *rtd_tlm_dma_buffer=NULL;     // TLM DMA buffer pointer
 uint32_t  rtd_alp_dma_buffer_size=0;   // ALP DMA buffer size
 uint32_t  rtd_tlm_dma_buffer_size=0;   // TLM DMA buffer size
-uint32_t  rtd_alp_dithers_per_frame=1; // Number of dither steps per frame
+int       rtd_alp_dithers_per_frame=1; // Number of dither steps per frame
 
 /**************************************************************/
 /* RTD_OPEN                                                   */
@@ -428,7 +428,7 @@ DM7820_Error rtd_send_tlm(DM7820_Board_Descriptor* p_rtd_board, char *buf, uint3
 /* RTD_INIT_ALP                                               */
 /*  - Initialize the RTD board to control the ALPAO DM        */
 /**************************************************************/
-DM7820_Error rtd_init_alp(DM7820_Board_Descriptor* p_rtd_board, uint32_t dithers_per_frame) {
+DM7820_Error rtd_init_alp(DM7820_Board_Descriptor* p_rtd_board, int dithers_per_frame) {
   DM7820_Error dm7820_status;
   uint32_t dma_buffer_size,dma_buffer_length,i;
   
