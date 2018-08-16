@@ -2687,8 +2687,8 @@ dm7820_int_queue_add(dm7820_device_descriptor_t * dm7820_device,
 		 * Indicate interrupt status queue overflow
 		 */
 		printk(KERN_WARNING
-		       "%s: WARNING: Missed interrupt info because queue is full\n",
-		       &((dm7820_device->device_name)[0]));
+		       "%s: WARNING: Missed interrupt %d info because queue is full\n",
+		       &((dm7820_device->device_name)[0]),int_source);
 
 		dm7820_device->int_queue_missed++;
 
