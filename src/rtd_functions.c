@@ -277,27 +277,29 @@ static void rtd_alp_build_dither_block(double *cmd) {
 static DM7820_Error rtd_alp_write_dma_fifo(DM7820_Board_Descriptor* p_rtd_board) {
   DM7820_Error dm7820_status=0,dm7820_return=0;
   uint8_t fifo_status;
-  int fifo_warning=0;
   
-  //Sleep until current DMA transfer is done
-  while(DM7820_General_Check_DMA_0_Transfer(p_rtd_board) == 0)
+  //Sleep until current DMA transfer is done (PREVIOUS DMA MUST BE DONE, WARN IF IT ISN'T)
+  if(DM7820_General_Check_DMA_0_Transfer(p_rtd_board) == 0){
+    printf("RTD: ALP DMA NOT DONE!\n");
     usleep(10);
+    while(DM7820_General_Check_DMA_0_Transfer(p_rtd_board) == 0)
+      usleep(10);
+  }
   
   //Sleep until fifo is empty (FIFO MUST BE EMPTY, WARN IF IT ISN'T)
   if((dm7820_status = DM7820_FIFO_Get_Status(p_rtd_board,DM7820_FIFO_QUEUE_0,DM7820_FIFO_STATUS_EMPTY,&fifo_status)))
     perror("DM7820_FIFO_Get_Status");
   dm7820_return |= dm7820_status;
-  while(!fifo_status){
-    if(!fifo_warning){
-      printf("RTD: ALP FIFO NOT EMPTY!\n");
-      fifo_warning=1;
-    }
+  if(!fifo_status){
+    printf("RTD: ALP FIFO NOT EMPTY!\n");
     usleep(10);
-    if((dm7820_status = DM7820_FIFO_Get_Status(p_rtd_board,DM7820_FIFO_QUEUE_0,DM7820_FIFO_STATUS_EMPTY,&fifo_status)))
-      perror("DM7820_FIFO_Get_Status");
-    dm7820_return |= dm7820_status;
+    while(!fifo_status){
+      if((dm7820_status = DM7820_FIFO_Get_Status(p_rtd_board,DM7820_FIFO_QUEUE_0,DM7820_FIFO_STATUS_EMPTY,&fifo_status)))
+	perror("DM7820_FIFO_Get_Status");
+      dm7820_return |= dm7820_status;
+    }
   }
-
+  
   //Write data to driver's DMA buffer
   if((dm7820_status = DM7820_FIFO_DMA_Write(p_rtd_board, DM7820_FIFO_QUEUE_0, rtd_alp_dma_buffer, 1)))
     perror("DM7820_FIFO_DMA_Write");

@@ -126,7 +126,6 @@ void alp_get_command(sm_t *sm_p, alp_t *cmd){
 /**************************************************************/
 int alp_send_command(sm_t *sm_p, alp_t *cmd, int proc_id, uint32_t n_dither){
   int retval=0;
-  static int last_n_dither=0;
   
   //Atomically test and set ALP command lock using GCC built-in function
   if(__sync_lock_test_and_set(&sm_p->alp_command_lock,1)==0){
@@ -135,12 +134,12 @@ int alp_send_command(sm_t *sm_p, alp_t *cmd, int proc_id, uint32_t n_dither){
     if(proc_id == sm_p->state_array[sm_p->state].alp_commander){
       
       //Check if we need to re-initalize the RTD board
-      if(n_dither != last_n_dither){
+      if(n_dither != sm_p->alp_n_dither){
 	//Init ALPAO RTD interface
 	if(rtd_init_alp(sm_p->p_rtd_board,n_dither))
 	  perror("rtd_init_alp");
 	else
-	  last_n_dither = n_dither;
+	  sm_p->alp_n_dither = n_dither;
       }
       
       //Send the command
@@ -200,8 +199,7 @@ int alp_calibrate(int calmode, alp_t *alp, uint32_t *step, int reset){
     sprintf(filename,ZERNIKE_ERRORS_FILE);
     //--open file
     if((fileptr = fopen(filename,"r")) == NULL){
-      printf("Zernike Errors file\r\n");
-      perror("fopen");
+      perror("ALP: Zernike errors file: fopen");
       goto endofinit;
     }
     //--check file size

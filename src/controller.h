@@ -689,15 +689,16 @@ typedef volatile struct {
   int acq_mode;        //Acquisition camera mode
 
   //ALP Command
-  int alp_command_lock;
+  int   alp_command_lock;
   alp_t alp_command;
+  int   alp_n_dither;
 
   //BMC Command
-  int bmc_command_lock;
+  int   bmc_command_lock;
   bmc_t bmc_command;
 
   //HEX Command
-  int hex_command_lock;
+  int   hex_command_lock;
   hex_t hex_command;
 
   //ALP Calibration Mode
