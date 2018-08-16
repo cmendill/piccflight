@@ -46,18 +46,6 @@ DM7820_Error rtd_reset(DM7820_Board_Descriptor* p_rtd_board) {
     perror("DM7820_General_Reset");
   dm7820_return |= dm7820_status;
 
-  //Disable all interrupts
-  for(i=0;i<DM7820_INTERRUPT_NONE;i++){
-    //Users cannot disable DMA_DONE interrupts
-    if(i==DM7820_INTERRUPT_FIFO_0_DMA_DONE)
-      continue;
-    if(i==DM7820_INTERRUPT_FIFO_1_DMA_DONE)
-      continue;
-    if((dm7820_status = DM7820_General_Enable_Interrupt(p_rtd_board, i, 0x00))){
-      perror("DM7820_General_Enable_Interrupt");
-    }
-    dm7820_return |= dm7820_status;
-  }
   return dm7820_return;
  }
 

@@ -2642,7 +2642,7 @@ static void
 dm7820_int_queue_add(dm7820_device_descriptor_t * dm7820_device,
 		     dm7820_interrupt_source int_source)
 {
-
+  return;
 	/*
 	 * Make sure we have a valid int source
 	 */

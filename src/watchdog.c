@@ -373,13 +373,13 @@ int main(int argc,char **argv){
     printf("WAT: Opening RTD driver\n");
     //Open driver
     if((dm7820_status = rtd_open(RTD_BOARD_MINOR, &p_rtd_board))){
-      perror("rtd_open");
+      perror("WAT: rtd_open");
       printf("WAT: RTD init failed!\n");
     }
     else{
       //Reset board
       if((dm7820_status = rtd_reset(p_rtd_board))){
-	perror("rtd_reset");
+	perror("WAT: rtd_reset");
 	printf("WAT: RTD init failed!\n");
       }
       else{
