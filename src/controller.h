@@ -149,8 +149,8 @@ enum states { STATE_STANDBY,
 #define LYT_ALP_CALFILE   "output/calibration/lyt_alp_%s_caldata.dat"
 #define SHK2ZERN_OUTFILE  "output/calibration/shk2zern_flight_output.dat"
 #define ZERN2SHK_OUTFILE  "output/calibration/zern2shk_flight_output.dat"
-#define SHK_OUTFILE       "output/calibraiton/shk_output.dat"
-#define LYT_OUTFILE       "output/calibraiton/lyt_output.dat"
+#define SHK_OUTFILE       "output/calibration/shk_output.dat"
+#define LYT_OUTFILE       "output/calibration/lyt_output.dat"
 
 
 /*************************************************

@@ -40,9 +40,8 @@ void getshk_proc(void){
   /* Open Shared Memory */
   sm_t *sm_p;
   if((sm_p = openshm(&getshk_shmfd)) == NULL){
-    printf("openshm fail: main\n");
-    close(getshk_shmfd);
-    exit(0);
+    perror("GETSHK: openshm()");
+    getshkctrlC(0);
   }
 
   /* Set soft interrupt handler */
@@ -52,11 +51,9 @@ void getshk_proc(void){
   //--setup filename
   sprintf(outfile,"%s",(char *)sm_p->calfile);
   //--open file
-  out = fopen(outfile,"w");
-  if(out==NULL){
-    printf("open failed!\n");
-    fclose(out);
-    exit(0);
+  if((out = fopen(outfile, "w")) == NULL){
+    perror("GETSHK: fopen()\n");
+    getshkctrlC(0);
   }
   
   /* Enter loop to read shack-hartmann events */
