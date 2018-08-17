@@ -23,6 +23,24 @@ void getlyt_proc(void); //get lytevents
 void init_fakemode(int fakemode, calmode_t *fake);
 
 /**************************************************************/
+/* PRINT_PROCSTATUS                                           */
+/*  - Print out current process status                        */
+/**************************************************************/
+void print_procstatus(sm_t *sm_p){
+  int i;
+  
+  printf("************ Process Status ************\n");
+  printf("Process      Running\n");
+  for(i=0;i<NCLIENTS;i++)
+    if(sm_p->w[i].run)
+      printf("%s          YES\n",sm_p->w[i].name);
+    else
+      printf("%s          NO\n",sm_p->w[i].name);
+  printf("******************************************\n");
+  
+}
+
+/**************************************************************/
 /* PRINT_STATES                                               */
 /*  - Print out available states                              */
 /**************************************************************/
@@ -84,7 +102,7 @@ int handle_command(char *line, sm_t *sm_p){
   int   itemp;
   char  stemp[CMD_MAX_LENGTH];
   int   cmdfound=0;
-  int   i=0,hex_axis=0;
+  int   i=0,j=0,hex_axis=0;
   double hex_poke=0;
   int    calmode=0;
   static double trl_poke = HEX_TRL_POKE;//0.01;
@@ -126,8 +144,37 @@ int handle_command(char *line, sm_t *sm_p){
   }
 
   /****************************************
-   * SHARED MEMORY COMMANDS
+   * NORMAL COMMANDS
    ***************************************/
+  //Process Control
+  for(i=0;i<NCLIENTS;i++){
+    if(i != WATID){
+      //ON command
+      sprintf(stemp,"%s_proc on",sm_p->w[i].name);
+      for(j=0;j<strlen(stemp);j++) stemp[j]=tolower(stemp[j]);
+      if(!strncasecmp(line,stemp,strlen(stemp))){
+	printf("CMD: Turning %s ON\n",sm_p->w[i].name);
+	sm_p->w[i].run    = 1;
+	return(CMD_NORMAL);
+      }
+      //OFF command
+      sprintf(stemp,"%s_proc off",sm_p->w[i].name);
+      for(j=0;j<strlen(stemp);j++) stemp[j]=tolower(stemp[j]);
+      if(!strncasecmp(line,stemp,strlen(stemp))){
+	printf("CMD: Turning %s OFF\n",sm_p->w[i].name);
+	sm_p->w[i].run    = 0;
+	return(CMD_NORMAL);
+      }
+    }
+  }
+
+  //Get process status
+  if(!strncasecmp(line,"proc status",11)){
+    print_procstatus(sm_p);
+    return(CMD_NORMAL);
+  }
+
+
   //Fake Data Modes
   if(!strncasecmp(line,"shk fakemode",12)){
     cmdfound = 0;
