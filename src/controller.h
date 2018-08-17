@@ -150,6 +150,7 @@ enum states { STATE_STANDBY,
 #define SHK2ZERN_OUTFILE  "output/calibration/shk2zern_flight_output.dat"
 #define ZERN2SHK_OUTFILE  "output/calibration/zern2shk_flight_output.dat"
 #define SHK_OUTFILE       "output/calibraiton/shk_output.dat"
+#define LYT_OUTFILE       "output/calibraiton/lyt_output.dat"
 
 
 /*************************************************
@@ -600,7 +601,6 @@ typedef struct lytevent_struct{
   double    zernike_measured[LOWFS_N_ZERNIKE];
   double    zernike_target[LOWFS_N_ZERNIKE];
   alp_t     alp;
-  lyt_t     image;
 } lytevent_t;
 
 typedef struct acqevent_struct{

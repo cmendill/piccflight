@@ -907,7 +907,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
 	    shkfull.image.data[i][j]=fakepx++;
     }
     else{
-      //Copy full image -- takes about 700 us
+      //Copy full image
       memcpy(&(shkfull.image.data[0][0]),buffer->pvAddress,sizeof(shkfull.image.data));
     }
 
