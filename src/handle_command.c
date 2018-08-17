@@ -264,22 +264,42 @@ int handle_command(char *line, sm_t *sm_p){
     return(CMD_NORMAL);
   }
 
-  //Start Manual Data Recording
+  //Start Manual SHK Data Recording
   if(!strncasecmp(line, "shk start rec", 13)){
-    printf("CMD: Start Manual Data Recording\n");
+    printf("CMD: Starting SHK data recording\n");
     //Setup filename
     sprintf((char *)sm_p->calfile,SHK_OUTFILE);
     //Start data recording
-    printf("  --Starting data recording to: %s\n",sm_p->calfile);
+    printf("  -- Recording data to: %s\n",sm_p->calfile);
     sm_p->w[DIAID].launch = getshk_proc;
     sm_p->w[DIAID].run    = 1;
-    sleep(3);
     return(CMD_NORMAL);
   }
 
-  //Stop Manual Data Recording
+  //Stop Manual SHK Data Recording
   if(!strncasecmp(line, "shk stop rec", 12)){
-    printf("CMD: Stopping Manual Data Recording\n");
+    printf("CMD: Stopping SHK data recording\n");
+    //Stop data recording
+    sm_p->w[DIAID].run    = 0;
+    printf("  -- Done\n");
+    return(CMD_NORMAL);
+  }
+
+  //Start Manual LYT Data Recording
+  if(!strncasecmp(line, "lyt start rec", 13)){
+    printf("CMD: Starting LYT data recording\n");
+    //Setup filename
+    sprintf((char *)sm_p->calfile,LYT_OUTFILE);
+    //Start data recording
+    printf("  -- Recording data to: %s\n",sm_p->calfile);
+    sm_p->w[DIAID].launch = getlyt_proc;
+    sm_p->w[DIAID].run    = 1;
+    return(CMD_NORMAL);
+  }
+
+  //Stop Manual LYT Data Recording
+  if(!strncasecmp(line, "lyt stop rec", 12)){
+    printf("CMD: Stopping data recording\n");
     //Stop data recording
     sm_p->w[DIAID].run    = 0;
     printf("  -- Done\n");
