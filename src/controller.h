@@ -106,6 +106,7 @@ enum states { STATE_STANDBY,
 #define HTR_ENABLE      0 // Heaters
 #define MOT_ENABLE      0 // Motors
 #define TLM_ENABLE      1 // Telemetry
+#define DIO_ENABLE      1 // DIO ports
 
 /*************************************************
  * Actuator IDs
@@ -159,6 +160,25 @@ enum states { STATE_STANDBY,
 #define TLM_PORT     "1337"
 #define SRV_PORT     "14000"
 #define CMD_SENDDATA  0x0ABACABB
+
+/*************************************************
+ * ISA Board Base Addresses
+ *************************************************/
+#define ADC1_BASE 0x300 //DMM Differential
+#define ADC2_BASE 0x200 //DMM Single-ended
+#define ADC3_BASE 0x180 //DMM Single-ended
+#define COM1_BASE 0x380 //EMM COM port 1
+#define COM2_BASE 0x388 //EMM COM port 2
+#define COM3_BASE 0x288 //EMM COM port 3
+#define COM4_BASE 0x230 //EMM COM port 4
+#define SSR_BASE  0x310 //ACCES IO SSR board
+#define REL_BASE  0x320 //RTD relay board
+#define ADC_PAGE_OFFSET           8
+#define ADC_PORTA_OFFSET         12
+#define ADC_PORTA_CONFIG_OFFSET  15
+#define ADC_IOPORT_LENGTH        16
+#define ADC_PORTA_PAGE           0x01
+#define ADC_PORTA_CONFIG         0x80
 
 /*************************************************
  * Circular Buffer Info
@@ -664,6 +684,7 @@ typedef volatile struct {
   int bmc_ready;
   int hex_ready;
   int tlm_ready;
+  int dio_ready;
     
   //RTD board descriptor
   DM7820_Board_Descriptor* p_rtd_board;

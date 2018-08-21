@@ -10,6 +10,7 @@
 #include <ctype.h>
 #include <phx_api.h>
 #include <pbl_api.h>
+#include <sys/io.h>
 
 /* piccflight headers */
 #include "controller.h"
@@ -58,6 +59,8 @@ static void lyt_callback( tHandle lytCamera, ui32 dwInterruptMask, void *pvParam
   if ( dwInterruptMask & PHX_INTRPT_BUFFER_READY ) {
     stImageBuff stBuffer;
     tContext *aContext = (tContext *)pvParams;
+    //Set debugging DIO bit high
+    if(aContext->sm_p->dio_ready) outb(0x80,ADC2_BASE+ADC_PORTA_OFFSET);
 
     etStat eStat = PHX_StreamRead( lytCamera, PHX_BUFFER_GET, &stBuffer );
     if ( PHX_OK == eStat ) {
@@ -69,6 +72,9 @@ static void lyt_callback( tHandle lytCamera, ui32 dwInterruptMask, void *pvParam
       lyt_frame_count++;
     }
     PHX_StreamRead( lytCamera, PHX_BUFFER_RELEASE, NULL );
+
+    //Set debugging DIO bit low
+    if(aContext->sm_p->dio_ready) outb(0x00,ADC2_BASE+ADC_PORTA_OFFSET);
   }
 }
 

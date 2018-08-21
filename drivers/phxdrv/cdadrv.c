@@ -304,22 +304,17 @@ int init_module( void)
   TRACE( 2, ( "CDA: trace level %d\n", DEBUG_TRACE_LEVEL));
 
 	//get the XT region of memeory 
-	if(request_region(BASEPORT, LENGTH, tempName) == NULL) {
-		printk("%s: request_region failed, base: 0x%03X\n", tempName, BASEPORT);
+	if(request_region(DIO_BASE, DIO_LENGTH, tempName) == NULL) {
+		printk("%s: request_region failed, base: 0x%03X\n", tempName, DIO_BASE);
 		return 1;
 	}
-	printk("%s: IO ports allocated, base: 0x%03X\n", tempName, BASEPORT);
+	printk("%s: IO ports allocated, base: 0x%03X\n", tempName, DIO_BASE);
 
-	//configure both XT ports to output (0x80)
-	outb_p(0x80,CONFIG2);
-
-	//set all PORTA2 pins to zero;
-	outb_p(0x00,PORTA2);
-  
-	//pulse
-	outb_p(0x80,PORTA2);
-	outb_p(0x00,PORTA2);
-	printk("init_module pulse\n");
+        //Set page to 1
+        outb_p(0x01,DIO_BASE+DIO_PAGE);
+        //Configure port A as output
+        outb_p(0x80,DIO_BASE+DIO_CTRL);
+        
 
   /* Probe & register all card types */
   return CDA_Initialise();
@@ -335,7 +330,7 @@ void cleanup_module( void)
   TRACE( 3, ("CDA: %s()\n", __FUNCTION__));
 
   //release the XT region of memeory 
-  release_region(BASEPORT, LENGTH);
+  release_region(DIO_BASE, DIO_LENGTH);
 
   CDA_Terminate();
   }
@@ -1623,8 +1618,6 @@ void CDA_DeviceEvent(
   ASSERT( kMagic == pInst->eMagic);
 #endif
 
-  // outb_p(0x80,PORTA2); //SET DIO board PORTA2 pin 7
-
   /* Push event info onto event Q */
   spin_lock( &pInst->lockEventQ);
 
@@ -1645,9 +1638,6 @@ void CDA_DeviceEvent(
     }
 
   spin_unlock( &pInst->lockEventQ);
-
-  // outb_p(0x00,PORTA2); //CLEAR DIO board PORTA2 pin 7
-  // from line 1628 takes about 5.6 us
 
   /* Schedule bottom half task to run */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)

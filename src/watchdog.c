@@ -367,6 +367,19 @@ int main(int argc,char **argv){
   sm_p->circbuf[ACQFULL].nbytes  = sizeof(acqfull_t);
   sm_p->circbuf[ACQFULL].bufsize = ACQFULLSIZE;
   sprintf((char *)sm_p->circbuf[ACQFULL].name,"ACQFULL");
+
+  /* Setup IO Permissions for Debugging DIO Pulses */
+  if(DIO_ENABLE){
+    if(ioperm(ADC2_BASE,ADC_IOPORT_LENGTH,1))
+      perror("WAT: ioperm()");
+    else{
+      //configure ADC DIO output
+      outb(ADC_PORTA_PAGE,ADC2_BASE+ADC_PAGE_OFFSET);
+      outb(ADC_PORTA_CONFIG,ADC2_BASE+ADC_PORTA_CONFIG_OFFSET);
+      //set DIO ready
+      sm_p->dio_ready=1;
+    }
+  }
   
   /* Init RTD Driver */
   if(ALP_ENABLE || TLM_ENABLE){
@@ -455,6 +468,12 @@ int main(int argc,char **argv){
     printf("WAT: cleanup timeout!\n");
   else
     printf("WAT: cleanup done.\n");
+
+  //Clean up DIO ports
+  if(DIO_ENABLE){
+    if(ioperm(ADC2_BASE,ADC_IOPORT_LENGTH,0))
+      perror("WAT: ioperm()");
+  }
 
   //Cleanup RTD
   if(ALP_ENABLE || TLM_ENABLE){

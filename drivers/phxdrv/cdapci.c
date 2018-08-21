@@ -51,10 +51,11 @@
 #include <asm/uaccess.h>
 #include "linuxdrv.h"           /* For CDA_SIoctlDeviceInfo */
 
-
 #include "cdapci.h"
 #include "debug.h"
 #include "xt.h"
+
+
 /*
  * Macros & constants
  */
@@ -688,8 +689,8 @@ static void PCI_IrqHandler( int const             irq,
   (void)regs;
 #endif
 
-  outb_p(0x80,PORTA2); //SET DIO board PORTA2 pin 7
-
+  outb_p(0x80,DIO_ADDR); //SET DIO board PORTA bit A7
+  
   TRACE( 10, ( "%s(%d,%p)\n", __FUNCTION__, irq, pv));
   ASSERT( NULL != pPci);
   ASSERT( irq == pPci->pDev->irq);
@@ -701,15 +702,8 @@ static void PCI_IrqHandler( int const             irq,
   isInterrupt = (*pPci->info.pfnIrqHandler)( pPci->pvBase, &ulEvent, &ulData);
   /*This is the bottom of the top half.*/ 
 
-  // outb_p(0x00,PORTA2); //CLEAR DIO board PORTA2 pin 7
-  // from line 691 takes about 7.5 us
-
   if ( isInterrupt)
     {
-     // //Strobe DIO board PORTA2 pin 7
-     // outb_p(0x80,PORTA2);
-     // outb_p(0x00,PORTA2);
-
     /* Signal an event */
     TRACE( 3, ("%s: PCI interrupt 0x%08X 0x%08X\n", __FUNCTION__, ulEvent, ulData));
     CDA_DeviceEvent( pPci->pInst, ulEvent, ulData);
@@ -728,8 +722,8 @@ static void PCI_IrqHandler( int const             irq,
       }
     }
 
-  outb_p(0x00,PORTA2); //CLEAR DIO board PORTA2 pin 7
-  // from line 691 takes about 7.5 us
+  outb_p(0x00,DIO_ADDR); //CLEAR DIO board PORT bit A7
+  // from line 694 takes about 7.5 us
   
 #if ( LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 0) )
   return (IRQ_RETVAL(isInterrupt));
