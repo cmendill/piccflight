@@ -41,6 +41,8 @@ void init_state(int state_number, state_t *state){
     state->shk.fit_zernikes = 1;
     //HEX Commander
     state->hex_commander = WATID;
+    //ALP Commander
+    state->alp_commander = WATID;
     return;
   }
   

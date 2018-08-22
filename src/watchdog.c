@@ -418,6 +418,11 @@ int main(int argc,char **argv){
       printf("WAT: HEX ready\n");
     }
   }
+
+  /* Set initial ALP position */
+  if(sm_p->alp_ready)
+    if(alp_set_flat(sm_p,WATID)==0)
+      printf("WAT: alp_set_flat failed!\n");
   
   /* Launch Watchdog */
   if(sm_p->w[WATID].run){
