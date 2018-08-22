@@ -1702,14 +1702,29 @@ dm7820_initialize_dma(dm7820_device_descriptor_t * dm7820_device,
 
 	/*
 	 * Do not allow multiple initializations
-	 */
 
+       
 	if (dm7820_device->dma_initialized[fifo]) {
 		spin_unlock_irqrestore(&(dm7820_device->device_lock),
 				       irq_flags);
 		return -EAGAIN;
 	}
+	*/
 
+	/* DO allow multiple initializations (mendillo 8/22/2018) */
+	if (dm7820_device->dma_initialized[fifo]) {
+	  //unlock
+	  spin_unlock_irqrestore(&(dm7820_device->device_lock),irq_flags);
+	  //free dma resources
+	  dm7820_free_dma_mappings(dm7820_device, fifo);
+	  //relock
+	  spin_lock_irqsave(&(dm7820_device->device_lock), irq_flags);
+	  //clear device info
+	  dm7820_device->dma_initialized[fifo] = 0x00;
+	  dm7820_device->dma_size[fifo] = 0;
+	}
+
+	
 	/*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 	   Allocate DMA buffers
 	   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% */
