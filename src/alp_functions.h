@@ -11,6 +11,7 @@ int  alp_calibrate(int calmode, alp_t *alp, uint32_t *step, int reset);
 
 //Calibration Modes
 enum alpcalmodes {ALP_CALMODE_NONE,
+		  ALP_CALMODE_ZERO,
 		  ALP_CALMODE_FLAT,
 		  ALP_CALMODE_POKE,
 		  ALP_CALMODE_ZPOKE,

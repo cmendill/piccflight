@@ -208,7 +208,7 @@ enum bufids {SCIEVENT, SCIFULL,
  * Function Reset Commands
  *************************************************/
 #define FUNCTION_RESET    1
-#define FUNCTION_NO_RESET 0 
+#define FUNCTION_NO_RESET 0
 
 /*************************************************
  * Zernike Errors
@@ -378,8 +378,8 @@ enum bufids {SCIEVENT, SCIFULL,
 #define SHK_MAX_BOXSIZE       27     //[pixels] gives a 5 pixel buffer around edges
 #define SHK_SPOT_UPPER_THRESH 200
 #define SHK_SPOT_LOWER_THRESH 100
-#define SHK_CELL_XOFF         67 //1px = 0.24 microns tilt
-#define SHK_CELL_YOFF         74 
+#define SHK_CELL_XOFF         94 //+1px = -0.24 microns tip/tilt
+#define SHK_CELL_YOFF         65 
 #define SHK_CELL_ROTATION     0.0
 #define SHK_CELL_XSCALE       1.0
 #define SHK_CELL_YSCALE       1.0
@@ -685,7 +685,7 @@ typedef volatile struct {
   int hex_ready;
   int tlm_ready;
   int dio_ready;
-    
+
   //RTD board descriptor
   DM7820_Board_Descriptor* p_rtd_board;
 
@@ -751,7 +751,7 @@ typedef volatile struct {
   double lyt_kP_alp_zern;     //LYT ALP zernike gains
   double lyt_kI_alp_zern;     //LYT ALP zernike gains
   double lyt_kD_alp_zern;     //LYT ALP zernike gains
- 
+
   //Reset Commands
   int shk_reset;
   int acq_reset;

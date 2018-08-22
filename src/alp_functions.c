@@ -26,6 +26,11 @@ void alp_init_calmode(int calmode, calmode_t *alp){
     sprintf(alp->name,"ALP_CALMODE_NONE");
     sprintf(alp->cmd,"none");
   }
+  //ALP_CALMODE_ZERO
+  if(calmode == ALP_CALMODE_ZERO){
+    sprintf(alp->name,"ALP_CALMODE_ZERO");
+    sprintf(alp->cmd,"zero");
+  }
   //ALP_CALMODE_FLAT
   if(calmode == ALP_CALMODE_FLAT){
     sprintf(alp->name,"ALP_CALMODE_FLAT");
@@ -236,6 +241,17 @@ int alp_calibrate(int calmode, alp_t *alp, uint32_t *step, int reset){
   if(calmode==ALP_CALMODE_NONE){
     countA=0;
     countB=0;
+    return calmode;
+  }
+
+  /* ALP_CALMODE_ZERO: Set all actuators to 0 */
+  if(calmode==ALP_CALMODE_ZERO){
+    //Reset counters
+    countA=0;
+    countB=0;
+    //Set all ALP actuators to 0
+    for(i=0;i<ALP_NACT;i++)
+      alp->act_cmd[i]=0;
     return calmode;
   }
 
