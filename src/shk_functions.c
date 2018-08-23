@@ -578,7 +578,9 @@ void shk_alp_cellpid(shkevent_t *shkevent, int reset){
   static double xint[SHK_NCELLS] = {0};
   static double yint[SHK_NCELLS] = {0};
   int i;
-
+  #define SHK_ALP_INT_MAX  1
+  #define SHK_ALP_INT_MIN -1
+  
   //Initialize
   if(!init || reset){
     memset(xint,0,sizeof(xint));
@@ -593,6 +595,11 @@ void shk_alp_cellpid(shkevent_t *shkevent, int reset){
       //Calculate integrals
       xint[i] += shkevent->cells[i].deviation[0];
       yint[i] += shkevent->cells[i].deviation[1];
+      //Fix windup
+      if(xint[i] > SHK_ALP_INT_MAX) xint[i]=SHK_ALP_INT_MAX;
+      if(xint[i] < SHK_ALP_INT_MIN) xint[i]=SHK_ALP_INT_MIN;
+      if(yint[i] > SHK_ALP_INT_MAX) yint[i]=SHK_ALP_INT_MAX;
+      if(yint[i] < SHK_ALP_INT_MIN) yint[i]=SHK_ALP_INT_MIN;
       //Calculate command
       shkevent->cells[i].command[0] = shkevent->kP_alp_cell * shkevent->cells[i].deviation[0] + shkevent->kI_alp_cell * xint[i];
       shkevent->cells[i].command[1] = shkevent->kP_alp_cell * shkevent->cells[i].deviation[1] + shkevent->kI_alp_cell * yint[i];
@@ -671,8 +678,8 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   int i,j;
   uint16_t fakepx=0;
   int state;
-  hex_t hex,hex_delta;
-  alp_t alp,alp_delta;
+  hex_t hex,hex_try,hex_delta;
+  alp_t alp,alp_try,alp_delta;
   int zernike_control=0;
   uint32_t n_dither=1;
   
@@ -764,12 +771,13 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     printf("SHK: shk_process_image --> timespec_subtract error!\n");
   ts2double(&delta,&dt);
 
+  //Get last HEX command
+  hex_get_command(sm_p,&hex);
+  memcpy(&hex_try,&hex,sizeof(hex_t));
+
   //Check if we will send a command
   if((sm_p->state_array[state].hex_commander == SHKID) && sm_p->hex_ready && (dt > HEX_PERIOD)){
-
-    //Get last HEX command
-    hex_get_command(sm_p,&hex);
-    
+     
     //Check if HEX is controlling any Zernikes
     zernike_control = 0;
     for(i=0;i<LOWFS_N_ZERNIKE;i++)
@@ -787,21 +795,21 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
       // - add Zernike PID output deltas to HEX command
       for(i=0;i<LOWFS_N_ZERNIKE;i++)
 	if(sm_p->state_array[state].shk.zernike_control[i] == ACTUATOR_HEX)
-	  hex.zernike_cmd[i] += hex_delta.zernike_cmd[i];
+	  hex_try.zernike_cmd[i] += hex_delta.zernike_cmd[i];
 
       // - add axis deltas to HEX command
       for(i=0;i<HEX_NAXES;i++)
-	hex.axis_cmd[i] += hex_delta.axis_cmd[i];
+	hex_try.axis_cmd[i] += hex_delta.axis_cmd[i];
     }
 
     //Run HEX calibration
     if(sm_p->hex_calmode != HEX_CALMODE_NONE)
-      sm_p->hex_calmode = hex_calibrate(shkevent.hex_calmode,&hex,&shkevent.hex_calstep,FUNCTION_NO_RESET);
+      sm_p->hex_calmode = hex_calibrate(shkevent.hex_calmode,&hex_try,&shkevent.hex_calstep,FUNCTION_NO_RESET);
     
     //Send command to HEX
-    if(hex_send_command(sm_p,&hex,SHKID)){
-      // - copy to shkevent
-      memcpy(&shkevent.hex,&hex,sizeof(hex_t));
+    if(hex_send_command(sm_p,&hex_try,SHKID)){
+      // - copy command to current position
+      memcpy(&hex,&hex_try,sizeof(hex_t));
     }
     
     //Reset time
@@ -812,11 +820,12 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   /*******************  ALPAO DM Control Code  *****************/
   /*************************************************************/
   
+  //Get last ALP command
+  alp_get_command(sm_p,&alp);
+  memcpy(&alp_try,&alp,sizeof(alp_t));
+  
   //Check if we will send a command
   if((sm_p->state_array[state].alp_commander == SHKID) && sm_p->alp_ready){
-
-    //Get last ALP command
-    alp_get_command(sm_p,&alp);
     
     //Check if ALP is controlling any Zernikes
     zernike_control = 0;
@@ -835,11 +844,11 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
       // - add Zernike PID output deltas to ALP command
       for(i=0;i<LOWFS_N_ZERNIKE;i++)
 	if(sm_p->state_array[state].shk.zernike_control[i] == ACTUATOR_ALP)
-	  alp.zernike_cmd[i] += alp_delta.zernike_cmd[i];
+	  alp_try.zernike_cmd[i] += alp_delta.zernike_cmd[i];
 
       // - add actuator deltas to ALP command
       for(i=0;i<ALP_NACT;i++)
-	alp.act_cmd[i] += alp_delta.act_cmd[i];
+	alp_try.act_cmd[i] += alp_delta.act_cmd[i];
     }
 
     //Check if ALP is controlling SHK cells
@@ -852,19 +861,25 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
 
       // - add actuator deltas to ALP command
       for(i=0;i<ALP_NACT;i++)
-	alp.act_cmd[i] += alp_delta.act_cmd[i];
+	alp_try.act_cmd[i] += alp_delta.act_cmd[i];
     }  
     
     //Calibrate ALP
     if(sm_p->alp_calmode != ALP_CALMODE_NONE)
-      sm_p->alp_calmode = alp_calibrate(shkevent.alp_calmode,&alp,&shkevent.alp_calstep,FUNCTION_NO_RESET);
+      sm_p->alp_calmode = alp_calibrate(shkevent.alp_calmode,&alp_try,&shkevent.alp_calstep,FUNCTION_NO_RESET);
     
     //Send command to ALP
-    if(alp_send_command(sm_p,&alp,SHKID,n_dither)){
-      // - copy command to shkevent
-      memcpy(&shkevent.alp,&alp,sizeof(alp_t));
+    if(alp_send_command(sm_p,&alp_try,SHKID,n_dither)){
+      // - copy command to current position
+      memcpy(&alp,&alp_try,sizeof(alp_t));
     }
   }
+
+  //Copy HEX command to shkevent
+  memcpy(&shkevent.hex,&hex,sizeof(hex_t));
+
+  //Copy ALP command to shkevent
+  memcpy(&shkevent.alp,&alp,sizeof(alp_t));
   
   
   //Open SHKEVENT circular buffer
