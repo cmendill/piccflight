@@ -98,7 +98,7 @@ void shk_centroid_cell(uint16 *image, shkcell_t *cell, int shk_boxsize){
   static double background = 0;
   uint32 maxpix=0,maxval=0;
   int blx,bly,trx,try;
-  int boxsize,boxsize_new;
+  int boxsize;
   int x,y,px,npix;
   double xhist[SHKXS]={0};
   double yhist[SHKYS]={0};
@@ -107,25 +107,23 @@ void shk_centroid_cell(uint16 *image, shkcell_t *cell, int shk_boxsize){
 
   //Set boxsize & spot_captured flag
   boxsize = SHK_MAX_BOXSIZE;
-  boxsize_new = shk_boxsize;
   if(cell->spot_found){
     if(cell->spot_captured){
       //If spot was captured, but is now outside the box, unset captured
-      if((abs(cell->deviation[0]) > boxsize_new) && (abs(cell->deviation[1]) > boxsize_new)){
+      if((abs(cell->deviation[0]) > shk_boxsize) && (abs(cell->deviation[1]) > shk_boxsize)){
 	cell->spot_captured=0;
       }
     }
     else{
       //If spot was not captured, check if it is within the capture region
-      if((abs(cell->deviation[0]) < (boxsize_new-SHK_BOX_DEADBAND)) && (abs(cell->deviation[1]) < (boxsize_new-SHK_BOX_DEADBAND))){
+      if((abs(cell->deviation[0]) < (shk_boxsize-SHK_BOX_DEADBAND)) && (abs(cell->deviation[1]) < (shk_boxsize-SHK_BOX_DEADBAND))){
 	cell->spot_captured=1;
       }
     }
   }
   if(cell->spot_captured)
-    // boxsize = boxsize_new;
-    boxsize=SHK_MAX_BOXSIZE;
-
+    boxsize = shk_boxsize;
+    
   //Calculate corners of centroid box
   blx = floor(cell->cenbox_origin[0] - boxsize);
   bly = floor(cell->cenbox_origin[1] - boxsize);
@@ -677,6 +675,8 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   static shkevent_t shkevent;
   shkfull_t *shkfull_p;
   shkevent_t *shkevent_p;
+  static calmode_t alpcalmodes[ALP_NCALMODES];
+  static calmode_t hexcalmodes[HEX_NCALMODES];
   static struct timespec start,end,delta,last,full_last,hex_last;
   static int init=0;
   double dt;
@@ -714,6 +714,12 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     shk_alp_cellpid(NULL,FUNCTION_RESET);
     shk_alp_zernpid(NULL,NULL,FUNCTION_RESET);
     shk_hex_zernpid(NULL,NULL,FUNCTION_RESET);
+    //Init ALP calmodes
+    for(i=0;i<ALP_NCALMODES;i++)
+      alp_init_calmode(i,&alpcalmodes[i]);
+    //Init HEX calmodes
+    for(i=0;i<HEX_NCALMODES;i++)
+      hex_init_calmode(i,&hexcalmodes[i]);
     //Reset last times
     memcpy(&full_last,&start,sizeof(struct timespec));
     memcpy(&hex_last,&start,sizeof(struct timespec));
@@ -743,7 +749,6 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   shkevent.hed.start_nsec   = start.tv_nsec;
 
   //Save modes and gains
-  shkevent.boxsize          = sm_p->shk_boxsize;
   shkevent.alp_calmode      = sm_p->alp_calmode;
   shkevent.hex_calmode      = sm_p->hex_calmode;
   shkevent.kP_alp_cell      = sm_p->shk_kP_alp_cell;
@@ -755,6 +760,13 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   shkevent.kP_hex_zern      = sm_p->shk_kP_hex_zern;
   shkevent.kI_hex_zern      = sm_p->shk_kI_hex_zern;
   shkevent.kD_hex_zern      = sm_p->shk_kD_hex_zern;
+
+  //Set centroid boxsize based on calmode
+  shkevent.boxsize = sm_p->shk_boxsize;
+  if((alpcalmodes[shkevent.alp_calmode].shk_boxsize_cmd == SHK_BOXSIZE_CMD_MAX) ||
+     (hexcalmodes[shkevent.hex_calmode].shk_boxsize_cmd == SHK_BOXSIZE_CMD_MAX)){
+    shkevent.boxsize = SHK_MAX_BOXSIZE;
+  }
 
   //Calculate centroids
   shk_centroid(buffer->pvAddress,&shkevent);

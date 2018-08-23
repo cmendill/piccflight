@@ -388,6 +388,8 @@ enum bufids {SCIEVENT, SCIFULL,
 #define SHK_XMAX              (SHKXS-1)
 #define SHK_YMIN              0
 #define SHK_YMAX              (SHKYS-1)
+#define SHK_BOXSIZE_CMD_STD   0  //use the current runtime boxsize 
+#define SHK_BOXSIZE_CMD_MAX   1  //use the maximum boxsize
 
 /*************************************************
  * RTD Settings
@@ -433,6 +435,7 @@ typedef struct procinfo_struct{
 typedef struct calmode_struct{
   char name[128];
   char cmd[128];
+  int  shk_boxsize_cmd;
 } calmode_t;
 
 /*************************************************

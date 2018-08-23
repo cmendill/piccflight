@@ -30,21 +30,25 @@ void hex_init_calmode(int calmode, calmode_t *hex){
   if(calmode == HEX_CALMODE_NONE){
     sprintf(hex->name,"HEX_CALMODE_NONE");
     sprintf(hex->cmd,"none");
+    hex->shk_boxsize_cmd = SHK_BOXSIZE_CMD_STD; 
   }
   //HEX_CALMODE_POKE
   if(calmode == HEX_CALMODE_POKE){
     sprintf(hex->name,"HEX_CALMODE_POKE");
     sprintf(hex->cmd,"poke");
+    hex->shk_boxsize_cmd = SHK_BOXSIZE_CMD_MAX; 
   }
   //HEX_CALMODE_TCOR
   if(calmode == HEX_CALMODE_TCOR){
     sprintf(hex->name,"HEX_CALMODE_TCOR");
     sprintf(hex->cmd,"tcor");
+    hex->shk_boxsize_cmd = SHK_BOXSIZE_CMD_MAX; 
   }
   //HEX_CALMODE_SPIRAL
   if(calmode == HEX_CALMODE_SPIRAL){
     sprintf(hex->name,"HEX_CALMODE_SPIRAL");
     sprintf(hex->cmd,"spiral");
+    hex->shk_boxsize_cmd = SHK_BOXSIZE_CMD_MAX; 
   }
 }
 
