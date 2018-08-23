@@ -295,6 +295,8 @@ void init_state(int state_number, state_t *state){
     state->lyt.run_camera = 1;
     state->sci.run_camera = 1;
     state->acq.run_camera = 1;
+    //Set LYTID as alp commander
+    state->alp_commander = LYTID;
     //LYT Settings
     state->lyt.fit_zernikes = 1;
     for(i=0;i<LOWFS_N_ZERNIKE;i++)
