@@ -70,7 +70,6 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   alp_t alp,alp_delta;
   int zernike_control=0;
   uint32_t n_dither=1;
-  lyt_t image;
   
   //Get time immidiately
   clock_gettime(CLOCK_REALTIME,&start);
@@ -127,11 +126,11 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   lytevent.kD_alp_zern      = sm_p->lyt_kD_alp_zern;
 
   //Copy image out of buffer
-  memcpy(&(image.data[0][0]),buffer->pvAddress,sizeof(image.data));
+  memcpy(&(lytevent.image.data[0][0]),buffer->pvAddress,sizeof(lytevent.image.data));
 
   //Fit Zernikes
   if(sm_p->state_array[state].lyt.fit_zernikes)
-    lyt_zernike_fit(&image,lytevent.zernike_measured);
+    lyt_zernike_fit(&lytevent.image,lytevent.zernike_measured);
   
   /*************************************************************/
   /*******************  ALPAO DM Control Code  *****************/
