@@ -1,0 +1,97 @@
+#*****************************************************************#
+#          This describes the piccflight user commands.           #
+#*****************************************************************#
+
+------------- SYSTEM COMMANDS -------------
+
+cmd: exit
+  	exits the watchdog
+	on the flight system the watchdog will restart automatically
+
+------------- PROCESS CONTROL -------------
+
+cmd: xxx_proc on
+	turns the xxx process on
+	xxx = sci, shk, lyt, tlm, etc.
+
+cmd: xxx_proc off
+	turns the xxx process off
+	xxx = sci, shk, lyt, tlm, etc.
+
+cmd: proc status
+	prints the current run status of all available processes
+
+------------- FAKE DATA MODES -------------
+
+cmd: xxx fakemode [cmd]
+	enables a fake data mode for a specific camera or telemetry
+	xxx = shk, lyt, sci, acq, tlm
+	cmd = string command for the fake mode
+	sending command without the cmd will print the available modes
+
+ 
+------------ CALIBRATION MODES ------------
+	
+cmd: alp calmode [cmd]
+	sets the alpao dm calibration mode
+	cmd = string command for the calibration mode
+	sending command without the cmd will print the available modes
+	
+cmd: hex calmode [cmd]
+	sets the hexapod calibration mode
+	cmd = string command for the calibration mode
+	sending command without the cmd will print the available modes
+	
+------------------ STATES -----------------
+
+cmd: state [cmd]
+	set the operational state of the flight software
+	cmd: string command for the state
+	sending command without the cmd will print the available states
+
+-------------- DATA RECORDING -------------
+
+cmd: shk start rec
+	start recording shkevents to disk
+
+cmd: shk stop rec
+	stop recording shkevents to disk
+
+cmd: lyt start rec
+	start recording lytevents to disk
+
+cmd: lyt stop rec
+	stop recording lytevents to disk
+
+------------- HEXAPOD CONTROL -------------
+
+cmd: hex tcor on (NON-FUNCTIONAL)
+	enables hexapod automatic tilt correction for decenter
+	tilt induced by decenter commands will be corrected automatically
+
+cmd: hex tcor off (NON-FUNCTIONAL)
+	disables hexapod automatic tilt correction for decenter
+	tilt induced by decenter commands will NOT be corrected automatically
+
+cmd: hex inc step
+	doubles the incremental step size hexapod movements
+
+cmd: hex dec step
+	halves the incremental step size hexapod movements
+
+cmd: hex rst step
+	resets the incremental step size hexapod movements
+
+cmd: hex getpos
+	query the hexapod for its current position and print to screen
+
+cmd: hex gohome
+	move hexapod to #defined home position
+
+cmd: hex godef
+	move hexapod to #defined default position
+
+cmd: hex move [dir]
+	move the hexapod one step in the given direction
+	dir = +x, -x, +y, -y, +z, -z, +u, -u, +v, -v, +w, -w
+

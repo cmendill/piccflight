@@ -290,27 +290,6 @@ int handle_command(char *line, sm_t *sm_p){
   }
 
   
-  //SHK Flight Test
-  if(!strncasecmp(line,"shk flight test",15)){
-    printf("CMD: Running SHK Flight Test\n");
-    //Start data recording
-    printf("  -- Starting data recording\n");
-    sm_p->w[DIAID].launch = getshk_proc;
-    sm_p->w[DIAID].run    = 1;
-    sleep(3);
-    //Start probe pattern
-    sm_p->alp_calmode=ALP_CALMODE_FLIGHT;
-    printf("  -- Changing ALP calibration mode to %d\n",sm_p->alp_calmode);
-    while(sm_p->alp_calmode == ALP_CALMODE_FLIGHT)
-      sleep(1);
-    printf("  -- Stopping data recording\n");
-    //Stop data recording
-    sm_p->w[DIAID].run    = 0;
-    printf("  -- Done\n");
-
-    return(CMD_NORMAL);
-  }
-
   //Start Manual SHK Data Recording
   if(!strncasecmp(line, "shk start rec", 13)){
     printf("CMD: Starting SHK data recording\n");
