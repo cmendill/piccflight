@@ -624,6 +624,7 @@ typedef struct lytevent_struct{
   double    zernike_measured[LOWFS_N_ZERNIKE];
   double    zernike_target[LOWFS_N_ZERNIKE];
   alp_t     alp;
+  lyt_t     image;
 } lytevent_t;
 
 typedef struct acqevent_struct{
