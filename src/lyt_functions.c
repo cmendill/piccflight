@@ -67,7 +67,7 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   int i,j;
   uint16_t fakepx=0;
   int state;
-  alp_t alp,alp_delta;
+  alp_t alp,alp_try,alp_delta;
   int zernike_control=0;
   uint32_t n_dither=1;
   
@@ -136,12 +136,13 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   /*******************  ALPAO DM Control Code  *****************/
   /*************************************************************/
   
+  //Get last ALP command
+  alp_get_command(sm_p,&alp);
+  memcpy(&alp_try,&alp,sizeof(alp_t));
+
   //Check if we will send a command
   if((sm_p->state_array[state].alp_commander == LYTID) && sm_p->alp_ready){
 
-    //Get last ALP command
-    alp_get_command(sm_p,&alp);
-    
     //Check if ALP is controlling any Zernikes
     zernike_control = 0;
     for(i=0;i<LOWFS_N_ZERNIKE;i++)
@@ -153,17 +154,22 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
       // - run Zernike PID
       lyt_alp_zernpid(&lytevent, alp_delta.zernike_cmd, FUNCTION_NO_RESET);
 
+      // - zero out uncontrolled Zernikes
+      for(i=0;i<LOWFS_N_ZERNIKE;i++)
+	if(sm_p->state_array[state].lyt.zernike_control[i] != ACTUATOR_ALP)
+	  alp_delta.zernike_cmd[i] = 0;
+
       // - convert zernike deltas to actuator deltas
       alp_zern2alp(alp_delta.zernike_cmd,alp_delta.act_cmd);
 
       // - add Zernike PID output deltas to ALP command
       for(i=0;i<LOWFS_N_ZERNIKE;i++)
 	if(sm_p->state_array[state].lyt.zernike_control[i] == ACTUATOR_ALP)
-	  alp.zernike_cmd[i] += alp_delta.zernike_cmd[i];
+	  alp_try.zernike_cmd[i] += alp_delta.zernike_cmd[i];
 
       // - add actuator deltas to ALP command
       for(i=0;i<ALP_NACT;i++)
-	alp.act_cmd[i] += alp_delta.act_cmd[i];
+	alp_try.act_cmd[i] += alp_delta.act_cmd[i];
     }
 
     //Calibrate ALP
@@ -172,12 +178,14 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     
     //Send command to ALP
     if(alp_send_command(sm_p,&alp,LYTID,n_dither)){
-      // - copy command to lytevent
-      memcpy(&lytevent.alp,&alp,sizeof(alp_t));
+      // - copy command to current position
+      memcpy(&alp,&alp_try,sizeof(alp_t));
     }
   }
   
-  
+  //Copy ALP command to lytevent
+  memcpy(&lytevent.alp,&alp,sizeof(alp_t));
+
   //Open LYTEVENT circular buffer
   lytevent_p=(lytevent_t *)open_buffer(sm_p,LYTEVENT);
 
