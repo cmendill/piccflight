@@ -466,6 +466,21 @@ int handle_command(char *line, sm_t *sm_p){
     }
   }
   
+  //User ALP control
+  if(!strncasecmp(line,"alp flat",8)){
+    if(sm_p->state_array[sm_p->state].alp_commander == WATID){
+      printf("CMD: Setting ALPAO DM to flat\n");
+      if(sm_p->alp_ready)
+	if(alp_set_flat(sm_p,WATID)==0)
+	  printf("WAT: alp_set_flat failed!\n");
+      return(CMD_NORMAL);
+    }
+    else{
+      printf("CMD: Manual ALPAO DM control disabled in this state.\n");
+      return(CMD_NORMAL);
+    }
+  }
+  
   //SHK HEX Calibration
   if(!strncasecmp(line,"shk calibrate hex",17)){
     //Get calmode
@@ -478,7 +493,7 @@ int handle_command(char *line, sm_t *sm_p){
     }
     if(!cmdfound){
       printf("CMD: Could not find hex calmode\n");
-      print_hex_calmodes(hexcalmodes);
+     print_hex_calmodes(hexcalmodes);
       return(CMD_NORMAL);
     }
     printf("CMD: Running SHK HEX calibration\n");
