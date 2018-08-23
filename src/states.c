@@ -240,7 +240,8 @@ void init_state(int state_number, state_t *state){
     //Set SHKID as alp commander
     state->alp_commander = SHKID;
     //SHK Settings
-    for(i=0;i<22;i++)
+    state->shk.fit_zernikes = 1;
+    for(i=0;i<LOWFS_N_ZERNIKE;i++)
       state->shk.zernike_control[i] = ACTUATOR_ALP;
 
     return;

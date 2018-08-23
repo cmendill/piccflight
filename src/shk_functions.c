@@ -578,8 +578,8 @@ void shk_alp_cellpid(shkevent_t *shkevent, int reset){
   static double xint[SHK_NCELLS] = {0};
   static double yint[SHK_NCELLS] = {0};
   int i;
-  #define SHK_ALP_INT_MAX  1
-  #define SHK_ALP_INT_MIN -1
+  #define SHK_ALP_CELL_INT_MAX  1
+  #define SHK_ALP_CELL_INT_MIN -1
   
   //Initialize
   if(!init || reset){
@@ -596,10 +596,10 @@ void shk_alp_cellpid(shkevent_t *shkevent, int reset){
       xint[i] += shkevent->cells[i].deviation[0];
       yint[i] += shkevent->cells[i].deviation[1];
       //Fix windup
-      if(xint[i] > SHK_ALP_INT_MAX) xint[i]=SHK_ALP_INT_MAX;
-      if(xint[i] < SHK_ALP_INT_MIN) xint[i]=SHK_ALP_INT_MIN;
-      if(yint[i] > SHK_ALP_INT_MAX) yint[i]=SHK_ALP_INT_MAX;
-      if(yint[i] < SHK_ALP_INT_MIN) yint[i]=SHK_ALP_INT_MIN;
+      if(xint[i] > SHK_ALP_CELL_INT_MAX) xint[i]=SHK_ALP_CELL_INT_MAX;
+      if(xint[i] < SHK_ALP_CELL_INT_MIN) xint[i]=SHK_ALP_CELL_INT_MIN;
+      if(yint[i] > SHK_ALP_CELL_INT_MAX) yint[i]=SHK_ALP_CELL_INT_MAX;
+      if(yint[i] < SHK_ALP_CELL_INT_MIN) yint[i]=SHK_ALP_CELL_INT_MIN;
       //Calculate command
       shkevent->cells[i].command[0] = shkevent->kP_alp_cell * shkevent->cells[i].deviation[0] + shkevent->kI_alp_cell * xint[i];
       shkevent->cells[i].command[1] = shkevent->kP_alp_cell * shkevent->cells[i].deviation[1] + shkevent->kI_alp_cell * yint[i];
@@ -616,6 +616,8 @@ void shk_alp_zernpid(shkevent_t *shkevent, double *zernike_delta, int reset){
   static double zint[LOWFS_N_ZERNIKE] = {0};
   double error;
   int i;
+  #define SHK_ALP_ZERN_INT_MAX  0.1
+  #define SHK_ALP_ZERN_INT_MIN -0.1
   
   //Initialize
   if(!init || reset){
@@ -630,6 +632,9 @@ void shk_alp_zernpid(shkevent_t *shkevent, double *zernike_delta, int reset){
     error = shkevent->zernike_measured[i] - shkevent->zernike_target[i];
     //Calculate integral
     zint[i] += error;
+    //Fix windup
+    if(zint[i] > SHK_ALP_ZERN_INT_MAX) zint[i]=SHK_ALP_ZERN_INT_MAX;
+    if(zint[i] < SHK_ALP_ZERN_INT_MIN) zint[i]=SHK_ALP_ZERN_INT_MIN;
     //Calculate command
     zernike_delta[i] = shkevent->kP_alp_zern * error + shkevent->kI_alp_zern * zint[i];
   }
@@ -789,6 +794,11 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
       // - run Zernike PID
       shk_hex_zernpid(&shkevent, hex_delta.zernike_cmd, FUNCTION_NO_RESET);
 
+      // - zero out uncontrolled Zernikes
+      for(i=0;i<LOWFS_N_ZERNIKE;i++)
+	if(sm_p->state_array[state].shk.zernike_control[i] != ACTUATOR_HEX)
+	  hex_delta.zernike_cmd[i] = 0;
+      
       // - convert Zernike deltas to axis deltas
       hex_zern2hex_alt(hex_delta.zernike_cmd, hex_delta.axis_cmd);
       
@@ -838,6 +848,11 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
       // - run Zernike PID
       shk_alp_zernpid(&shkevent, alp_delta.zernike_cmd, FUNCTION_NO_RESET);
 
+      // - zero out uncontrolled Zernikes
+      for(i=0;i<LOWFS_N_ZERNIKE;i++)
+	if(sm_p->state_array[state].shk.zernike_control[i] != ACTUATOR_ALP)
+	  alp_delta.zernike_cmd[i] = 0;
+      
       // - convert zernike deltas to actuator deltas
       alp_zern2alp(alp_delta.zernike_cmd,alp_delta.act_cmd);
 
