@@ -38,8 +38,8 @@
 #define SHK_KD_HEX_ZERN_DEFAULT   0.0
 
 //Lyot LOWFS Settings
-#define LYT_KP_ALP_ZERN_DEFAULT  -0.5
-#define LYT_KI_ALP_ZERN_DEFAULT  -0.2
+#define LYT_KP_ALP_ZERN_DEFAULT  -0.1
+#define LYT_KI_ALP_ZERN_DEFAULT  -0.002
 #define LYT_KD_ALP_ZERN_DEFAULT   0.0
 
 //Hexapod Settings

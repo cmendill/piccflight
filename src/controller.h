@@ -132,26 +132,29 @@ enum states { STATE_STANDBY,
 /*************************************************
  * Files
  *************************************************/
-#define DARKFILE_SCI      "config/darkframe.sci.%3.3d.%3.3d.%2.2dC.dat"
-#define FLATFILE_SCI      "config/flatframe.sci.%3.3d.dat"
-#define FAKEFILE_SCI      "config/fakeframe.sci.%3.3d.%s.dat"
-#define CELLS2ALP_FILE    "config/shk2alp.dat"
-#define CELLS2HEX_FILE    "config/shk2hex.dat"
-#define ZERNIKE2HEX_FILE  "config/zern2hex.dat"
-#define HEX2ZERNIKE_FILE  "config/hex2zern.dat"
-#define ZERNIKE2ALP_FILE  "config/zern2alp.dat"
-#define SHK2ZERNIKE_FILE  "config/shk2zern.dat"
-#define SHK_CONFIG_FILE   "config/shk.cfg"
-#define LYT_CONFIG_FILE   "config/lyt.cfg"
-#define DATAPATH          "output/flight_data/folder_%5.5d/"
-#define DATANAME          "output/flight_data/folder_%5.5d/picture.%s.%8.8d.dat"
-#define SHK_HEX_CALFILE   "output/calibration/shk_hex_%s_caldata.dat"
-#define SHK_ALP_CALFILE   "output/calibration/shk_alp_%s_caldata.dat"
-#define LYT_ALP_CALFILE   "output/calibration/lyt_alp_%s_caldata.dat"
-#define SHK2ZERN_OUTFILE  "output/calibration/shk2zern_flight_output.dat"
-#define ZERN2SHK_OUTFILE  "output/calibration/zern2shk_flight_output.dat"
-#define SHK_OUTFILE       "output/calibration/shk_output.dat"
-#define LYT_OUTFILE       "output/calibration/lyt_output.dat"
+ #define DARKFILE_SCI      "config/darkframe.sci.%3.3d.%3.3d.%2.2dC.dat"
+ #define FLATFILE_SCI      "config/flatframe.sci.%3.3d.dat"
+ #define FAKEFILE_SCI      "config/fakeframe.sci.%3.3d.%s.dat"
+ #define CELLS2ALP_FILE    "config/shk2alp.dat"
+ #define CELLS2HEX_FILE    "config/shk2hex.dat"
+ #define ZERNIKE2HEX_FILE  "config/zern2hex.dat"
+ #define HEX2ZERNIKE_FILE  "config/hex2zern.dat"
+ #define ZERNIKE2ALP_FILE  "config/zern2alp.dat"
+ #define SHK2ZERNIKE_FILE  "config/shk2zern.dat"
+ #define LYT2ZERNIKE_FILE  "config/lyt2zern.dat"
+ #define SHK_CONFIG_FILE   "config/shk.cfg"
+ #define LYT_CONFIG_FILE   "config/lyt.cfg"
+ #define DATAPATH          "output/flight_data/folder_%5.5d/"
+ #define DATANAME          "output/flight_data/folder_%5.5d/picture.%s.%8.8d.dat"
+ #define SHK_HEX_CALFILE   "output/calibration/shk_hex_%s_caldata.dat"
+ #define SHK_ALP_CALFILE   "output/calibration/shk_alp_%s_caldata.dat"
+ #define LYT_ALP_CALFILE   "output/calibration/lyt_alp_%s_caldata.dat"
+ #define SHK2ZERN_OUTFILE  "output/calibration/shk2zern_flight_output.dat"
+ #define LYT2ZERN_OUTFILE  "output/calibration/lyt2zern_flight_output.dat"
+ #define ZERN2SHK_OUTFILE  "output/calibration/zern2shk_flight_output.dat"
+ #define ZERN2LYT_OUTFILE  "output/calibration/zern2lyt_flight_output.dat"
+ #define SHK_OUTFILE       "output/calibration/shk_output.dat"
+ #define LYT_OUTFILE       "output/calibration/lyt_output.dat"
 
 
 /*************************************************
@@ -225,8 +228,8 @@ enum bufids {SCIEVENT, SCIFULL,
 #define SCIYS           128
 #define SHKXS           1024
 #define SHKYS           1024
-#define LYTXS           16
-#define LYTYS           16
+#define LYTXS           32
+#define LYTYS           32
 #define ACQXS           1280
 #define ACQYS           960
 
@@ -311,8 +314,8 @@ enum bufids {SCIEVENT, SCIFULL,
 #define ALP_FRAME_END         0xFEED
 #define ALP_BIAS              0.0
 #define ALP_POKE              0.05
-#define ALP_ZPOKE             0.1 //zernike microns RMS
-#define ALP_NCALIM            25  //number of calibration images to take per step
+#define ALP_ZPOKE             0.03 //zernike microns RMS
+#define ALP_NCALIM            50  //number of calibration images to take per step
 
 /*************************************************
  * HEXAPOD Parameters
@@ -388,7 +391,7 @@ enum bufids {SCIEVENT, SCIFULL,
 #define SHK_XMAX              (SHKXS-1)
 #define SHK_YMIN              0
 #define SHK_YMAX              (SHKYS-1)
-#define SHK_BOXSIZE_CMD_STD   0  //use the current runtime boxsize 
+#define SHK_BOXSIZE_CMD_STD   0  //use the current runtime boxsize
 #define SHK_BOXSIZE_CMD_MAX   1  //use the maximum boxsize
 
 /*************************************************

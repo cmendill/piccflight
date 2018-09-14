@@ -25,37 +25,37 @@ void alp_init_calmode(int calmode, calmode_t *alp){
   if(calmode == ALP_CALMODE_NONE){
     sprintf(alp->name,"ALP_CALMODE_NONE");
     sprintf(alp->cmd,"none");
-    alp->shk_boxsize_cmd = SHK_BOXSIZE_CMD_STD; 
+    alp->shk_boxsize_cmd = SHK_BOXSIZE_CMD_STD;
   }
   //ALP_CALMODE_ZERO
   if(calmode == ALP_CALMODE_ZERO){
     sprintf(alp->name,"ALP_CALMODE_ZERO");
     sprintf(alp->cmd,"zero");
-    alp->shk_boxsize_cmd = SHK_BOXSIZE_CMD_STD; 
+    alp->shk_boxsize_cmd = SHK_BOXSIZE_CMD_STD;
   }
   //ALP_CALMODE_FLAT
   if(calmode == ALP_CALMODE_FLAT){
     sprintf(alp->name,"ALP_CALMODE_FLAT");
     sprintf(alp->cmd,"flat");
-    alp->shk_boxsize_cmd = SHK_BOXSIZE_CMD_STD; 
+    alp->shk_boxsize_cmd = SHK_BOXSIZE_CMD_STD;
   }
   //ALP_CALMODE_POKE
   if(calmode == ALP_CALMODE_POKE){
     sprintf(alp->name,"ALP_CALMODE_POKE");
     sprintf(alp->cmd,"poke");
-    alp->shk_boxsize_cmd = SHK_BOXSIZE_CMD_MAX; 
+    alp->shk_boxsize_cmd = SHK_BOXSIZE_CMD_MAX;
   }
   //ALP_CALMODE_ZPOKE
   if(calmode == ALP_CALMODE_ZPOKE){
     sprintf(alp->name,"ALP_CALMODE_ZPOKE");
     sprintf(alp->cmd,"zpoke");
-    alp->shk_boxsize_cmd = SHK_BOXSIZE_CMD_MAX; 
+    alp->shk_boxsize_cmd = SHK_BOXSIZE_CMD_MAX;
   }
   //ALP_CALMODE_FLIGHT
   if(calmode == ALP_CALMODE_FLIGHT){
     sprintf(alp->name,"ALP_CALMODE_FLIGHT");
     sprintf(alp->cmd,"flight");
-    alp->shk_boxsize_cmd = SHK_BOXSIZE_CMD_STD; 
+    alp->shk_boxsize_cmd = SHK_BOXSIZE_CMD_STD;
   }
 
 }
@@ -71,7 +71,7 @@ int alp_zern2alp(double *zernikes,double *actuators){
   static double zern2alp_matrix[LOWFS_N_ZERNIKE*ALP_NACT]={0};
   uint64 fsize,rsize;
   int c,i;
-  
+
   if(!init){
     /* Open matrix file */
     //--setup filename
@@ -82,7 +82,7 @@ int alp_zern2alp(double *zernikes,double *actuators){
       perror("fopen");
       return 1;
     }
-    
+
     //--check file size
     fseek(matrix, 0L, SEEK_END);
     fsize = ftell(matrix);
@@ -92,7 +92,7 @@ int alp_zern2alp(double *zernikes,double *actuators){
       printf("ALP: incorrect zern2alp matrix file size %lu != %lu\n",fsize,rsize);
       return 1;
     }
-    
+
     //--read matrix
     if(fread(zern2alp_matrix,LOWFS_N_ZERNIKE*ALP_NACT*sizeof(double),1,matrix) != 1){
       printf("zern2alp file\r");
@@ -102,14 +102,14 @@ int alp_zern2alp(double *zernikes,double *actuators){
     //--close file
     fclose(matrix);
     printf("ALP: Read: %s\n",matrix_file);
-    
+
     //--set init flag
     init=1;
   }
 
   //Do Matrix Multiply
   num_dgemv(zern2alp_matrix,zernikes,actuators, ALP_NACT, LOWFS_N_ZERNIKE);
-  
+
   return 0;
 }
 
@@ -137,13 +137,13 @@ void alp_get_command(sm_t *sm_p, alp_t *cmd){
 /**************************************************************/
 int alp_send_command(sm_t *sm_p, alp_t *cmd, int proc_id, int n_dither){
   int retval=0;
-  
+
   //Atomically test and set ALP command lock using GCC built-in function
   if(__sync_lock_test_and_set(&sm_p->alp_command_lock,1)==0){
-    
+
     //Check if the commanding process is the ALP commander
     if(proc_id == sm_p->state_array[sm_p->state].alp_commander){
-      
+
       //Check if we need to re-initalize the RTD board
       if((proc_id != sm_p->alp_proc_id) || (n_dither != sm_p->alp_n_dither)){
 	//Init ALPAO RTD interface
@@ -155,7 +155,7 @@ int alp_send_command(sm_t *sm_p, alp_t *cmd, int proc_id, int n_dither){
 	  sm_p->alp_n_dither = n_dither;
 	}
       }
-      
+
       //Send the command
       if(rtd_send_alp(sm_p->p_rtd_board,cmd->act_cmd) == 0){
 	//Copy command to current position
@@ -168,7 +168,7 @@ int alp_send_command(sm_t *sm_p, alp_t *cmd, int proc_id, int n_dither){
     //Release lock
     __sync_lock_release(&sm_p->alp_command_lock);
   }
-  
+
   //Return
   return retval;
 }
@@ -180,7 +180,10 @@ int alp_send_command(sm_t *sm_p, alp_t *cmd, int proc_id, int n_dither){
 /**************************************************************/
 int alp_set_flat(sm_t *sm_p, int proc_id){
   alp_t alp;
-  const double flat[ALP_NACT] = ALP_OFFSET;
+
+  double flat[ALP_NACT] = ALP_OFFSET;
+
+
   memset(&alp,0,sizeof(alp_t));
   memcpy(alp.act_cmd,flat,sizeof(flat));
   return(alp_send_command(sm_p,&alp,proc_id,1));
@@ -203,8 +206,9 @@ int alp_calibrate(int calmode, alp_t *alp, uint32_t *step, int reset){
   double dt=0,dt0=0,period=0;
   double zernikes[LOWFS_N_ZERNIKE]={0};
   double act[ALP_NACT];
-  const double flat[ALP_NACT] = ALP_OFFSET;
-  
+  double flat[ALP_NACT] = ALP_OFFSET;
+
+
   /* Reset */
   if(reset){
     countA=0;
@@ -253,7 +257,7 @@ int alp_calibrate(int calmode, alp_t *alp, uint32_t *step, int reset){
   if(timespec_subtract(&delta,&this,&start))
     printf("SHK: shk_process_image --> timespec_subtract error!\n");
   ts2double(&delta,&dt);
-  
+
   /* ALP_CALMODE_NONE: Do nothing. Just reset counters.            */
   if(calmode==ALP_CALMODE_NONE){
     countA=0;
@@ -282,7 +286,7 @@ int alp_calibrate(int calmode, alp_t *alp, uint32_t *step, int reset){
       alp->act_cmd[i]=flat[i];
     return calmode;
   }
-  
+
   /* ALP_CALMODE_POKE: Scan through acuators poking one at a time. */
   /*                   Set flat in between each poke.              */
   if(calmode == ALP_CALMODE_POKE){
@@ -319,7 +323,7 @@ int alp_calibrate(int calmode, alp_t *alp, uint32_t *step, int reset){
       //set all Zernikes to zero
       for(i=0;i<LOWFS_N_ZERNIKE;i++)
 	alp->zernike_cmd[i] = 0.0;
-      
+
       //set all ALP actuators to flat
       for(i=0;i<ALP_NACT;i++)
 	alp->act_cmd[i]=flat[i];
@@ -377,8 +381,3 @@ int alp_calibrate(int calmode, alp_t *alp, uint32_t *step, int reset){
   //Return calmode
   return calmode;
 }
-
-
-
-
-

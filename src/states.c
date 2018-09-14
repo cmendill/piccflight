@@ -16,7 +16,7 @@
  *************************************************/
 void init_state(int state_number, state_t *state){
   int i;
-  
+
   //Clear state
   memset(state,0,sizeof(state_t));
 
@@ -25,7 +25,7 @@ void init_state(int state_number, state_t *state){
   state->alp_commander = -1;
   state->bmc_commander = -1;
   state->wsp_commander = -1;
-  
+
   //STATE_STANDBY
   if(state_number == STATE_STANDBY){
     //Set name
@@ -45,7 +45,7 @@ void init_state(int state_number, state_t *state){
     state->alp_commander = WATID;
     return;
   }
-  
+
   //STATE_LOW_POWER
   if(state_number == STATE_LOW_POWER){
     //Set name
@@ -59,7 +59,7 @@ void init_state(int state_number, state_t *state){
     state->acq.run_camera = 0;
     return;
   }
-  
+
   //STATE_LED_LOCATE
   if(state_number == STATE_LED_LOCATE){
     //Set name
@@ -109,7 +109,7 @@ void init_state(int state_number, state_t *state){
     state->hex_commander = ACQID;
     //Tell ACQ to set hex to default home
     state->acq.hex_default_home = 1;
-    
+
     return;
   }
 
@@ -189,7 +189,7 @@ void init_state(int state_number, state_t *state){
     state->hex_commander = SHKID;
     return;
   }
-  
+
   //STATE_SHK_HEX_CALIBRATE
   if(state_number == STATE_SHK_HEX_CALIBRATE){
     //Set name
@@ -300,7 +300,9 @@ void init_state(int state_number, state_t *state){
     //LYT Settings
     state->lyt.fit_zernikes = 1;
     for(i=0;i<LOWFS_N_ZERNIKE;i++)
-      state->lyt.zernike_control[i] = ACTUATOR_ALP;
+      if(i < 24){
+        state->lyt.zernike_control[i] = ACTUATOR_ALP;
+      }
    return;
   }
 

@@ -25,22 +25,28 @@ void lyt_alp_zernpid(lytevent_t *lytevent, double *zernike_delta, int reset){
   static double zint[LOWFS_N_ZERNIKE] = {0};
   double error;
   int i;
-  
+  #define LYT_ALP_ZERN_INT_MAX  0.0
+  #define LYT_ALP_ZERN_INT_MIN -0.0
+
   //Initialize
   if(!init || reset){
     memset(zint,0,sizeof(zint));
     init=1;
     if(reset) return;
   }
-  
+
   //Run PID
   for(i=0;i<LOWFS_N_ZERNIKE;i++){
     //Calculate error
     error = lytevent->zernike_measured[i] - lytevent->zernike_target[i];
     //Calculate integral
     zint[i] += error;
+
+    if(zint[i] > LYT_ALP_ZERN_INT_MAX) zint[i]=LYT_ALP_ZERN_INT_MAX;
+    if(zint[i] < LYT_ALP_ZERN_INT_MIN) zint[i]=LYT_ALP_ZERN_INT_MIN;
+
     //Calculate command
-    zernike_delta[i] = lytevent->kP_alp_zern * error + lytevent->kI_alp_zern * zint[i];
+    zernike_delta[i] = lytevent->kP_alp_zern * error;// + lytevent->kI_alp_zern * zint[i];
   }
 }
 
@@ -49,9 +55,99 @@ void lyt_alp_zernpid(lytevent_t *lytevent, double *zernike_delta, int reset){
 /*  - Fit Zernikes to LYT centroids                           */
 /**************************************************************/
 void lyt_zernike_fit(lyt_t *image, double *zernikes){
-  //Matrix multiply code
-}
+  FILE *matrix=NULL;
+  char matrix_file[MAX_FILENAME];
+  static FILE *calfile=NULL;
+  static lytevent_t lytevent;
+  static int init=0;
+  static double lyt2zern_matrix[(LYTXS*LYTYS)*LOWFS_N_ZERNIKE]={0};
+  static double lyt_image_flat[LYTXS*LYTYS];
+  double lyt_image_delta[LYTXS*LYTYS];
+  static double image_flat_total=0;
+  double image_meas_total=0;
 
+  int i,j,n, ret;
+  uint64 fsize,rsize;
+
+  /* Initialize Fitting Matrix */
+  if(!init){
+
+  /* Open matrix file */
+  //--setup filename
+  sprintf(matrix_file,LYT2ZERNIKE_FILE);
+  //--open file
+  if((matrix = fopen(matrix_file,"r")) == NULL){
+    perror("fopen");
+    printf("lyt2zern file\n");
+    goto end_of_init;
+  }
+  //--check file size
+  fseek(matrix, 0L, SEEK_END);
+  fsize = ftell(matrix);
+  rewind(matrix);
+  rsize = LYTXS*LYTYS*LOWFS_N_ZERNIKE*sizeof(double);
+  if(fsize != rsize){
+    printf("SHK: incorrect lyt2zern matrix file size %lu != %lu\n",fsize,rsize);
+    fclose(matrix);
+    goto end_of_init;
+  }
+  //--read matrix
+  if(fread(lyt2zern_matrix,LYTXS*LYTYS*LOWFS_N_ZERNIKE*sizeof(double),1,matrix) != 1){
+    perror("fread");
+    printf("lyt2zern file\n");
+    fclose(matrix);
+    goto end_of_init;
+  }
+  //--close file
+  fclose(matrix);
+  printf("LYT: Read: %s\n",matrix_file);
+
+
+  // read in lyt alpao calibration images
+  //--open file
+  if((calfile = fopen("output/calibration/lyt_alp_zpoke_caldata.dat", "r")) == NULL){
+    perror("lyt_zernike_matrix: fopen()\n");
+  }
+  if(fread(&lytevent, sizeof(lytevent), 1, calfile) != 1){
+    perror("fread");
+    printf("lyot calibration file\n");
+    fclose(calfile);
+    // goto end_of_init;
+  }
+
+  for(n=0;n<ALP_NCALIM;n++){
+    ret=fread(&lytevent, sizeof(lytevent), 1, calfile);
+    for(i=0;i<LYTYS;i++){
+      for(j=0;j<LYTXS;j++){
+        lyt_image_flat[i*LYTYS+j] += (double)lytevent.image.data[i][j]/ALP_NCALIM;
+        image_flat_total += (double)lytevent.image.data[i][j]/ALP_NCALIM;
+      }
+    }
+  }
+  fclose(calfile);
+
+  end_of_init:
+    //--set init flag
+    init=1;
+  }
+
+  for(i=0;i<LYTYS;i++){
+    for(j=0;j<LYTXS;j++){
+      image_meas_total += (double)image->data[i][j];
+    }
+  }
+  // printf("image flat total: %f\n", image_flat_total);
+  // printf("image meas total: %f\n", image_meas_total);
+  image_meas_total = 1.0;
+  image_flat_total = 1.0;
+  for(i=0;i<LYTYS;i++){
+    for(j=0;j<LYTXS;j++){
+      lyt_image_delta[i*LYTYS + j] = ((double)image->data[i][j]/image_meas_total) - (lyt_image_flat[i*LYTYS + j]/image_flat_total);
+    }
+  }
+  //Do matrix multiply
+  num_dgemv(lyt2zern_matrix, lyt_image_delta, zernikes, LOWFS_N_ZERNIKE, LYTXS*LYTYS);
+}
 /**************************************************************/
 /* LYT_PROCESS_IMAGE                                          */
 /*  - Main image processing function for LYT                  */
@@ -61,6 +157,7 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   static lytevent_t lytevent;
   lytfull_t *lytfull_p;
   lytevent_t *lytevent_p;
+  static calmode_t alpcalmodes[ALP_NCALMODES];
   static struct timespec start,end,delta,last,full_last;
   static int init=0;
   double dt;
@@ -70,13 +167,13 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   alp_t alp,alp_try,alp_delta;
   int zernike_control=0;
   uint32_t n_dither=1;
-  
+
   //Get time immidiately
   clock_gettime(CLOCK_REALTIME,&start);
 
   //Get state
   state = sm_p->state;
-  
+
   //Check reset
   if(sm_p->lyt_reset){
     init=0;
@@ -92,6 +189,9 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     alp_calibrate(0,NULL,NULL,FUNCTION_RESET);
     //Reset PID controllers
     lyt_alp_zernpid(NULL,NULL,FUNCTION_RESET);
+    for(i=0;i<ALP_NCALMODES;i++){
+      alp_init_calmode(i,&alpcalmodes[i]);
+    }
     //Reset last times
     memcpy(&full_last,&start,sizeof(struct timespec));
     memcpy(&last,&start,sizeof(struct timespec));
@@ -100,12 +200,12 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     //Debugging
     if(LYT_DEBUG) printf("LYT: Initialized\n");
   }
-  
+
   //Measure exposure time
   if(timespec_subtract(&delta,&start,&last))
     printf("LYT: lyt_process_image --> timespec_subtract error!\n");
   ts2double(&delta,&dt);
-  
+
   //Fill out event header
   lytevent.hed.packet_type  = LYTEVENT;
   lytevent.hed.frame_number = frame_number;
@@ -131,11 +231,11 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   //Fit Zernikes
   if(sm_p->state_array[state].lyt.fit_zernikes)
     lyt_zernike_fit(&lytevent.image,lytevent.zernike_measured);
-  
+
   /*************************************************************/
   /*******************  ALPAO DM Control Code  *****************/
   /*************************************************************/
-  
+
   //Get last ALP command
   alp_get_command(sm_p,&alp);
   memcpy(&alp_try,&alp,sizeof(alp_t));
@@ -148,7 +248,7 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     for(i=0;i<LOWFS_N_ZERNIKE;i++)
       if(sm_p->state_array[state].lyt.zernike_control[i] == ACTUATOR_ALP)
 	zernike_control = 1;
-    
+
     //Run Zernike control
     if(zernike_control){
       // - run Zernike PID
@@ -174,15 +274,16 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
 
     //Calibrate ALP
     if(sm_p->alp_calmode != ALP_CALMODE_NONE)
-      sm_p->alp_calmode = alp_calibrate(lytevent.alp_calmode,&alp,&lytevent.alp_calstep,FUNCTION_NO_RESET);
-    
+      sm_p->alp_calmode = alp_calibrate(lytevent.alp_calmode,&alp_try,&lytevent.alp_calstep,FUNCTION_NO_RESET);
+
     //Send command to ALP
-    if(alp_send_command(sm_p,&alp,LYTID,n_dither)){
+    if(alp_send_command(sm_p,&alp_try,LYTID,n_dither)){
+
       // - copy command to current position
       memcpy(&alp,&alp_try,sizeof(alp_t));
     }
   }
-  
+
   //Copy ALP command to lytevent
   memcpy(&lytevent.alp,&alp,sizeof(alp_t));
 
@@ -206,7 +307,7 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   //Save end timestamps for full image code
   lytevent.hed.end_sec  = end.tv_sec;
   lytevent.hed.end_nsec = end.tv_nsec;
-  
+
 
   /*************************************************************/
   /**********************  Full Image Code  ********************/
