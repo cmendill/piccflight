@@ -11,7 +11,7 @@ driver:	fliusb.c
 
 install:
 	-/sbin/modprobe -r fliusb > /dev/null 2>&1
-	install -D -gwheel -oroot -m744 fliusb.ko /lib/modules/$(shell uname -r)/kernel/drivers/pci/rtd/fliusb.ko
+	install -D -gwheel -oroot -m744 fliusb.ko /lib/modules/$(shell uname -r)/kernel/drivers/usb/fli/fliusb.ko
 	/sbin/depmod -a
 	/sbin/modprobe fliusb
 
