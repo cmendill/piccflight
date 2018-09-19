@@ -46,7 +46,7 @@ void lyt_alp_zernpid(lytevent_t *lytevent, double *zernike_delta, int reset){
     if(zint[i] < LYT_ALP_ZERN_INT_MIN) zint[i]=LYT_ALP_ZERN_INT_MIN;
 
     //Calculate command
-    zernike_delta[i] = lytevent->kP_alp_zern * error;// + lytevent->kI_alp_zern * zint[i];
+    zernike_delta[i] = lytevent->kP_alp_zern * error + lytevent->kI_alp_zern * zint[i];
   }
 }
 
@@ -56,14 +56,15 @@ void lyt_alp_zernpid(lytevent_t *lytevent, double *zernike_delta, int reset){
 /**************************************************************/
 void lyt_zernike_fit(lyt_t *image, double *zernikes){
   FILE *matrix=NULL;
-  char matrix_file[MAX_FILENAME];
+  FILE *flatfile=NULL;
   static FILE *calfile=NULL;
+  char matrix_file[MAX_FILENAME];
   static lytevent_t lytevent;
   static int init=0;
   static double lyt2zern_matrix[(LYTXS*LYTYS)*LOWFS_N_ZERNIKE]={0};
   static double lyt_image_flat[LYTXS*LYTYS];
-  double lyt_image_delta[LYTXS*LYTYS];
   static double image_flat_total=0;
+  double lyt_image_delta[LYTXS*LYTYS];
   double image_meas_total=0;
 
   int i,j,n, ret;
@@ -102,7 +103,7 @@ void lyt_zernike_fit(lyt_t *image, double *zernikes){
   fclose(matrix);
   printf("LYT: Read: %s\n",matrix_file);
 
-
+///////////////////////////////////////////////////////////////////////
   // read in lyt alpao calibration images
   //--open file
   if((calfile = fopen("output/calibration/lyt_alp_zpoke_caldata.dat", "r")) == NULL){
@@ -124,8 +125,42 @@ void lyt_zernike_fit(lyt_t *image, double *zernikes){
       }
     }
   }
+  image_flat_total /= 1000;
   fclose(calfile);
 
+/////////////////////////////////////////////////////////////////
+  // read in lyt ideal flat image
+  //--open file
+  // if((flatfile = fopen("config/lyt_flat_image.dat", "r")) == NULL){
+  //   perror("lyt_flat_image: fopen()\n");
+  // }
+  //
+  // //--check file size
+  // fseek(flatfile, 0L, SEEK_END);
+  // fsize = ftell(flatfile);
+  // rewind(flatfile);
+  // rsize = LYTXS*LYTYS*sizeof(double);
+  // if(fsize != rsize){
+  //   printf("SHK: incorrect lyot flat image file size %lu != %lu\n",fsize,rsize);
+  //   fclose(flatfile);
+  //   goto end_of_init;
+  // }
+  //
+  // //--read image file
+  // if(fread(lyt_image_flat,LYTXS*LYTYS*sizeof(double),1,flatfile) != 1){
+  //   perror("fread");
+  //   printf("lyot flat image file\n");
+  //   fclose(flatfile);
+  //   goto end_of_init;
+  // }
+  // printf("LYT: Loaded lyot flat image\n");
+  //   for(i=0;i<LYTYS;i++){
+  //     for(j=0;j<LYTXS;j++){
+  //       image_flat_total += lyt_image_flat[i*LYTYS+j];
+  //     }
+  //   }
+  // image_flat_total /= 1000;
+/////////////////////////////////////////////////////////////
   end_of_init:
     //--set init flag
     init=1;
@@ -136,10 +171,8 @@ void lyt_zernike_fit(lyt_t *image, double *zernikes){
       image_meas_total += (double)image->data[i][j];
     }
   }
-  // printf("image flat total: %f\n", image_flat_total);
-  // printf("image meas total: %f\n", image_meas_total);
-  image_meas_total = 1.0;
-  image_flat_total = 1.0;
+  image_meas_total /= 1000;
+
   for(i=0;i<LYTYS;i++){
     for(j=0;j<LYTXS;j++){
       lyt_image_delta[i*LYTYS + j] = ((double)image->data[i][j]/image_meas_total) - (lyt_image_flat[i*LYTYS + j]/image_flat_total);
