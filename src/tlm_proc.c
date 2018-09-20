@@ -189,11 +189,7 @@ void tlm_proc(void){
 	break;
       folderindex++;
     }
-    sprintf(pathcmd,"mkdir %s",datpath);
-    if(system(pathcmd)){
-      printf("TLM: Failed to create save data folder (%d)\n",errno);
-      tlmctrlC(0);
-    }
+    recursive_mkdir(datpath, 0777);
     if(MSG_SAVEDATA)
       printf("TLM: Saving data in: %s\n",datpath);
   }
