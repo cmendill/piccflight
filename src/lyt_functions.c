@@ -55,132 +55,143 @@ void lyt_alp_zernpid(lytevent_t *lytevent, double *zernike_delta, int reset){
 /*  - Fit Zernikes to LYT centroids                           */
 /**************************************************************/
 void lyt_zernike_fit(lyt_t *image, double *zernikes){
-  FILE *matrix=NULL;
-  FILE *flatfile=NULL;
-  static FILE *calfile=NULL;
-  char matrix_file[MAX_FILENAME];
+  FILE   *fd=NULL;
+  char   filename[MAX_FILENAME];
   static lytevent_t lytevent;
   static int init=0;
-  static double lyt2zern_matrix[(LYTXS*LYTYS)*LOWFS_N_ZERNIKE]={0};
-  static double lyt_image_flat[LYTXS*LYTYS];
-  static double image_flat_total=0;
-  double lyt_image_delta[LYTXS*LYTYS];
-  double image_meas_total=0;
-
-  int i,j,n, ret;
+  static double lyt2zern_matrix[LYTXS*LYTYS*LOWFS_N_ZERNIKE]={0}; //zernike fitting matrix (max size)
+  static double lyt_delta[LYTXS*LYTYS]={0};   //measured image - reference (max size)
+  static double lyt_refimg[LYTXS][LYTYS]={{0}}; //reference image
+  static uint32 lyt_pixsel[LYTXS][LYTYS]={{0}}; //pixel selection mask
+  static int    lyt_npix=0;
   uint64 fsize,rsize;
-
+  double total;
+  int    i,j,count;
+  
   /* Initialize Fitting Matrix */
   if(!init){
-
-  /* Open matrix file */
-  //--setup filename
-  sprintf(matrix_file,LYT2ZERNIKE_FILE);
-  //--open file
-  if((matrix = fopen(matrix_file,"r")) == NULL){
-    perror("fopen");
-    printf("lyt2zern file\n");
-    goto end_of_init;
-  }
-  //--check file size
-  fseek(matrix, 0L, SEEK_END);
-  fsize = ftell(matrix);
-  rewind(matrix);
-  rsize = LYTXS*LYTYS*LOWFS_N_ZERNIKE*sizeof(double);
-  if(fsize != rsize){
-    printf("SHK: incorrect lyt2zern matrix file size %lu != %lu\n",fsize,rsize);
-    fclose(matrix);
-    goto end_of_init;
-  }
-  //--read matrix
-  if(fread(lyt2zern_matrix,LYTXS*LYTYS*LOWFS_N_ZERNIKE*sizeof(double),1,matrix) != 1){
-    perror("fread");
-    printf("lyt2zern file\n");
-    fclose(matrix);
-    goto end_of_init;
-  }
-  //--close file
-  fclose(matrix);
-  printf("LYT: Read: %s\n",matrix_file);
-
-///////////////////////////////////////////////////////////////////////
-  // read in lyt alpao calibration images
-  //--open file
-  if((calfile = fopen("output/calibration/lyt_alp_zpoke_caldata.dat", "r")) == NULL){
-    perror("lyt_zernike_matrix: fopen()\n");
-  }
-  if(fread(&lytevent, sizeof(lytevent), 1, calfile) != 1){
-    perror("fread");
-    printf("lyot calibration file\n");
-    fclose(calfile);
-    // goto end_of_init;
-  }
-
-  for(n=0;n<ALP_NCALIM;n++){
-    ret=fread(&lytevent, sizeof(lytevent), 1, calfile);
-    for(i=0;i<LYTYS;i++){
-      for(j=0;j<LYTXS;j++){
-        lyt_image_flat[i*LYTYS+j] += (double)lytevent.image.data[i][j]/ALP_NCALIM;
-        image_flat_total += (double)lytevent.image.data[i][j]/ALP_NCALIM;
-      }
+    
+    /****** READ REFERENCE IMAGE FILE ******/
+    //--setup filename
+    sprintf(filename,LYT_REFIMG_FILE);
+    //--open file
+    if((fd = fopen(filename,"r")) == NULL){
+      perror("fopen");
+      printf("lyt_refimg file\n");
+      goto end_of_init;
     }
-  }
-  image_flat_total /= 1000;
-  fclose(calfile);
+    //--check file size
+    fseek(fd, 0L, SEEK_END);
+    fsize = ftell(fd);
+    rewind(fd);
+    rsize = sizeof(lyt_refimg);
+    if(fsize != rsize){
+      printf("SHK: incorrect lyt_refimg file size %lu != %lu\n",fsize,rsize);
+      fclose(fd);
+      goto end_of_init;
+    }
+    //--read file
+    if(fread(lyt_refimg,rsize,1,fd) != 1){
+      perror("fread");
+      printf("lyt_refimg file\n");
+      fclose(fd);
+      goto end_of_init;
+    }
+    //--close file
+    fclose(fd);
+    printf("LYT: Read: %s\n",filename);
 
-/////////////////////////////////////////////////////////////////
-  // read in lyt ideal flat image
-  //--open file
-  // if((flatfile = fopen("config/lyt_flat_image.dat", "r")) == NULL){
-  //   perror("lyt_flat_image: fopen()\n");
-  // }
-  //
-  // //--check file size
-  // fseek(flatfile, 0L, SEEK_END);
-  // fsize = ftell(flatfile);
-  // rewind(flatfile);
-  // rsize = LYTXS*LYTYS*sizeof(double);
-  // if(fsize != rsize){
-  //   printf("SHK: incorrect lyot flat image file size %lu != %lu\n",fsize,rsize);
-  //   fclose(flatfile);
-  //   goto end_of_init;
-  // }
-  //
-  // //--read image file
-  // if(fread(lyt_image_flat,LYTXS*LYTYS*sizeof(double),1,flatfile) != 1){
-  //   perror("fread");
-  //   printf("lyot flat image file\n");
-  //   fclose(flatfile);
-  //   goto end_of_init;
-  // }
-  // printf("LYT: Loaded lyot flat image\n");
-  //   for(i=0;i<LYTYS;i++){
-  //     for(j=0;j<LYTXS;j++){
-  //       image_flat_total += lyt_image_flat[i*LYTYS+j];
-  //     }
-  //   }
-  // image_flat_total /= 1000;
-/////////////////////////////////////////////////////////////
+    /****** READ PIXEL SELECTION FILE ******/
+    //--setup filename
+    sprintf(filename,LYT_PIXSEL_FILE);
+    //--open file
+    if((fd = fopen(filename,"r")) == NULL){
+      perror("fopen");
+      printf("lyt_pixsel file\n");
+      goto end_of_init;
+    }
+    //--check file size
+    fseek(fd, 0L, SEEK_END);
+    fsize = ftell(fd);
+    rewind(fd);
+    rsize = sizeof(lyt_pixsel);
+    if(fsize != rsize){
+      printf("SHK: incorrect lyt_pixsel file size %lu != %lu\n",fsize,rsize);
+      fclose(fd);
+      goto end_of_init;
+    }
+    //--read file
+    if(fread(lyt_pixsel,rsize,1,fd) != 1){
+      perror("fread");
+      printf("lyt_pixsel file\n");
+      fclose(fd);
+      goto end_of_init;
+    }
+    //--close file
+    fclose(fd);
+    printf("LYT: Read: %s\n",filename);
+
+    /****** COUNT NUMBER OF CONTROLED PIXELS ******/
+    for(i=0;i<LYTXS;i++)
+      for(j=0;j<LYTYS;j++)
+	if(lyt_pixsel[i][j])
+	  lyt_npix++;
+
+    
+    /****** READ ZERNIKE MATRIX FILE ******/
+    //--setup filename
+    sprintf(filename,LYT2ZERNIKE_FILE);
+    //--open file
+    if((fd = fopen(filename,"r")) == NULL){
+      perror("fopen");
+      printf("lyt2zern file\n");
+      goto end_of_init;
+    }
+    //--calculate 
+    //--check file size
+    fseek(fd, 0L, SEEK_END);
+    fsize = ftell(fd);
+    rewind(fd);
+    rsize = lyt_npix*LOWFS_N_ZERNIKE*sizeof(double);
+    if(fsize != rsize){
+      printf("SHK: incorrect lyt2zern matrix file size %lu != %lu\n",fsize,rsize);
+      fclose(fd);
+      goto end_of_init;
+    }
+    //--read matrix
+    if(fread(lyt2zern_matrix,rsize,1,fd) != 1){
+      perror("fread");
+      printf("lyt2zern file\n");
+      fclose(fd);
+      goto end_of_init;
+    }
+    //--close file
+    fclose(fd);
+    printf("LYT: Read: %s\n",filename);
+    
+
   end_of_init:
     //--set init flag
     init=1;
   }
 
-  for(i=0;i<LYTYS;i++){
-    for(j=0;j<LYTXS;j++){
-      image_meas_total += (double)image->data[i][j];
-    }
-  }
-  image_meas_total /= 1000;
-
-  for(i=0;i<LYTYS;i++){
-    for(j=0;j<LYTXS;j++){
-      lyt_image_delta[i*LYTYS + j] = ((double)image->data[i][j]/image_meas_total) - (lyt_image_flat[i*LYTYS + j]/image_flat_total);
-    }
-  }
+  //Normalize image pixels & subtract reference image
+  total=0;
+  count=0;
+  for(i=0;i<LYTXS;i++)
+    for(j=0;j<LYTYS;j++)
+      if(lyt_pixsel[i][j])
+	total += (double)image->data[i][j];
+  for(i=0;i<LYTXS;i++)
+    for(j=0;j<LYTYS;j++)
+      if(lyt_pixsel[i][j])
+	lyt_delta[count++]  = (double)image->data[i][j]/total - lyt_refimg[i][j];
+	
   //Do matrix multiply
-  num_dgemv(lyt2zern_matrix, lyt_image_delta, zernikes, LOWFS_N_ZERNIKE, LYTXS*LYTYS);
+  num_dgemv(lyt2zern_matrix, lyt_delta, zernikes, LOWFS_N_ZERNIKE, lyt_npix);
 }
+
+
 /**************************************************************/
 /* LYT_PROCESS_IMAGE                                          */
 /*  - Main image processing function for LYT                  */

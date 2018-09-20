@@ -180,10 +180,7 @@ int alp_send_command(sm_t *sm_p, alp_t *cmd, int proc_id, int n_dither){
 /**************************************************************/
 int alp_set_flat(sm_t *sm_p, int proc_id){
   alp_t alp;
-
-  double flat[ALP_NACT] = ALP_OFFSET;
-
-
+  const double flat[ALP_NACT] = ALP_OFFSET;
   memset(&alp,0,sizeof(alp_t));
   memcpy(alp.act_cmd,flat,sizeof(flat));
   return(alp_send_command(sm_p,&alp,proc_id,1));
@@ -206,8 +203,7 @@ int alp_calibrate(int calmode, alp_t *alp, uint32_t *step, int reset){
   double dt=0,dt0=0,period=0;
   double zernikes[LOWFS_N_ZERNIKE]={0};
   double act[ALP_NACT];
-  double flat[ALP_NACT] = ALP_OFFSET;
-
+  const double flat[ALP_NACT] = ALP_OFFSET;
 
   /* Reset */
   if(reset){

@@ -132,29 +132,30 @@ enum states { STATE_STANDBY,
 /*************************************************
  * Files
  *************************************************/
- #define DARKFILE_SCI      "config/darkframe.sci.%3.3d.%3.3d.%2.2dC.dat"
- #define FLATFILE_SCI      "config/flatframe.sci.%3.3d.dat"
- #define FAKEFILE_SCI      "config/fakeframe.sci.%3.3d.%s.dat"
- #define CELLS2ALP_FILE    "config/shk2alp.dat"
- #define CELLS2HEX_FILE    "config/shk2hex.dat"
- #define ZERNIKE2HEX_FILE  "config/zern2hex.dat"
- #define HEX2ZERNIKE_FILE  "config/hex2zern.dat"
- #define ZERNIKE2ALP_FILE  "config/zern2alp.dat"
- #define SHK2ZERNIKE_FILE  "config/shk2zern.dat"
- #define LYT2ZERNIKE_FILE  "config/lyt2zern.dat"
- #define SHK_CONFIG_FILE   "config/shk.cfg"
- #define LYT_CONFIG_FILE   "config/lyt.cfg"
- #define DATAPATH          "output/flight_data/folder_%5.5d/"
- #define DATANAME          "output/flight_data/folder_%5.5d/picture.%s.%8.8d.dat"
- #define SHK_HEX_CALFILE   "output/calibration/shk_hex_%s_caldata.dat"
- #define SHK_ALP_CALFILE   "output/calibration/shk_alp_%s_caldata.dat"
- #define LYT_ALP_CALFILE   "output/calibration/lyt_alp_%s_caldata.dat"
- #define SHK2ZERN_OUTFILE  "output/calibration/shk2zern_flight_output.dat"
- #define LYT2ZERN_OUTFILE  "output/calibration/lyt2zern_flight_output.dat"
- #define ZERN2SHK_OUTFILE  "output/calibration/zern2shk_flight_output.dat"
- #define ZERN2LYT_OUTFILE  "output/calibration/zern2lyt_flight_output.dat"
- #define SHK_OUTFILE       "output/calibration/shk_output.dat"
- #define LYT_OUTFILE       "output/calibration/lyt_output.dat"
+#define DARKFILE_SCI      "config/darkframe.sci.%3.3d.%3.3d.%2.2dC.dat"
+#define FLATFILE_SCI      "config/flatframe.sci.%3.3d.dat"
+#define FAKEFILE_SCI      "config/fakeframe.sci.%3.3d.%s.dat"
+#define CELLS2ALP_FILE    "config/cell_shk2alp.dat"
+#define CELLS2HEX_FILE    "config/cell_shk2hex.dat"
+#define ZERNIKE2HEX_FILE  "config/zern_hex2shk.dat"
+#define HEX2ZERNIKE_FILE  "config/zern_shk2hex.dat"
+#define SHK2ZERNIKE_FILE  "config/zern_shk2alp.dat"
+#define LYT2ZERNIKE_FILE  "config/zern_lyt2alp.dat"
+#define LYT_REFIMG_FILE   "config/zern_lyt2alp_refimg.dat"
+#define LYT_PXMASK_FILE   "config/zern_lyt2alp_pxmask.dat"
+#define SHK_CONFIG_FILE   "config/shk.cfg"
+#define LYT_CONFIG_FILE   "config/lyt.cfg"
+#define DATAPATH          "output/flight_data/folder_%5.5d/"
+#define DATANAME          "output/flight_data/folder_%5.5d/picture.%s.%8.8d.dat"
+#define SHK_HEX_CALFILE   "output/calibration/shk_hex_%s_caldata.dat"
+#define SHK_ALP_CALFILE   "output/calibration/shk_alp_%s_caldata.dat"
+#define LYT_ALP_CALFILE   "output/calibration/lyt_alp_%s_caldata.dat"
+#define SHK2ZERN_OUTFILE  "output/calibration/shk2zern_flight_output.dat"
+#define LYT2ZERN_OUTFILE  "output/calibration/lyt2zern_flight_output.dat"
+#define ZERN2SHK_OUTFILE  "output/calibration/zern2shk_flight_output.dat"
+#define ZERN2LYT_OUTFILE  "output/calibration/zern2lyt_flight_output.dat"
+#define SHK_OUTFILE       "output/calibration/shk_output.dat"
+#define LYT_OUTFILE       "output/calibration/lyt_output.dat"
 
 
 /*************************************************
@@ -368,7 +369,7 @@ enum bufids {SCIEVENT, SCIFULL,
 #define HEX_PERIOD        0.5 //seconds, time between commands
 
 /*************************************************
- * Shack-Hartmann (SHK) Settings
+ * Shack-Hartmann Parameters
  *************************************************/
 #define SHK_PX_PITCH_UM       5.5
 #define SHK_XCELLS            16
@@ -395,7 +396,12 @@ enum bufids {SCIEVENT, SCIFULL,
 #define SHK_BOXSIZE_CMD_MAX   1  //use the maximum boxsize
 
 /*************************************************
- * RTD Settings
+ * Lyot-LOWFS Parameters
+ *************************************************/
+#define LYT_CONTROL_NPIX      709 //number of controlled pixels on LLOWFS
+
+/*************************************************
+ * RTD Parameters
  *************************************************/
 #define RTD_BOARD_MINOR                0 // Minor device number of the RTD board
 #define RTD_PRGCLK_0_DIVISOR           8 // Programmable clock frequency = 25/RTD_PRGCLK_0_DIVISOR [MHz]
@@ -403,7 +409,7 @@ enum bufids {SCIEVENT, SCIFULL,
 #define RTD_CLK_FREQUENCY              ((25000000.0/RTD_PRGCLK_0_DIVISOR)/RTD_TIMER_A0_DIVISOR) //[Hz]
 
 /*************************************************
- * Telemetry (TLM) Settings
+ * Telemetry Parameters
  *************************************************/
 #define TLM_DATA_RATE      250000                //Words per second = 4Mbps = 4us/word
 #define TLM_EMPTY_CODE     0xFADE                //Code to send when there is no data

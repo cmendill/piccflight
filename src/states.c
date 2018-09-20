@@ -300,10 +300,8 @@ void init_state(int state_number, state_t *state){
     //LYT Settings
     state->lyt.fit_zernikes = 1;
     for(i=0;i<LOWFS_N_ZERNIKE;i++)
-      if(i < 24){
-        state->lyt.zernike_control[i] = ACTUATOR_ALP;
-      }
-   return;
+      state->lyt.zernike_control[i] = ACTUATOR_ALP;
+    return;
   }
 
   //STATE_SCI_DARK_HOLE
