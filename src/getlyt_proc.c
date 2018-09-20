@@ -8,6 +8,9 @@
 #include <string.h>
 #include <fcntl.h>
 #include <ctype.h>
+#include <libgen.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 /* piccflight headers */
 #include "controller.h"
@@ -36,7 +39,10 @@ void getlytctrlC(int sig)
 
 void getlyt_proc(void){
   static lytevent_t lytevent;
-  
+  struct stat st = {0};
+  char temp[MAX_FILENAME];
+  char path[MAX_FILENAME];
+
   /* Open Shared Memory */
   sm_t *sm_p;
   if((sm_p = openshm(&getlyt_shmfd)) == NULL){
@@ -50,13 +56,20 @@ void getlyt_proc(void){
   /* Open output file */
   //--setup filename
   sprintf(outfile,"%s",(char *)sm_p->calfile);
+  //--create output folder if it does not exist
+  strcpy(temp,outfile);
+  strcpy(path,dirname(temp));
+  if (stat(path, &st) == -1){
+    printf("GETLYT: creating folder %s\n",path);
+    recursive_mkdir(path, 0777);
+  }
   //--open file
   if((out = fopen(outfile, "w")) == NULL){
     perror("GETLYT: fopen()\n");
     getlytctrlC(0);
   }
 
-  /* Enter loop to read shack-hartmann events */
+  /* Enter loop to read LYT events */
   while(getlyt_run){
     if(read_from_buffer(sm_p, &lytevent, LYTEVENT, DIAID)){
       //Save lytevent
