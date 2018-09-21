@@ -358,7 +358,7 @@ void shk_zernike_matrix(shkcell_t *cells, double *matrix_inv){
 
   /* Write forward matrix to file */
   //Set up file name
-  sprintf(matrix_file, SHKZER2SHKCELL_OUTFILE);
+  sprintf(matrix_file, SHKZER2SHKCEL_OUTFILE);
   //Open file
   if((matrix = fopen(matrix_file, "w")) == NULL){
     perror("fopen");
