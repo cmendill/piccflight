@@ -661,6 +661,17 @@ int handle_command(char *line, sm_t *sm_p){
     return CMD_NORMAL;
   }
 
+  //LYT ALP Gain
+  if(!strncasecmp(line,"lyt alp gain ",13) && strlen(line)>14){
+    ftemp = atof(line+13);
+    if(ftemp >= 0 && ftemp <= 5)
+      ftemp /= 5.0;
+    sm_p->lyt_kP_alp_zern = LYT_KP_ALP_ZERN_DEFAULT*ftemp;
+    sm_p->lyt_kI_alp_zern = LYT_KI_ALP_ZERN_DEFAULT*ftemp;
+    sm_p->lyt_kD_alp_zern = LYT_KD_ALP_ZERN_DEFAULT*ftemp;
+    printf("LYT switching to ALP zern gain 5: %f, %f, %f\n",sm_p->lyt_kP_alp_zern,sm_p->lyt_kI_alp_zern,sm_p->lyt_kD_alp_zern);
+    return CMD_NORMAL;
+  }
   /****************************************
    * BLANK COMMAND
    ***************************************/

@@ -315,7 +315,7 @@ enum bufids {SCIEVENT, SCIFULL,
 #define ALP_BIAS              0.0
 #define ALP_POKE              0.05
 #define ALP_ZPOKE             0.03 //zernike microns RMS
-#define ALP_NCALIM            25   //number of calibration images to take per step
+#define ALP_NCALIM            35   //number of calibration images to take per step
 
 /*************************************************
  * HEXAPOD Parameters

@@ -476,9 +476,9 @@ int hex_calibrate(int calmode, hex_t *hex, uint32_t *step, int reset){
   /*                   Go home in between each move.    */
   if(calmode == HEX_CALMODE_POKE){
     //Save hex starting position
-    if(!mode_init[HEX_CALMODE_POKE]){
-      memcpy(&hex_start[HEX_CALMODE_POKE],hex,sizeof(hex_t));
-      mode_init[HEX_CALMODE_POKE]=1;
+    if(!mode_init[calmode]){
+      memcpy(&hex_start[calmode],hex,sizeof(hex_t));
+      mode_init[calmode]=1;
     }
     //Proceed with calibration
     if(countA[calmode] >= 0 && countA[calmode] < (2*HEX_NAXES*HEX_NCALIM)){
@@ -496,12 +496,13 @@ int hex_calibrate(int calmode, hex_t *hex, uint32_t *step, int reset){
       countA[calmode]++;
     }
     else{
+      //Set hex back to starting position
+      memcpy(hex,&hex_start[calmode],sizeof(hex_t));
+      mode_init[calmode]=0;
       //Turn off calibration
       printf("HEX: Stopping HEX calmode HEX_CALMODE_POKE\n");
       calmode = HEX_CALMODE_NONE;
       init = 0;
-      //Set hex back to starting position
-      memcpy(hex,&hex_start[HEX_CALMODE_POKE],sizeof(hex_t));
     }
     return calmode;
   }
@@ -511,9 +512,9 @@ int hex_calibrate(int calmode, hex_t *hex, uint32_t *step, int reset){
   /*                        Go home in between each move.    */
   if(calmode == HEX_CALMODE_TCOR){
     //Save hex starting position
-    if(!mode_init[HEX_CALMODE_TCOR]){
-      memcpy(&hex_start[HEX_CALMODE_TCOR],hex,sizeof(hex_t));
-      mode_init[HEX_CALMODE_TCOR]=1;
+    if(!mode_init[calmode]){
+      memcpy(&hex_start[calmode],hex,sizeof(hex_t));
+      mode_init[calmode]=1;
     }
     //Proceed with calibration
     if(countA[calmode] >= 0 && countA[calmode] < (2*HEX_NAXES*HEX_NCALIM)){
@@ -538,12 +539,13 @@ int hex_calibrate(int calmode, hex_t *hex, uint32_t *step, int reset){
       countA[calmode]++;
     }
     else{
+      //Set hex back to starting position
+      memcpy(hex,&hex_start[calmode],sizeof(hex_t));
+      mode_init[calmode]=0;
       //Turn off calibration
       printf("HEX: Stopping HEX calmode HEX_CALMODE_TCOR\n");
       calmode = HEX_CALMODE_NONE;
       init = 0;
-      //Set hex back to starting position
-      memcpy(hex,&hex_start[HEX_CALMODE_TCOR],sizeof(hex_t));
     }
     return calmode;
   }
@@ -556,9 +558,9 @@ int hex_calibrate(int calmode, hex_t *hex, uint32_t *step, int reset){
     int max_step = 5000;
     double spiral_radius = 0.00001;
     //Save hex starting position
-    if(!mode_init[HEX_CALMODE_SPIRAL]){
-      memcpy(&hex_start[HEX_CALMODE_SPIRAL],hex,sizeof(hex_t));
-      mode_init[HEX_CALMODE_SPIRAL]=1;
+    if(!mode_init[calmode]){
+      memcpy(&hex_start[calmode],hex,sizeof(hex_t));
+      mode_init[calmode]=1;
     }
     //Set counter
     *step = countA[calmode];
@@ -574,12 +576,13 @@ int hex_calibrate(int calmode, hex_t *hex, uint32_t *step, int reset){
 	
       countA[calmode]++;
     }else{
+      //Set hex back to starting position
+      memcpy(hex,&hex_start[calmode],sizeof(hex_t));
+      mode_init[calmode]=0;
       //Turn off calibration
       printf("HEX: Stopping HEX calmode HEX_CALMODE_SPIRAL\n");
       calmode = HEX_CALMODE_NONE;
       init=0;
-      //Set hex back to starting position
-      memcpy(hex,&hex_start[HEX_CALMODE_SPIRAL],sizeof(hex_t));
     }
     return calmode;
   }

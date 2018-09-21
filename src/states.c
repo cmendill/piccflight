@@ -39,6 +39,8 @@ void init_state(int state_number, state_t *state){
     state->acq.run_camera = 1;
     //SHK Settings
     state->shk.fit_zernikes = 1;
+    //LYT Settings
+    state->lyt.fit_zernikes = 1;
     //HEX Commander
     state->hex_commander = WATID;
     //ALP Commander
@@ -299,7 +301,7 @@ void init_state(int state_number, state_t *state){
     state->alp_commander = LYTID;
     //LYT Settings
     state->lyt.fit_zernikes = 1;
-    for(i=0;i<LOWFS_N_ZERNIKE;i++)
+    for(i=0;i<5;i++)
       state->lyt.zernike_control[i] = ACTUATOR_ALP;
     return;
   }

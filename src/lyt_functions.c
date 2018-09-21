@@ -25,8 +25,8 @@ void lyt_alp_zernpid(lytevent_t *lytevent, double *zernike_delta, int reset){
   static double zint[LOWFS_N_ZERNIKE] = {0};
   double error;
   int i;
-  #define LYT_ALP_ZERN_INT_MAX  0.0
-  #define LYT_ALP_ZERN_INT_MIN -0.0
+  #define LYT_ALP_ZERN_INT_MAX  0.1
+  #define LYT_ALP_ZERN_INT_MIN -0.1
 
   //Initialize
   if(!init || reset){
@@ -60,9 +60,9 @@ void lyt_zernike_fit(lyt_t *image, double *zernikes){
   static lytevent_t lytevent;
   static int init=0;
   static double lyt2zern_matrix[LYTXS*LYTYS*LOWFS_N_ZERNIKE]={0}; //zernike fitting matrix (max size)
-  static double lyt_delta[LYTXS*LYTYS]={0};   //measured image - reference (max size)
+  static double lyt_delta[LYTXS*LYTYS]={0};     //measured image - reference (max size)
   static double lyt_refimg[LYTXS][LYTYS]={{0}}; //reference image
-  static uint32 lyt_pxmask[LYTXS][LYTYS]={{0}}; //pixel selection mask
+  static uint16 lyt_pxmask[LYTXS][LYTYS]={{0}}; //pixel selection mask
   static int    lyt_npix=0;
   uint64 fsize,rsize;
   double total;
@@ -86,7 +86,7 @@ void lyt_zernike_fit(lyt_t *image, double *zernikes){
     rewind(fd);
     rsize = sizeof(lyt_refimg);
     if(fsize != rsize){
-      printf("SHK: incorrect lyt_refimg file size %lu != %lu\n",fsize,rsize);
+      printf("LYT: incorrect lyt_refimg file size %lu != %lu\n",fsize,rsize);
       fclose(fd);
       goto end_of_init;
     }
@@ -116,7 +116,7 @@ void lyt_zernike_fit(lyt_t *image, double *zernikes){
     rewind(fd);
     rsize = sizeof(lyt_pxmask);
     if(fsize != rsize){
-      printf("SHK: incorrect lyt_pxmask file size %lu != %lu\n",fsize,rsize);
+      printf("LYT: incorrect lyt_pxmask file size %lu != %lu\n",fsize,rsize);
       fclose(fd);
       goto end_of_init;
     }
@@ -132,6 +132,7 @@ void lyt_zernike_fit(lyt_t *image, double *zernikes){
     printf("LYT: Read: %s\n",filename);
 
     /****** COUNT NUMBER OF CONTROLED PIXELS ******/
+    lyt_npix=0;
     for(i=0;i<LYTXS;i++)
       for(j=0;j<LYTYS;j++)
 	if(lyt_pxmask[i][j])
@@ -154,7 +155,7 @@ void lyt_zernike_fit(lyt_t *image, double *zernikes){
     rewind(fd);
     rsize = lyt_npix*LOWFS_N_ZERNIKE*sizeof(double);
     if(fsize != rsize){
-      printf("SHK: incorrect lyt2zern matrix file size %lu != %lu\n",fsize,rsize);
+      printf("LYT: incorrect lyt2zern matrix file size %lu != %lu\n",fsize,rsize);
       fclose(fd);
       goto end_of_init;
     }
@@ -175,6 +176,7 @@ void lyt_zernike_fit(lyt_t *image, double *zernikes){
     init=1;
   }
 
+
   //Normalize image pixels & subtract reference image
   total=0;
   count=0;
@@ -185,8 +187,8 @@ void lyt_zernike_fit(lyt_t *image, double *zernikes){
   for(i=0;i<LYTXS;i++)
     for(j=0;j<LYTYS;j++)
       if(lyt_pxmask[i][j])
-	lyt_delta[count++]  = (double)image->data[i][j]/total - lyt_refimg[i][j];
-	
+	lyt_delta[count++]  = ((double)image->data[i][j])/total - lyt_refimg[i][j];
+
   //Do matrix multiply
   num_dgemv(lyt2zern_matrix, lyt_delta, zernikes, LOWFS_N_ZERNIKE, lyt_npix);
 }
