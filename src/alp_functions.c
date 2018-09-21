@@ -75,7 +75,7 @@ int alp_zern2alp(double *zernikes,double *actuators){
   if(!init){
     /* Open matrix file */
     //--setup filename
-    sprintf(matrix_file,ZERNIKE2ALP_FILE);
+    sprintf(matrix_file,SHKZER2ALPACT_FILE);
     //--open matrix file
     if((matrix = fopen(matrix_file,"r")) == NULL){
       printf("zern2alp file\r");

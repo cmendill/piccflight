@@ -140,7 +140,7 @@ void lyt_zernike_fit(lyt_t *image, double *zernikes){
     
     /****** READ ZERNIKE MATRIX FILE ******/
     //--setup filename
-    sprintf(filename,LYT2ZERNIKE_FILE);
+    sprintf(filename,LYTPIX2ALPZER_FILE);
     //--open file
     if((fd = fopen(filename,"r")) == NULL){
       perror("fopen");

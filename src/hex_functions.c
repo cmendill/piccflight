@@ -337,7 +337,7 @@ int hex_zern2hex(double *zernikes, double *axes){
   if(!init){
     /* Open zern2hex matrix file */
     //--setup filename
-    sprintf(matrix_file,ZERNIKE2HEX_FILE);
+    sprintf(matrix_file,SHKZER2HEXACT_FILE);
     //--open file
     if((fp = fopen(matrix_file,"r")) == NULL){
       printf("zern2hex file\n");

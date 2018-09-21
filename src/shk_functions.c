@@ -358,7 +358,7 @@ void shk_zernike_matrix(shkcell_t *cells, double *matrix_inv){
 
   /* Write forward matrix to file */
   //Set up file name
-  sprintf(matrix_file, ZERN2SHK_OUTFILE);
+  sprintf(matrix_file, SHKZER2SHKCELL_OUTFILE);
   //Open file
   if((matrix = fopen(matrix_file, "w")) == NULL){
     perror("fopen");
@@ -382,7 +382,7 @@ void shk_zernike_matrix(shkcell_t *cells, double *matrix_inv){
 
   /* Write inverse matrix to file */
   //Set up file name
-  sprintf(matrix_file, SHK2ZERN_OUTFILE);
+  sprintf(matrix_file, SHKCEL2SHKZER_OUTFILE);
   //Open file
   if((matrix = fopen(matrix_file, "w")) == NULL){
     perror("fopen");
@@ -458,7 +458,7 @@ void shk_cells2alp(shkcell_t *cells, double *actuators){
     
     /* Open matrix file */
     //--setup filename
-    sprintf(matrix_file,CELLS2ALP_FILE);
+    sprintf(matrix_file,SHKCEL2ALPACT_FILE);
     //--open file
     if((matrix = fopen(matrix_file,"r")) == NULL){
       printf("cells2alp file\r");
@@ -525,7 +525,7 @@ int shk_cells2hex(shkcell_t *cells, double *axes){
 	beam_cell_index[beam_ncells++]=i;
     /* Open matrix file */
     //--setup filename
-    sprintf(matrix_file,CELLS2HEX_FILE);
+    sprintf(matrix_file,SHKCEL2HEXACT_FILE);
     //--open file
     if((matrix = fopen(matrix_file,"r")) == NULL){
       printf("cells2hex file\r");
