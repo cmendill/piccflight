@@ -483,107 +483,125 @@ int handle_command(char *line, sm_t *sm_p){
   
   //SHK HEX Calibration
   if(!strncasecmp(line,"shk calibrate hex",17)){
-    //Get calmode
-    cmdfound = 0;
-    for(i=0;i<HEX_NCALMODES;i++){
-      if(!strncasecmp(line+18,hexcalmodes[i].cmd,strlen(hexcalmodes[i].cmd))){
-	calmode  = i;
-	cmdfound = 1;
+    if(sm_p->state == STATE_SHK_HEX_CALIBRATE){
+      //Get calmode
+      cmdfound = 0;
+      for(i=0;i<HEX_NCALMODES;i++){
+	if(!strncasecmp(line+18,hexcalmodes[i].cmd,strlen(hexcalmodes[i].cmd))){
+	  calmode  = i;
+	  cmdfound = 1;
+	}
       }
-    }
-    if(!cmdfound){
-      printf("CMD: Could not find hex calmode\n");
-     print_hex_calmodes(hexcalmodes);
+      if(!cmdfound){
+	printf("CMD: Could not find hex calmode\n");
+	print_hex_calmodes(hexcalmodes);
+	return(CMD_NORMAL);
+      }
+      printf("CMD: Running SHK HEX calibration\n");
+      //Change calibration output filename
+      sprintf((char *)sm_p->calfile,SHK_HEX_CALFILE,(char *)hexcalmodes[calmode].cmd);
+      //Start data recording
+      printf("  -- Starting data recording to file: %s\n",sm_p->calfile);
+      sm_p->w[DIAID].launch = getshk_proc;
+      sm_p->w[DIAID].run    = 1;
+      sleep(3);
+      //Start probe pattern
+      sm_p->hex_calmode = calmode;
+      printf("  -- Changing HEX calibration mode to %s\n",hexcalmodes[sm_p->hex_calmode].name);
+      while(sm_p->hex_calmode == calmode)
+	sleep(1);
+      printf("  -- Stopping data recording\n");
+      //Stop data recording
+      sm_p->w[DIAID].run    = 0;
+      printf("  -- Done\n");
       return(CMD_NORMAL);
     }
-    printf("CMD: Running SHK HEX calibration\n");
-    //Change calibration output filename
-    sprintf((char *)sm_p->calfile,SHK_HEX_CALFILE,(char *)hexcalmodes[calmode].cmd);
-    //Start data recording
-    printf("  -- Starting data recording to file: %s\n",sm_p->calfile);
-    sm_p->w[DIAID].launch = getshk_proc;
-    sm_p->w[DIAID].run    = 1;
-    sleep(3);
-    //Start probe pattern
-    sm_p->hex_calmode = calmode;
-    printf("  -- Changing HEX calibration mode to %s\n",hexcalmodes[sm_p->hex_calmode].name);
-    while(sm_p->hex_calmode == calmode)
-      sleep(1);
-    printf("  -- Stopping data recording\n");
-    //Stop data recording
-    sm_p->w[DIAID].run    = 0;
-    printf("  -- Done\n");
-    return(CMD_NORMAL);
+    else{
+      printf("CMD: Must be in STATE_SHK_HEX_CALIBRATE\n");
+      return(CMD_NORMAL);
+    }
   }
 
   //SHK ALP Calibration
   if(!strncasecmp(line,"shk calibrate alp",17)){
-    //Get calmode
-    cmdfound = 0;
-    for(i=0;i<ALP_NCALMODES;i++){
-      if(!strncasecmp(line+18,alpcalmodes[i].cmd,strlen(alpcalmodes[i].cmd))){
-	calmode  = i;
-	cmdfound = 1;
+    if(sm_p->state == STATE_SHK_ALP_CALIBRATE){
+      //Get calmode
+      cmdfound = 0;
+      for(i=0;i<ALP_NCALMODES;i++){
+	if(!strncasecmp(line+18,alpcalmodes[i].cmd,strlen(alpcalmodes[i].cmd))){
+	  calmode  = i;
+	  cmdfound = 1;
+	}
       }
-    }
-    if(!cmdfound){
-      printf("CMD: Could not find alp calmode\n");
-      print_alp_calmodes(alpcalmodes);
+      if(!cmdfound){
+	printf("CMD: Could not find alp calmode\n");
+	print_alp_calmodes(alpcalmodes);
+	return(CMD_NORMAL);
+      }
+      printf("CMD: Running SHK ALP calibration\n");
+      //Change calibration output filename
+      sprintf((char *)sm_p->calfile,SHK_ALP_CALFILE,(char *)alpcalmodes[calmode].cmd);
+      //Start data recording
+      printf("  -- Starting data recording to file: %s\n",sm_p->calfile);
+      sm_p->w[DIAID].launch = getshk_proc;
+      sm_p->w[DIAID].run    = 1;
+      sleep(3);
+      //Start probe pattern
+      sm_p->alp_calmode = calmode;
+      printf("  -- Changing ALP calibration mode to %s\n",alpcalmodes[sm_p->alp_calmode].name);
+      while(sm_p->alp_calmode == calmode)
+	sleep(1);
+      printf("  -- Stopping data recording\n");
+      //Stop data recording
+      sm_p->w[DIAID].run    = 0;
+      printf("  -- Done\n");
       return(CMD_NORMAL);
     }
-    printf("CMD: Running SHK ALP calibration\n");
-    //Change calibration output filename
-    sprintf((char *)sm_p->calfile,SHK_ALP_CALFILE,(char *)alpcalmodes[calmode].cmd);
-    //Start data recording
-    printf("  -- Starting data recording to file: %s\n",sm_p->calfile);
-    sm_p->w[DIAID].launch = getshk_proc;
-    sm_p->w[DIAID].run    = 1;
-    sleep(3);
-    //Start probe pattern
-    sm_p->alp_calmode = calmode;
-    printf("  -- Changing ALP calibration mode to %s\n",alpcalmodes[sm_p->alp_calmode].name);
-    while(sm_p->alp_calmode == calmode)
-      sleep(1);
-    printf("  -- Stopping data recording\n");
-    //Stop data recording
-    sm_p->w[DIAID].run    = 0;
-    printf("  -- Done\n");
-    return(CMD_NORMAL);
+    else{
+      printf("CMD: Must be in STATE_SHK_ALP_CALIBRATE\n");
+      return(CMD_NORMAL);
+    }
   }
 
   //LYT ALP Calibration
   if(!strncasecmp(line,"lyt calibrate alp",17)){
-    //Get calmode
-    cmdfound = 0;
-    for(i=0;i<ALP_NCALMODES;i++){
-      if(!strncasecmp(line+18,alpcalmodes[i].cmd,strlen(alpcalmodes[i].cmd))){
-	calmode  = i;
-	cmdfound = 1;
+    if(sm_p->state == STATE_LYT_ALP_CALIBRATE){
+      //Get calmode
+      cmdfound = 0;
+      for(i=0;i<ALP_NCALMODES;i++){
+	if(!strncasecmp(line+18,alpcalmodes[i].cmd,strlen(alpcalmodes[i].cmd))){
+	  calmode  = i;
+	  cmdfound = 1;
+	}
       }
-    }
-    if(!cmdfound){
-      printf("CMD: Could not find alp calmode\n");
-      print_alp_calmodes(alpcalmodes);
+      if(!cmdfound){
+	printf("CMD: Could not find alp calmode\n");
+	print_alp_calmodes(alpcalmodes);
+	return(CMD_NORMAL);
+      }
+      printf("CMD: Running LYT ALP calibration\n");
+      //Change calibration output filename
+      sprintf((char *)sm_p->calfile,LYT_ALP_CALFILE,(char *)alpcalmodes[calmode].cmd);
+      //Start data recording
+      printf("  -- Starting data recording to file: %s\n",sm_p->calfile);
+      sm_p->w[DIAID].launch = getlyt_proc;
+      sm_p->w[DIAID].run    = 1;
+      sleep(3);
+      //Start probe pattern
+      sm_p->alp_calmode = calmode;
+      printf("  -- Changing ALP calibration mode to %s\n",alpcalmodes[sm_p->alp_calmode].name);
+      while(sm_p->alp_calmode == calmode)
+	sleep(1);
+      printf("  -- Stopping data recording\n");
+      //Stop data recording
+      sm_p->w[DIAID].run    = 0;
+      printf("  -- Done\n");
       return(CMD_NORMAL);
     }
-    printf("CMD: Running LYT ALP calibration\n");
-    //Change calibration output filename
-    sprintf((char *)sm_p->calfile,LYT_ALP_CALFILE,(char *)alpcalmodes[calmode].cmd);
-    //Start data recording
-    printf("  -- Starting data recording to file: %s\n",sm_p->calfile);
-    sm_p->w[DIAID].launch = getlyt_proc;
-    sm_p->w[DIAID].run    = 1;
-    sleep(3);
-    //Start probe pattern
-    sm_p->alp_calmode = calmode;
-    printf("  -- Changing ALP calibration mode to %s\n",alpcalmodes[sm_p->alp_calmode].name);
-    while(sm_p->alp_calmode == calmode)
-      sleep(1);
-    printf("  -- Stopping data recording\n");
-    //Stop data recording
-    sm_p->w[DIAID].run    = 0;
-    printf("  -- Done\n");
-    return(CMD_NORMAL);
+    else{
+      printf("CMD: Must be in STATE_LYT_ALP_CALIBRATE\n");
+      return(CMD_NORMAL);
+    }
   }
 
   //Reset Commands
