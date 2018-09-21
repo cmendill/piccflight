@@ -62,7 +62,7 @@ void lyt_zernike_fit(lyt_t *image, double *zernikes){
   static double lyt2zern_matrix[LYTXS*LYTYS*LOWFS_N_ZERNIKE]={0}; //zernike fitting matrix (max size)
   static double lyt_delta[LYTXS*LYTYS]={0};   //measured image - reference (max size)
   static double lyt_refimg[LYTXS][LYTYS]={{0}}; //reference image
-  static uint32 lyt_pixsel[LYTXS][LYTYS]={{0}}; //pixel selection mask
+  static uint32 lyt_pxmask[LYTXS][LYTYS]={{0}}; //pixel selection mask
   static int    lyt_npix=0;
   uint64 fsize,rsize;
   double total;
@@ -101,29 +101,29 @@ void lyt_zernike_fit(lyt_t *image, double *zernikes){
     fclose(fd);
     printf("LYT: Read: %s\n",filename);
 
-    /****** READ PIXEL SELECTION FILE ******/
+    /****** READ PIXEL MASK FILE ******/
     //--setup filename
-    sprintf(filename,LYT_PIXSEL_FILE);
+    sprintf(filename,LYT_PXMASK_FILE);
     //--open file
     if((fd = fopen(filename,"r")) == NULL){
       perror("fopen");
-      printf("lyt_pixsel file\n");
+      printf("lyt_pxmask file\n");
       goto end_of_init;
     }
     //--check file size
     fseek(fd, 0L, SEEK_END);
     fsize = ftell(fd);
     rewind(fd);
-    rsize = sizeof(lyt_pixsel);
+    rsize = sizeof(lyt_pxmask);
     if(fsize != rsize){
-      printf("SHK: incorrect lyt_pixsel file size %lu != %lu\n",fsize,rsize);
+      printf("SHK: incorrect lyt_pxmask file size %lu != %lu\n",fsize,rsize);
       fclose(fd);
       goto end_of_init;
     }
     //--read file
-    if(fread(lyt_pixsel,rsize,1,fd) != 1){
+    if(fread(lyt_pxmask,rsize,1,fd) != 1){
       perror("fread");
-      printf("lyt_pixsel file\n");
+      printf("lyt_pxmask file\n");
       fclose(fd);
       goto end_of_init;
     }
@@ -134,7 +134,7 @@ void lyt_zernike_fit(lyt_t *image, double *zernikes){
     /****** COUNT NUMBER OF CONTROLED PIXELS ******/
     for(i=0;i<LYTXS;i++)
       for(j=0;j<LYTYS;j++)
-	if(lyt_pixsel[i][j])
+	if(lyt_pxmask[i][j])
 	  lyt_npix++;
 
     
@@ -180,11 +180,11 @@ void lyt_zernike_fit(lyt_t *image, double *zernikes){
   count=0;
   for(i=0;i<LYTXS;i++)
     for(j=0;j<LYTYS;j++)
-      if(lyt_pixsel[i][j])
+      if(lyt_pxmask[i][j])
 	total += (double)image->data[i][j];
   for(i=0;i<LYTXS;i++)
     for(j=0;j<LYTYS;j++)
-      if(lyt_pixsel[i][j])
+      if(lyt_pxmask[i][j])
 	lyt_delta[count++]  = (double)image->data[i][j]/total - lyt_refimg[i][j];
 	
   //Do matrix multiply
