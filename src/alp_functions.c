@@ -230,7 +230,7 @@ int alp_calibrate(int calmode, alp_t *alp, uint32_t *step, int reset){
     //--check file size
     fseek(fileptr, 0L, SEEK_END);
     if(ftell(fileptr) != sizeof(zernike_errors)){
-      printf("ALP: incorrect zernike_errors file size %lu != %lu\n",ftell(fileptr),sizeof(zernike_errors));
+      printf("ALP: incorrect zernike_errors file size (%lu) != expected (%lu)\n",ftell(fileptr),sizeof(zernike_errors));
       goto endofinit;
     }
     rewind(fileptr);
