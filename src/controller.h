@@ -156,6 +156,7 @@ enum states { STATE_STANDBY,
 #define SHKZER2SHKCEL_OUTFILE  "output/calibration/shkzer2shkcel_flight_output.dat"
 #define SHK_OUTFILE            "output/calibration/shk_output.dat"
 #define LYT_OUTFILE            "output/calibration/lyt_output.dat"
+#define SHK_DEVFILE            "output/calibration/shk_deviation.dat"
 
 
 /*************************************************
@@ -773,6 +774,9 @@ typedef volatile struct {
   //Other Commands
   int hex_getpos;
   int shk_setorigin;
+  int shk_resetorigin;
+  int shk_savedeviation;
+  int shk_loadorigin;
   int hex_tilt_correct;
 
   //Zernike Targets

@@ -6,6 +6,8 @@
 #include <string.h>
 #include <fcntl.h>
 #include <ctype.h>
+#include <libgen.h>
+#include <sys/stat.h>
 
 
 /* piccflight headers */
@@ -89,6 +91,116 @@ int shk_setorigin(shkevent_t *shkevent){
     return 0;
   }
 }
+
+/***************************************************************/
+/* SHK_RESETORIGIN                                             */
+/*  - Resets cell origins to default location                  */
+/***************************************************************/
+int shk_resetorigin(shkevent_t *shkevent){
+  float cell_size_px = SHK_LENSLET_PITCH_UM/SHK_PX_PITCH_UM;
+  int i,j,c,x,y;
+
+  //Reset cell origin
+  c=0;
+  for(j=0;j<SHK_YCELLS;j++){
+    for(i=0;i<SHK_XCELLS;i++){
+      x = c % SHK_XCELLS;
+      y = SHK_YCELLS - 1 - c / SHK_YCELLS;
+      shkevent->cells[c].index = c;
+      shkevent->cells[c].origin[0] = i*cell_size_px + cell_size_px/2 + SHK_CELL_XOFF;
+      shkevent->cells[c].origin[1] = j*cell_size_px + cell_size_px/2 + SHK_CELL_YOFF;
+      // shkevent->cells[c].cenbox_origin[0] = i*cell_size_px + cell_size_px/2 + SHK_CELL_XOFF;
+      // shkevent->cells[c].cenbox_origin[1] = j*cell_size_px + cell_size_px/2 + SHK_CELL_YOFF;
+      c++;
+    }
+  }
+  return 0;
+}
+
+/***************************************************************/
+/* SHK_SAVEDEVIATION                                           */
+/*  - Saves cell deviations to file to be used as cell origins */
+/***************************************************************/
+int shk_savedeviation(sm_t *sm_p, shkevent_t *shkevent){
+  struct stat st = {0};
+  FILE *out=NULL;
+  static char outfile[MAX_FILENAME];
+  char temp[MAX_FILENAME];
+  char path[MAX_FILENAME];
+  int i;
+
+  /* Open output file */
+  //--setup filename
+  sprintf(outfile,"%s",(char *)sm_p->calfile);
+  //--create output folder if it does not exist
+  strcpy(temp,outfile);
+  strcpy(path,dirname(temp));
+  if (stat(path, &st) == -1){
+    printf("GETSHK: creating folder %s\n",path);
+    recursive_mkdir(path, 0777);
+  }
+
+  //--open file
+  if((out = fopen(outfile, "w")) == NULL){
+    perror("GETSHK: fopen()\n");
+    return 0;
+  }
+
+  //Save shkevent
+  for(i=0;i<SHK_NCELLS;i++){
+    fwrite(shkevent->cells[i].deviation,sizeof(shkevent->cells[i].deviation),1,out);
+  }
+  fclose(out);
+  return 0;
+}
+
+/***************************************************************/
+/* SHK_LOADORIGIN                                              */
+/*  - Loads cell origins from deviation file                   */
+/***************************************************************/
+int shk_loadorigin(sm_t *sm_p, shkevent_t*shkevent){
+  FILE *deviations=NULL;
+  char deviations_file[MAX_FILENAME];
+  double shk_deviations[2*SHK_NCELLS] = {0};
+  uint64 fsize,rsize;
+  int i;
+
+  /* Open deviations file */
+  //--setup filename
+  sprintf(deviations_file,SHK_DEVFILE);
+  //--open file
+  if((deviations = fopen(deviations_file,"r")) == NULL){
+    printf("shk_deviations file\r");
+    perror("fopen");
+  }
+  //--check file size
+  fseek(deviations, 0L, SEEK_END);
+  fsize = ftell(deviations);
+  rewind(deviations);
+  rsize = 2*SHK_NCELLS*sizeof(double);
+  if(fsize != rsize){
+    printf("SHK: incorrect cells2alp deviations file size %lu != %lu\n",fsize,rsize);
+    fclose(deviations);
+  }
+  //--read deviations
+  if(fread(shk_deviations,2*SHK_NCELLS*sizeof(double),1,deviations) != 1){
+    perror("fread");
+    printf("shk_deviations file\r");
+    fclose(deviations);
+  }
+  //--close file
+  fclose(deviations);
+  printf("SHK: Read: %s\n",deviations_file);
+
+  for(i=0;i<SHK_NCELLS;i++){
+    shkevent->cells[i].origin[0] += shk_deviations[2*i+0];
+    shkevent->cells[i].origin[1] += shk_deviations[2*i+1];
+  }
+  return 0;
+}
+
+
+
 /**************************************************************/
 /* SHK_CENTROID_CELL                                          */
 /*  - Measure the centroid of a single SHK cell               */
@@ -123,7 +235,7 @@ void shk_centroid_cell(uint16 *image, shkcell_t *cell, int shk_boxsize){
   }
   if(cell->spot_captured)
     boxsize = shk_boxsize;
-    
+
   //Calculate corners of centroid box
   blx = floor(cell->cenbox_origin[0] - boxsize);
   bly = floor(cell->cenbox_origin[1] - boxsize);
@@ -258,7 +370,7 @@ void shk_zernike_matrix(shkcell_t *cells, double *matrix_inv){
   char matrix_file[MAX_FILENAME];
   float cell_size_px = SHK_LENSLET_PITCH_UM/SHK_PX_PITCH_UM;
 
- 
+
   // collect beam cell indices on to beam_cell_index[SHK_NCELLS]
   // beam_center = [mean(x), mean(y)] of beam cell origins
   // beam_radius = [(max(x)-min(x))/2, (max(y)-min(y))/2] of beam cell origins
@@ -301,7 +413,7 @@ void shk_zernike_matrix(shkcell_t *cells, double *matrix_inv){
     //NOTE: This is hard coded for LOWFS_N_ZERNIKE == 23
     //Units before unit_conversion are wavefront slope [unitless = um/um] per 1 unit of RMS zernike coefficent= [um/um]
     //--> wavefront slope [um/um] of a wavefront with zernike coefficient = 1
-    //unit_conversion contains (1/beam_radius [microns]) this converts the zernike coefficents to microns 
+    //unit_conversion contains (1/beam_radius [microns]) this converts the zernike coefficents to microns
     //Inverse of this is zernike coefficent / wavefront slope [um/um]
     //Inverse * wavefront slope = Inverse * (displacment [um] / focal length [um]) = Zernike coefficent
     //Inverse * (dispacement [px] * pixel size [um] / focal length [um]) = Zernike Coeff
@@ -409,7 +521,7 @@ void shk_zernike_fit(shkcell_t *cells, double *zernikes){
   static int beam_ncells=0;
   static int init=0;
   int i;
-  
+
   /* Initialize Fitting Matrix */
   if(!init){
     /* Get number of cells in the beam */
@@ -422,13 +534,13 @@ void shk_zernike_fit(shkcell_t *cells, double *zernikes){
     //Set init flag
     init = 1;
   }
-  
+
   //Format displacement array
   for(i=0;i<beam_ncells;i++){
     shk_xydev[2*i + 0] = cells[beam_cell_index[i]].deviation[0]; //pixels
     shk_xydev[2*i + 1] = cells[beam_cell_index[i]].deviation[1]; //pixels
   }
-  
+
   //Do matrix multiply
   num_dgemv(shk2zern, shk_xydev, zernikes, LOWFS_N_ZERNIKE, 2*beam_ncells);
 
@@ -448,14 +560,14 @@ void shk_cells2alp(shkcell_t *cells, double *actuators){
   int i;
   static int beam_ncells = 0;
   static int beam_cell_index[SHK_NCELLS]={0};
-  
+
   /* Initialize */
   if(!init){
     /* Get number of cells in the beam */
     for(i=0;i<SHK_NCELLS;i++)
       if(cells[i].beam_select)
 	beam_cell_index[beam_ncells++]=i;
-    
+
     /* Open matrix file */
     //--setup filename
     sprintf(matrix_file,SHKCEL2ALPACT_FILE);
@@ -496,10 +608,10 @@ void shk_cells2alp(shkcell_t *cells, double *actuators){
     shk_xydev[2*i + 0] = cells[beam_cell_index[i]].command[0];
     shk_xydev[2*i + 1] = cells[beam_cell_index[i]].command[1];
   }
-  
+
   //Do Matrix Multiply
   num_dgemv(cells2alp_matrix, shk_xydev, actuators, ALP_NACT, 2*beam_ncells);
-  
+
 }
 
 /**************************************************************/
@@ -550,7 +662,7 @@ int shk_cells2hex(shkcell_t *cells, double *axes){
     //--close file
     printf("SHK: Read: %s\n",matrix_file);
     fclose(matrix);
-    
+
     //--set init flag
     init=1;
   }
@@ -560,10 +672,10 @@ int shk_cells2hex(shkcell_t *cells, double *axes){
     shk_xydev[2*i + 0] = cells[beam_cell_index[i]].command[0];
     shk_xydev[2*i + 1] = cells[beam_cell_index[i]].command[1];
   }
-  
+
   //Do Matrix Multiply
   num_dgemv(cells2hex_matrix, shk_xydev, axes, HEX_NAXES, 2*beam_ncells);
-  
+
   return 0;
 }
 
@@ -578,7 +690,7 @@ void shk_alp_cellpid(shkevent_t *shkevent, int reset){
   int i;
   #define SHK_ALP_CELL_INT_MAX  1
   #define SHK_ALP_CELL_INT_MIN -1
-  
+
   //Initialize
   if(!init || reset){
     memset(xint,0,sizeof(xint));
@@ -616,14 +728,14 @@ void shk_alp_zernpid(shkevent_t *shkevent, double *zernike_delta, int reset){
   int i;
   #define SHK_ALP_ZERN_INT_MAX  0.1
   #define SHK_ALP_ZERN_INT_MIN -0.1
-  
+
   //Initialize
   if(!init || reset){
     memset(zint,0,sizeof(zint));
     init=1;
     if(reset) return;
   }
-  
+
   //Run PID
   for(i=0;i<LOWFS_N_ZERNIKE;i++){
     //Calculate error
@@ -647,14 +759,14 @@ void shk_hex_zernpid(shkevent_t *shkevent, double *zernike_delta, int reset){
   static double zint[LOWFS_N_ZERNIKE] = {0};
   double error;
   int i;
-  
+
   //Initialize
   if(!init || reset){
     memset(zint,0,sizeof(zint));
     init=1;
     if(reset) return;
   }
-  
+
   //Run PID
   for(i=0;i<LOWFS_N_ZERNIKE;i++){
     //Calculate error
@@ -687,13 +799,13 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   alp_t alp,alp_try,alp_delta;
   int zernike_control=0;
   uint32_t n_dither=1;
-  
+
   //Get time immidiately
   clock_gettime(CLOCK_REALTIME,&start);
 
   //Get state
   state = sm_p->state;
-  
+
   //Check reset
   if(sm_p->shk_reset){
     init=0;
@@ -734,7 +846,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   if(timespec_subtract(&delta,&start,&last))
     printf("SHK: shk_process_image --> timespec_subtract error!\n");
   ts2double(&delta,&dt);
-    
+
   //Fill out event header
   shkevent.hed.packet_type  = SHKEVENT;
   shkevent.hed.frame_number = frame_number;
@@ -774,7 +886,19 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   //Command: Set cell origins
   if(sm_p->shk_setorigin)
     sm_p->shk_setorigin = shk_setorigin(&shkevent);
-  
+
+  //Command: Reset cell origins
+  if(sm_p->shk_resetorigin)
+    sm_p->shk_resetorigin = shk_resetorigin(&shkevent);
+
+  //Command: Save cell deviations
+  if(sm_p->shk_savedeviation)
+    sm_p->shk_savedeviation = shk_savedeviation(sm_p, &shkevent);
+
+  //Command: Load cell origins
+  if(sm_p->shk_loadorigin)
+    sm_p->shk_loadorigin = shk_loadorigin(sm_p, &shkevent);
+
   //Fit Zernikes
   if(sm_p->state_array[state].shk.fit_zernikes)
     shk_zernike_fit(shkevent.cells,shkevent.zernike_measured);
@@ -794,7 +918,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
 
   //Check if we will send a command
   if((sm_p->state_array[state].hex_commander == SHKID) && sm_p->hex_ready && (dt > HEX_PERIOD)){
-     
+
     //Check if HEX is controlling any Zernikes
     zernike_control = 0;
     for(i=0;i<LOWFS_N_ZERNIKE;i++)
@@ -810,10 +934,10 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
       for(i=0;i<LOWFS_N_ZERNIKE;i++)
 	if(sm_p->state_array[state].shk.zernike_control[i] != ACTUATOR_HEX)
 	  hex_delta.zernike_cmd[i] = 0;
-      
+
       // - convert Zernike deltas to axis deltas
       hex_zern2hex_alt(hex_delta.zernike_cmd, hex_delta.axis_cmd);
-      
+
       // - add Zernike PID output deltas to HEX command
       for(i=0;i<LOWFS_N_ZERNIKE;i++)
 	if(sm_p->state_array[state].shk.zernike_control[i] == ACTUATOR_HEX)
@@ -827,34 +951,34 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     //Run HEX calibration
     if(sm_p->hex_calmode != HEX_CALMODE_NONE)
       sm_p->hex_calmode = hex_calibrate(shkevent.hex_calmode,&hex_try,&shkevent.hex_calstep,FUNCTION_NO_RESET);
-    
+
     //Send command to HEX
     if(hex_send_command(sm_p,&hex_try,SHKID)){
       // - copy command to current position
       memcpy(&hex,&hex_try,sizeof(hex_t));
     }
-    
+
     //Reset time
     memcpy(&hex_last,&start,sizeof(struct timespec));
   }
-  
+
   /*************************************************************/
   /*******************  ALPAO DM Control Code  *****************/
   /*************************************************************/
-  
+
   //Get last ALP command
   alp_get_command(sm_p,&alp);
   memcpy(&alp_try,&alp,sizeof(alp_t));
-  
+
   //Check if we will send a command
   if((sm_p->state_array[state].alp_commander == SHKID) && sm_p->alp_ready){
-    
+
     //Check if ALP is controlling any Zernikes
     zernike_control = 0;
     for(i=0;i<LOWFS_N_ZERNIKE;i++)
       if(sm_p->state_array[state].shk.zernike_control[i] == ACTUATOR_ALP)
 	zernike_control = 1;
-    
+
     //Run Zernike control
     if(zernike_control){
       // - run Zernike PID
@@ -864,7 +988,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
       for(i=0;i<LOWFS_N_ZERNIKE;i++)
 	if(sm_p->state_array[state].shk.zernike_control[i] != ACTUATOR_ALP)
 	  alp_delta.zernike_cmd[i] = 0;
-      
+
       // - convert zernike deltas to actuator deltas
       alp_zern2alp(alp_delta.zernike_cmd,alp_delta.act_cmd);
 
@@ -889,12 +1013,12 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
       // - add actuator deltas to ALP command
       for(i=0;i<ALP_NACT;i++)
 	alp_try.act_cmd[i] += alp_delta.act_cmd[i];
-    }  
-    
+    }
+
     //Calibrate ALP
     if(sm_p->alp_calmode != ALP_CALMODE_NONE)
       sm_p->alp_calmode = alp_calibrate(shkevent.alp_calmode,&alp_try,&shkevent.alp_calstep,FUNCTION_NO_RESET);
-    
+
     //Send command to ALP
     if(alp_send_command(sm_p,&alp_try,SHKID,n_dither)){
       // - copy command to current position
@@ -907,8 +1031,8 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
 
   //Copy ALP command to shkevent
   memcpy(&shkevent.alp,&alp,sizeof(alp_t));
-  
-  
+
+
   //Open SHKEVENT circular buffer
   shkevent_p=(shkevent_t *)open_buffer(sm_p,SHKEVENT);
 

@@ -28,7 +28,7 @@ void init_fakemode(int fakemode, calmode_t *fake);
 /**************************************************************/
 void print_procstatus(sm_t *sm_p){
   int i;
-  
+
   printf("************ Process Status ************\n");
   printf("Process      Running\n");
   for(i=0;i<NCLIENTS;i++)
@@ -37,7 +37,7 @@ void print_procstatus(sm_t *sm_p){
     else
       printf("%s          NO\n",sm_p->w[i].name);
   printf("******************************************\n");
-  
+
 }
 
 /**************************************************************/
@@ -51,7 +51,7 @@ void print_states(sm_t *sm_p){
   for(i=0;i<NSTATES;i++)
     printf("%02d   %-6s     %s\n",i,sm_p->state_array[i].cmd,sm_p->state_array[i].name);
   printf("******************************************\n");
-  
+
 }
 
 /**************************************************************/
@@ -117,7 +117,7 @@ int handle_command(char *line, sm_t *sm_p){
   const double hexdef[HEX_NAXES]  = HEX_POS_DEFAULT;
   hex_t hexcmd;
   memset(&hexcmd,0,sizeof(hex_t));
-  
+
   /****************************************
    * INITIALIZE
    ***************************************/
@@ -134,7 +134,7 @@ int handle_command(char *line, sm_t *sm_p){
     //Set init flag
     init=1;
   }
-  
+
   /****************************************
    * SYSTEM COMMANDS
    ***************************************/
@@ -254,7 +254,7 @@ int handle_command(char *line, sm_t *sm_p){
     }
     if(!cmdfound)
       print_alp_calmodes(alpcalmodes);
-    
+
     return(CMD_NORMAL);
   }
 
@@ -270,10 +270,10 @@ int handle_command(char *line, sm_t *sm_p){
     }
     if(!cmdfound)
       print_hex_calmodes(hexcalmodes);
-    
+
     return(CMD_NORMAL);
   }
-  
+
 
   //States
   if(!strncasecmp(line,"state",5)){
@@ -289,7 +289,7 @@ int handle_command(char *line, sm_t *sm_p){
     return(CMD_NORMAL);
   }
 
-  
+
   //Start Manual SHK Data Recording
   if(!strncasecmp(line, "shk start rec", 13)){
     printf("CMD: Starting SHK data recording\n");
@@ -458,14 +458,14 @@ int handle_command(char *line, sm_t *sm_p){
 	  printf("CMD: Hexapod command failed\n");
       }
       return(CMD_NORMAL);
-      
+
     }
     else{
       printf("CMD: Manual hexapod control disabled in this state.\n");
       return(CMD_NORMAL);
     }
   }
-  
+
   //User ALP control
   if(!strncasecmp(line,"alp flat",8)){
     if(sm_p->state_array[sm_p->state].alp_commander == WATID){
@@ -480,7 +480,7 @@ int handle_command(char *line, sm_t *sm_p){
       return(CMD_NORMAL);
     }
   }
-  
+
   //SHK HEX Calibration
   if(!strncasecmp(line,"shk calibrate hex",17)){
     if(sm_p->state == STATE_SHK_HEX_CALIBRATE){
@@ -633,6 +633,34 @@ int handle_command(char *line, sm_t *sm_p){
     return(CMD_NORMAL);
   }
 
+  if(!strncasecmp(line,"shk reset origin",16)){
+    printf("CMD: Resetting SHK origin\n");
+    sm_p->shk_resetorigin=1;
+    return(CMD_NORMAL);
+  }
+
+  //Save current SHK deviations to file
+  if(!strncasecmp(line, "shk save dev", 12)){
+    printf("CMD: Saving current SHK deviations\n");
+    //Setup filename
+    sprintf((char *)sm_p->calfile,SHK_DEVFILE);
+    //Save deviations
+    printf("  -- Recording data to: %s\n",sm_p->calfile);
+    sm_p->shk_savedeviation=1;
+    return(CMD_NORMAL);
+  }
+
+  //Save current SHK deviations to file
+  if(!strncasecmp(line, "shk load origin", 15)){
+    printf("CMD: Loading cell origins from file\n");
+    //Setup filename
+    sprintf((char *)sm_p->calfile,SHK_DEVFILE);
+    //Save deviations
+    printf("  -- Loading: %s\n",sm_p->calfile);
+    sm_p->shk_loadorigin=1;
+    return(CMD_NORMAL);
+  }
+
   //SHK ALP Gain
   if(!strncasecmp(line,"shk alp gain ",13) && strlen(line)>14){
     ftemp = atof(line+13);
@@ -677,7 +705,7 @@ int handle_command(char *line, sm_t *sm_p){
    ***************************************/
   if(strlen(line) == 1)
     return CMD_NORMAL;
-  
+
   //return with command not found
   return(CMD_NOT_FOUND);
 }
