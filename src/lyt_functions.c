@@ -232,7 +232,7 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     memset(&lytfull,0,sizeof(lytfull_t));
     memset(&lytevent,0,sizeof(lytevent_t));
     //Reset calibration routines
-    alp_calibrate(0,NULL,NULL,FUNCTION_RESET);
+    alp_calibrate(0,NULL,NULL,LYTID,FUNCTION_RESET);
     //Reset PID controllers
     lyt_alp_zernpid(NULL,NULL,FUNCTION_RESET);
     for(i=0;i<ALP_NCALMODES;i++){
@@ -320,7 +320,7 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
 
     //Calibrate ALP
     if(sm_p->alp_calmode != ALP_CALMODE_NONE)
-      sm_p->alp_calmode = alp_calibrate(lytevent.alp_calmode,&alp_try,&lytevent.alp_calstep,FUNCTION_NO_RESET);
+      sm_p->alp_calmode = alp_calibrate(lytevent.alp_calmode,&alp_try,&lytevent.alp_calstep,LYTID,FUNCTION_NO_RESET);
 
     //Send command to ALP
     if(alp_send_command(sm_p,&alp_try,LYTID,n_dither)){

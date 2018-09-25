@@ -156,7 +156,7 @@ enum states { STATE_STANDBY,
 #define SHKZER2SHKCEL_OUTFILE  "output/calibration/shkzer2shkcel_flight_output.dat"
 #define SHK_OUTFILE            "output/calibration/shk_output.dat"
 #define LYT_OUTFILE            "output/calibration/lyt_output.dat"
-#define SHK_DEVFILE            "output/calibration/shk_deviation.dat"
+#define SHK_ORIGIN_FILE        "output/calibration/shk_origin.dat"
 
 
 /*************************************************
@@ -314,9 +314,12 @@ enum bufids {SCIEVENT, SCIFULL,
 #define ALP_END_WORD          0xF100
 #define ALP_FRAME_END         0xFEED
 #define ALP_BIAS              0.0
-#define ALP_POKE              0.05
-#define ALP_ZPOKE             0.03 //zernike microns RMS
-#define ALP_NCALIM            35   //number of calibration images to take per step
+#define ALP_SHK_POKE          0.05 //shk alp actuator calibration poke 
+#define ALP_SHK_ZPOKE         0.03 //shk zernike microns RMS
+#define ALP_SHK_NCALIM        35   //shk number of calibration images to take per step
+#define ALP_LYT_POKE          0.01 //lyt alp actuator calibration poke
+#define ALP_LYT_ZPOKE         0.01 //lyt zernike microns RMS
+#define ALP_LYT_NCALIM        110  //lyt number of calibration images to take per step
 
 /*************************************************
  * HEXAPOD Parameters
@@ -773,9 +776,10 @@ typedef volatile struct {
 
   //Other Commands
   int hex_getpos;
+  int shk_setcenboxorigin;
   int shk_setorigin;
   int shk_resetorigin;
-  int shk_savedeviation;
+  int shk_saveorigin;
   int shk_loadorigin;
   int hex_tilt_correct;
 

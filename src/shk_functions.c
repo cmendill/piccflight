@@ -54,10 +54,10 @@ void shk_init_cells(shkevent_t *shkevent){
 }
 
 /***************************************************************/
-/* SHK_SETORIGIN                                               */
+/* SHK_SETCENBOXORIGIN                                         */
 /*  - Set centroid box center of each cell to current centroid */
 /***************************************************************/
-int shk_setorigin(shkevent_t *shkevent){
+int shk_setcenboxorigin(shkevent_t *shkevent){
   int i;
   static double cx[SHK_NCELLS]={0}, cy[SHK_NCELLS]={0};
   static int count=0;
@@ -93,37 +93,61 @@ int shk_setorigin(shkevent_t *shkevent){
 }
 
 /***************************************************************/
-/* SHK_RESETORIGIN                                             */
-/*  - Resets cell origins to default location                  */
+/* SHK_SETORIGIN                                               */
+/*  - Set centroid and target origin to current centroid       */
 /***************************************************************/
-int shk_resetorigin(shkevent_t *shkevent){
-  float cell_size_px = SHK_LENSLET_PITCH_UM/SHK_PX_PITCH_UM;
-  int i,j,c,x,y;
+int shk_setorigin(shkevent_t *shkevent){
+  int i;
+  static double cx[SHK_NCELLS]={0}, cy[SHK_NCELLS]={0};
+  static int count=0;
+  const int navg = SHK_ORIGIN_NAVG;
 
-  //Reset cell origin
-  c=0;
-  for(j=0;j<SHK_YCELLS;j++){
-    for(i=0;i<SHK_XCELLS;i++){
-      x = c % SHK_XCELLS;
-      y = SHK_YCELLS - 1 - c / SHK_YCELLS;
-      shkevent->cells[c].index = c;
-      shkevent->cells[c].origin[0] = i*cell_size_px + cell_size_px/2 + SHK_CELL_XOFF;
-      shkevent->cells[c].origin[1] = j*cell_size_px + cell_size_px/2 + SHK_CELL_YOFF;
-      // shkevent->cells[c].cenbox_origin[0] = i*cell_size_px + cell_size_px/2 + SHK_CELL_XOFF;
-      // shkevent->cells[c].cenbox_origin[1] = j*cell_size_px + cell_size_px/2 + SHK_CELL_YOFF;
-      c++;
+  //Average the centroids
+  if(count < navg){
+    for(i=0;i<SHK_NCELLS;i++){
+      if(shkevent->cells[i].beam_select){
+	cx[i] += shkevent->cells[i].centroid[0] / navg;
+	cy[i] += shkevent->cells[i].centroid[1] / navg;
+      }
     }
+    count++;
+    return 1;
   }
-  return 0;
+  else{
+    //Set centroid box origins
+    for(i=0;i<SHK_NCELLS;i++){
+      if(shkevent->cells[i].beam_select){
+	shkevent->cells[i].cenbox_origin[0] = cx[i];
+	shkevent->cells[i].cenbox_origin[1] = cy[i];
+	shkevent->cells[i].origin[0] = cx[i];
+	shkevent->cells[i].origin[1] = cy[i];
+      }
+    }
+
+    //Reset
+    count = 0;
+    memset(cx,0,sizeof(cx));
+    memset(cy,0,sizeof(cy));
+    printf("SHK: New origin set\n");
+    return 0;
+  }
 }
 
 /***************************************************************/
-/* SHK_SAVEDEVIATION                                           */
-/*  - Saves cell deviations to file to be used as cell origins */
+/* SHK_RESETORIGIN                                             */
+/*  - Resets cell origins to default location                  */
 /***************************************************************/
-int shk_savedeviation(sm_t *sm_p, shkevent_t *shkevent){
+void shk_resetorigin(shkevent_t *shkevent){
+  shk_init_cells(shkevent);
+}
+
+/***************************************************************/
+/* SHK_SAVEORIGIN                                              */
+/*  - Saves cell origins to file                               */
+/***************************************************************/
+void shk_saveorigin(shkevent_t *shkevent){
   struct stat st = {0};
-  FILE *out=NULL;
+  FILE *fd=NULL;
   static char outfile[MAX_FILENAME];
   char temp[MAX_FILENAME];
   char path[MAX_FILENAME];
@@ -131,72 +155,81 @@ int shk_savedeviation(sm_t *sm_p, shkevent_t *shkevent){
 
   /* Open output file */
   //--setup filename
-  sprintf(outfile,"%s",(char *)sm_p->calfile);
+  sprintf(outfile,"%s",SHK_ORIGIN_FILE);
   //--create output folder if it does not exist
   strcpy(temp,outfile);
   strcpy(path,dirname(temp));
   if (stat(path, &st) == -1){
-    printf("GETSHK: creating folder %s\n",path);
+    printf("SHK: creating folder %s\n",path);
     recursive_mkdir(path, 0777);
   }
-
   //--open file
-  if((out = fopen(outfile, "w")) == NULL){
-    perror("GETSHK: fopen()\n");
-    return 0;
+  if((fd = fopen(outfile, "w")) == NULL){
+    perror("SHK: saveorigin fopen()\n");
+    return;
   }
-
+  
   //Save shkevent
-  for(i=0;i<SHK_NCELLS;i++){
-    fwrite(shkevent->cells[i].deviation,sizeof(shkevent->cells[i].deviation),1,out);
+  if(fwrite(shkevent,sizeof(shkevent_t),1,fd) != 1){
+    printf("SHK: saveorigin fwrite error!\n");
+    fclose(fd);
+    return;
   }
-  fclose(out);
-  return 0;
+  printf("SHK: Wrote: %s\n",outfile);
+
+  //Close file
+  fclose(fd);
+  return;
 }
 
 /***************************************************************/
 /* SHK_LOADORIGIN                                              */
-/*  - Loads cell origins from deviation file                   */
+/*  - Loads cell origins from file                             */
 /***************************************************************/
-int shk_loadorigin(sm_t *sm_p, shkevent_t*shkevent){
-  FILE *deviations=NULL;
-  char deviations_file[MAX_FILENAME];
-  double shk_deviations[2*SHK_NCELLS] = {0};
+void shk_loadorigin(shkevent_t*shkevent){
+  FILE *fd=NULL;
+  char filename[MAX_FILENAME];
   uint64 fsize,rsize;
+  shkevent_t rdevent;
   int i;
-
-  /* Open deviations file */
+  
+  /* Open origin file */
   //--setup filename
-  sprintf(deviations_file,SHK_DEVFILE);
+  sprintf(filename,SHK_ORIGIN_FILE);
   //--open file
-  if((deviations = fopen(deviations_file,"r")) == NULL){
-    printf("shk_deviations file\r");
-    perror("fopen");
+  if((fd = fopen(filename,"r")) == NULL){
+    perror("SHK: loadorigin fopen");
+    return;
   }
   //--check file size
-  fseek(deviations, 0L, SEEK_END);
-  fsize = ftell(deviations);
-  rewind(deviations);
-  rsize = 2*SHK_NCELLS*sizeof(double);
+  fseek(fd, 0L, SEEK_END);
+  fsize = ftell(fd);
+  rewind(fd);
+  rsize = sizeof(shkevent_t);
   if(fsize != rsize){
-    printf("SHK: incorrect cells2alp deviations file size %lu != %lu\n",fsize,rsize);
-    fclose(deviations);
+    printf("SHK: incorrect SHK_ORIGIN_FILE %lu != %lu\n",fsize,rsize);
+    fclose(fd);
+    return;
   }
-  //--read deviations
-  if(fread(shk_deviations,2*SHK_NCELLS*sizeof(double),1,deviations) != 1){
-    perror("fread");
-    printf("shk_deviations file\r");
-    fclose(deviations);
+  
+  //Read file
+  if(fread(&rdevent,rsize,1,fd) != 1){
+    perror("SHK: loadorigin fread");
+    fclose(fd);
+    return;
   }
-  //--close file
-  fclose(deviations);
-  printf("SHK: Read: %s\n",deviations_file);
+  //Close file
+  fclose(fd);
+  printf("SHK: Read: %s\n",filename);
 
+  //Copy origins
   for(i=0;i<SHK_NCELLS;i++){
-    shkevent->cells[i].origin[0] += shk_deviations[2*i+0];
-    shkevent->cells[i].origin[1] += shk_deviations[2*i+1];
+    shkevent->cells[i].origin[0] = rdevent.cells[i].origin[0];
+    shkevent->cells[i].origin[1] = rdevent.cells[i].origin[1];
+    shkevent->cells[i].cenbox_origin[0] = rdevent.cells[i].cenbox_origin[0];
+    shkevent->cells[i].cenbox_origin[1] = rdevent.cells[i].cenbox_origin[1];
   }
-  return 0;
+  return;
 }
 
 
@@ -820,7 +853,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     //Init cells
     shk_init_cells(&shkevent);
     //Reset calibration routines
-    alp_calibrate(0,NULL,NULL,FUNCTION_RESET);
+    alp_calibrate(0,NULL,NULL,SHKID,FUNCTION_RESET);
     hex_calibrate(0,NULL,NULL,FUNCTION_RESET);
     //Reset PID controllers
     shk_alp_cellpid(NULL,FUNCTION_RESET);
@@ -883,21 +916,31 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   //Calculate centroids
   shk_centroid(buffer->pvAddress,&shkevent);
 
+  //Command: Set centroid box origins
+  if(sm_p->shk_setcenboxorigin)
+    sm_p->shk_setcenboxorigin = shk_setcenboxorigin(&shkevent);
+
   //Command: Set cell origins
   if(sm_p->shk_setorigin)
     sm_p->shk_setorigin = shk_setorigin(&shkevent);
 
   //Command: Reset cell origins
-  if(sm_p->shk_resetorigin)
-    sm_p->shk_resetorigin = shk_resetorigin(&shkevent);
+  if(sm_p->shk_resetorigin){
+    shk_resetorigin(&shkevent);
+    sm_p->shk_resetorigin = 0;
+  }
 
-  //Command: Save cell deviations
-  if(sm_p->shk_savedeviation)
-    sm_p->shk_savedeviation = shk_savedeviation(sm_p, &shkevent);
+  //Command: Save cell origins
+  if(sm_p->shk_saveorigin){
+    shk_saveorigin(&shkevent);
+    sm_p->shk_saveorigin = 0;
+  }
 
   //Command: Load cell origins
-  if(sm_p->shk_loadorigin)
-    sm_p->shk_loadorigin = shk_loadorigin(sm_p, &shkevent);
+  if(sm_p->shk_loadorigin){
+    shk_loadorigin(&shkevent);
+    sm_p->shk_loadorigin = 0;
+  }
 
   //Fit Zernikes
   if(sm_p->state_array[state].shk.fit_zernikes)
@@ -1017,7 +1060,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
 
     //Calibrate ALP
     if(sm_p->alp_calmode != ALP_CALMODE_NONE)
-      sm_p->alp_calmode = alp_calibrate(shkevent.alp_calmode,&alp_try,&shkevent.alp_calstep,FUNCTION_NO_RESET);
+      sm_p->alp_calmode = alp_calibrate(shkevent.alp_calmode,&alp_try,&shkevent.alp_calstep,SHKID,FUNCTION_NO_RESET);
 
     //Send command to ALP
     if(alp_send_command(sm_p,&alp_try,SHKID,n_dither)){

@@ -301,7 +301,7 @@ void init_state(int state_number, state_t *state){
     state->alp_commander = LYTID;
     //LYT Settings
     state->lyt.fit_zernikes = 1;
-    for(i=0;i<19;i++)
+    for(i=0;i<9;i++)
       state->lyt.zernike_control[i] = ACTUATOR_ALP;
     return;
   }

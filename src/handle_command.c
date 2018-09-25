@@ -627,6 +627,12 @@ int handle_command(char *line, sm_t *sm_p){
   }
 
   //SHK Commands
+  if(!strncasecmp(line,"shk set cenbox origin",21)){
+    printf("CMD: Setting SHK centroid box origin\n");
+    sm_p->shk_setcenboxorigin=1;
+    return(CMD_NORMAL);
+  }
+  
   if(!strncasecmp(line,"shk set origin",14)){
     printf("CMD: Setting SHK origin\n");
     sm_p->shk_setorigin=1;
@@ -639,24 +645,14 @@ int handle_command(char *line, sm_t *sm_p){
     return(CMD_NORMAL);
   }
 
-  //Save current SHK deviations to file
-  if(!strncasecmp(line, "shk save dev", 12)){
-    printf("CMD: Saving current SHK deviations\n");
-    //Setup filename
-    sprintf((char *)sm_p->calfile,SHK_DEVFILE);
-    //Save deviations
-    printf("  -- Recording data to: %s\n",sm_p->calfile);
-    sm_p->shk_savedeviation=1;
+  if(!strncasecmp(line,"shk save origin",15)){
+    printf("CMD: Saving SHK origin\n");
+    sm_p->shk_saveorigin=1;
     return(CMD_NORMAL);
   }
 
-  //Save current SHK deviations to file
-  if(!strncasecmp(line, "shk load origin", 15)){
-    printf("CMD: Loading cell origins from file\n");
-    //Setup filename
-    sprintf((char *)sm_p->calfile,SHK_DEVFILE);
-    //Save deviations
-    printf("  -- Loading: %s\n",sm_p->calfile);
+  if(!strncasecmp(line,"shk load origin",15)){
+    printf("CMD: Loading SHK origin\n");
     sm_p->shk_loadorigin=1;
     return(CMD_NORMAL);
   }

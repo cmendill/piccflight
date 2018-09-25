@@ -189,7 +189,7 @@ int alp_set_flat(sm_t *sm_p, int proc_id){
 /* ALP_CALIBRATE                                              */
 /* - Run calibration routines for ALPAO DM                    */
 /**************************************************************/
-int alp_calibrate(int calmode, alp_t *alp, uint32_t *step, int reset){
+int alp_calibrate(int calmode, alp_t *alp, uint32_t *step, int procid, int reset){
   int i,j,index;
   static struct timespec start,this,last,delta;
     static double zernike_errors[LOWFS_N_ZERNIKE][ZERNIKE_ERRORS_NUMBER]={{0}};
@@ -201,12 +201,25 @@ int alp_calibrate(int calmode, alp_t *alp, uint32_t *step, int reset){
   double dt=0,dt0=0,period=0;
   double zernikes[LOWFS_N_ZERNIKE]={0};
   double act[ALP_NACT];
+  double poke=0,zpoke=0;
+  int    ncalim=0;
   const double flat[ALP_NACT] = ALP_OFFSET;
   static int mode_init[ALP_NCALMODES] = {0};
   static alp_t alp_start[ALP_NCALMODES];
   static uint64 countA[ALP_NCALMODES] = {0};
   static uint64 countB[ALP_NCALMODES] = {0};
 
+  /* Set calibration parameters */
+  if(procid == SHKID){
+    poke   = ALP_SHK_POKE;
+    zpoke  = ALP_SHK_ZPOKE;
+    ncalim = ALP_SHK_NCALIM;
+  }
+  if(procid == LYTID){
+    poke   = ALP_LYT_POKE;
+    zpoke  = ALP_LYT_ZPOKE;
+    ncalim = ALP_LYT_NCALIM;
+  }
   
   /* Reset */
   if(reset){
@@ -299,17 +312,17 @@ int alp_calibrate(int calmode, alp_t *alp, uint32_t *step, int reset){
       mode_init[calmode]=1;
     }
     //Check counters
-    if(countA[calmode] >= 0 && countA[calmode] < (2*ALP_NACT*ALP_NCALIM)){
+    if(countA[calmode] >= 0 && countA[calmode] < (2*ALP_NACT*ncalim)){
       //set all ALP actuators to starting position
       for(i=0;i<ALP_NACT;i++)
 	alp->act_cmd[i]=alp_start[calmode].act_cmd[i];
 
       //set step counter
-      *step = (countA[calmode]/ALP_NCALIM);
+      *step = (countA[calmode]/ncalim);
 
       //poke one actuator
-      if((countA[calmode]/ALP_NCALIM) % 2 == 1){
-	alp->act_cmd[(countB[calmode]/ALP_NCALIM) % ALP_NACT] += ALP_POKE;
+      if((countA[calmode]/ncalim) % 2 == 1){
+	alp->act_cmd[(countB[calmode]/ncalim) % ALP_NACT] += poke;
 	countB[calmode]++;
       }
       countA[calmode]++;
@@ -335,7 +348,7 @@ int alp_calibrate(int calmode, alp_t *alp, uint32_t *step, int reset){
       mode_init[calmode]=1;
     }
     //Check counters
-    if(countA[calmode] >= 0 && countA[calmode] < (2*LOWFS_N_ZERNIKE*ALP_NCALIM)){
+    if(countA[calmode] >= 0 && countA[calmode] < (2*LOWFS_N_ZERNIKE*ncalim)){
       //set all Zernikes to zero
       for(i=0;i<LOWFS_N_ZERNIKE;i++)
 	alp->zernike_cmd[i] = 0.0;
@@ -345,11 +358,11 @@ int alp_calibrate(int calmode, alp_t *alp, uint32_t *step, int reset){
 	alp->act_cmd[i]=alp_start[calmode].act_cmd[i];
 
       //set step counter
-      *step = (countA[calmode]/ALP_NCALIM);
+      *step = (countA[calmode]/ncalim);
 
       //poke one zernike by adding it on top of the flat
-      if((countA[calmode]/ALP_NCALIM) % 2 == 1){
-	alp->zernike_cmd[(countB[calmode]/ALP_NCALIM) % LOWFS_N_ZERNIKE] = ALP_ZPOKE;
+      if((countA[calmode]/ncalim) % 2 == 1){
+	alp->zernike_cmd[(countB[calmode]/ncalim) % LOWFS_N_ZERNIKE] = zpoke;
 	alp_zern2alp(alp->zernike_cmd,act);
 	for(i=0; i<ALP_NACT; i++)
 	  alp->act_cmd[i] += act[i];
