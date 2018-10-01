@@ -91,7 +91,7 @@ void launch_proc(sm_t *sm_p,int id){
   void (*launch)(void);
   char insmod[100] = "insmod ";
   char procname[100];
-  
+
   launch = sm_p->w[id].launch;
   //reset values
   sm_p->w[id].die  =  0;
@@ -103,7 +103,7 @@ void launch_proc(sm_t *sm_p,int id){
 
   //set procname
   sprintf(procname,"picc_%s",sm_p->w[id].name);
-  
+
   // User-Space Process
   // --fork
   pid = fork();
@@ -247,7 +247,7 @@ int main(int argc,char **argv){
   DM7820_Error dm7820_status;
   DM7820_Board_Descriptor* p_rtd_board;
   int hexfd;
-  
+
   /* Open Shared Memory */
   sm_t *sm_p;
   int shmfd;
@@ -303,34 +303,36 @@ int main(int argc,char **argv){
 
   /* Set Runtime Defaults */
   /* All shmem numbers are ZERO unless defined here */
-  sm_p->memlock          = 0;
-  sm_p->die              = 0;
-  sm_p->state            = STATE_STANDBY;
-  sm_p->sci_mode         = SCI_MODE_DEFAULT;
-  sm_p->shk_mode         = SHK_MODE_DEFAULT;
-  sm_p->lyt_mode         = LYT_MODE_DEFAULT;
-  sm_p->acq_mode         = ACQ_MODE_DEFAULT;
-  sm_p->shk_boxsize      = SHK_BOXSIZE_DEFAULT;
-  sm_p->shk_kP_alp_cell  = SHK_KP_ALP_CELL_DEFAULT;
-  sm_p->shk_kI_alp_cell  = SHK_KI_ALP_CELL_DEFAULT;
-  sm_p->shk_kD_alp_cell  = SHK_KD_ALP_CELL_DEFAULT;
-  sm_p->shk_kP_alp_zern  = SHK_KP_ALP_ZERN_DEFAULT;
-  sm_p->shk_kI_alp_zern  = SHK_KI_ALP_ZERN_DEFAULT;
-  sm_p->shk_kD_alp_zern  = SHK_KD_ALP_ZERN_DEFAULT;
-  sm_p->shk_kP_hex_zern  = SHK_KP_HEX_ZERN_DEFAULT;
-  sm_p->shk_kI_hex_zern  = SHK_KI_HEX_ZERN_DEFAULT;
-  sm_p->shk_kD_hex_zern  = SHK_KD_HEX_ZERN_DEFAULT;
-  sm_p->lyt_kP_alp_zern  = LYT_KP_ALP_ZERN_DEFAULT;
-  sm_p->lyt_kI_alp_zern  = LYT_KI_ALP_ZERN_DEFAULT;
-  sm_p->lyt_kD_alp_zern  = LYT_KD_ALP_ZERN_DEFAULT;
-  sm_p->hex_tilt_correct = HEX_TILT_CORRECT_DEFAULT;
-  sm_p->alp_n_dither     = -1;
-  sm_p->alp_proc_id      = -1;
+  sm_p->memlock            = 0;
+  sm_p->die                = 0;
+  sm_p->state              = STATE_STANDBY;
+  sm_p->sci_mode           = SCI_MODE_DEFAULT;
+  sm_p->shk_mode           = SHK_MODE_DEFAULT;
+  sm_p->lyt_mode           = LYT_MODE_DEFAULT;
+  sm_p->acq_mode           = ACQ_MODE_DEFAULT;
+  sm_p->shk_boxsize        = SHK_BOXSIZE_DEFAULT;
+  sm_p->shk_kP_alp_cell    = SHK_KP_ALP_CELL_DEFAULT;
+  sm_p->shk_kI_alp_cell    = SHK_KI_ALP_CELL_DEFAULT;
+  sm_p->shk_kD_alp_cell    = SHK_KD_ALP_CELL_DEFAULT;
+  sm_p->shk_kP_alp_zern    = SHK_KP_ALP_ZERN_DEFAULT;
+  sm_p->shk_kI_alp_zern    = SHK_KI_ALP_ZERN_DEFAULT;
+  sm_p->shk_kD_alp_zern    = SHK_KD_ALP_ZERN_DEFAULT;
+  sm_p->shk_kP_hex_zern    = SHK_KP_HEX_ZERN_DEFAULT;
+  sm_p->shk_kI_hex_zern    = SHK_KI_HEX_ZERN_DEFAULT;
+  sm_p->shk_kD_hex_zern    = SHK_KD_HEX_ZERN_DEFAULT;
+  sm_p->hex_tilt_correct   = HEX_TILT_CORRECT_DEFAULT;
+  sm_p->alp_n_dither       = -1;
+  sm_p->alp_proc_id        = -1;
+
+  //LYT PID Gains
+  double gain_array[LOWFS_N_ZERNIKE][LOWFS_N_PID] = LYT_GAIN_ALP_ZERN_DEFAULT;
+  memcpy((double *)&sm_p->lyt_gain_alp_zern[0][0],&gain_array[0][0],sizeof(gain_array));
   
+
   /* Initialize States */
   for(i=0;i<NSTATES;i++)
     init_state(i,(state_t *)&sm_p->state_array[i]);
-  
+
   /* Configure Circular Buffers */
   //-- Event buffers
   sm_p->circbuf[SCIEVENT].buffer  = (void *)sm_p->scievent;
@@ -349,7 +351,7 @@ int main(int argc,char **argv){
   sm_p->circbuf[ACQEVENT].nbytes  = sizeof(acqevent_t);
   sm_p->circbuf[ACQEVENT].bufsize = ACQEVENTSIZE;
   sprintf((char *)sm_p->circbuf[ACQEVENT].name,"ACQEVENT");
-  
+
   //-- Full frame buffers
   sm_p->circbuf[SCIFULL].buffer  = (void *)sm_p->scifull;
   sm_p->circbuf[SCIFULL].nbytes  = sizeof(scifull_t);
@@ -380,7 +382,7 @@ int main(int argc,char **argv){
       sm_p->dio_ready=1;
     }
   }
-  
+
   /* Init RTD Driver */
   if(ALP_ENABLE || TLM_ENABLE){
     printf("WAT: Opening RTD driver\n");
@@ -404,7 +406,7 @@ int main(int argc,char **argv){
       }
     }
   }
-  
+
   /* Init HEX Driver */
   if(HEX_ENABLE){
     printf("WAT: Opening HEX driver\n");
@@ -423,7 +425,7 @@ int main(int argc,char **argv){
   if(sm_p->alp_ready)
     if(alp_set_flat(sm_p,WATID)==0)
       printf("WAT: alp_set_flat failed!\n");
-  
+
   /* Launch Watchdog */
   if(sm_p->w[WATID].run){
     if(sm_p->w[WATID].pid == -1){
@@ -486,13 +488,13 @@ int main(int argc,char **argv){
       perror("rtd_alp_cleanup");
     if((dm7820_status = rtd_tlm_cleanup(p_rtd_board)))
       perror("rtd_tlm_cleanup");
-  
+
     //Close RTD driver
     if((dm7820_status = rtd_close(p_rtd_board)))
       perror("rtd_close");
     else
       printf("WAT: RTD closed\n");
-    
+
   }
 
   //Cleanup HEX
@@ -500,7 +502,7 @@ int main(int argc,char **argv){
     hex_disconnect(hexfd);
     printf("WAT: HEX closed\n");
   }
-  
+
   //Close shared memory
   close(shmfd);
 

@@ -207,6 +207,7 @@ enum bufids {SCIEVENT, SCIFULL,
  * LOWFS Settings
  *************************************************/
 #define LOWFS_N_ZERNIKE         23 //no piston
+#define LOWFS_N_PID             3
 #define LOWFS_N_HEX_ZERNIKE     5  //no piston
 
 /*************************************************
@@ -314,7 +315,7 @@ enum bufids {SCIEVENT, SCIFULL,
 #define ALP_END_WORD          0xF100
 #define ALP_FRAME_END         0xFEED
 #define ALP_BIAS              0.0
-#define ALP_SHK_POKE          0.05 //shk alp actuator calibration poke 
+#define ALP_SHK_POKE          0.05 //shk alp actuator calibration poke
 #define ALP_SHK_ZPOKE         0.03 //shk zernike microns RMS
 #define ALP_SHK_NCALIM        35   //shk number of calibration images to take per step
 #define ALP_LYT_POKE          0.01 //lyt alp actuator calibration poke
@@ -630,9 +631,7 @@ typedef struct lytevent_struct{
   uint32    alp_calstep;
   double    xtilt;
   double    ytilt;
-  double    kP_alp_zern;
-  double    kI_alp_zern;
-  double    kD_alp_zern;
+  double    gain_alp_zern[LOWFS_N_ZERNIKE][LOWFS_N_PID];
   double    zernike_measured[LOWFS_N_ZERNIKE];
   double    zernike_target[LOWFS_N_ZERNIKE];
   alp_t     alp;
@@ -764,10 +763,8 @@ typedef volatile struct {
   double shk_kD_hex_zern;     //SHK HEX zernike gains
 
   //Lyot LOWFS Settings
-  double lyt_kP_alp_zern;     //LYT ALP zernike gains
-  double lyt_kI_alp_zern;     //LYT ALP zernike gains
-  double lyt_kD_alp_zern;     //LYT ALP zernike gains
-
+  double lyt_gain_alp_zern[LOWFS_N_ZERNIKE][LOWFS_N_PID];  //LYT ALP zernike PID gains
+  
   //Reset Commands
   int shk_reset;
   int acq_reset;

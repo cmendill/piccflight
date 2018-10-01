@@ -632,7 +632,7 @@ int handle_command(char *line, sm_t *sm_p){
     sm_p->shk_setcenboxorigin=1;
     return(CMD_NORMAL);
   }
-  
+
   if(!strncasecmp(line,"shk set origin",14)){
     printf("CMD: Setting SHK origin\n");
     sm_p->shk_setorigin=1;
@@ -660,42 +660,46 @@ int handle_command(char *line, sm_t *sm_p){
   //SHK ALP Gain
   if(!strncasecmp(line,"shk alp gain ",13) && strlen(line)>14){
     ftemp = atof(line+13);
-    if(ftemp >= 0 && ftemp <= 5)
-      ftemp /= 5.0;
-    sm_p->shk_kP_alp_cell = SHK_KP_ALP_CELL_DEFAULT*ftemp;
-    sm_p->shk_kI_alp_cell = SHK_KI_ALP_CELL_DEFAULT*ftemp;
-    sm_p->shk_kD_alp_cell = SHK_KD_ALP_CELL_DEFAULT*ftemp;
-    sm_p->shk_kP_alp_zern = SHK_KP_ALP_ZERN_DEFAULT*ftemp;
-    sm_p->shk_kI_alp_zern = SHK_KI_ALP_ZERN_DEFAULT*ftemp;
-    sm_p->shk_kD_alp_zern = SHK_KD_ALP_ZERN_DEFAULT*ftemp;
-    printf("SHK switching to ALP cell gain 5: %f, %f, %f\n",sm_p->shk_kP_alp_cell,sm_p->shk_kI_alp_cell,sm_p->shk_kD_alp_cell);
-    printf("SHK switching to ALP zern gain 5: %f, %f, %f\n",sm_p->shk_kP_alp_zern,sm_p->shk_kI_alp_zern,sm_p->shk_kD_alp_zern);
+    if(ftemp > 0){
+      sm_p->shk_kP_alp_cell = SHK_KP_ALP_CELL_DEFAULT*ftemp;
+      sm_p->shk_kI_alp_cell = SHK_KI_ALP_CELL_DEFAULT*ftemp;
+      sm_p->shk_kD_alp_cell = SHK_KD_ALP_CELL_DEFAULT*ftemp;
+      sm_p->shk_kP_alp_zern = SHK_KP_ALP_ZERN_DEFAULT*ftemp;
+      sm_p->shk_kI_alp_zern = SHK_KI_ALP_ZERN_DEFAULT*ftemp;
+      sm_p->shk_kD_alp_zern = SHK_KD_ALP_ZERN_DEFAULT*ftemp;
+      printf("SHK switching to ALP cell gain: %f, %f, %f\n",sm_p->shk_kP_alp_cell,sm_p->shk_kI_alp_cell,sm_p->shk_kD_alp_cell);
+      printf("SHK switching to ALP zern gain: %f, %f, %f\n",sm_p->shk_kP_alp_zern,sm_p->shk_kI_alp_zern,sm_p->shk_kD_alp_zern);
+    }else printf("CMD: Gain multiplier must be > 0\n");
     return CMD_NORMAL;
   }
 
   //SHK HEX Gain
   if(!strncasecmp(line,"shk hex gain ",13) && strlen(line)>14){
     ftemp = atof(line+13);
-    if(ftemp >= 0 && ftemp <= 5)
-      ftemp /= 5.0;
-    sm_p->shk_kP_hex_zern = SHK_KP_HEX_ZERN_DEFAULT*ftemp;
-    sm_p->shk_kI_hex_zern = SHK_KI_HEX_ZERN_DEFAULT*ftemp;
-    sm_p->shk_kD_hex_zern = SHK_KD_HEX_ZERN_DEFAULT*ftemp;
-    printf("SHK switching to HEX zern gain 5: %f, %f, %f\n",sm_p->shk_kP_hex_zern,sm_p->shk_kI_hex_zern,sm_p->shk_kD_hex_zern);
+    if(ftemp > 0){
+      sm_p->shk_kP_hex_zern = SHK_KP_HEX_ZERN_DEFAULT*ftemp;
+      sm_p->shk_kI_hex_zern = SHK_KI_HEX_ZERN_DEFAULT*ftemp;
+      sm_p->shk_kD_hex_zern = SHK_KD_HEX_ZERN_DEFAULT*ftemp;
+      printf("SHK switching to HEX zern gain: %f, %f, %f\n",sm_p->shk_kP_hex_zern,sm_p->shk_kI_hex_zern,sm_p->shk_kD_hex_zern);
+    }else printf("CMD: Gain multiplier must be > 0\n");
     return CMD_NORMAL;
   }
 
   //LYT ALP Gain
   if(!strncasecmp(line,"lyt alp gain ",13) && strlen(line)>14){
     ftemp = atof(line+13);
-    if(ftemp >= 0 && ftemp <= 5)
-      ftemp /= 5.0;
-    sm_p->lyt_kP_alp_zern = LYT_KP_ALP_ZERN_DEFAULT*ftemp;
-    sm_p->lyt_kI_alp_zern = LYT_KI_ALP_ZERN_DEFAULT*ftemp;
-    sm_p->lyt_kD_alp_zern = LYT_KD_ALP_ZERN_DEFAULT*ftemp;
-    printf("LYT switching to ALP zern gain 5: %f, %f, %f\n",sm_p->lyt_kP_alp_zern,sm_p->lyt_kI_alp_zern,sm_p->lyt_kD_alp_zern);
+    if(ftemp > 0){
+      double gain_array[LOWFS_N_ZERNIKE][LOWFS_N_PID] = LYT_GAIN_ALP_ZERN_DEFAULT;
+      memcpy((double *)&sm_p->lyt_gain_alp_zern[0][0],&gain_array[0][0],sizeof(gain_array));
+      for(i=0;i<LOWFS_N_ZERNIKE;i++) 
+	for(j=0;j<LOWFS_N_PID;j++)
+	  sm_p->lyt_gain_alp_zern[i][j] * ftemp;
+      printf("LYT changing gain multiplier to %f\n",ftemp);
+    }else printf("CMD: Gain multiplier must be > 0\n");
     return CMD_NORMAL;
   }
+
+  
   /****************************************
    * BLANK COMMAND
    ***************************************/

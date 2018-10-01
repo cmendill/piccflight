@@ -46,7 +46,7 @@ void lyt_alp_zernpid(lytevent_t *lytevent, double *zernike_delta, int reset){
     if(zint[i] < LYT_ALP_ZERN_INT_MIN) zint[i]=LYT_ALP_ZERN_INT_MIN;
 
     //Calculate command
-    zernike_delta[i] = lytevent->kP_alp_zern * error + lytevent->kI_alp_zern * zint[i];
+    zernike_delta[i] = lytevent->gain_alp_zern[i][0] * error + lytevent->gain_alp_zern[i][1] * zint[i];
   }
 }
 
@@ -67,10 +67,10 @@ void lyt_zernike_fit(lyt_t *image, double *zernikes){
   uint64 fsize,rsize;
   double total;
   int    i,j,count;
-  
+
   /* Initialize Fitting Matrix */
   if(!init){
-    
+
     /****** READ REFERENCE IMAGE FILE ******/
     //--setup filename
     sprintf(filename,LYT_REFIMG_FILE);
@@ -138,7 +138,7 @@ void lyt_zernike_fit(lyt_t *image, double *zernikes){
 	if(lyt_pxmask[i][j])
 	  lyt_npix++;
 
-    
+
     /****** READ ZERNIKE MATRIX FILE ******/
     //--setup filename
     sprintf(filename,LYTPIX2ALPZER_FILE);
@@ -148,7 +148,7 @@ void lyt_zernike_fit(lyt_t *image, double *zernikes){
       printf("lyt2zern file\n");
       goto end_of_init;
     }
-    //--calculate 
+    //--calculate
     //--check file size
     fseek(fd, 0L, SEEK_END);
     fsize = ftell(fd);
@@ -169,7 +169,7 @@ void lyt_zernike_fit(lyt_t *image, double *zernikes){
     //--close file
     fclose(fd);
     printf("LYT: Read: %s\n",filename);
-    
+
 
   end_of_init:
     //--set init flag
@@ -267,10 +267,8 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
 
   //Save modes and gains
   lytevent.alp_calmode      = sm_p->alp_calmode;
-  lytevent.kP_alp_zern      = sm_p->lyt_kP_alp_zern;
-  lytevent.kI_alp_zern      = sm_p->lyt_kI_alp_zern;
-  lytevent.kD_alp_zern      = sm_p->lyt_kD_alp_zern;
-
+  memcpy(&lytevent.gain_alp_zern[0][0],(double *)&sm_p->lyt_gain_alp_zern[0][0],sizeof(lytevent.gain_alp_zern));
+  
   //Copy image out of buffer
   memcpy(&(lytevent.image.data[0][0]),buffer->pvAddress,sizeof(lytevent.image.data));
 
