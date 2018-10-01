@@ -38,7 +38,7 @@
 #define SHK_KD_HEX_ZERN_DEFAULT   0.0
 
 //Lyot LOWFS Gains                      P           I            D
-#define LYT_GAIN_ALP_ZERN_DEFAULT { \ 
+#define LYT_GAIN_ALP_ZERN_DEFAULT {                                   \
 				  {-0.500000,  -0.100000,       0.0}, \
 				  {-0.500000,  -0.100000,       0.0}, \
 				  {-0.500000,  -0.100000,       0.0}, \

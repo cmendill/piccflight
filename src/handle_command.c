@@ -693,7 +693,7 @@ int handle_command(char *line, sm_t *sm_p){
       memcpy((double *)&sm_p->lyt_gain_alp_zern[0][0],&gain_array[0][0],sizeof(gain_array));
       for(i=0;i<LOWFS_N_ZERNIKE;i++) 
 	for(j=0;j<LOWFS_N_PID;j++)
-	  sm_p->lyt_gain_alp_zern[i][j] * ftemp;
+	  sm_p->lyt_gain_alp_zern[i][j] *= ftemp;
       printf("LYT changing gain multiplier to %f\n",ftemp);
     }else printf("CMD: Gain multiplier must be > 0\n");
     return CMD_NORMAL;
