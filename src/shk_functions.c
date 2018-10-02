@@ -207,7 +207,7 @@ void shk_loadorigin(shkevent_t*shkevent){
   rewind(fd);
   rsize = sizeof(shkevent_t);
   if(fsize != rsize){
-    printf("SHK: incorrect SHK_ORIGIN_FILE %lu != %lu\n",fsize,rsize);
+    printf("SHK: incorrect SHK_ORIGIN_FILE size %lu != %lu\n",fsize,rsize);
     fclose(fd);
     return;
   }
