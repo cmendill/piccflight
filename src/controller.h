@@ -775,7 +775,7 @@ typedef volatile struct {
   int hex_getpos;
   int shk_setcenboxorigin;
   int shk_setorigin;
-  int shk_resetorigin;
+  int shk_revertorigin;
   int shk_saveorigin;
   int shk_loadorigin;
   int hex_tilt_correct;

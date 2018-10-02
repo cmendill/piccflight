@@ -134,10 +134,10 @@ int shk_setorigin(shkevent_t *shkevent){
 }
 
 /***************************************************************/
-/* SHK_RESETORIGIN                                             */
+/* SHK_REVERTORIGIN                                             */
 /*  - Resets cell origins to default location                  */
 /***************************************************************/
-void shk_resetorigin(shkevent_t *shkevent){
+void shk_revertorigin(shkevent_t *shkevent){
   shk_init_cells(shkevent);
 }
 
@@ -925,9 +925,9 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     sm_p->shk_setorigin = shk_setorigin(&shkevent);
 
   //Command: Reset cell origins
-  if(sm_p->shk_resetorigin){
-    shk_resetorigin(&shkevent);
-    sm_p->shk_resetorigin = 0;
+  if(sm_p->shk_revertorigin){
+    shk_revertorigin(&shkevent);
+    sm_p->shk_revertorigin = 0;
   }
 
   //Command: Save cell origins

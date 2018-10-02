@@ -639,9 +639,9 @@ int handle_command(char *line, sm_t *sm_p){
     return(CMD_NORMAL);
   }
 
-  if(!strncasecmp(line,"shk reset origin",16)){
-    printf("CMD: Resetting SHK origin\n");
-    sm_p->shk_resetorigin=1;
+  if(!strncasecmp(line,"shk revert origin",17)){
+    printf("CMD: Reverting SHK origin\n");
+    sm_p->shk_revertorigin=1;
     return(CMD_NORMAL);
   }
 
