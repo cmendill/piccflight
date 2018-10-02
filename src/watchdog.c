@@ -389,13 +389,13 @@ int main(int argc,char **argv){
     //Open driver
     if((dm7820_status = rtd_open(RTD_BOARD_MINOR, &p_rtd_board))){
       perror("WAT: rtd_open");
-      printf("WAT: RTD init failed!\n");
+      printf("WAT: ERROR: RTD init failed!\n");
     }
     else{
       //Reset board
       if((dm7820_status = rtd_reset(p_rtd_board))){
 	perror("WAT: rtd_reset");
-	printf("WAT: RTD init failed!\n");
+	printf("WAT: ERROR: RTD init failed!\n");
       }
       else{
 	//Set device handle
@@ -412,7 +412,7 @@ int main(int argc,char **argv){
     printf("WAT: Opening HEX driver\n");
     if(hex_init(&hexfd)){
       perror("hex_init");
-      printf("WAT: HEX init failed!\n");
+      printf("WAT: ERROR: HEX init failed!\n");
     }
     else{
       sm_p->hexfd = hexfd;
@@ -420,11 +420,21 @@ int main(int argc,char **argv){
       printf("WAT: HEX ready\n");
     }
   }
-
+  
   /* Set initial ALP position */
-  if(sm_p->alp_ready)
-    if(alp_set_flat(sm_p,WATID)==0)
-      printf("WAT: alp_set_flat failed!\n");
+  if(sm_p->alp_ready){
+    if(alp_load_flat(sm_p,WATID)==0){
+      if(alp_revert_flat(sm_p,WATID)==0){
+	printf("WAT: ERROR: alp_load_flat & alp_revert_flat failed!\n");
+      }
+      else{
+	printf("WAT: Set ALP to default flat\n");
+      }
+    }
+    else{
+      printf("WAT: Loaded ALP flat from file\n");
+    }
+  }
 
   /* Launch Watchdog */
   if(sm_p->w[WATID].run){

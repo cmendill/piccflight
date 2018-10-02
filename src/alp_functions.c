@@ -7,6 +7,8 @@
 #include <fcntl.h>
 #include <ctype.h>
 #include <time.h>
+#include <libgen.h>
+#include <sys/stat.h>
 
 /* piccflight headers */
 #include "controller.h"
@@ -175,16 +177,104 @@ int alp_send_command(sm_t *sm_p, alp_t *cmd, int proc_id, int n_dither){
 
 
 /**************************************************************/
-/* ALP_SET_FLAT                                               */
-/* - Set ALP to flat map                                      */
+/* ALP_REVERT_FLAT                                            */
+/* - Set ALP to #defined flat map                             */
 /**************************************************************/
-int alp_set_flat(sm_t *sm_p, int proc_id){
+int alp_revert_flat(sm_t *sm_p, int proc_id){
   alp_t alp;
   const double flat[ALP_NACT] = ALP_OFFSET;
   memset(&alp,0,sizeof(alp_t));
   memcpy(alp.act_cmd,flat,sizeof(flat));
   return(alp_send_command(sm_p,&alp,proc_id,1));
 }
+
+/**************************************************************/
+/* ALP_SAVE_FLAT                                              */
+/* - Save current ALP position to file                        */
+/**************************************************************/
+int alp_save_flat(sm_t *sm_p){
+  alp_t alp;
+  struct stat st = {0};
+  FILE *fd=NULL;
+  static char outfile[MAX_FILENAME];
+  char temp[MAX_FILENAME];
+  char path[MAX_FILENAME];
+
+  //Get current command
+  alp_get_command(sm_p,&alp);
+
+  //Open output file
+  //--setup filename
+  sprintf(outfile,"%s",ALP_FLAT_FILE);
+  //--create output folder if it does not exist
+  strcpy(temp,outfile);
+  strcpy(path,dirname(temp));
+  if (stat(path, &st) == -1){
+    printf("ALP: creating folder %s\n",path);
+    recursive_mkdir(path, 0777);
+  }
+  //--open file
+  if((fd = fopen(outfile, "w")) == NULL){
+    perror("ALP: alp_save_flat fopen()\n");
+    return 1;
+  }
+  
+  //Save flat
+  if(fwrite(&alp,sizeof(alp_t),1,fd) != 1){
+    printf("ALP: alp_save_flat fwrite error!\n");
+    fclose(fd);
+    return 1;
+  }
+  printf("ALP: Wrote: %s\n",outfile);
+
+  //Close file
+  fclose(fd);
+  return 0;
+}
+
+/***************************************************************/
+/* ALP_LOAD_FLAT                                               */
+/*  - Loads ALP flat from file                                 */
+/***************************************************************/
+int alp_load_flat(sm_t *sm_p,int proc_id){
+  FILE *fd=NULL;
+  char filename[MAX_FILENAME];
+  uint64 fsize,rsize;
+  alp_t alp;
+    
+  //Open file
+  //--setup filename
+  sprintf(filename,ALP_FLAT_FILE);
+  //--open file
+  if((fd = fopen(filename,"r")) == NULL){
+    perror("ALP: alp_load_flat fopen");
+    return 0;
+  }
+  //--check file size
+  fseek(fd, 0L, SEEK_END);
+  fsize = ftell(fd);
+  rewind(fd);
+  rsize = sizeof(alp_t);
+  if(fsize != rsize){
+    printf("ALP: incorrect ALP_FLAT_FILE size %lu != %lu\n",fsize,rsize);
+    fclose(fd);
+    return 0;
+  }
+  
+  //Read file
+  if(fread(&alp,rsize,1,fd) != 1){
+    perror("ALP: alp_load_flat fread");
+    fclose(fd);
+    return 0;
+  }
+  //Close file
+  fclose(fd);
+  printf("ALP: Read: %s\n",filename);
+
+  //Send flat to ALP
+  return(alp_send_command(sm_p,&alp,proc_id,1));
+}
+
 /**************************************************************/
 /* ALP_CALIBRATE                                              */
 /* - Run calibration routines for ALPAO DM                    */

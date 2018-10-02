@@ -157,7 +157,7 @@ enum states { STATE_STANDBY,
 #define SHK_OUTFILE            "output/calibration/shk_output.dat"
 #define LYT_OUTFILE            "output/calibration/lyt_output.dat"
 #define SHK_ORIGIN_FILE        "output/calibration/shk_origin.dat"
-
+#define ALP_FLAT_FILE          "output/calibration/alp_flat.dat"
 
 /*************************************************
  * Network Addresses & Ports

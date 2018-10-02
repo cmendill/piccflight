@@ -467,19 +467,42 @@ int handle_command(char *line, sm_t *sm_p){
   }
 
   //User ALP control
-  if(!strncasecmp(line,"alp flat",8)){
+  if(!strncasecmp(line,"alp revert flat",15)){
     if(sm_p->state_array[sm_p->state].alp_commander == WATID){
-      printf("CMD: Setting ALPAO DM to flat\n");
+      printf("CMD: Reverting ALP flat to default\n");
       if(sm_p->alp_ready)
-	if(alp_set_flat(sm_p,WATID)==0)
-	  printf("WAT: alp_set_flat failed!\n");
-      return(CMD_NORMAL);
+	if(alp_revert_flat(sm_p,WATID)==0)
+	  printf("CMD: ERROR: alp_revert_flat failed!\n");
     }
-    else{
+    else
       printf("CMD: Manual ALPAO DM control disabled in this state.\n");
-      return(CMD_NORMAL);
-    }
+    return(CMD_NORMAL);
   }
+  
+  if(!strncasecmp(line,"alp save flat",13)){
+    if(sm_p->state_array[sm_p->state].alp_commander == WATID){
+      printf("CMD: Saving current ALP command as flat\n");
+      if(sm_p->alp_ready)
+	if(alp_save_flat(sm_p))
+	  printf("CMD: ERROR: alp_save_flat failed!\n");
+    }
+    else
+      printf("CMD: Manual ALPAO DM control disabled in this state.\n");
+    return(CMD_NORMAL);
+  }
+  
+  if(!strncasecmp(line,"alp load flat",13)){
+    if(sm_p->state_array[sm_p->state].alp_commander == WATID){
+      printf("CMD: Loading ALP flat from file\n");
+      if(sm_p->alp_ready)
+	if(alp_load_flat(sm_p,WATID)==0)
+	  printf("CMD: ERROR: alp_load_flat failed!\n");
+    }
+    else
+      printf("CMD: Manual ALPAO DM control disabled in this state.\n");
+    return(CMD_NORMAL);
+  }
+
 
   //SHK HEX Calibration
   if(!strncasecmp(line,"shk calibrate hex",17)){
