@@ -265,6 +265,7 @@ static void rtd_alp_build_dither_block(double *cmd) {
 static DM7820_Error rtd_alp_write_dma_fifo(DM7820_Board_Descriptor* p_rtd_board) {
   DM7820_Error dm7820_status=0,dm7820_return=0;
   uint8_t fifo_status;
+  static int fifo_warn = 1;
   
   //Sleep until current DMA transfer is done (PREVIOUS DMA MUST BE DONE, WARN IF IT ISN'T)
   if(DM7820_General_Check_DMA_0_Transfer(p_rtd_board) == 0){
@@ -278,7 +279,10 @@ static DM7820_Error rtd_alp_write_dma_fifo(DM7820_Board_Descriptor* p_rtd_board)
     perror("DM7820_FIFO_Get_Status");
   dm7820_return |= dm7820_status;
   if(!fifo_status){
-    printf("RTD: ALP FIFO NOT EMPTY!\n");
+    if(fifo_warn){
+      printf("RTD: ALP FIFO NOT EMPTY! (Suppressing additional warnings)\n");
+      fifo_warn=0;
+    }
     while(!fifo_status){
       usleep(10);
       if((dm7820_status = DM7820_FIFO_Get_Status(p_rtd_board,DM7820_FIFO_QUEUE_0,DM7820_FIFO_STATUS_EMPTY,&fifo_status)))
