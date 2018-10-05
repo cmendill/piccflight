@@ -503,6 +503,17 @@ int handle_command(char *line, sm_t *sm_p){
     return(CMD_NORMAL);
   }
 
+  if(!strncasecmp(line,"alp random",10)){
+    if(sm_p->state_array[sm_p->state].alp_commander == WATID){
+      printf("CMD: Sending random actuator pattern to ALP DM\n");
+      if(sm_p->alp_ready)
+	if(alp_set_random(sm_p,WATID)==0)
+	  printf("CMD: ERROR: alp_set_random failed!\n");
+    }
+    else
+      printf("CMD: Manual ALPAO DM control disabled in this state.\n");
+    return(CMD_NORMAL);
+  }
 
   //SHK HEX Calibration
   if(!strncasecmp(line,"shk calibrate hex",17)){

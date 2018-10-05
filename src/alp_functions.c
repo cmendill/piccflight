@@ -59,6 +59,18 @@ void alp_init_calmode(int calmode, calmode_t *alp){
     sprintf(alp->cmd,"flight");
     alp->shk_boxsize_cmd = SHK_BOXSIZE_CMD_STD;
   }
+  //ALP_CALMODE_RAMP
+  if(calmode == ALP_CALMODE_RAMP){
+    sprintf(alp->name,"ALP_CALMODE_RAMP");
+    sprintf(alp->cmd,"ramp");
+    alp->shk_boxsize_cmd = SHK_BOXSIZE_CMD_MAX;
+  }
+  //ALP_CALMODE_ZRAMP
+  if(calmode == ALP_CALMODE_ZRAMP){
+    sprintf(alp->name,"ALP_CALMODE_ZRAMP");
+    sprintf(alp->cmd,"zramp");
+    alp->shk_boxsize_cmd = SHK_BOXSIZE_CMD_MAX;
+  }
 
 }
 
@@ -175,6 +187,29 @@ int alp_send_command(sm_t *sm_p, alp_t *cmd, int proc_id, int n_dither){
   return retval;
 }
 
+
+/**************************************************************/
+/* ALP_SET_RANDOM                                             */
+/* - Add a random perturbation to the ALP                     */
+/**************************************************************/
+int alp_set_random(sm_t *sm_p, int proc_id){
+  alp_t alp;
+  time_t t;
+  int i;
+  
+  //Init random numbers
+  srand((unsigned) time(&t));
+  
+  //Get current command
+  alp_get_command(sm_p,&alp);
+
+  //Add purturbation
+  for(i=0;i<ALP_NACT;i++)
+    alp.act_cmd[i] += (2*(rand() / (double) RAND_MAX) - 1) * ALP_SHK_POKE;
+
+  //Send command
+  return(alp_send_command(sm_p,&alp,proc_id,1));
+}
 
 /**************************************************************/
 /* ALP_REVERT_FLAT                                            */
@@ -469,6 +504,43 @@ int alp_calibrate(int calmode, alp_t *alp, uint32_t *step, int procid, int reset
       init = 0;
     }
     return calmode;
+  }
+
+  /* ALP_CALMODE_RAMP: Scan through acuators ramping one at a time.    */
+  /*                   Set to starting position in between each ramp. */
+  if(calmode == ALP_CALMODE_RAMP){
+    //Save alp starting position
+    if(!mode_init[calmode]){
+      memcpy(&alp_start[calmode],alp,sizeof(alp_t));
+      mode_init[calmode]=1;
+    }
+    //Check counters
+    if(countA[calmode] >= 0 && countA[calmode] < (2*ALP_NACT*ncalim)){
+      //set all ALP actuators to starting position -- only the first interation
+      if((countB[calmode] % ncalim) == 0)
+	for(i=0;i<ALP_NACT;i++)
+	  alp->act_cmd[i]=alp_start[calmode].act_cmd[i];
+
+      //set step counter
+      *step = (countA[calmode]/ncalim);
+
+      //ramp one actuator
+      if((countA[calmode]/ncalim) % 2 == 1){
+	alp->act_cmd[(countB[calmode]/ncalim) % ALP_NACT] += 5*poke/ncalim;
+	countB[calmode]++;
+      }
+      countA[calmode]++;
+    }else{
+      //Set alp back to starting position
+      memcpy(alp,&alp_start[calmode],sizeof(alp_t));
+      mode_init[calmode]=0;
+      //Turn off calibration
+      printf("ALP: Stopping ALP calmode ALP_CALMODE_RAMP\n");
+      calmode = ALP_CALMODE_NONE;
+      init = 0;
+    }
+    return calmode;
+
   }
 
   /* ALP_CALMODE_FLIGHT: Flight Simulator */

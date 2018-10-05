@@ -9,6 +9,7 @@ int  alp_send_command(sm_t *sm_p, alp_t *cmd, int proc_id, int n_dither);
 int  alp_revert_flat(sm_t *sm_p, int proc_id);
 int  alp_save_flat(sm_t *sm_p);
 int  alp_load_flat(sm_t *sm_p,int proc_id);
+int  alp_set_random(sm_t *sm_p,int proc_id);
 int  alp_calibrate(int calmode, alp_t *alp, uint32_t *step, int procid, int reset);
 
 
@@ -19,6 +20,8 @@ enum alpcalmodes {ALP_CALMODE_NONE,
 		  ALP_CALMODE_POKE,
 		  ALP_CALMODE_ZPOKE,
 		  ALP_CALMODE_FLIGHT,
+		  ALP_CALMODE_RAMP,
+		  ALP_CALMODE_ZRAMP,
 		  ALP_NCALMODES};
 
 #endif
