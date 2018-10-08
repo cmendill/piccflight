@@ -78,7 +78,7 @@ void alp_init_calmode(int calmode, calmode_t *alp){
 /* ALP_ZERN2ALP                                               */
 /*  - Convert zernike commands to ALPAO DM commands           */
 /**************************************************************/
-int alp_zern2alp(double *zernikes,double *actuators){
+int alp_zern2alp(double *zernikes,double *actuators,int reset){
   FILE *matrix=NULL;
   char matrix_file[MAX_FILENAME];
   static int init=0;
@@ -86,7 +86,7 @@ int alp_zern2alp(double *zernikes,double *actuators){
   uint64 fsize,rsize;
   int c,i;
 
-  if(!init){
+  if(!init || reset){
     /* Open matrix file */
     //--setup filename
     sprintf(matrix_file,SHKZER2ALPACT_FILE);
@@ -119,6 +119,9 @@ int alp_zern2alp(double *zernikes,double *actuators){
 
     //--set init flag
     init=1;
+
+    //--return if reset
+    if(reset) return 0;
   }
 
   //Do Matrix Multiply
@@ -233,7 +236,7 @@ int alp_set_zrandom(sm_t *sm_p, int proc_id){
     dz[i] += (2*(rand() / (double) RAND_MAX) - 1) * ALP_SHK_ZPOKE;
 
   //Convert to actuators deltas
-  alp_zern2alp(dz,da);
+  alp_zern2alp(dz,da,FUNCTION_NO_RESET);
 
   //Add to current command
   for(i=0;i<LOWFS_N_ZERNIKE;i++)
@@ -522,7 +525,7 @@ int alp_calibrate(int calmode, alp_t *alp, uint32_t *step, int procid, int reset
       //poke one zernike by adding it on top of the flat
       if((countA[calmode]/ncalim) % 2 == 1){
 	alp->zernike_cmd[(countB[calmode]/ncalim) % LOWFS_N_ZERNIKE] = zpoke;
-	alp_zern2alp(alp->zernike_cmd,act);
+	alp_zern2alp(alp->zernike_cmd,act,FUNCTION_NO_RESET);
 	for(i=0; i<ALP_NACT; i++)
 	  alp->act_cmd[i] += act[i];
 	countB[calmode]++;
@@ -602,7 +605,7 @@ int alp_calibrate(int calmode, alp_t *alp, uint32_t *step, int procid, int reset
       //ramp one zernike by adding it on top of the flat
       if((countA[calmode]/ncalim) % 2 == 1){
 	alp->zernike_cmd[(countB[calmode]/ncalim) % LOWFS_N_ZERNIKE] += 5*zpoke/ncalim;
-	alp_zern2alp(alp->zernike_cmd,act);
+	alp_zern2alp(alp->zernike_cmd,act,FUNCTION_NO_RESET);
 	for(i=0; i<ALP_NACT; i++)
 	  alp->act_cmd[i] += act[i];
 	countB[calmode]++;
@@ -641,7 +644,7 @@ int alp_calibrate(int calmode, alp_t *alp, uint32_t *step, int procid, int reset
       for(i=0;i<LOWFS_N_ZERNIKE;i++)
 	zernikes[i] = zernike_errors[i][index % ZERNIKE_ERRORS_NUMBER];
       //Convert zernikes to actuators
-      alp_zern2alp(zernikes,act);
+      alp_zern2alp(zernikes,act,FUNCTION_NO_RESET);
       //Add offsets to ALP position
       for(i=0;i<ALP_NACT;i++)
 	alp->act_cmd[i] += act[i];

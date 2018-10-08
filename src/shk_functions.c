@@ -845,6 +845,8 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   if(sm_p->shk_reset){
     init=0;
     sm_p->shk_reset=0;
+    //Reset zern2alp
+    alp_zern2alp(NULL,NULL,FUNCTION_RESET);
   }
 
   //Initialize
@@ -1043,7 +1045,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
 	  alp_delta.zernike_cmd[i] = 0;
 
       // - convert zernike deltas to actuator deltas
-      alp_zern2alp(alp_delta.zernike_cmd,alp_delta.act_cmd);
+      alp_zern2alp(alp_delta.zernike_cmd,alp_delta.act_cmd,FUNCTION_NO_RESET);
 
       // - add Zernike PID output deltas to ALP command
       for(i=0;i<LOWFS_N_ZERNIKE;i++)
