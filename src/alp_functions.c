@@ -203,9 +203,43 @@ int alp_set_random(sm_t *sm_p, int proc_id){
   //Get current command
   alp_get_command(sm_p,&alp);
 
-  //Add purturbation
+  //Add perturbation
   for(i=0;i<ALP_NACT;i++)
     alp.act_cmd[i] += (2*(rand() / (double) RAND_MAX) - 1) * ALP_SHK_POKE;
+
+  //Send command
+  return(alp_send_command(sm_p,&alp,proc_id,1));
+}
+
+/**************************************************************/
+/* ALP_SET_ZRANDOM                                            */
+/* - Add a random perturbation to the ALP zernikes            */
+/**************************************************************/
+int alp_set_zrandom(sm_t *sm_p, int proc_id){
+  alp_t alp;
+  time_t t;
+  int i;
+  double dz[LOWFS_N_ZERNIKE] = {0};
+  double da[ALP_NACT] = {0};
+  
+  //Init random numbers
+  srand((unsigned) time(&t));
+  
+  //Get current command
+  alp_get_command(sm_p,&alp);
+
+  //Calculate zernike perturbation 
+  for(i=0;i<LOWFS_N_ZERNIKE;i++)
+    dz[i] += (2*(rand() / (double) RAND_MAX) - 1) * ALP_SHK_ZPOKE;
+
+  //Convert to actuators deltas
+  alp_zern2alp(dz,da);
+
+  //Add to current command
+  for(i=0;i<LOWFS_N_ZERNIKE;i++)
+    alp.zernike_cmd[i] += dz[i]; 
+  for(i=0;i<ALP_NACT;i++)
+    alp.act_cmd[i] += da[i]; 
 
   //Send command
   return(alp_send_command(sm_p,&alp,proc_id,1));
@@ -541,6 +575,49 @@ int alp_calibrate(int calmode, alp_t *alp, uint32_t *step, int procid, int reset
     }
     return calmode;
 
+  }
+
+  /* ALP_CALMODE_ZRAMP: Ramp Zernikes one at a time                    */
+  /*                    Set to starting position in between each ramp. */
+  if(calmode == ALP_CALMODE_ZRAMP){
+    //Save alp starting position
+    if(!mode_init[calmode]){
+      memcpy(&alp_start[calmode],alp,sizeof(alp_t));
+      mode_init[calmode]=1;
+    }
+    //Check counters
+    if(countA[calmode] >= 0 && countA[calmode] < (2*LOWFS_N_ZERNIKE*ncalim)){
+      //set all Zernikes to zero -- only the first interation
+      if((countB[calmode] % ncalim) == 0)
+	for(i=0;i<LOWFS_N_ZERNIKE;i++)
+	  alp->zernike_cmd[i] = 0.0;
+
+      //set all ALP actuators to starting position
+      for(i=0;i<ALP_NACT;i++)
+	alp->act_cmd[i]=alp_start[calmode].act_cmd[i];
+
+      //set step counter
+      *step = (countA[calmode]/ncalim);
+
+      //ramp one zernike by adding it on top of the flat
+      if((countA[calmode]/ncalim) % 2 == 1){
+	alp->zernike_cmd[(countB[calmode]/ncalim) % LOWFS_N_ZERNIKE] += 5*zpoke/ncalim;
+	alp_zern2alp(alp->zernike_cmd,act);
+	for(i=0; i<ALP_NACT; i++)
+	  alp->act_cmd[i] += act[i];
+	countB[calmode]++;
+      }
+      countA[calmode]++;
+    }else{
+      //Set alp back to starting position
+      memcpy(alp,&alp_start[calmode],sizeof(alp_t));
+      mode_init[calmode]=0;
+      //Turn off calibration
+      printf("ALP: Stopping calmode ALP_CALMODE_ZRAMP\n");
+      calmode = ALP_CALMODE_NONE;
+      init = 0;
+    }
+    return calmode;
   }
 
   /* ALP_CALMODE_FLIGHT: Flight Simulator */

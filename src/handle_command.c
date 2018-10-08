@@ -515,6 +515,18 @@ int handle_command(char *line, sm_t *sm_p){
     return(CMD_NORMAL);
   }
 
+  if(!strncasecmp(line,"alp zrandom",11)){
+    if(sm_p->state_array[sm_p->state].alp_commander == WATID){
+      printf("CMD: Sending random Zernike pattern to ALP DM\n");
+      if(sm_p->alp_ready)
+	if(alp_set_zrandom(sm_p,WATID)==0)
+	  printf("CMD: ERROR: alp_set_zrandom failed!\n");
+    }
+    else
+      printf("CMD: Manual ALPAO DM control disabled in this state.\n");
+    return(CMD_NORMAL);
+  }
+  
   //SHK HEX Calibration
   if(!strncasecmp(line,"shk calibrate hex",17)){
     if(sm_p->state == STATE_SHK_HEX_CALIBRATE){
