@@ -63,7 +63,7 @@ typedef int8_t int8;
 #define LAMBDA       0.600         // Central Wavelength [microns]
 #define PHASE_RAD2NM (LAMBDA*1000./TWOPI)
 #define MAX_FILENAME 128
-
+#define MAX_COMMAND  32
 /*************************************************
  * Process ID Numbers
  *************************************************/
@@ -86,7 +86,8 @@ enum states { STATE_STANDBY,
 	      STATE_SHK_ZERN_LOWFC,
 	      STATE_SHK_CELL_LOWFC,
 	      STATE_LYT_ALP_CALIBRATE,
-	      STATE_LYT_LOWFC,
+	      STATE_LYT_ZERN_LOWFC,
+	      STATE_LYT_FULL_LOWFC,
 	      STATE_SCI_DARK_HOLE,
 	      NSTATES};
 
@@ -143,6 +144,7 @@ enum states { STATE_STANDBY,
 #define SHKZER2ALPACT_FILE     "config/shkzer2alpact.dat"
 #define ALPZER2LYTPIX_FILE     "config/alpzer2lytpix.dat"
 #define LYTPIX2ALPZER_FILE     "config/lytpix2alpzer.dat"
+#define LYTPIX2ALPACT_FILE     "config/lytpix2alpact.dat"
 #define LYT_REFIMG_FILE        "config/lyt_refimg.dat"
 #define LYT_PXMASK_FILE        "config/lyt_pxmask.dat"
 #define SHK_CONFIG_FILE        "config/shk.cfg"
@@ -446,8 +448,8 @@ typedef struct procinfo_struct{
  * Calmode Structure
  *************************************************/
 typedef struct calmode_struct{
-  char name[128];
-  char cmd[128];
+  char name[MAX_COMMAND];
+  char cmd[MAX_COMMAND];
   int  shk_boxsize_cmd;
 } calmode_t;
 
@@ -469,6 +471,7 @@ typedef struct lytctrl_struct{
   int run_camera;
   int fit_zernikes;
   int zernike_control[LOWFS_N_ZERNIKE];
+  int act_control;
   int offload_tilt_to_hex;
   int offload_tilt_to_wasp;
 } lytctrl_t;
@@ -492,8 +495,8 @@ typedef struct acqctrl_struct{
 
 //State Structure
 typedef struct state_struct{
-  char      name[128];
-  char      cmd[128];
+  char      name[MAX_COMMAND];
+  char      cmd[MAX_COMMAND];
   int       hex_commander;
   int       alp_commander;
   int       bmc_commander;
@@ -583,7 +586,13 @@ typedef struct pktheader_struct{
   uint32  imysize;      //image y size [px]
   uint32  mode;         //camera mode
   uint32  state;        //system state
-  uint32  dummy;        //8-byte alignment
+  uint32  hex_calmode;  //hex calmode
+  uint32  alp_calmode;  //alp calmode
+  uint32  bmc_calmode;  //bmc calmode
+  char    state_name[MAX_COMMAND]; //string name of state
+  char    hex_calmode_name[MAX_COMMAND]; //string name of hex_calmode
+  char    alp_calmode_name[MAX_COMMAND]; //string name of alp_calmode
+  char    bmc_calmode_name[MAX_COMMAND]; //string name of bmc_calmode
   int64   start_sec;    //event start time
   int64   start_nsec;   //event start time
   int64   end_sec;      //event end time
@@ -602,8 +611,6 @@ typedef struct shkevent_struct{
   pkthed_t  hed;
   uint32    beam_ncells;
   uint32    boxsize;
-  uint32    hex_calmode;
-  uint32    alp_calmode;
   uint32    hex_calstep;
   uint32    alp_calstep;
   double    xtilt;
@@ -627,13 +634,15 @@ typedef struct shkevent_struct{
 
 typedef struct lytevent_struct{
   pkthed_t  hed;
-  uint32    alp_calmode;
   uint32    alp_calstep;
+  uint32    bmc_calstep;
   double    xtilt;
   double    ytilt;
+  double    gain_alp_act[LOWFS_N_PID];
   double    gain_alp_zern[LOWFS_N_ZERNIKE][LOWFS_N_PID];
   double    zernike_measured[LOWFS_N_ZERNIKE];
   double    zernike_target[LOWFS_N_ZERNIKE];
+  double    alp_measured[ALP_NACT];
   alp_t     alp;
   lyt_t     image;
 } lytevent_t;
@@ -744,6 +753,9 @@ typedef volatile struct {
   //HEX Calibration Mode
   int hex_calmode;
 
+  //BMC Calibration Mode
+  int bmc_calmode;
+
   //Calibration file name
   char calfile[MAX_FILENAME];
 
@@ -764,6 +776,7 @@ typedef volatile struct {
 
   //Lyot LOWFS Settings
   double lyt_gain_alp_zern[LOWFS_N_ZERNIKE][LOWFS_N_PID];  //LYT ALP zernike PID gains
+  double lyt_gain_alp_act[LOWFS_N_PID];                    //LYT ALP actuator PID gains
   
   //Reset Commands
   int shk_reset;

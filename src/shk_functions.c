@@ -16,6 +16,7 @@
 #include "numeric.h"
 #include "hex_functions.h"
 #include "alp_functions.h"
+#include "bmc_functions.h"
 #include "phx_config.h"
 #include "rtd_functions.h"
 #include "fakemodes.h"
@@ -822,6 +823,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   shkevent_t *shkevent_p;
   static calmode_t alpcalmodes[ALP_NCALMODES];
   static calmode_t hexcalmodes[HEX_NCALMODES];
+  static calmode_t bmccalmodes[BMC_NCALMODES];
   static struct timespec start,end,delta,last,full_last,hex_last;
   static int init=0;
   double dt;
@@ -865,6 +867,9 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     //Init HEX calmodes
     for(i=0;i<HEX_NCALMODES;i++)
       hex_init_calmode(i,&hexcalmodes[i]);
+    //Init BMC calmodes
+    for(i=0;i<BMC_NCALMODES;i++)
+      bmc_init_calmode(i,&bmccalmodes[i]);
     //Reset last times
     memcpy(&full_last,&start,sizeof(struct timespec));
     memcpy(&hex_last,&start,sizeof(struct timespec));
@@ -892,10 +897,15 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   shkevent.hed.mode         = 0;
   shkevent.hed.start_sec    = start.tv_sec;
   shkevent.hed.start_nsec   = start.tv_nsec;
-
-  //Save modes and gains
-  shkevent.alp_calmode      = sm_p->alp_calmode;
-  shkevent.hex_calmode      = sm_p->hex_calmode;
+  shkevent.hed.hex_calmode  = sm_p->hex_calmode;
+  shkevent.hed.alp_calmode  = sm_p->alp_calmode;
+  shkevent.hed.bmc_calmode  = sm_p->bmc_calmode;
+  memcpy(shkevent.hed.state_name,(char *)sm_p->state_array[shkevent.hed.state].name,sizeof(shkevent.hed.state_name));
+  memcpy(shkevent.hed.hex_calmode_name,hexcalmodes[shkevent.hed.hex_calmode].name,sizeof(hexcalmodes[shkevent.hed.hex_calmode].name));
+  memcpy(shkevent.hed.alp_calmode_name,alpcalmodes[shkevent.hed.alp_calmode].name,sizeof(alpcalmodes[shkevent.hed.alp_calmode].name));
+  memcpy(shkevent.hed.bmc_calmode_name,bmccalmodes[shkevent.hed.bmc_calmode].name,sizeof(bmccalmodes[shkevent.hed.bmc_calmode].name));
+  
+  //Save gains
   shkevent.kP_alp_cell      = sm_p->shk_kP_alp_cell;
   shkevent.kI_alp_cell      = sm_p->shk_kI_alp_cell;
   shkevent.kD_alp_cell      = sm_p->shk_kD_alp_cell;
@@ -908,8 +918,8 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
 
   //Set centroid boxsize based on calmode
   shkevent.boxsize = sm_p->shk_boxsize;
-  if((alpcalmodes[shkevent.alp_calmode].shk_boxsize_cmd == SHK_BOXSIZE_CMD_MAX) ||
-     (hexcalmodes[shkevent.hex_calmode].shk_boxsize_cmd == SHK_BOXSIZE_CMD_MAX)){
+  if((alpcalmodes[shkevent.hed.alp_calmode].shk_boxsize_cmd == SHK_BOXSIZE_CMD_MAX) ||
+     (hexcalmodes[shkevent.hed.hex_calmode].shk_boxsize_cmd == SHK_BOXSIZE_CMD_MAX)){
     shkevent.boxsize = SHK_MAX_BOXSIZE;
   }
 
@@ -993,7 +1003,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
 
     //Run HEX calibration
     if(sm_p->hex_calmode != HEX_CALMODE_NONE)
-      sm_p->hex_calmode = hex_calibrate(shkevent.hex_calmode,&hex_try,&shkevent.hex_calstep,FUNCTION_NO_RESET);
+      sm_p->hex_calmode = hex_calibrate(shkevent.hed.hex_calmode,&hex_try,&shkevent.hex_calstep,FUNCTION_NO_RESET);
 
     //Send command to HEX
     if(hex_send_command(sm_p,&hex_try,SHKID)){
@@ -1046,7 +1056,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     }
 
     //Check if ALP is controlling SHK cells
-    if(sm_p->state_array[state].shk.cell_control){
+    if(sm_p->state_array[state].shk.cell_control == ACTUATOR_ALP){
       // - run cell PID
       shk_alp_cellpid(&shkevent, FUNCTION_NO_RESET);
 
@@ -1060,7 +1070,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
 
     //Calibrate ALP
     if(sm_p->alp_calmode != ALP_CALMODE_NONE)
-      sm_p->alp_calmode = alp_calibrate(shkevent.alp_calmode,&alp_try,&shkevent.alp_calstep,SHKID,FUNCTION_NO_RESET);
+      sm_p->alp_calmode = alp_calibrate(shkevent.hed.alp_calmode,&alp_try,&shkevent.alp_calstep,SHKID,FUNCTION_NO_RESET);
 
     //Send command to ALP
     if(alp_send_command(sm_p,&alp_try,SHKID,n_dither)){
