@@ -410,8 +410,6 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   if(sm_p->lyt_reset){
     init=0;
     sm_p->lyt_reset=0;
-    //Reset zern2alp
-    alp_zern2alp(NULL,NULL,FUNCTION_RESET);
   }
 
   //Initialize
@@ -419,6 +417,8 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     //Zero out events & commands
     memset(&lytfull,0,sizeof(lytfull_t));
     memset(&lytevent,0,sizeof(lytevent_t));
+    //Reset zern2alp mapping
+    alp_zern2alp(NULL,NULL,FUNCTION_RESET);
     //Reset calibration routines
     alp_calibrate(0,NULL,NULL,LYTID,FUNCTION_RESET);
     //Reset PID controllers

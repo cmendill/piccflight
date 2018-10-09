@@ -845,8 +845,6 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   if(sm_p->shk_reset){
     init=0;
     sm_p->shk_reset=0;
-    //Reset zern2alp
-    alp_zern2alp(NULL,NULL,FUNCTION_RESET);
   }
 
   //Initialize
@@ -856,6 +854,8 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     memset(&shkevent,0,sizeof(shkevent_t));
     //Init cells
     shk_init_cells(&shkevent);
+    //Reset zern2alp mapping
+    alp_zern2alp(NULL,NULL,FUNCTION_RESET);
     //Reset calibration routines
     alp_calibrate(0,NULL,NULL,SHKID,FUNCTION_RESET);
     hex_calibrate(0,NULL,NULL,FUNCTION_RESET);
