@@ -17,11 +17,6 @@
 #include "common_functions.h"
 
 /* Process File Descriptor */
-static int getshk_shmfd;
-static FILE *out=NULL;
-static int getshk_run=1;
-static unsigned long int getshk_count=0;
-static char outfile[MAX_FILENAME];
 
 /* CTRL-C Function */
 void getshkctrlC(int sig)
@@ -29,25 +24,24 @@ void getshkctrlC(int sig)
 #if MSG_CTRLC
   printf("GETSHK: ctrlC! exiting.\n");
 #endif
-  getshk_run = 0;
-  sleep(1);
-  printf("GETSHK: Wrote %lu shkevents to %s\n",getshk_count,outfile);
-  close(getshk_shmfd);
-  fclose(out);
   exit(sig);
 }
 
 void getshk_proc(void){
-  static shkevent_t shkevent;
+  shkevent_t shkevent;
   struct stat st = {0};
+  int shmfd;
+  FILE *out=NULL;
+  unsigned long int count=0;
+  char outfile[MAX_FILENAME];
   char temp[MAX_FILENAME];
   char path[MAX_FILENAME];
-  
+
   /* Open Shared Memory */
   sm_t *sm_p;
-  if((sm_p = openshm(&getshk_shmfd)) == NULL){
+  if((sm_p = openshm(&shmfd)) == NULL){
     perror("GETSHK: openshm()");
-    getshkctrlC(0);
+    exit(0);
   }
 
   /* Set soft interrupt handler */
@@ -66,21 +60,25 @@ void getshk_proc(void){
   //--open file
   if((out = fopen(outfile, "w")) == NULL){
     perror("GETSHK: fopen()\n");
-    getshkctrlC(0);
+    close(shmfd);
+    exit(0);
   }
-  
+
   /* Enter loop to read SHK events */
-  while(getshk_run){
+  while(!sm_p->w[DIAID].die){
     if(read_from_buffer(sm_p, &shkevent, SHKEVENT, DIAID)){
       //Save shkevent
       fwrite(&shkevent,sizeof(shkevent),1,out);
-
+      
       //Check in with the watchdog
-      if(getshk_count % 10 == 0) checkin(sm_p,DIAID);
-
-      getshk_count++;
+      if(count++ % 10 == 0) checkin(sm_p,DIAID);
     }
   }
-  sleep(100);
+
+  /* Cleanup and exit */
+  printf("GETSHK: Wrote %lu shkevents to %s\n",count,outfile);
+  close(shmfd);
+  fclose(out);
+  
   return;
 }

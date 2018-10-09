@@ -17,11 +17,6 @@
 #include "common_functions.h"
 
 /* Process File Descriptor */
-static int getlyt_shmfd;
-static FILE *out=NULL;
-static int getlyt_run=1;
-static unsigned long int getlyt_count=0;
-static char outfile[MAX_FILENAME];
 
 /* CTRL-C Function */
 void getlytctrlC(int sig)
@@ -29,25 +24,24 @@ void getlytctrlC(int sig)
 #if MSG_CTRLC
   printf("GETLYT: ctrlC! exiting.\n");
 #endif
-  getlyt_run = 0;
-  sleep(1);
-  printf("GETLYT: Wrote %lu lytevents to %s\n",getlyt_count,outfile);
-  close(getlyt_shmfd);
-  fclose(out);
   exit(sig);
 }
 
 void getlyt_proc(void){
-  static lytevent_t lytevent;
+  lytevent_t lytevent;
   struct stat st = {0};
+  int shmfd;
+  FILE *out=NULL;
+  unsigned long int count=0;
+  char outfile[MAX_FILENAME];
   char temp[MAX_FILENAME];
   char path[MAX_FILENAME];
 
   /* Open Shared Memory */
   sm_t *sm_p;
-  if((sm_p = openshm(&getlyt_shmfd)) == NULL){
+  if((sm_p = openshm(&shmfd)) == NULL){
     perror("GETLYT: openshm()");
-    getlytctrlC(0);
+    exit(0);
   }
 
   /* Set soft interrupt handler */
@@ -66,21 +60,25 @@ void getlyt_proc(void){
   //--open file
   if((out = fopen(outfile, "w")) == NULL){
     perror("GETLYT: fopen()\n");
-    getlytctrlC(0);
+    close(shmfd);
+    exit(0);
   }
 
   /* Enter loop to read LYT events */
-  while(getlyt_run){
+  while(!sm_p->w[DIAID].die){
     if(read_from_buffer(sm_p, &lytevent, LYTEVENT, DIAID)){
       //Save lytevent
       fwrite(&lytevent,sizeof(lytevent),1,out);
-
+      
       //Check in with the watchdog
-      if(getlyt_count % 10 == 0) checkin(sm_p,DIAID);
-
-      getlyt_count++;
+      if(count++ % 10 == 0) checkin(sm_p,DIAID);
     }
   }
-  sleep(100);
+
+  /* Cleanup and exit */
+  printf("GETLYT: Wrote %lu lytevents to %s\n",count,outfile);
+  close(shmfd);
+  fclose(out);
+  
   return;
 }
