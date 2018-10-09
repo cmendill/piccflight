@@ -324,6 +324,9 @@ int main(int argc,char **argv){
   sm_p->alp_n_dither       = -1;
   sm_p->alp_proc_id        = -1;
 
+  //Enable control of all zernikes by default
+  for(i=0;i<LOWFS_N_ZERNIKE;i++) sm_p->zernike_control[i] = 1;
+
   //LYT PID Gains
   double lyt_gain_alp_zern[LOWFS_N_ZERNIKE][LOWFS_N_PID] = LYT_GAIN_ALP_ZERN_DEFAULT;
   memcpy((double *)&sm_p->lyt_gain_alp_zern[0][0],&lyt_gain_alp_zern[0][0],sizeof(lyt_gain_alp_zern));

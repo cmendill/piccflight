@@ -584,7 +584,7 @@ void shk_zernike_fit(shkcell_t *cells, double *zernikes){
 /* SHK_CELLS2ALP                                              */
 /*  - Convert SHK cell commands to ALPAO DM commands          */
 /**************************************************************/
-void shk_cells2alp(shkcell_t *cells, double *actuators){
+void shk_cells2alp(shkcell_t *cells, double *actuators, int reset){
   FILE *matrix=NULL;
   char matrix_file[MAX_FILENAME];
   uint64 fsize,rsize;
@@ -596,12 +596,13 @@ void shk_cells2alp(shkcell_t *cells, double *actuators){
   static int beam_cell_index[SHK_NCELLS]={0};
 
   /* Initialize */
-  if(!init){
+  if(!init || reset){
     /* Get number of cells in the beam */
+    beam_ncells=0;
     for(i=0;i<SHK_NCELLS;i++)
       if(cells[i].beam_select)
 	beam_cell_index[beam_ncells++]=i;
-
+    
     /* Open matrix file */
     //--setup filename
     sprintf(matrix_file,SHKCEL2ALPACT_FILE);
@@ -635,6 +636,8 @@ void shk_cells2alp(shkcell_t *cells, double *actuators){
   end_of_init:
     //--set init flag
     init=1;
+    //--return if reset
+    if(reset) return;
   }
 
   //Format displacement array
@@ -646,71 +649,6 @@ void shk_cells2alp(shkcell_t *cells, double *actuators){
   //Do Matrix Multiply
   num_dgemv(cells2alp_matrix, shk_xydev, actuators, ALP_NACT, 2*beam_ncells);
 
-}
-
-/**************************************************************/
-/* SHK_CELLS2HEX                                              */
-/*  - Convert SHK cell commands to hexapod commands           */
-/**************************************************************/
-int shk_cells2hex(shkcell_t *cells, double *axes){
-  FILE *matrix=NULL;
-  char matrix_file[MAX_FILENAME];
-  uint64 fsize,rsize;
-  static int init=0;
-  static double cells2hex_matrix[2*SHK_NCELLS*HEX_NAXES]={0};
-  double shk_xydev[2*SHK_NCELLS];
-  int i;
-  static int beam_ncells = 0;
-  static int beam_cell_index[SHK_NCELLS]={0};
-
-  /* Initialize */
-  if(!init){
-    /* Get number of cells in the beam */
-    for(i=0;i<SHK_NCELLS;i++)
-      if(cells[i].beam_select)
-	beam_cell_index[beam_ncells++]=i;
-    /* Open matrix file */
-    //--setup filename
-    sprintf(matrix_file,SHKCEL2HEXACT_FILE);
-    //--open file
-    if((matrix = fopen(matrix_file,"r")) == NULL){
-      printf("cells2hex file\r");
-      perror("fopen");
-      return 1;
-    }
-    //--check file size
-    fseek(matrix, 0L, SEEK_END);
-    fsize = ftell(matrix);
-    rewind(matrix);
-    rsize = 2*beam_ncells*HEX_NAXES*sizeof(double);
-    if(fsize != rsize){
-      printf("SHK: incorrect cells2hex matrix file size %lu != %lu\n",fsize,rsize);
-      return 1;
-    }
-    //--read matrix
-    if(fread(cells2hex_matrix,2*beam_ncells*HEX_NAXES*sizeof(double),1,matrix) != 1){
-      perror("fread");
-      printf("cells2hex file\r");
-      return 1;
-    }
-    //--close file
-    printf("SHK: Read: %s\n",matrix_file);
-    fclose(matrix);
-
-    //--set init flag
-    init=1;
-  }
-
-  //Format displacement array
-  for(i=0;i<beam_ncells;i++){
-    shk_xydev[2*i + 0] = cells[beam_cell_index[i]].command[0];
-    shk_xydev[2*i + 1] = cells[beam_cell_index[i]].command[1];
-  }
-
-  //Do Matrix Multiply
-  num_dgemv(cells2hex_matrix, shk_xydev, axes, HEX_NAXES, 2*beam_ncells);
-
-  return 0;
 }
 
 /**************************************************************/
@@ -854,6 +792,8 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     memset(&shkevent,0,sizeof(shkevent_t));
     //Init cells
     shk_init_cells(&shkevent);
+    //Reset cells2alp mapping
+    shk_cells2alp(shkevent.cells,NULL,FUNCTION_RESET);
     //Reset zern2alp mapping
     alp_zern2alp(NULL,NULL,FUNCTION_RESET);
     //Reset calibration routines
@@ -1063,7 +1003,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
       shk_alp_cellpid(&shkevent, FUNCTION_NO_RESET);
 
       // - convert cell commands to actuator deltas
-      shk_cells2alp(shkevent.cells,alp_delta.act_cmd);
+      shk_cells2alp(shkevent.cells,alp_delta.act_cmd,FUNCTION_NO_RESET);
 
       // - add actuator deltas to ALP command
       for(i=0;i<ALP_NACT;i++)

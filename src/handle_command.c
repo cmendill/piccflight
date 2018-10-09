@@ -94,6 +94,22 @@ void print_fakemodes(calmode_t *fake){
 }
 
 /**************************************************************/
+/* PRINT_ZERNIKES                                             */
+/*  - Print out zernike control status                        */
+/**************************************************************/
+void print_zernikes(sm_t *sm_p){
+  int i;
+  printf("************ Zernike Control ************\n");
+  printf("Zernike   Controlled\n");
+  for(i=0;i<LOWFS_N_ZERNIKE;i++){
+    if(sm_p->zernike_control[i] == 1) printf("%02d        YES\n",i);        
+    if(sm_p->zernike_control[i] == 0) printf("%02d        NO\n",i);
+  }
+  printf("******************************************\n");
+
+}
+
+/**************************************************************/
 /* HANDLE_COMMAND                                             */
 /*  - Handle user commands                                    */
 /**************************************************************/
@@ -101,6 +117,7 @@ int handle_command(char *line, sm_t *sm_p){
   float ftemp;
   int   itemp;
   char  stemp[CMD_MAX_LENGTH];
+  char  cmd[CMD_MAX_LENGTH];
   int   cmdfound=0;
   int   i=0,j=0,hex_axis=0;
   double hex_poke=0;
@@ -760,6 +777,46 @@ int handle_command(char *line, sm_t *sm_p){
     return CMD_NORMAL;
   }
 
+  //Zernike control commands
+  sprintf(cmd,"zernike info");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    print_zernikes(sm_p);
+    return CMD_NORMAL;
+  }
+  sprintf(cmd,"zernike disable all");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    printf("CMD: Disabling control of ALL Zernikes\n\n");
+    for(i=0;i<LOWFS_N_ZERNIKE;i++)
+      sm_p->zernike_control[i]=0;
+    print_zernikes(sm_p);
+    return CMD_NORMAL;
+  }
+  sprintf(cmd,"zernike enable all");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    printf("CMD: Enabling control of ALL Zernikes\n\n");
+    for(i=0;i<LOWFS_N_ZERNIKE;i++)
+      sm_p->zernike_control[i]=1;
+    print_zernikes(sm_p);
+    return CMD_NORMAL;
+  }
+  sprintf(cmd,"zernike disable");
+  if(!strncasecmp(line,cmd,strlen(cmd)) && strlen(line) > strlen(cmd)){
+    itemp = atoi(line+strlen(cmd));
+    sm_p->zernike_control[itemp]=0;
+    printf("CMD: Disabling control of Zernike %d\n\n",itemp);
+    print_zernikes(sm_p);
+    return CMD_NORMAL;
+  }
+  sprintf(cmd,"zernike enable");
+  if(!strncasecmp(line,cmd,strlen(cmd)) && strlen(line) > strlen(cmd)){
+    itemp = atoi(line+strlen(cmd));
+    sm_p->zernike_control[itemp]=1;
+    printf("CMD: Enabling control of Zernike %d\n\n",itemp);
+    print_zernikes(sm_p);
+    return CMD_NORMAL;
+  }
+
+  
   
   /****************************************
    * BLANK COMMAND

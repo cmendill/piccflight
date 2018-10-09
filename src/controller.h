@@ -798,6 +798,9 @@ typedef volatile struct {
   //Zernike Targets
   double zernike_target[LOWFS_N_ZERNIKE];
 
+  //Zernike control switches
+  int zernike_control[LOWFS_N_ZERNIKE];
+  
   //Events circular buffers
   scievent_t scievent[SCIEVENTSIZE];
   shkevent_t shkevent[SHKEVENTSIZE];
