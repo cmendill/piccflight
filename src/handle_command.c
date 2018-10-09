@@ -142,6 +142,16 @@ int handle_command(char *line, sm_t *sm_p){
   if(!strncasecmp(line,"exit",4)){
     return(CMD_EXIT_WATCHDOG);
   }
+  //print packet info
+  if(!strncasecmp(line,"packet info",11)){
+    printf("CMD: pktheadr = %lu bytes\n",sizeof(pkthed_t));
+    printf("CMD: scievent = %lu bytes\n",sizeof(scievent_t));
+    printf("CMD: shkevent = %lu bytes\n",sizeof(shkevent_t));
+    printf("CMD: lytevent = %lu bytes\n",sizeof(lytevent_t));
+    printf("CMD: acqevent = %lu bytes\n",sizeof(acqevent_t));
+    return(CMD_NORMAL);
+  }
+  
 
   /****************************************
    * NORMAL COMMANDS
