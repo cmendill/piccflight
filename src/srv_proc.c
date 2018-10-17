@@ -94,6 +94,7 @@ void srv_proc(void) {
 		close(clientfd);
 		clientfd=-1;
 		memset((void *)srv_send,0,sizeof srv_send);
+		printf("SRV: Client hung up\n");
 	      }
 	      //increment packet counter
 	      srv_packet_count++;
