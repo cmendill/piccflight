@@ -234,8 +234,8 @@ enum bufids {SCIEVENT, SCIFULL,
 #define SCIYS           128
 #define SHKXS           1024
 #define SHKYS           1024
-#define LYTXS           32
-#define LYTYS           32
+#define LYTXS           64
+#define LYTYS           64
 #define ACQXS           1280
 #define ACQYS           960
 
