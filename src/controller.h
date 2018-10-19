@@ -390,7 +390,7 @@ enum bufids {SCIEVENT, SCIFULL,
 #define SHK_MAX_BOXSIZE       27     //[pixels] gives a 5 pixel buffer around edges
 #define SHK_SPOT_UPPER_THRESH 200
 #define SHK_SPOT_LOWER_THRESH 100
-#define SHK_CELL_XOFF         77 //+1px = -0.24 microns tip/tilt
+#define SHK_CELL_XOFF         72 //+1px = -0.24 microns tip/tilt
 #define SHK_CELL_YOFF         98
 #define SHK_CELL_ROTATION     0.0
 #define SHK_CELL_XSCALE       1.0
@@ -763,6 +763,8 @@ typedef volatile struct {
 
   //Shack-Hartmann Settings
   int shk_boxsize;            //SHK centroid boxsize
+  int shk_cell_xoff;          //SHK cell grid X offset
+  int shk_cell_yoff;          //SHK cell grid Y offset
   double shk_kP_alp_cell;     //SHK ALP cell gains
   double shk_kI_alp_cell;     //SHK ALP cell gains
   double shk_kD_alp_cell;     //SHK ALP cell gains

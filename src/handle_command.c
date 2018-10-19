@@ -729,7 +729,43 @@ int handle_command(char *line, sm_t *sm_p){
     sm_p->shk_loadorigin=1;
     return(CMD_NORMAL);
   }
-
+  sprintf(cmd,"shk offset +x");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    sm_p->shk_cell_xoff++;
+    printf("CMD: SHK X offset changed to: %d\n",sm_p->shk_cell_xoff);
+    sm_p->shk_revertorigin = 1;
+    return CMD_NORMAL;
+  }
+  sprintf(cmd,"shk offset -x");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    sm_p->shk_cell_xoff--;
+    printf("CMD: SHK X offset changed to: %d\n",sm_p->shk_cell_xoff);
+    sm_p->shk_revertorigin = 1;
+    return CMD_NORMAL;
+  }
+  sprintf(cmd,"shk offset +y");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    sm_p->shk_cell_yoff++;
+    printf("CMD: SHK Y offset changed to: %d\n",sm_p->shk_cell_yoff);
+    sm_p->shk_revertorigin = 1;
+    return CMD_NORMAL;
+  }
+  sprintf(cmd,"shk offset -y");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    sm_p->shk_cell_yoff--;
+    printf("CMD: SHK Y offset changed to: %d\n",sm_p->shk_cell_yoff);
+    sm_p->shk_revertorigin = 1;
+    return CMD_NORMAL;
+  }
+  sprintf(cmd,"shk offset reset");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    sm_p->shk_cell_xoff = SHK_CELL_XOFF;
+    sm_p->shk_cell_yoff = SHK_CELL_YOFF;
+    printf("CMD: SHK X,Y offset reset to: %d,%d\n",sm_p->shk_cell_xoff,sm_p->shk_cell_yoff);
+    sm_p->shk_revertorigin = 1;
+    return CMD_NORMAL;
+  }
+  
   //SHK ALP Gain
   if(!strncasecmp(line,"shk alp gain ",13) && strlen(line)>14){
     ftemp = atof(line+13);

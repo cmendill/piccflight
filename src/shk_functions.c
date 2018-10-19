@@ -26,7 +26,7 @@
 /* SHK_INIT_CELLS                                             */
 /*  - Set cell origins and beam select flags                  */
 /**************************************************************/
-void shk_init_cells(shkevent_t *shkevent){
+void shk_init_cells(sm_t *sm_p, shkevent_t *shkevent){
   #include "shk_beam_select.h"
   float cell_size_px = SHK_LENSLET_PITCH_UM/SHK_PX_PITCH_UM;
   int i,j,c,x,y;
@@ -43,10 +43,10 @@ void shk_init_cells(shkevent_t *shkevent){
       x = c % SHK_XCELLS;
       y = SHK_YCELLS - 1 - c / SHK_YCELLS;
       shkevent->cells[c].index = c;
-      shkevent->cells[c].origin[0] = i*cell_size_px + cell_size_px/2 + SHK_CELL_XOFF;
-      shkevent->cells[c].origin[1] = j*cell_size_px + cell_size_px/2 + SHK_CELL_YOFF;
-      shkevent->cells[c].cenbox_origin[0] = i*cell_size_px + cell_size_px/2 + SHK_CELL_XOFF;
-      shkevent->cells[c].cenbox_origin[1] = j*cell_size_px + cell_size_px/2 + SHK_CELL_YOFF;
+      shkevent->cells[c].origin[0] = i*cell_size_px + cell_size_px/2 + sm_p->shk_cell_xoff;
+      shkevent->cells[c].origin[1] = j*cell_size_px + cell_size_px/2 + sm_p->shk_cell_yoff;
+      shkevent->cells[c].cenbox_origin[0] = i*cell_size_px + cell_size_px/2 + sm_p->shk_cell_xoff;
+      shkevent->cells[c].cenbox_origin[1] = j*cell_size_px + cell_size_px/2 + sm_p->shk_cell_yoff;
       shkevent->cells[c].beam_select = shk_beam_select[y*SHK_XCELLS + x];
       shkevent->beam_ncells += shkevent->cells[c].beam_select;
       c++;
@@ -138,8 +138,8 @@ int shk_setorigin(shkevent_t *shkevent){
 /* SHK_REVERTORIGIN                                             */
 /*  - Resets cell origins to default location                  */
 /***************************************************************/
-void shk_revertorigin(shkevent_t *shkevent){
-  shk_init_cells(shkevent);
+void shk_revertorigin(sm_t *sm_p, shkevent_t *shkevent){
+  shk_init_cells(sm_p, shkevent);
 }
 
 /***************************************************************/
@@ -791,7 +791,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     memset(&shkfull,0,sizeof(shkfull_t));
     memset(&shkevent,0,sizeof(shkevent_t));
     //Init cells
-    shk_init_cells(&shkevent);
+    shk_init_cells(sm_p, &shkevent);
     //Reset cells2alp mapping
     shk_cells2alp(shkevent.cells,NULL,FUNCTION_RESET);
     //Reset zern2alp mapping
@@ -857,13 +857,16 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   shkevent.kP_hex_zern      = sm_p->shk_kP_hex_zern;
   shkevent.kI_hex_zern      = sm_p->shk_kI_hex_zern;
   shkevent.kD_hex_zern      = sm_p->shk_kD_hex_zern;
-
+  
   //Set centroid boxsize based on calmode
   shkevent.boxsize = sm_p->shk_boxsize;
   if((alpcalmodes[shkevent.hed.alp_calmode].shk_boxsize_cmd == SHK_BOXSIZE_CMD_MAX) ||
      (hexcalmodes[shkevent.hed.hex_calmode].shk_boxsize_cmd == SHK_BOXSIZE_CMD_MAX)){
     shkevent.boxsize = SHK_MAX_BOXSIZE;
   }
+
+  //Set centroid boxsize to max in STATE_STANDBY
+  if(state == STATE_STANDBY) shkevent.boxsize = SHK_MAX_BOXSIZE;
 
   //Calculate centroids
   shk_centroid(buffer->pvAddress,&shkevent);
@@ -878,7 +881,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
 
   //Command: Reset cell origins
   if(sm_p->shk_revertorigin){
-    shk_revertorigin(&shkevent);
+    shk_revertorigin(sm_p, &shkevent);
     sm_p->shk_revertorigin = 0;
   }
 
