@@ -26,7 +26,7 @@
 /* SHK_INIT_CELLS                                             */
 /*  - Set cell origins and beam select flags                  */
 /**************************************************************/
-void shk_init_cells(sm_t *sm_p, shkevent_t *shkevent){
+void shk_init_cells(shkevent_t *shkevent){
   #include "shk_beam_select.h"
   float cell_size_px = SHK_LENSLET_PITCH_UM/SHK_PX_PITCH_UM;
   int i,j,c,x,y;
@@ -43,10 +43,10 @@ void shk_init_cells(sm_t *sm_p, shkevent_t *shkevent){
       x = c % SHK_XCELLS;
       y = SHK_YCELLS - 1 - c / SHK_YCELLS;
       shkevent->cells[c].index = c;
-      shkevent->cells[c].origin[0] = i*cell_size_px + cell_size_px/2 + sm_p->shk_cell_xoff;
-      shkevent->cells[c].origin[1] = j*cell_size_px + cell_size_px/2 + sm_p->shk_cell_yoff;
-      shkevent->cells[c].cenbox_origin[0] = i*cell_size_px + cell_size_px/2 + sm_p->shk_cell_xoff;
-      shkevent->cells[c].cenbox_origin[1] = j*cell_size_px + cell_size_px/2 + sm_p->shk_cell_yoff;
+      shkevent->cells[c].origin[0] = i*cell_size_px + cell_size_px/2 + SHK_CELL_XOFF;
+      shkevent->cells[c].origin[1] = j*cell_size_px + cell_size_px/2 + SHK_CELL_YOFF;
+      shkevent->cells[c].cenbox_origin[0] = i*cell_size_px + cell_size_px/2 + SHK_CELL_XOFF;
+      shkevent->cells[c].cenbox_origin[1] = j*cell_size_px + cell_size_px/2 + SHK_CELL_YOFF;
       shkevent->cells[c].beam_select = shk_beam_select[y*SHK_XCELLS + x];
       shkevent->beam_ncells += shkevent->cells[c].beam_select;
       c++;
@@ -138,8 +138,8 @@ int shk_setorigin(shkevent_t *shkevent){
 /* SHK_REVERTORIGIN                                             */
 /*  - Resets cell origins to default location                  */
 /***************************************************************/
-void shk_revertorigin(sm_t *sm_p, shkevent_t *shkevent){
-  shk_init_cells(sm_p, shkevent);
+void shk_revertorigin(shkevent_t *shkevent){
+  shk_init_cells(shkevent);
 }
 
 /***************************************************************/
@@ -772,6 +772,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   alp_t alp,alp_try,alp_delta;
   int zernike_control=0;
   uint32_t n_dither=1;
+  static int use_save_origin = 1;
 
   //Get time immidiately
   clock_gettime(CLOCK_REALTIME,&start);
@@ -791,7 +792,9 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     memset(&shkfull,0,sizeof(shkfull_t));
     memset(&shkevent,0,sizeof(shkevent_t));
     //Init cells
-    shk_init_cells(sm_p, &shkevent);
+    shk_init_cells(&shkevent);
+    //Load cell origins
+    shk_loadorigin(&shkevent);
     //Reset cells2alp mapping
     shk_cells2alp(shkevent.cells,NULL,FUNCTION_RESET);
     //Reset zern2alp mapping
@@ -879,9 +882,9 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   if(sm_p->shk_setorigin)
     sm_p->shk_setorigin = shk_setorigin(&shkevent);
 
-  //Command: Reset cell origins
+  //Command: Revert cell origins
   if(sm_p->shk_revertorigin){
-    shk_revertorigin(sm_p, &shkevent);
+    shk_revertorigin(&shkevent);
     sm_p->shk_revertorigin = 0;
   }
 
@@ -896,7 +899,25 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     shk_loadorigin(&shkevent);
     sm_p->shk_loadorigin = 0;
   }
-
+  //Command: Shift cell x origins
+  if(sm_p->shk_xshiftorigin){
+    for(i=0;i<SHK_NCELLS;i++){
+      shkevent.cells[i].origin[0] += sm_p->shk_xshiftorigin;
+      shkevent.cells[i].cenbox_origin[0] += sm_p->shk_xshiftorigin;
+    }
+    printf("SHK: Shifted origin %d pixels in X\n",sm_p->shk_xshiftorigin);
+    sm_p->shk_xshiftorigin = 0;
+  }
+  //Command: Shift cell y origins
+  if(sm_p->shk_yshiftorigin){
+    for(i=0;i<SHK_NCELLS;i++){
+      shkevent.cells[i].origin[1] += sm_p->shk_yshiftorigin;
+      shkevent.cells[i].cenbox_origin[1] += sm_p->shk_yshiftorigin;
+    }
+    printf("SHK: Shifted origin %d pixels in Y\n",sm_p->shk_yshiftorigin);
+    sm_p->shk_yshiftorigin = 0;
+  }
+  
   //Fit Zernikes
   if(sm_p->state_array[state].shk.fit_zernikes)
     shk_zernike_fit(shkevent.cells,shkevent.zernike_measured);
