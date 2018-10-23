@@ -134,7 +134,11 @@ int handle_command(char *line, sm_t *sm_p){
   const double hexdef[HEX_NAXES]  = HEX_POS_DEFAULT;
   hex_t hexcmd;
   memset(&hexcmd,0,sizeof(hex_t));
-
+  char *pch;
+  alp_t alp;
+  double dz[LOWFS_N_ZERNIKE] = {0};
+  double da[ALP_NACT] = {0};
+    
   /****************************************
    * INITIALIZE
    ***************************************/
@@ -553,6 +557,60 @@ int handle_command(char *line, sm_t *sm_p){
       printf("CMD: Manual ALPAO DM control disabled in this state.\n");
     return(CMD_NORMAL);
   }
+
+  sprintf(cmd,"alp zernike");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    if(sm_p->state_array[sm_p->state].alp_commander == WATID){
+     pch = strtok(line+strlen(cmd)," ");
+      if(pch == NULL){
+	printf("CMD: Bad command format.\n");
+	return CMD_NORMAL;
+      }
+      itemp  = atoi(pch);
+      pch = strtok(NULL," ");
+      if(pch == NULL){
+	printf("CMD: Bad command format.\n");
+	return CMD_NORMAL;
+      }
+      ftemp  = atof(pch);
+      printf("CMD: Trying to change Z[%d] by %f microns\n",itemp,ftemp);
+      if(itemp >= 0 && itemp < LOWFS_N_ZERNIKE && ftemp >= -1 && ftemp <= 1){
+	//Get current command
+	alp_get_command(sm_p,&alp);
+
+	//Set zernike perturbation 
+	dz[itemp] = ftemp;
+
+	//Convert to actuators deltas
+	alp_zern2alp(dz,da,FUNCTION_NO_RESET);
+
+	//Add to current command
+	for(i=0;i<LOWFS_N_ZERNIKE;i++)
+	  alp.zernike_cmd[i] += dz[i]; 
+	for(i=0;i<ALP_NACT;i++)
+	  alp.act_cmd[i] += da[i]; 
+
+	//Send command
+	if(alp_send_command(sm_p,&alp,WATID,1)){
+	  printf("CMD: Changed Z[%d] by %f microns\n",itemp,ftemp);
+	  return CMD_NORMAL;
+	}
+	else{
+	  printf("CMD: alp_send_command failed\n");
+	  return CMD_NORMAL;
+	}	  
+      }
+      else{
+	printf("CMD: Zernike cmd out of bounds\n");
+	return CMD_NORMAL;
+      }
+    }
+    else
+      printf("CMD: Manual ALPAO DM control disabled in this state.\n");
+    return CMD_NORMAL;
+  }
+  
+  
   
   //SHK HEX Calibration
   if(!strncasecmp(line,"shk calibrate hex",17)){

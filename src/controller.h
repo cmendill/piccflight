@@ -390,8 +390,8 @@ enum bufids {SCIEVENT, SCIFULL,
 #define SHK_MAX_BOXSIZE       27     //[pixels] gives a 5 pixel buffer around edges
 #define SHK_SPOT_UPPER_THRESH 200
 #define SHK_SPOT_LOWER_THRESH 100
-#define SHK_CELL_XOFF         62 //+1px = -0.24 microns tip/tilt
-#define SHK_CELL_YOFF         98
+#define SHK_CELL_XOFF         91 //+1px = -0.24 microns tip/tilt
+#define SHK_CELL_YOFF         69
 #define SHK_CELL_ROTATION     0.0
 #define SHK_CELL_XSCALE       1.0
 #define SHK_CELL_YSCALE       1.0
