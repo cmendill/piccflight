@@ -610,6 +610,48 @@ int handle_command(char *line, sm_t *sm_p){
     return CMD_NORMAL;
   }
   
+  sprintf(cmd,"alp actuator");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    if(sm_p->state_array[sm_p->state].alp_commander == WATID){
+     pch = strtok(line+strlen(cmd)," ");
+      if(pch == NULL){
+	printf("CMD: Bad command format.\n");
+	return CMD_NORMAL;
+      }
+      itemp  = atoi(pch);
+      pch = strtok(NULL," ");
+      if(pch == NULL){
+	printf("CMD: Bad command format.\n");
+	return CMD_NORMAL;
+      }
+      ftemp  = atof(pch);
+      printf("CMD: Trying to change A[%d] by %f units\n",itemp,ftemp);
+      if(itemp >= 0 && itemp < ALP_NACT && ftemp >= -1 && ftemp <= 1){
+	//Get current command
+	alp_get_command(sm_p,&alp);
+
+	//Add to current command
+	alp.act_cmd[itemp] += ftemp;
+
+	//Send command
+	if(alp_send_command(sm_p,&alp,WATID,1)){
+	  printf("CMD: Changed A[%d] by %f microns\n",itemp,ftemp);
+	  return CMD_NORMAL;
+	}
+	else{
+	  printf("CMD: alp_send_command failed\n");
+	  return CMD_NORMAL;
+	}	  
+      }
+      else{
+	printf("CMD: Zernike cmd out of bounds\n");
+	return CMD_NORMAL;
+      }
+    }
+    else
+      printf("CMD: Manual ALPAO DM control disabled in this state.\n");
+    return CMD_NORMAL;
+  }
   
   
   //SHK HEX Calibration
