@@ -8,6 +8,9 @@ cmd: exit
   	exits the watchdog
 	on the flight system the watchdog will restart automatically
 
+cmd: packet info
+     	prints the sizes of the telemetry packets
+
 ------------- PROCESS CONTROL -------------
 
 cmd: xxx_proc on
@@ -23,28 +26,28 @@ cmd: proc status
 
 ------------- FAKE DATA MODES -------------
 
-cmd: xxx fakemode [cmd]
+cmd: xxx fakemode [arg]
 	enables a fake data mode for a specific camera or telemetry
 	xxx = shk, lyt, sci, acq, tlm
-	cmd = string command for the fake mode
+	arg = string command for the fake mode
 	sending command without the cmd will print the available modes
 
  
 ------------ CALIBRATION MODES ------------
 	
-cmd: alp calmode [cmd]
+cmd: alp calmode [arg]
 	sets the alpao dm calibration mode
-	cmd = string command for the calibration mode
+	arg = string command for the calibration mode
 	sending command without the cmd will print the available modes
 	
-cmd: hex calmode [cmd]
+cmd: hex calmode [arg]
 	sets the hexapod calibration mode
-	cmd = string command for the calibration mode
+	arg = string command for the calibration mode
 	sending command without the cmd will print the available modes
 	
 ------------------ STATES -----------------
 
-cmd: state [cmd]
+cmd: state [arg]
 	set the operational state of the flight software
 	cmd: string command for the state
 	sending command without the cmd will print the available states
@@ -91,7 +94,115 @@ cmd: hex gohome
 cmd: hex godef
 	move hexapod to #defined default position
 
-cmd: hex move [dir]
+cmd: hex move [arg]
 	move the hexapod one step in the given direction
-	dir = +x, -x, +y, -y, +z, -z, +u, -u, +v, -v, +w, -w
+	arg = +x, -x, +y, -y, +z, -z, +u, -u, +v, -v, +w, -w
+
+------------- ALPAO DM CONTROL -------------
+
+cmd: alp revert flat
+        revert ALP to #defined flat pattern
+
+cmd: alp save flat
+        save current ALP command as default flat pattern (alp_flat.dat)
+
+cmd: alp load flat
+        load saved ALP flat pattern (alp_flat.dat)
+
+cmd: alp random
+     	applies a random actuator perturbation to the current ALP command
+
+cmd: alp zrandom
+     	applies a random zernike perturbation to the current ALP command
+
+------------- SENSOR CALIBRATION -------------
+
+cmd: shk calibrate hex [arg]
+        record shk data through one complete cycle of a hex calmode
+	arg = string command for the hex calmode
+
+cmd: shk calibrate alp [arg]
+        record shk data through one complete cycle of an alp calmode
+	arg = string command for the alp calmode
+
+cmd: lyt calibrate alp [arg]
+        record lyt data through one complete cycle of an alp calmode
+	arg = string command for the alp calmode
+
+
+------------- CAMERA RESET -------------
+
+cmd: shk reset
+     	reset shk_process_image function
+	reloads calibration files
+
+cmd: lyt reset
+     	reset lyt_process_image function
+	reloads calibration files
+
+cmd: acq reset
+     	reset acq_process_image function
+	reloads calibration files
+
+cmd: sci reset
+     	reset sci_process_image function
+	reloads calibration files
+
+
+------------- SHACK-HARTMANN CONTROL -------------
+
+cmd: shk set cenbox origin
+     	set the center of the centroid boxes to the current spot centers
+	does not set the cell origin, which is the target position
+
+cmd: shk set origin
+        set the center of the centroid boxes AND the cell origins to the current spot centers
+	this will zero out the centroid errors across the grid
+
+cmd: shk revert origin
+        revert the cell and centroid box origins to the #defined values
+
+cmd: shk save origin
+        save the current cell and centroid box origins to file (shk_origin.dat)
+
+cmd: shk load origin
+        load the cell and centroid box origins from file (shk_origin.dat)
+
+cmd: shk shift origin [arg]
+        shift the cell and centroid box origins 1 pixel in the given direction
+	arg = +x, -x, +y, -y
+
+
+------------- CONTROL SYSTEM GAIN -------------
+
+cmd: shk alp gain [arg]
+        change the shk2alp controller PID gains by a factor
+	arg = scale factor [0-1] to mutiply by the default gains
+
+cmd: shk hex gain [arg]
+        change the shk2hex controller PID gains by a factor
+	arg = scale factor [0-1] to mutiply by the default gains
+	
+cmd: lyt alp gain [cnd]
+        change the lyt2alp controller PID gains by a factor
+	arg = scale factor [0-1] to mutiply by the default gains
+
+------------- ZERNIKE CONTROL SWITCHES -------------
+
+cmd: zernike info
+        print out which zernikes are enabled and which are disabled
+
+cmd: zernike enable all
+        enable control of all zernikes
+
+cmd: zernike enable [arg]
+        enable control of a single zernike
+	arg = zernike index
+
+cmd: zernike disable all
+        disable control of all zernikes
+
+cmd: zernike disable [arg]
+        disable control of a single zernike
+	arg = zernike index
 
