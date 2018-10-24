@@ -262,7 +262,7 @@ int main(int argc,char **argv){
   memset((char *)sm_p,0,sizeof(sm_t));
 
 
-  /* Initialize Watchdog Structure*/
+  /* Initialize Watchdog Structure */
   uint8 proctmo[NCLIENTS]  = PROCTMO;
   uint8 procask[NCLIENTS]  = PROCASK;
   uint8 procrun[NCLIENTS]  = PROCRUN;
@@ -284,9 +284,10 @@ int main(int argc,char **argv){
     sm_p->w[i].pri  =  procpri[i];
     sm_p->w[i].name =  procnam[i];
     sm_p->w[i].mod  =  procmod[i];
+    sm_p->w[i].fakemode = FAKEMODE_NONE;
 
 
-    /*Assign Sub-Processes */
+    /* Assign Sub-Processes */
     switch(i){
     case WATID:sm_p->w[i].launch = wat_proc; break;
     case SCIID:sm_p->w[i].launch = sci_proc; break;

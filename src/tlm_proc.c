@@ -196,8 +196,8 @@ void tlm_proc(void){
   while(1){
     
     //check if we want to fake the TM data
-    if(sm_p->tlm_fakemode > FAKEMODE_NONE){
-      if(sm_p->tlm_fakemode == FAKEMODE_TM_TEST_PATTERN){
+    if(sm_p->w[TLMID].fakemode != FAKEMODE_NONE){
+      if(sm_p->w[TLMID].fakemode == FAKEMODE_TM_TEST_PATTERN){
 	for(i=0;i<NFAKE;i++){
 	  fakeword[i] = ilast++ % FAKEMAX;
 	  //skip empty code

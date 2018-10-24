@@ -588,8 +588,8 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     lytfull.hed.packet_type = LYTFULL;
 
     //Fake data
-    if(sm_p->lyt_fakemode > FAKEMODE_NONE){
-      if(sm_p->lyt_fakemode == FAKEMODE_GEN_IMAGE_CAMERA_SYNC)
+    if(sm_p->w[LYTID].fakemode != FAKEMODE_NONE){
+      if(sm_p->w[LYTID].fakemode == FAKEMODE_GEN_IMAGE_CAMERA_SYNC)
 	for(i=0;i<LYTXS;i++)
 	  for(j=0;j<LYTYS;j++)
 	    lytfull.image.data[i][j]=fakepx++;

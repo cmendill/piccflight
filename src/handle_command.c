@@ -160,11 +160,14 @@ int handle_command(char *line, sm_t *sm_p){
    * SYSTEM COMMANDS
    ***************************************/
   //exit: exit watchdog
-  if(!strncasecmp(line,"exit",4)){
+  sprintf(cmd,"exit");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
     return(CMD_EXIT_WATCHDOG);
   }
+  
   //print packet info
-  if(!strncasecmp(line,"packet info",11)){
+  sprintf(cmd,"packet info");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
     printf("CMD: pktheadr = %lu bytes\n",sizeof(pkthed_t));
     printf("CMD: scievent = %lu bytes\n",sizeof(scievent_t));
     printf("CMD: shkevent = %lu bytes\n",sizeof(shkevent_t));
@@ -181,17 +184,17 @@ int handle_command(char *line, sm_t *sm_p){
   for(i=0;i<NCLIENTS;i++){
     if(i != WATID){
       //ON command
-      sprintf(stemp,"%s_proc on",sm_p->w[i].name);
-      for(j=0;j<strlen(stemp);j++) stemp[j]=tolower(stemp[j]);
-      if(!strncasecmp(line,stemp,strlen(stemp))){
+      sprintf(cmd,"%s_proc on",sm_p->w[i].name);
+      for(j=0;j<strlen(cmd);j++) cmd[j]=tolower(cmd[j]);
+      if(!strncasecmp(line,cmd,strlen(cmd))){
 	printf("CMD: Turning %s ON\n",sm_p->w[i].name);
 	sm_p->w[i].run    = 1;
 	return(CMD_NORMAL);
       }
       //OFF command
-      sprintf(stemp,"%s_proc off",sm_p->w[i].name);
-      for(j=0;j<strlen(stemp);j++) stemp[j]=tolower(stemp[j]);
-      if(!strncasecmp(line,stemp,strlen(stemp))){
+      sprintf(cmd,"%s_proc off",sm_p->w[i].name);
+      for(j=0;j<strlen(cmd);j++) cmd[j]=tolower(cmd[j]);
+      if(!strncasecmp(line,cmd,strlen(cmd))){
 	printf("CMD: Turning %s OFF\n",sm_p->w[i].name);
 	sm_p->w[i].run    = 0;
 	return(CMD_NORMAL);
@@ -200,79 +203,36 @@ int handle_command(char *line, sm_t *sm_p){
   }
 
   //Get process status
-  if(!strncasecmp(line,"proc status",11)){
+  sprintf(cmd,"proc status");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
     print_procstatus(sm_p);
     return(CMD_NORMAL);
   }
 
 
   //Fake Data Modes
-  if(!strncasecmp(line,"shk fakemode",12)){
-    cmdfound = 0;
-    for(i=0;i<NFAKEMODES;i++){
-      if(!strncasecmp(line+13,fakemodes[i].cmd,strlen(fakemodes[i].cmd))){
-	sm_p->shk_fakemode=i;
-	printf("CMD: Changed SHK fake mode to %s\n",fakemodes[i].name);
-	cmdfound = 1;
+  for(i=0;i<NCLIENTS;i++){
+    if(i != WATID){
+      sprintf(cmd,"%s fakemode",sm_p->w[i].name);
+      for(j=0;j<strlen(cmd);j++) cmd[j]=tolower(cmd[j]);
+      if(!strncasecmp(line,cmd,strlen(cmd))){
+	cmdfound = 0;
+	for(j=0;j<NFAKEMODES;j++){
+	  if(!strncasecmp(line+strlen(cmd)+1,fakemodes[j].cmd,strlen(fakemodes[j].cmd))){
+	    sm_p->w[i].fakemode = j;
+	    printf("CMD: Changed %s fake mode to %s\n",sm_p->w[i].name,sm_p->w[i].fakemode);
+	    cmdfound = 1;
+	    break;
+	  }
+	}
+	if(!cmdfound)
+	  print_fakemodes(fakemodes);
+	return(CMD_NORMAL);
       }
     }
-    if(!cmdfound)
-      print_fakemodes(fakemodes);
-    return(CMD_NORMAL);
   }
-  if(!strncasecmp(line,"lyt fakemode",12)){
-    cmdfound = 0;
-    for(i=0;i<NFAKEMODES;i++){
-      if(!strncasecmp(line+13,fakemodes[i].cmd,strlen(fakemodes[i].cmd))){
-	sm_p->lyt_fakemode=i;
-	printf("CMD: Changed LYT fake mode to %s\n",fakemodes[i].name);
-	cmdfound = 1;
-      }
-    }
-    if(!cmdfound)
-      print_fakemodes(fakemodes);
-    return(CMD_NORMAL);
-  }
-  if(!strncasecmp(line,"sci fakemode",12)){
-    cmdfound = 0;
-    for(i=0;i<NFAKEMODES;i++){
-      if(!strncasecmp(line+13,fakemodes[i].cmd,strlen(fakemodes[i].cmd))){
-	sm_p->sci_fakemode=i;
-	printf("CMD: Changed SCI fake mode to %s\n",fakemodes[i].name);
-	cmdfound = 1;
-      }
-    }
-    if(!cmdfound)
-      print_fakemodes(fakemodes);
-    return(CMD_NORMAL);
-  }
-  if(!strncasecmp(line,"acq fakemode",12)){
-    cmdfound = 0;
-    for(i=0;i<NFAKEMODES;i++){
-      if(!strncasecmp(line+13,fakemodes[i].cmd,strlen(fakemodes[i].cmd))){
-	sm_p->acq_fakemode=i;
-	printf("CMD: Changed ACQ fake mode to %s\n",fakemodes[i].name);
-	cmdfound = 1;
-      }
-    }
-    if(!cmdfound)
-      print_fakemodes(fakemodes);
-    return(CMD_NORMAL);
-  }
-  if(!strncasecmp(line,"tlm fakemode",12)){
-    cmdfound = 0;
-    for(i=0;i<NFAKEMODES;i++){
-      if(!strncasecmp(line+13,fakemodes[i].cmd,strlen(fakemodes[i].cmd))){
-	sm_p->tlm_fakemode=i;
-	printf("CMD: Changed TLM fake mode to %s\n",fakemodes[i].name);
-	cmdfound = 1;
-      }
-    }
-    if(!cmdfound)
-      print_fakemodes(fakemodes);
-    return(CMD_NORMAL);
-  }
-
+  
+  
   //ALP Calmodes
   if(!strncasecmp(line,"alp calmode",11)){
     cmdfound = 0;

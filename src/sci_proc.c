@@ -212,8 +212,8 @@ void sci_process_image(sm_t *sm_p,uint16 *img_buffer,double ccdtemp){
     scifull.hed.packet_type = SCIFULL;
 
     //Fake data
-    if(sm_p->sci_fakemode > FAKEMODE_NONE){
-      if(sm_p->sci_fakemode == FAKEMODE_GEN_IMAGE_CAMERA_SYNC)
+    if(sm_p->w[SCIID].fakemode != FAKEMODE_NONE){
+      if(sm_p->w[SCIID].fakemode == FAKEMODE_GEN_IMAGE_CAMERA_SYNC)
 	for(i=0;i<SCIXS;i++)
 	  for(j=0;j<SCIYS;j++)
 	    scifull.image.data[i][j]=fakepx++;

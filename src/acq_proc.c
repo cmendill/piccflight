@@ -14,6 +14,7 @@
 /* piccflight headers */
 #include "controller.h"
 #include "common_functions.h"
+#include "fakemodes.h"
 #include "acq_proc.h"
 
 /* Globals */
@@ -61,6 +62,7 @@ void cb(uvc_frame_t *frame, void *ptr) {
   static struct timespec first,start,end,delta,last;
   static int init=0;
   double dt;
+  uint16_t fakepx=0;
   sm_t *sm_p = (sm_t *)ptr;
     
   /* Get time immidiately */
@@ -122,37 +124,48 @@ void cb(uvc_frame_t *frame, void *ptr) {
   /* Save time */
   memcpy(&last,&start,sizeof(struct timespec));
   
-  /*******************  Full Image Code  *****************/
+  /*************************************************************/
+  /**********************  Full Image Code  ********************/
+  /*************************************************************/
   if(timespec_subtract(&delta,&start,&first))
     printf("ACQ: acq_process_image --> timespec_subtract error!\n");
   ts2double(&delta,&dt);
   if(dt > ACQ_FULL_IMAGE_TIME){
-    /* Debugging */
+    //Debugging 
     if(ACQ_DEBUG) printf("ACQ: Full Image: %d\n",frame->sequence);
     if(ACQ_DEBUG) printf("ACQ: Frame Size: %lu  Buffer Size: %lu\n",frame->data_bytes,sizeof(acq_t));  
     
-    /* Copy packet header */
+    //Copy packet header
     memcpy(&acqfull.hed,&acqevent.hed,sizeof(pkthed_t));
     acqfull.hed.packet_type = ACQFULL;
     
-    /* Copy image */
-    memcpy(&(acqfull.image.data[0][0]),frame->data,sizeof(acq_t));
+    //Fake data
+    if(sm_p->w[ACQID].fakemode != FAKEMODE_NONE){
+      if(sm_p->w[ACQID].fakemode == FAKEMODE_GEN_IMAGE_CAMERA_SYNC)
+	for(i=0;i<ACQXS;i++)
+	  for(j=0;j<ACQYS;j++)
+	    acqfull.image.data[i][j]=fakepx++;
+    }
+    else{
+      //Copy full image
+      memcpy(&(acqfull.image.data[0][0]),frame->data,sizeof(acq_t));
+    }
 
-    /* Open circular buffer */
+    //Open circular buffer
     acqfull_p=(acqfull_t *)open_buffer(sm_p,ACQFULL);
-
-    /* Copy data */
+    
+    //Copy data
     memcpy(acqfull_p,&acqfull,sizeof(acqfull_t));;
 
-    /* Get final timestamp */
+    //Get final timestamp
     clock_gettime(CLOCK_REALTIME,&end);
     acqfull_p->hed.end_sec = end.tv_sec;
     acqfull_p->hed.end_nsec = end.tv_nsec;
 
-    /* Close buffer */
+    //Close buffer
     close_buffer(sm_p,ACQFULL);
 
-    /* Reset time */
+    //Reset time
     memcpy(&first,&start,sizeof(struct timespec));
   }
  }

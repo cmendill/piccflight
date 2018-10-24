@@ -443,6 +443,7 @@ typedef struct procinfo_struct{
   uint8 pri;
   char  *name;
   char  *mod;
+  int   fakemode;
   void (*launch)(void);
 } procinfo_t;
 
@@ -721,13 +722,6 @@ typedef volatile struct {
   //State
   int state;                    //Current operational state
   state_t state_array[NSTATES]; //Array of states
-
-  //Fake modes
-  int tlm_fakemode;        //Telemetry fake mode
-  int sci_fakemode;        //Science camera fake mode
-  int lyt_fakemode;        //Lyot LOWFS camera fake mode
-  int shk_fakemode;        //Shack-Hartmann camera fake mode
-  int acq_fakemode;        //Acquisition camera fake mode
 
   //Camera modes
   int sci_mode;        //Science camera mode

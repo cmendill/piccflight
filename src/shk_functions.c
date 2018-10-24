@@ -1085,8 +1085,8 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     shkfull.hed.packet_type = SHKFULL;
 
     //Fake data
-    if(sm_p->shk_fakemode > FAKEMODE_NONE){
-      if(sm_p->shk_fakemode == FAKEMODE_GEN_IMAGE_CAMERA_SYNC)
+    if(sm_p->w[SHKID].fakemode != FAKEMODE_NONE){
+      if(sm_p->w[SHKID].fakemode == FAKEMODE_GEN_IMAGE_CAMERA_SYNC)
 	for(i=0;i<SHKXS;i++)
 	  for(j=0;j<SHKYS;j++)
 	    shkfull.image.data[i][j]=fakepx++;
