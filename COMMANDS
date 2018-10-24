@@ -115,6 +115,16 @@ cmd: alp random
 cmd: alp zrandom
      	applies a random zernike perturbation to the current ALP command
 
+cmd: alp zernike [arg1] [arg2]
+	add a zernike delta to the current ALP command
+	arg1 = zernike index [0,1,2,3,...,22]
+	arg2 = zernike wavefront amplitude [microns RMS]
+
+cmd: alp actuator [arg1] [arg2]
+	add a single actuator delta to the current ALP command
+	arg1 = actuator index [0,1,2,3,...,96]
+	arg2 = actuator delta in analog command units [-1 to +1] 
+
 ------------- SENSOR CALIBRATION -------------
 
 cmd: shk calibrate hex [arg]
