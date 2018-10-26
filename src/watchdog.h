@@ -25,6 +25,13 @@
 #define LYT_MODE_DEFAULT 0
 #define ACQ_MODE_DEFAULT 0
 
+//Exposure times
+#define SCI_EXPTIME_DEFAULT 0.010
+#define SHK_EXPTIME_DEFAULT 0.050
+#define LYT_EXPTIME_DEFAULT 0.002
+#define ACQ_EXPTIME_DEFAULT 0.200
+
+
 //Shack-Hartmann Settings
 #define SHK_BOXSIZE_DEFAULT       7
 #define SHK_KP_ALP_CELL_DEFAULT  -0.5

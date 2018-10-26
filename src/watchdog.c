@@ -312,6 +312,10 @@ int main(int argc,char **argv){
   sm_p->shk_mode           = SHK_MODE_DEFAULT;
   sm_p->lyt_mode           = LYT_MODE_DEFAULT;
   sm_p->acq_mode           = ACQ_MODE_DEFAULT;
+  sm_p->sci_exptime        = SCI_EXPTIME_DEFAULT;
+  sm_p->shk_exptime        = SHK_EXPTIME_DEFAULT;
+  sm_p->lyt_exptime        = LYT_EXPTIME_DEFAULT;
+  sm_p->acq_exptime        = ACQ_EXPTIME_DEFAULT;
   sm_p->shk_boxsize        = SHK_BOXSIZE_DEFAULT;
   sm_p->shk_kP_alp_cell    = SHK_KP_ALP_CELL_DEFAULT;
   sm_p->shk_kI_alp_cell    = SHK_KI_ALP_CELL_DEFAULT;

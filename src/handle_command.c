@@ -759,6 +759,59 @@ int handle_command(char *line, sm_t *sm_p){
     return(CMD_NORMAL);
   }
 
+  //Exposure Time Commands
+  sprintf(cmd,"sci exptime");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    ftemp = atof(line+strlen(cmd));
+    if(ftemp >= SCI_EXPTIME_MIN && ftemp <= SCI_EXPTIME_MAX){
+      sm_p->sci_exptime = ftemp;
+      sm_p->sci_reset_camera = 1;
+      printf("CMD: Setting SCI exptime to %f seconds\n",sm_p->sci_exptime);
+    }
+    else
+      printf("CMD: SCI exptime must be between %f and %f seconds\n",SCI_EXPTIME_MIN,SCI_EXPTIME_MAX);
+    return(CMD_NORMAL);
+  }
+  
+  sprintf(cmd,"shk exptime");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    ftemp = atof(line+strlen(cmd));
+    if(ftemp >= SHK_EXPTIME_MIN && ftemp <= SHK_EXPTIME_MAX){
+      sm_p->shk_exptime = ftemp;
+      sm_p->shk_reset_camera = 1;
+      printf("CMD: Setting SHK exptime to %f seconds\n",sm_p->shk_exptime);
+    }
+    else
+      printf("CMD: SHK exptime must be between %f and %f seconds\n",SHK_EXPTIME_MIN,SHK_EXPTIME_MAX);
+    return(CMD_NORMAL);
+  }
+
+  sprintf(cmd,"lyt exptime");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    ftemp = atof(line+strlen(cmd));
+    if(ftemp >= LYT_EXPTIME_MIN && ftemp <= LYT_EXPTIME_MAX){
+      sm_p->lyt_exptime = ftemp;
+      sm_p->lyt_reset_camera = 1;
+      printf("CMD: Setting LYT exptime to %f seconds\n",sm_p->lyt_exptime);
+    }
+    else
+      printf("CMD: LYT exptime must be between %f and %f seconds\n",LYT_EXPTIME_MIN,LYT_EXPTIME_MAX);
+    return(CMD_NORMAL);
+  }
+
+  sprintf(cmd,"acq exptime");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    ftemp = atof(line+strlen(cmd));
+    if(ftemp >= ACQ_EXPTIME_MIN && ftemp <= ACQ_EXPTIME_MAX){
+      sm_p->acq_exptime = ftemp;
+      sm_p->acq_reset_camera = 1;
+      printf("CMD: Setting ACQ exptime to %f seconds\n",sm_p->acq_exptime);
+    }
+    else
+      printf("CMD: ACQ exptime must be between %f and %f seconds\n",ACQ_EXPTIME_MIN,ACQ_EXPTIME_MAX);
+    return(CMD_NORMAL);
+  }
+
   //SHK Commands
   if(!strncasecmp(line,"shk set cenbox origin",21)){
     printf("CMD: Setting SHK centroid box origin\n");

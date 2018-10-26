@@ -231,8 +231,8 @@ enum bufids {SCIEVENT, SCIFULL,
 /*************************************************
  * Camera Settings -- Keep sizes divisible by 4 (packets)
  *************************************************/
-#define SCIXS           128
-#define SCIYS           128
+#define SCIXS           300
+#define SCIYS           300
 #define SHKXS           1024
 #define SHKYS           1024
 #define LYTXS           32
@@ -248,6 +248,18 @@ enum bufids {SCIEVENT, SCIFULL,
 #define LYT_FULL_IMAGE_TIME   0.5    //[seconds] period that full images are written to circbuf
 #define SCI_FULL_IMAGE_TIME   0.5    //[seconds] period that full images are written to circbuf
 #define ACQ_FULL_IMAGE_TIME   0.5    //[seconds] period that full images are written to circbuf
+
+/*************************************************
+ * Camera Exposure Time Limits
+ *************************************************/
+#define SHK_EXPTIME_MIN  0.010
+#define SHK_EXPTIME_MAX  0.100
+#define LYT_EXPTIME_MIN  0.001
+#define LYT_EXPTIME_MAX  0.100
+#define SCI_EXPTIME_MIN  0.001
+#define SCI_EXPTIME_MAX  600.0
+#define ACQ_EXPTIME_MIN  0.001
+#define ACQ_EXPTIME_MAX  1.000
 
 /*************************************************
  * Debug Messaging
@@ -589,7 +601,7 @@ typedef struct pktheader_struct{
   uint32  packet_type;
   uint32  frame_number;
   float   exptime;      //commanded exposure time
-  float   ontime;       //measured exposure time
+  float   ontime;       //measured frame time
   float   temp;         //sensor temperature, if available
   uint32  imxsize;      //image x size [px]
   uint32  imysize;      //image y size [px]
@@ -737,6 +749,12 @@ typedef volatile struct {
   int shk_mode;        //Shack-Hartmann camera mode
   int acq_mode;        //Acquisition camera mode
 
+  //Camera exposure times
+  double sci_exptime;
+  double shk_exptime;
+  double lyt_exptime;
+  double acq_exptime;
+   
   //ALP Command
   int   alp_command_lock;
   alp_t alp_command;
@@ -787,6 +805,10 @@ typedef volatile struct {
   int acq_reset;
   int sci_reset;
   int lyt_reset;
+  int shk_reset_camera;
+  int acq_reset_camera;
+  int sci_reset_camera;
+  int lyt_reset_camera;
 
   //Other Commands
   int hex_getpos;
