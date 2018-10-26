@@ -162,6 +162,7 @@ enum states { STATE_STANDBY,
 #define LYT_OUTFILE            "output/calibration/lyt_output.dat"
 #define SHK_ORIGIN_FILE        "output/calibration/shk_origin.dat"
 #define ALP_FLAT_FILE          "output/calibration/alp_flat.dat"
+#define SCI_ORIGIN_FILE        "output/calibration/sci_origin.dat"
 
 /*************************************************
  * Network Addresses & Ports
@@ -409,6 +410,11 @@ enum bufids {SCIEVENT, SCIFULL,
 #define LYT_CONTROL_NPIX      709 //number of controlled pixels on LLOWFS
 
 /*************************************************
+ * SCI Camera Parameters
+ *************************************************/
+#define SCI_NBANDS              5 //number of bands on a single SCI camera image
+
+/*************************************************
  * RTD Parameters
  *************************************************/
 #define RTD_BOARD_MINOR                0 // Minor device number of the RTD board
@@ -607,7 +613,9 @@ typedef struct pktheader_struct{
  *************************************************/
 typedef struct scievent_struct{
   pkthed_t hed;
-  sci_t    image;
+  uint32   xorigin[SCI_NBANDS];
+  uint32   yorigin[SCI_NBANDS];
+  sci_t    image[SCI_NBANDS];
 } scievent_t;
 
 typedef struct shkevent_struct{
@@ -661,7 +669,7 @@ typedef struct acqevent_struct{
  *************************************************/
 typedef struct scifull_struct{
   pkthed_t hed;
-  sci_t    image;
+  sci_t    image[SCI_NBANDS];
 } scifull_t;
 
 typedef struct shkfull_struct{
@@ -790,6 +798,10 @@ typedef volatile struct {
   int shk_xshiftorigin;
   int shk_yshiftorigin;
   int hex_tilt_correct;
+  int sci_setorigin;
+  int sci_revertorigin;
+  int sci_saveorigin;
+  int sci_loadorigin;
 
   //Zernike Targets
   double zernike_target[LOWFS_N_ZERNIKE];

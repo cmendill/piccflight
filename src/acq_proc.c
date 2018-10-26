@@ -64,7 +64,8 @@ void cb(uvc_frame_t *frame, void *ptr) {
   double dt;
   uint16_t fakepx=0;
   sm_t *sm_p = (sm_t *)ptr;
-    
+  int i,j;
+  
   /* Get time immidiately */
   clock_gettime(CLOCK_REALTIME,&start);
   

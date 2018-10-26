@@ -10,24 +10,27 @@
 #include <fcntl.h>
 #include <ctype.h>
 #include <libfli.h>
+#include <libgen.h>
+#include <sys/stat.h>
 
 /* piccflight headers */
 #include "controller.h"
 #include "common_functions.h"
 #include "fakemodes.h"
 
-#define SCI_EXP_TIME 2000   //Milliseconds
+#define SCI_EXP_TIME   10   //Milliseconds
 #define SCI_TEMP_TEC_OFF 20 //Degrees C
-#define SCI_ROI_XSIZE SCIXS
-#define SCI_ROI_YSIZE SCIYS
+#define SCI_ROI_XSIZE 2840
+#define SCI_ROI_YSIZE 2224
 #define SCI_HBIN 1
 #define SCI_VBIN 1
-#define SCI_UL_X 500
-#define SCI_UL_Y 500
+#define SCI_UL_X 0
+#define SCI_UL_Y 0
 #define SCI_LR_X (SCI_UL_X+(SCI_ROI_XSIZE/SCI_HBIN))
 #define SCI_LR_Y (SCI_UL_Y+(SCI_ROI_YSIZE/SCI_VBIN))
 #define SCI_NFLUSHES 4
-
+#define SCI_XORIGIN {436,874,1316,1756,2202}; //band cutout x centers (relative to the ROI)
+#define SCI_YORIGIN {594,600,820,952,722};    //band cutout y centers (relative to the ROI)
 
 /* Process File Descriptor */
 int sci_shmfd;
@@ -35,7 +38,10 @@ int sci_shmfd;
 /* FLI File Descriptor */
 flidev_t dev;
 
-/* CTRL-C Function */
+/**************************************************************/
+/* SCICTRLC                                                   */
+/*  - Main process interrupt routine                          */
+/**************************************************************/
 void scictrlC(int sig){
   uint32 err = 0;
   if (MSG_CTRLC) printf("SCI: ctrlC! exiting.\n");
@@ -58,7 +64,155 @@ void scictrlC(int sig){
   exit(sig);
 }
 
-/* Get CCD Temperature */
+/**************************************************************/
+/* SCI_XY2INDEX                                               */
+/*  - Convert image (x,y) to image buffer index               */
+/**************************************************************/
+uint32_t sci_xy2index(int x,int y){
+  return y*SCI_ROI_XSIZE + x;
+}
+
+/***************************************************************/
+/* SCI_SETORIGIN                                               */
+/*  - Set band origins from current image                      */
+/***************************************************************/
+void sci_setorigin(scievent_t *sci,uint16_t *img_buffer){
+  int i,j,k;
+  int imax=0,jmax=0;
+  uint16_t pmax=0,p=0;
+  
+  /* Loop through band images, find max pixel */
+  for(k=0;k<SCI_NBANDS;k++){
+    pmax=0;
+    for(i=0;i<SCIXS;i++){
+      for(j=0;j<SCIYS;j++){
+	p = img_buffer[sci_xy2index(sci->xorigin[k]-(SCIXS/2)+i,sci->yorigin[k]-(SCIYS/2)+j)];
+	if(p > pmax){
+	  pmax = p;
+	  imax = i;
+	  jmax = j;
+	}
+      }
+    }
+    //Set new origin
+    sci->xorigin[k] += imax - (SCIXS/2);
+    sci->yorigin[k] += jmax - (SCIYS/2);
+  }  
+}
+
+
+/**************************************************************/
+/* SCI_LOADORIGIN                                             */
+/*  - Load band origins from file                             */
+/**************************************************************/
+void sci_loadorigin(scievent_t *sci){
+  FILE *fd=NULL;
+  char filename[MAX_FILENAME];
+  uint64 fsize,rsize;
+  const uint32 xorigin[SCI_NBANDS] = SCI_XORIGIN;
+  const uint32 yorigin[SCI_NBANDS] = SCI_YORIGIN;
+  scievent_t rdevent;
+
+  /* Initialize with default origins */
+  memcpy(sci->xorigin,xorigin,sizeof(xorigin));
+  memcpy(sci->yorigin,yorigin,sizeof(yorigin));
+  
+  /* Open origin file */
+  //--setup filename
+  sprintf(filename,SCI_ORIGIN_FILE);
+  //--open file
+  if((fd = fopen(filename,"r")) == NULL){
+    perror("SCI: loadorigin fopen");
+    return;
+  }
+  //--check file size
+  fseek(fd, 0L, SEEK_END);
+  fsize = ftell(fd);
+  rewind(fd);
+  rsize = sizeof(scievent_t);
+  if(fsize != rsize){
+    printf("SCI: incorrect SCI_ORIGIN_FILE size %lu != %lu\n",fsize,rsize);
+    fclose(fd);
+    return;
+  }
+  
+  //Read file
+  if(fread(&rdevent,rsize,1,fd) != 1){
+    perror("SCI: loadorigin fread");
+    fclose(fd);
+    return;
+  }
+  
+  //Close file
+  fclose(fd);
+  printf("SCI: Read: %s\n",filename);
+
+  //Copy origins
+  memcpy(sci->xorigin,rdevent.xorigin,sizeof(rdevent.xorigin));
+  memcpy(sci->yorigin,rdevent.yorigin,sizeof(rdevent.yorigin));
+  
+  
+}
+
+/***************************************************************/
+/* SCI_SAVEORIGIN                                              */
+/*  - Saves cell origins to file                               */
+/***************************************************************/
+void sci_saveorigin(scievent_t *sci){
+  struct stat st = {0};
+  FILE *fd=NULL;
+  static char outfile[MAX_FILENAME];
+  char temp[MAX_FILENAME];
+  char path[MAX_FILENAME];
+  int i;
+
+  /* Open output file */
+  //--setup filename
+  sprintf(outfile,"%s",SCI_ORIGIN_FILE);
+  //--create output folder if it does not exist
+  strcpy(temp,outfile);
+  strcpy(path,dirname(temp));
+  if (stat(path, &st) == -1){
+    printf("SCI: creating folder %s\n",path);
+    recursive_mkdir(path, 0777);
+  }
+  //--open file
+  if((fd = fopen(outfile, "w")) == NULL){
+    perror("SCI: saveorigin fopen()\n");
+    return;
+  }
+  
+  //Save scievent
+  if(fwrite(sci,sizeof(scievent_t),1,fd) != 1){
+    printf("SCI: saveorigin fwrite error!\n");
+    fclose(fd);
+    return;
+  }
+  printf("SCI: Wrote: %s\n",outfile);
+
+  //Close file
+  fclose(fd);
+  return;
+}
+
+/**************************************************************/
+/* SCI_REVERTORIGIN                                           */
+/*  - Set band origins to default                             */
+/**************************************************************/
+void sci_revertorigin(scievent_t *sci){
+  const uint32 xorigin[SCI_NBANDS] = SCI_XORIGIN;
+  const uint32 yorigin[SCI_NBANDS] = SCI_YORIGIN;
+  
+  /* Copy default origins */
+  memcpy(sci->xorigin,xorigin,sizeof(xorigin));
+  memcpy(sci->yorigin,yorigin,sizeof(yorigin));
+    
+}
+
+/**************************************************************/
+/* SCI_GET_TEMP                                               */
+/*  - Get CCD Temperature                                     */
+/**************************************************************/
 double sci_get_temp(flidev_t dev){
   double temp;
   uint32 err;
@@ -73,12 +227,15 @@ double sci_get_temp(flidev_t dev){
   return temp;
 }
 
-/* Exposure function */
+/**************************************************************/
+/* SCI_EXPOSE                                                 */
+/*  - Run image exposure                                      */
+/**************************************************************/
 int sci_expose(sm_t *sm_p, flidev_t dev, uint16 *img_buffer){
   int row,i;
   uint32 err;
   long int timeleft;
-  int exp_timeout = (SCI_EXP_TIME/1000)+2;
+  
   
   /* Start exposure */
   if((err = FLIExposeFrame(dev))){
@@ -89,16 +246,16 @@ int sci_expose(sm_t *sm_p, flidev_t dev, uint16 *img_buffer){
   }
 
   /* Wait for exposure to finish */
-  for(i=0;i<exp_timeout;i++){
+  while(1){
     /* Check if we've been asked to exit */
     if(sm_p->w[SCIID].die)
       scictrlC(0);
-
+    
     /* Check in with the watchdog */
     checkin(sm_p,SCIID);
-       
-    //Sleep
-    sleep(1);
+    
+    //Sleep 1 decisecond
+    usleep(100000);
     
     //Get exposure status
     if((err = FLIGetExposureStatus(dev,&timeleft))){
@@ -109,10 +266,6 @@ int sci_expose(sm_t *sm_p, flidev_t dev, uint16 *img_buffer){
       if(SCI_DEBUG) printf("SCI: Exposure done after %d checks\n",i+1);
       break;
     }
-  }
-  if(i==exp_timeout){
-    printf("SCI: Image timeout!\n");
-    return 1;
   }
   
   /* Grab data one row at a time */
@@ -129,7 +282,10 @@ int sci_expose(sm_t *sm_p, flidev_t dev, uint16 *img_buffer){
   return 0;
 }
 
-/* SCI Process Image*/
+/**************************************************************/
+/* SCI_PROCESS_IMAGE                                          */
+/*  - Process SCI camera image                                */
+/**************************************************************/
 void sci_process_image(sm_t *sm_p,uint16 *img_buffer,double ccdtemp){
   static scievent_t scievent;
   static scifull_t scifull;
@@ -139,19 +295,19 @@ void sci_process_image(sm_t *sm_p,uint16 *img_buffer,double ccdtemp){
   static int init = 0;
   double dt;
   uint16 fakepx=0;
-  uint32 i,j;
+  uint32 i,j,k;
 
   /* Get time immidiately */
   clock_gettime(CLOCK_REALTIME,&start);
-
+  
   /* Debugging */
   if(SCI_DEBUG) printf("SCI: Got frame\n"); 
-
+  
   /* Check in with the watchdog */
   checkin(sm_p,SCIID);
 
   /* Check reset */
-  if(sm_p->sci_reset){ //need to add this to controller.h
+  if(sm_p->sci_reset){
    init=0;
    sm_p->sci_reset=0;
   }
@@ -161,6 +317,7 @@ void sci_process_image(sm_t *sm_p,uint16 *img_buffer,double ccdtemp){
     memset(&scifull,0,sizeof(scifull));
     memset(&scievent,0,sizeof(scievent));
     memcpy(&first,&start,sizeof(struct timespec));
+    sci_loadorigin(&scievent);
     init=1;
     if(SCI_DEBUG) printf("SCI: Initialized\n");
   }
@@ -169,6 +326,27 @@ void sci_process_image(sm_t *sm_p,uint16 *img_buffer,double ccdtemp){
   if(timespec_subtract(&delta,&start,&last))
     printf("SCI: call back --> timespec_subtract error!\n");
   ts2double(&delta,&dt);
+
+  /* Command: sci_setorigin */
+  if(sm_p->sci_setorigin){
+    sci_setorigin(&scievent,img_buffer);
+    sm_p->sci_setorigin=0;
+  }
+  /* Command: sci_saveorigin */
+  if(sm_p->sci_saveorigin){
+    sci_saveorigin(&scievent);
+    sm_p->sci_saveorigin=0;
+  }
+  /* Command: sci_loadorigin */
+  if(sm_p->sci_loadorigin){
+    sci_loadorigin(&scievent);
+    sm_p->sci_loadorigin=0;
+  }
+  /* Command: sci_revertorigin */
+  if(sm_p->sci_revertorigin){
+    sci_revertorigin(&scievent);
+    sm_p->sci_revertorigin=0;
+  }
 
   /* Fill out event header */
   scievent.hed.packet_type  = SCIEVENT;
@@ -182,12 +360,28 @@ void sci_process_image(sm_t *sm_p,uint16 *img_buffer,double ccdtemp){
   scievent.hed.start_sec    = start.tv_sec;
   scievent.hed.start_nsec   = start.tv_nsec;
 
+  //Fake data
+  if(sm_p->w[SCIID].fakemode != FAKEMODE_NONE){
+    if(sm_p->w[SCIID].fakemode == FAKEMODE_GEN_IMAGE_CAMERA_SYNC)
+      for(k=0;k<SCI_NBANDS;k++)
+	for(i=0;i<SCIXS;i++)
+	  for(j=0;j<SCIYS;j++)
+	    scievent.image[k].data[i][j]=fakepx++;
+  }
+  else{
+    /* Cut out bands */
+    for(k=0;k<SCI_NBANDS;k++)
+      for(i=0;i<SCIXS;i++)
+	for(j=0;j<SCIYS;j++)
+    	  scievent.image[k].data[i][j] = img_buffer[sci_xy2index(scievent.xorigin[k]-(SCIXS/2)+i,scievent.yorigin[k]-(SCIYS/2)+j)];
+  }
+  
   /* Open circular buffer */
   scievent_p=(scievent_t *)open_buffer(sm_p,SCIEVENT);
-
+  
   /* Copy scievent */
   memcpy(scievent_p,&scievent,sizeof(scievent_t));;
-
+  
   /* Get final timestamp */
   clock_gettime(CLOCK_REALTIME,&end);
   scievent_p->hed.end_sec = end.tv_sec;
@@ -214,13 +408,17 @@ void sci_process_image(sm_t *sm_p,uint16 *img_buffer,double ccdtemp){
     //Fake data
     if(sm_p->w[SCIID].fakemode != FAKEMODE_NONE){
       if(sm_p->w[SCIID].fakemode == FAKEMODE_GEN_IMAGE_CAMERA_SYNC)
-	for(i=0;i<SCIXS;i++)
-	  for(j=0;j<SCIYS;j++)
-	    scifull.image.data[i][j]=fakepx++;
+	for(k=0;k<SCI_NBANDS;k++)
+	  for(i=0;i<SCIXS;i++)
+	    for(j=0;j<SCIYS;j++)
+	      scifull.image[k].data[i][j]=fakepx++;
     }
     else{
-      /* Copy image */
-      memcpy(&(scifull.image.data[0][0]),img_buffer,sizeof(sci_t));
+      /* Cut out bands */
+      for(k=0;k<SCI_NBANDS;k++)
+      	for(i=0;i<SCIXS;i++)
+	  for(j=0;j<SCIYS;j++)
+      	    scifull.image[k].data[i][j] = img_buffer[sci_xy2index(scievent.xorigin[k]-(SCIXS/2)+i,scievent.yorigin[k]-(SCIYS/2)+j)];
     }
     
     /* Open circular buffer */
@@ -243,13 +441,16 @@ void sci_process_image(sm_t *sm_p,uint16 *img_buffer,double ccdtemp){
 }
 
 
-/* Main Process */
+/**************************************************************/
+/* SCI_PROC                                                   */
+/*  - Main SCI camera process                                 */
+/**************************************************************/
 void sci_proc(void){
   char file[MAX_FILENAME], name[MAX_FILENAME];
-  uint32 err = 0;
-  uint32 count = 0;
+  uint32_t err = 0;
+  uint32_t count = 0;
   long domain = (FLIDOMAIN_USB | FLIDEVICE_CAMERA);
-  uint16 img_buffer[SCI_ROI_XSIZE * SCI_ROI_YSIZE];
+  uint16_t *img_buffer;
   double ccdtemp;
   int camera_running=0;
   
@@ -263,6 +464,9 @@ void sci_proc(void){
   /* Set soft interrupt handler */
   sigset(SIGINT, scictrlC);	/* usually ^C */
 
+  /* Malloc image buffer */
+  img_buffer = (uint16_t *)malloc(SCI_ROI_XSIZE*SCI_ROI_YSIZE*sizeof(uint16_t));
+  
   /* Create Device List */
   if((err = FLICreateList(domain))){
     fprintf(stderr, "SCI: Error FLICreateList: %s\n", strerror((int)-err));

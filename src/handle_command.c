@@ -220,7 +220,7 @@ int handle_command(char *line, sm_t *sm_p){
 	for(j=0;j<NFAKEMODES;j++){
 	  if(!strncasecmp(line+strlen(cmd)+1,fakemodes[j].cmd,strlen(fakemodes[j].cmd))){
 	    sm_p->w[i].fakemode = j;
-	    printf("CMD: Changed %s fake mode to %s\n",sm_p->w[i].name,sm_p->w[i].fakemode);
+	    printf("CMD: Changed %s fake mode to %s\n",sm_p->w[i].name,fakemodes[j].name);
 	    cmdfound = 1;
 	    break;
 	  }
@@ -904,7 +904,30 @@ int handle_command(char *line, sm_t *sm_p){
     return CMD_NORMAL;
   }
 
-  
+  //SCI Commands
+  if(!strncasecmp(line,"sci set origin",14)){
+    printf("CMD: Setting SCI origin\n");
+    sm_p->sci_setorigin=1;
+    return(CMD_NORMAL);
+  }
+
+  if(!strncasecmp(line,"sci revert origin",17)){
+    printf("CMD: Reverting SCI origin\n");
+    sm_p->sci_revertorigin=1;
+    return(CMD_NORMAL);
+  }
+
+  if(!strncasecmp(line,"sci save origin",15)){
+    printf("CMD: Saving SCI origin\n");
+    sm_p->sci_saveorigin=1;
+    return(CMD_NORMAL);
+  }
+
+  if(!strncasecmp(line,"sci load origin",15)){
+    printf("CMD: Loading SCI origin\n");
+    sm_p->sci_loadorigin=1;
+    return(CMD_NORMAL);
+  }
   
   /****************************************
    * BLANK COMMAND

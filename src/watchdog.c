@@ -24,6 +24,7 @@
 #include "alp_functions.h"
 #include "rtd_functions.h"
 #include "hex_functions.h"
+#include "fakemodes.h"
 
 /* Constants */
 #define STDIN 0  // file descriptor for standard input
