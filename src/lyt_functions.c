@@ -89,10 +89,116 @@ void lyt_alp_actpid(lytevent_t *lytevent, double *act_delta, int reset){
 }
 
 /**************************************************************/
+/* LYT_COPY_LYTPIX2ALPZER_REFIMG                              */
+/*  - Copy reference image into image pointer                 */
+/**************************************************************/
+void lyt_copy_lytpix2alpzer_refimg(lyt_t *image, int reset){
+  static double lyt_refimg[LYTXS][LYTYS]={{0}}; //reference image
+  static int init=0;
+  int i,j;
+  uint64 fsize,rsize;
+  FILE   *fd=NULL;
+  char   filename[MAX_FILENAME];
+
+  /* Initialize */
+  if(!init || reset){
+    /****** READ REFERENCE IMAGE FILE ******/
+    //--setup filename
+    sprintf(filename,LYTPIX2ALPZER_REFIMG_FILE);
+    //--open file
+    if((fd = fopen(filename,"r")) == NULL){
+      perror("fopen");
+      printf("lyt_refimg file\n");
+      goto end_of_init;
+    }
+    //--check file size
+    fseek(fd, 0L, SEEK_END);
+    fsize = ftell(fd);
+    rewind(fd);
+    rsize = sizeof(lyt_refimg);
+    if(fsize != rsize){
+      printf("LYT: incorrect lyt_refimg file size %lu != %lu\n",fsize,rsize);
+      fclose(fd);
+      goto end_of_init;
+    }
+    //--read file
+    if(fread(lyt_refimg,rsize,1,fd) != 1){
+      perror("fread");
+      printf("lyt_refimg file\n");
+      fclose(fd);
+      goto end_of_init;
+    }
+    //--close file
+    fclose(fd);
+    //--set init flag
+    init=1;
+  }
+
+  /* Copy image */
+  for(i=0;i<LYTXS;i++)
+    for(j=0;j<LYTYS;j++)
+      image->data[i][j] = lyt_refimg[i][j]*40000;
+  
+}
+
+/**************************************************************/
+/* LYT_COPY_LYTPIX2ALPACT_REFIMG                              */
+/*  - Copy reference image into image pointer                 */
+/**************************************************************/
+void lyt_copy_lytpix2alpact_refimg(lyt_t *image, int reset){
+  static double lyt_refimg[LYTXS][LYTYS]={{0}}; //reference image
+  static int init=0;
+  int i,j;
+  uint64 fsize,rsize;
+  FILE   *fd=NULL;
+  char   filename[MAX_FILENAME];
+
+  /* Initialize */
+  if(!init || reset){
+    /****** READ REFERENCE IMAGE FILE ******/
+    //--setup filename
+    sprintf(filename,LYTPIX2ALPACT_REFIMG_FILE);
+    //--open file
+    if((fd = fopen(filename,"r")) == NULL){
+      perror("fopen");
+      printf("lyt_refimg file\n");
+      goto end_of_init;
+    }
+    //--check file size
+    fseek(fd, 0L, SEEK_END);
+    fsize = ftell(fd);
+    rewind(fd);
+    rsize = sizeof(lyt_refimg);
+    if(fsize != rsize){
+      printf("LYT: incorrect lyt_refimg file size %lu != %lu\n",fsize,rsize);
+      fclose(fd);
+      goto end_of_init;
+    }
+    //--read file
+    if(fread(lyt_refimg,rsize,1,fd) != 1){
+      perror("fread");
+      printf("lyt_refimg file\n");
+      fclose(fd);
+      goto end_of_init;
+    }
+    //--close file
+    fclose(fd);
+    //--set init flag
+    init=1;
+  }
+
+  /* Copy image */
+  for(i=0;i<LYTXS;i++)
+    for(j=0;j<LYTYS;j++)
+      image->data[i][j] = lyt_refimg[i][j]*40000;
+  
+}
+
+/**************************************************************/
 /* LYT_ZERNIKE_FIT                                            */
 /*  - Fit Zernikes to LYT pixels                              */
 /**************************************************************/
-void lyt_zernike_fit(lyt_t *image, double *zernikes,int reset,int send_refimg){
+void lyt_zernike_fit(lyt_t *image, double *zernikes,int reset){
   FILE   *fd=NULL;
   char   filename[MAX_FILENAME];
   static lytevent_t lytevent;
@@ -215,14 +321,7 @@ void lyt_zernike_fit(lyt_t *image, double *zernikes,int reset,int send_refimg){
     //--return if reset
     if(reset) return;
   }
-  
-  //Swap in reference image (debugging only)
-  if(send_refimg)
-    for(i=0;i<LYTXS;i++)
-      for(j=0;j<LYTYS;j++)
-	image->data[i][j]=lyt_refimg[i][j]*40000;
-    
-  
+
   //Normalize image pixels & subtract reference image
   total=0;
   count=0;
@@ -244,7 +343,7 @@ void lyt_zernike_fit(lyt_t *image, double *zernikes,int reset,int send_refimg){
 /* LYT_ACTUATOR_FIT                                           */
 /*  - Fit ALP actuators to LYT pixels                         */
 /**************************************************************/
-void lyt_actuator_fit(lyt_t *image, double *actuators, int reset, int send_refimg){
+void lyt_actuator_fit(lyt_t *image, double *actuators, int reset){
   FILE   *fd=NULL;
   char   filename[MAX_FILENAME];
   static lytevent_t lytevent;
@@ -368,12 +467,6 @@ void lyt_actuator_fit(lyt_t *image, double *actuators, int reset, int send_refim
     if(reset) return;
   }
 
-  //Swap in reference image (debugging only)
-  if(send_refimg)
-    for(i=0;i<LYTXS;i++)
-      for(j=0;j<LYTYS;j++)
-	image->data[i][j]=lyt_refimg[i][j]*1000;
-
   //Normalize image pixels & subtract reference image
   total=0;
   count=0;
@@ -488,12 +581,25 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   memcpy(&lytevent.gain_alp_zern[0][0],(double *)&sm_p->lyt_gain_alp_zern[0][0],sizeof(lytevent.gain_alp_zern));
   memcpy(lytevent.gain_alp_act,(double *)sm_p->lyt_gain_alp_act,sizeof(lytevent.gain_alp_act));
 
-  //Copy image out of buffer
-  memcpy(&(lytevent.image.data[0][0]),buffer->pvAddress,sizeof(lytevent.image.data));
-
+  //Fake data
+  if(sm_p->w[LYTID].fakemode != FAKEMODE_NONE){
+    if(sm_p->w[LYTID].fakemode == FAKEMODE_GEN_IMAGE_CAMERA_SYNC)
+      for(i=0;i<LYTXS;i++)
+	for(j=0;j<LYTYS;j++)
+	  lytevent.image.data[i][j]=fakepx++;
+    if(sm_p->w[LYTID].fakemode == FAKEMODE_LYTPIX2ALPZER_REFIMG)
+      lyt_copy_lytpix2alpzer_refimg(&lytevent.image);
+    if(sm_p->w[LYTID].fakemode == FAKEMODE_LYTPIX2ALPACT_REFIMG)
+      lyt_copy_lytpix2alpact_refimg(&lytevent.image);
+  }
+  else{
+    //Copy image data
+    memcpy(&(lytevent.image.data[0][0]),buffer->pvAddress,sizeof(lytevent.image.data));
+  }
+  
   //Fit Zernikes
   if(sm_p->state_array[state].lyt.fit_zernikes)
-    lyt_zernike_fit(&lytevent.image,lytevent.zernike_measured, FUNCTION_NO_RESET, sm_p->lyt_send_refimg);
+    lyt_zernike_fit(&lytevent.image,lytevent.zernike_measured, FUNCTION_NO_RESET);
 
   /*************************************************************/
   /*******************  ALPAO DM Control Code  *****************/
@@ -540,7 +646,7 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     //Run ALP actuator control
     if(sm_p->state_array[state].lyt.act_control == ACTUATOR_ALP){
       // - fit actuator functions
-      lyt_actuator_fit(&lytevent.image,lytevent.alp_measured, FUNCTION_NO_RESET, sm_p->lyt_send_refimg);
+      lyt_actuator_fit(&lytevent.image,lytevent.alp_measured, FUNCTION_NO_RESET);
       
       // - run actuator PID
       lyt_alp_actpid(&lytevent, alp_delta.act_cmd, FUNCTION_NO_RESET);
@@ -604,6 +710,10 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
 	for(i=0;i<LYTXS;i++)
 	  for(j=0;j<LYTYS;j++)
 	    lytfull.image.data[i][j]=fakepx++;
+      if(sm_p->w[LYTID].fakemode == FAKEMODE_LYTPIX2ALPZER_REFIMG)
+	lyt_copy_lytpix2alpzer_refimg(&lytfull.image);
+      if(sm_p->w[LYTID].fakemode == FAKEMODE_LYTPIX2ALPACT_REFIMG)
+	lyt_copy_lytpix2alpact_refimg(&lytfull.image);
     }
     else{
       //Copy full image

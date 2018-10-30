@@ -736,20 +736,7 @@ int handle_command(char *line, sm_t *sm_p){
       return(CMD_NORMAL);
     }
   }
-  //LYT reference image (debugging)
-  sprintf(cmd,"lyt refimg on");
-  if(!strncasecmp(line,cmd,strlen(cmd))){
-    sm_p->lyt_send_refimg=1;
-    printf("CMD: Starting LYT sending reference image\n"); 
-    return(CMD_NORMAL);
-  }
-  sprintf(cmd,"lyt refimg off");
-  if(!strncasecmp(line,cmd,strlen(cmd))){
-    sm_p->lyt_send_refimg=0;
-    printf("CMD: Stopping LYT sending reference image\n");
-    return(CMD_NORMAL);
-  }
-  
+
   //Reset Commands
   if(!strncasecmp(line,"shk reset",9)){
     sm_p->shk_reset=1;

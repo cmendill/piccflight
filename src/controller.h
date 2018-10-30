@@ -824,7 +824,6 @@ typedef volatile struct {
   int sci_revertorigin;
   int sci_saveorigin;
   int sci_loadorigin;
-  int lyt_send_refimg;
   
   //Zernike Targets
   double zernike_target[LOWFS_N_ZERNIKE];

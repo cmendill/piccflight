@@ -35,6 +35,16 @@ void init_fakemode(int fakemode, calmode_t *fake){
     sprintf(fake->name,"FAKEMODE_READ_IMAGE_CAMERA_SYNC");
     sprintf(fake->cmd,"read image camera");
   }
+  //FAKEMODE_LYTPIX2ALPZER_REFIMG
+  if(fakemode == FAKEMODE_LYTPIX2ALPZER_REFIMG){
+    sprintf(fake->name,"FAKEMODE_LYTPIX2ALPZER_REFIMG");
+    sprintf(fake->cmd,"lyt zern refimg");
+  }
+  //FAKEMODE_LYTPIX2ALPACT_REFIMG
+  if(fakemode == FAKEMODE_LYTPIX2ALPACT_REFIMG){
+    sprintf(fake->name,"FAKEMODE_LYTPIX2ALPACT_REFIMG");
+    sprintf(fake->cmd,"lyt act refimg");
+  }
   //FAKEMODE_TM_TEST_PATTERN
   if(fakemode == FAKEMODE_TM_TEST_PATTERN){
     sprintf(fake->name,"FAKEMODE_TM_TEST_PATTERN");
