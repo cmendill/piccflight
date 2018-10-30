@@ -130,8 +130,12 @@ void lyt_copy_lytpix2alpzer_refimg(lyt_t *image, int reset){
     }
     //--close file
     fclose(fd);
+
+  end_of_init:
     //--set init flag
     init=1;
+    //--return if reset
+    if(reset) return;
   }
 
   /* Copy image */
@@ -183,8 +187,12 @@ void lyt_copy_lytpix2alpact_refimg(lyt_t *image, int reset){
     }
     //--close file
     fclose(fd);
+
+  end_of_init:
     //--set init flag
     init=1;
+    //--return if reset
+    if(reset) return;
   }
 
   /* Copy image */
@@ -534,6 +542,9 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     lyt_zernike_fit(NULL,NULL,FUNCTION_RESET,0);
     //Reset actuator fitter
     lyt_actuator_fit(NULL,NULL,FUNCTION_RESET,0);
+    //Reset reference image copying
+    lyt_copy_lytpix2alpzer_refimg(NULL,FUNCTION_RESET);
+    lyt_copy_lytpix2alpact_refimg(NULL,FUNCTION_RESET);
     //Init ALP calmodes
     for(i=0;i<ALP_NCALMODES;i++)
       alp_init_calmode(i,&alpcalmodes[i]);
@@ -588,9 +599,9 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
 	for(j=0;j<LYTYS;j++)
 	  lytevent.image.data[i][j]=fakepx++;
     if(sm_p->w[LYTID].fakemode == FAKEMODE_LYTPIX2ALPZER_REFIMG)
-      lyt_copy_lytpix2alpzer_refimg(&lytevent.image);
+      lyt_copy_lytpix2alpzer_refimg(&lytevent.image, FUNCTION_NO_RESET);
     if(sm_p->w[LYTID].fakemode == FAKEMODE_LYTPIX2ALPACT_REFIMG)
-      lyt_copy_lytpix2alpact_refimg(&lytevent.image);
+      lyt_copy_lytpix2alpact_refimg(&lytevent.image, FUNCTION_NO_RESET);
   }
   else{
     //Copy image data
@@ -711,9 +722,9 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
 	  for(j=0;j<LYTYS;j++)
 	    lytfull.image.data[i][j]=fakepx++;
       if(sm_p->w[LYTID].fakemode == FAKEMODE_LYTPIX2ALPZER_REFIMG)
-	lyt_copy_lytpix2alpzer_refimg(&lytfull.image);
+	lyt_copy_lytpix2alpzer_refimg(&lytfull.image, FUNCTION_NO_RESET);
       if(sm_p->w[LYTID].fakemode == FAKEMODE_LYTPIX2ALPACT_REFIMG)
-	lyt_copy_lytpix2alpact_refimg(&lytfull.image);
+	lyt_copy_lytpix2alpact_refimg(&lytfull.image, FUNCTION_NO_RESET);
     }
     else{
       //Copy full image
