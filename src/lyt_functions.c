@@ -92,7 +92,7 @@ void lyt_alp_actpid(lytevent_t *lytevent, double *act_delta, int reset){
 /* LYT_ZERNIKE_FIT                                            */
 /*  - Fit Zernikes to LYT pixels                              */
 /**************************************************************/
-void lyt_zernike_fit(lyt_t *image, double *zernikes,int reset){
+void lyt_zernike_fit(lyt_t *image, double *zernikes,int reset,int send_refimg){
   FILE   *fd=NULL;
   char   filename[MAX_FILENAME];
   static lytevent_t lytevent;
@@ -215,8 +215,14 @@ void lyt_zernike_fit(lyt_t *image, double *zernikes,int reset){
     //--return if reset
     if(reset) return;
   }
-
-
+  
+  //Swap in reference image (debugging only)
+  if(send_refimg)
+    for(i=0;i<LYTXS;i++)
+      for(j=0;j<LYTYS;j++)
+	image->data[i][j]=lyt_refimg[i][j]*40000;
+    
+  
   //Normalize image pixels & subtract reference image
   total=0;
   count=0;
@@ -238,7 +244,7 @@ void lyt_zernike_fit(lyt_t *image, double *zernikes,int reset){
 /* LYT_ACTUATOR_FIT                                           */
 /*  - Fit ALP actuators to LYT pixels                         */
 /**************************************************************/
-void lyt_actuator_fit(lyt_t *image, double *actuators, int reset){
+void lyt_actuator_fit(lyt_t *image, double *actuators, int reset, int send_refimg){
   FILE   *fd=NULL;
   char   filename[MAX_FILENAME];
   static lytevent_t lytevent;
@@ -362,6 +368,11 @@ void lyt_actuator_fit(lyt_t *image, double *actuators, int reset){
     if(reset) return;
   }
 
+  //Swap in reference image (debugging only)
+  if(send_refimg)
+    for(i=0;i<LYTXS;i++)
+      for(j=0;j<LYTYS;j++)
+	image->data[i][j]=lyt_refimg[i][j]*1000;
 
   //Normalize image pixels & subtract reference image
   total=0;
@@ -427,9 +438,9 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     //Reset PID controllers
     lyt_alp_zernpid(NULL,NULL,NULL,FUNCTION_RESET);
     //Reset zernike fitter
-    lyt_zernike_fit(NULL,NULL,FUNCTION_RESET);
+    lyt_zernike_fit(NULL,NULL,FUNCTION_RESET,0);
     //Reset actuator fitter
-    lyt_actuator_fit(NULL,NULL,FUNCTION_RESET);
+    lyt_actuator_fit(NULL,NULL,FUNCTION_RESET,0);
     //Init ALP calmodes
     for(i=0;i<ALP_NCALMODES;i++)
       alp_init_calmode(i,&alpcalmodes[i]);
@@ -482,7 +493,7 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
 
   //Fit Zernikes
   if(sm_p->state_array[state].lyt.fit_zernikes)
-    lyt_zernike_fit(&lytevent.image,lytevent.zernike_measured, FUNCTION_NO_RESET);
+    lyt_zernike_fit(&lytevent.image,lytevent.zernike_measured, FUNCTION_NO_RESET, sm_p->lyt_send_refimg);
 
   /*************************************************************/
   /*******************  ALPAO DM Control Code  *****************/
@@ -529,7 +540,7 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     //Run ALP actuator control
     if(sm_p->state_array[state].lyt.act_control == ACTUATOR_ALP){
       // - fit actuator functions
-      lyt_actuator_fit(&lytevent.image,lytevent.alp_measured, FUNCTION_NO_RESET);
+      lyt_actuator_fit(&lytevent.image,lytevent.alp_measured, FUNCTION_NO_RESET, sm_p->lyt_send_refimg);
       
       // - run actuator PID
       lyt_alp_actpid(&lytevent, alp_delta.act_cmd, FUNCTION_NO_RESET);
