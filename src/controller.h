@@ -447,21 +447,22 @@ enum bufids {SCIEVENT, SCIFULL,
  * Config Structure
  *************************************************/
 typedef struct procinfo_struct{
-  int   pid;
-  uint8 run;
-  uint8 die;
-  uint8 done;
-  uint8 res;
+  int    pid;
+  int    run;
+  int    die;
+  int    done;
+  int    res;
   uint32 chk; //# checkins
   uint32 rec; //# recipts of checkin
-  uint8 cnt;
-  uint8 tmo;
-  uint8 ask;
-  uint8 per;
-  uint8 pri;
-  char  *name;
-  char  *mod;
-  int   fakemode;
+  int    cnt;
+  int    tmo;
+  int    ask;
+  int    per;
+  int    pri;
+  int    fakemode;
+  int    reset; 
+  char   *name;
+  char   *mod;
   void (*launch)(void);
 } procinfo_t;
 
@@ -800,11 +801,7 @@ typedef volatile struct {
   double lyt_gain_alp_zern[LOWFS_N_ZERNIKE][LOWFS_N_PID];  //LYT ALP zernike PID gains
   double lyt_gain_alp_act[LOWFS_N_PID];                    //LYT ALP actuator PID gains
   
-  //Reset Commands
-  int shk_reset;
-  int acq_reset;
-  int sci_reset;
-  int lyt_reset;
+  //Camera Reset Commands
   int shk_reset_camera;
   int acq_reset_camera;
   int sci_reset_camera;

@@ -285,6 +285,7 @@ int main(int argc,char **argv){
     sm_p->w[i].pri  =  procpri[i];
     sm_p->w[i].name =  procnam[i];
     sm_p->w[i].mod  =  procmod[i];
+    sm_p->w[i].reset    = 0;
     sm_p->w[i].fakemode = FAKEMODE_NONE;
 
 

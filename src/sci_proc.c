@@ -308,9 +308,9 @@ void sci_process_image(sm_t *sm_p,uint16 *img_buffer,double ccdtemp){
   checkin(sm_p,SCIID);
 
   /* Check reset */
-  if(sm_p->sci_reset){
+  if(sm_p->w[SCIID].reset){
    init=0;
-   sm_p->sci_reset=0;
+   sm_p->w[SCIID].reset=0;
   }
 
   /* Initialize */

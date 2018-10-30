@@ -199,6 +199,14 @@ int handle_command(char *line, sm_t *sm_p){
 	sm_p->w[i].run    = 0;
 	return(CMD_NORMAL);
       }
+      //RESET command
+      sprintf(cmd,"%s reset",sm_p->w[i].name);
+      for(j=0;j<strlen(cmd);j++) cmd[j]=tolower(cmd[j]);
+      if(!strncasecmp(line,cmd,strlen(cmd))){
+	printf("CMD: Resetting %s\n",sm_p->w[i].name);
+	sm_p->w[i].reset    = 1;
+	return(CMD_NORMAL);
+      }
     }
   }
 
@@ -735,28 +743,6 @@ int handle_command(char *line, sm_t *sm_p){
       printf("CMD: Must be in STATE_LYT_ALP_CALIBRATE\n");
       return(CMD_NORMAL);
     }
-  }
-
-  //Reset Commands
-  if(!strncasecmp(line,"shk reset",9)){
-    sm_p->shk_reset=1;
-    printf("CMD: Resetting SHK\n");
-    return(CMD_NORMAL);
-  }
-  if(!strncasecmp(line,"lyt reset",9)){
-    sm_p->lyt_reset=1;
-    printf("CMD: Resetting LYT\n");
-    return(CMD_NORMAL);
-  }
-  if(!strncasecmp(line,"acq reset",9)){
-    sm_p->acq_reset=1;
-    printf("CMD: Resetting ACQ\n");
-    return(CMD_NORMAL);
-  }
-  if(!strncasecmp(line,"sci reset",9)){
-    sm_p->sci_reset=1;
-    printf("CMD: Resetting SCI\n");
-    return(CMD_NORMAL);
   }
 
   //Exposure Time Commands

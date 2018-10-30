@@ -781,9 +781,9 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   state = sm_p->state;
 
   //Check reset
-  if(sm_p->shk_reset){
+  if(sm_p->w[SHKID].reset){
     init=0;
-    sm_p->shk_reset=0;
+    sm_p->w[SHKID].reset=0;
   }
 
   //Initialize

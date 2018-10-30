@@ -76,9 +76,9 @@ void cb(uvc_frame_t *frame, void *ptr) {
   checkin(ptr,ACQID);
   
   /* Check reset */
-  if(sm_p->acq_reset){
+  if(sm_p->w[ACQID].reset){
     init=0;
-    sm_p->acq_reset=0;
+    sm_p->w[ACQID].reset=0;
   }
   
   /* Initialize */
