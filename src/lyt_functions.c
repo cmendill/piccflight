@@ -539,9 +539,9 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     //Reset PID controllers
     lyt_alp_zernpid(NULL,NULL,NULL,FUNCTION_RESET);
     //Reset zernike fitter
-    lyt_zernike_fit(NULL,NULL,FUNCTION_RESET,0);
+    lyt_zernike_fit(NULL,NULL,FUNCTION_RESET);
     //Reset actuator fitter
-    lyt_actuator_fit(NULL,NULL,FUNCTION_RESET,0);
+    lyt_actuator_fit(NULL,NULL,FUNCTION_RESET);
     //Reset reference image copying
     lyt_copy_lytpix2alpzer_refimg(NULL,FUNCTION_RESET);
     lyt_copy_lytpix2alpact_refimg(NULL,FUNCTION_RESET);

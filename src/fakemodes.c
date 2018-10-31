@@ -38,12 +38,12 @@ void init_fakemode(int fakemode, calmode_t *fake){
   //FAKEMODE_LYTPIX2ALPZER_REFIMG
   if(fakemode == FAKEMODE_LYTPIX2ALPZER_REFIMG){
     sprintf(fake->name,"FAKEMODE_LYTPIX2ALPZER_REFIMG");
-    sprintf(fake->cmd,"lyt zern refimg");
+    sprintf(fake->cmd,"lzref");
   }
   //FAKEMODE_LYTPIX2ALPACT_REFIMG
   if(fakemode == FAKEMODE_LYTPIX2ALPACT_REFIMG){
     sprintf(fake->name,"FAKEMODE_LYTPIX2ALPACT_REFIMG");
-    sprintf(fake->cmd,"lyt act refimg");
+    sprintf(fake->cmd,"laref");
   }
   //FAKEMODE_TM_TEST_PATTERN
   if(fakemode == FAKEMODE_TM_TEST_PATTERN){
