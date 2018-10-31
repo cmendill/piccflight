@@ -548,7 +548,7 @@ void shk_zernike_matrix(shkcell_t *cells, double *matrix_inv){
 /* SHK_ZERNIKE_FIT                                            */
 /*  - Fit Zernikes to SHK centroids                           */
 /**************************************************************/
-void shk_zernike_fit(shkcell_t *cells, double *zernikes){
+void shk_zernike_fit(shkcell_t *cells, double *zernikes, int reset){
   static double shk2zern[2*SHK_NCELLS*LOWFS_N_ZERNIKE]={0};
   double shk_xydev[2*SHK_NCELLS];
   static int beam_cell_index[SHK_NCELLS] = {0};
@@ -557,7 +557,7 @@ void shk_zernike_fit(shkcell_t *cells, double *zernikes){
   int i;
 
   /* Initialize Fitting Matrix */
-  if(!init){
+  if(!init || reset){
     /* Get number of cells in the beam */
     beam_ncells=0;
     for(i=0;i<SHK_NCELLS;i++)
@@ -567,6 +567,8 @@ void shk_zernike_fit(shkcell_t *cells, double *zernikes){
     shk_zernike_matrix(cells, shk2zern);
     //Set init flag
     init = 1;
+    //Return if reset
+    if(reset) return;
   }
 
   //Format displacement array
@@ -772,8 +774,8 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   alp_t alp,alp_try,alp_delta;
   int zernike_control=0;
   uint32_t n_dither=1;
-  static int use_save_origin = 1;
-
+  int reset_zernike=0;
+  
   //Get time immidiately
   clock_gettime(CLOCK_REALTIME,&start);
 
@@ -795,6 +797,8 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     shk_init_cells(&shkevent);
     //Load cell origins
     shk_loadorigin(&shkevent);
+    //Reset zernike fitting
+    shk_zernike_fit(shkevent.cells,NULL,FUNCTION_RESET);
     //Reset cells2alp mapping
     shk_cells2alp(shkevent.cells,NULL,FUNCTION_RESET);
     //Reset zern2alp mapping
@@ -873,19 +877,24 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
 
   //Calculate centroids
   shk_centroid(buffer->pvAddress,&shkevent);
-
+  
   //Command: Set centroid box origins
   if(sm_p->shk_setcenboxorigin)
     sm_p->shk_setcenboxorigin = shk_setcenboxorigin(&shkevent);
 
   //Command: Set cell origins
-  if(sm_p->shk_setorigin)
+  if(sm_p->shk_setorigin){
     sm_p->shk_setorigin = shk_setorigin(&shkevent);
-
+    //Trigger zernike reset
+    if(!sm_p->shk_setorigin) reset_zernike=1;
+  }
+  
   //Command: Revert cell origins
   if(sm_p->shk_revertorigin){
     shk_revertorigin(&shkevent);
     sm_p->shk_revertorigin = 0;
+    //Trigger zernike reset
+    reset_zernike=1;
   }
 
   //Command: Save cell origins
@@ -898,7 +907,10 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   if(sm_p->shk_loadorigin){
     shk_loadorigin(&shkevent);
     sm_p->shk_loadorigin = 0;
+    //Trigger zernike reset
+    reset_zernike=1;
   }
+  
   //Command: Shift cell x origins
   if(sm_p->shk_xshiftorigin){
     for(i=0;i<SHK_NCELLS;i++){
@@ -907,7 +919,10 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     }
     printf("SHK: Shifted origin %d pixels in X\n",sm_p->shk_xshiftorigin);
     sm_p->shk_xshiftorigin = 0;
+    //Trigger zernike reset
+    reset_zernike=1;
   }
+  
   //Command: Shift cell y origins
   if(sm_p->shk_yshiftorigin){
     for(i=0;i<SHK_NCELLS;i++){
@@ -916,11 +931,16 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     }
     printf("SHK: Shifted origin %d pixels in Y\n",sm_p->shk_yshiftorigin);
     sm_p->shk_yshiftorigin = 0;
+    //Trigger zernike reset
+    reset_zernike=1;
   }
+
+  //Reset zernike fitting
+  if(reset_zernike) shk_zernike_fit(shkevent.cells,NULL,FUNCTION_RESET);
   
   //Fit Zernikes
   if(sm_p->state_array[state].shk.fit_zernikes)
-    shk_zernike_fit(shkevent.cells,shkevent.zernike_measured);
+    shk_zernike_fit(shkevent.cells,shkevent.zernike_measured,FUNCTION_NO_RESET);
 
   /************************************************************/
   /*******************  Hexapod Control Code  *****************/
