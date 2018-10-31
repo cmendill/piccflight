@@ -83,7 +83,6 @@ int shk_proc(void){
   ui64 dwParamValue;
   etParamValue roiWidth, roiHeight, bufferWidth, bufferHeight;
   int camera_running = 0;
-
   
   /* Open Shared Memory */
   sm_t *sm_p;
@@ -151,46 +150,71 @@ int shk_proc(void){
     printf("SHK: Camera current size        : [%d x %d]\n", (bParamValue&0x0000FFFF), (bParamValue&0xFFFF0000)>>16 );
   }
     
-  /* STOP Capture to put camera in known state */
-  eStat = PHX_StreamRead( shkCamera, PHX_STOP, (void*)shk_callback );
-  if ( PHX_OK != eStat ){
-    printf("SHK: PHX_StreamRead --> PHX_STOP\n");
-    shkctrlC(0);
-  }
-  camera_running = 0;
 
   /* ----------------------- Enter Main Loop ----------------------- */
   while(1){
-    /* Check if camera should start/stop */
-    if(!camera_running && sm_p->state_array[sm_p->state].shk.run_camera){
-      eStat = PHX_StreamRead( shkCamera, PHX_START, (void*)shk_callback );
-      if ( PHX_OK != eStat ){
-	printf("SHK: PHX_StreamRead --> PHX_START\n");
-	shkctrlC(0);
-      }
-      camera_running = 1;
-      printf("SHK: Camera started\n");
-    }
-    if(camera_running && !sm_p->state_array[sm_p->state].shk.run_camera){
-      eStat = PHX_StreamRead( shkCamera, PHX_STOP, (void*)shk_callback );
-      if ( PHX_OK != eStat ){
-	printf("SHK: PHX_StreamRead --> PHX_STOP\n");
-	shkctrlC(0);
-      }
-      camera_running = 0;
-      printf("SHK: Camera stopped\n");
-    }
     
-    /* Check if we've been asked to exit */
-    if(sm_p->w[SHKID].die)
+    /* STOP Capture to put camera in known state */
+    eStat = PHX_StreamRead( shkCamera, PHX_STOP, (void*)shk_callback );
+    if ( PHX_OK != eStat ){
+      printf("SHK: PHX_StreamRead --> PHX_STOP\n");
       shkctrlC(0);
+    }
+    camera_running = 0;
 
-    /* Check in with the watchdog */
-    if(!camera_running)
-      checkin(sm_p,SHKID);
+    /* Setup exposure */
+    bParamValue = lround(sm_p->shk_exptime*1000000);
+    eStat = BOBCAT_ParameterSet( shkCamera, BOBCAT_FRM_TIME, &bParamValue );
+    if ( PHX_OK != eStat ){
+      printf("SHK: BOBCAT_ParameterSet --> BOBCAT_FRM_TIME %d\n",bParamValue);
+      shkctrlC(0);
+    }
+    bParamValue = lround(sm_p->shk_exptime*1000000)-1;
+    eStat = BOBCAT_ParameterSet( shkCamera, BOBCAT_EXP_TIME, &bParamValue );
+    if ( PHX_OK != eStat ){
+      printf("SHK: BOBCAT_ParameterSet --> BOBCAT_EXP_TIME %d\n",bParamValue);
+      shkctrlC(0);
+    }
 
-    /* Sleep */
-    sleep(sm_p->w[SHKID].per);
+    /* ----------------------- Enter Exposure Loop ----------------------- */
+    while(1){
+      /* Check if we've been asked to exit */
+      if(sm_p->w[SHKID].die)
+	shkctrlC(0);
+
+      /* Check if we've been asked to reset the exposure */
+      if(sm_p->shk_reset_camera){
+	sm_p->shk_reset_camera = 0;
+	break;
+      }
+      
+      /* Check if camera should start/stop */
+      if(!camera_running && sm_p->state_array[sm_p->state].shk.run_camera){
+	eStat = PHX_StreamRead( shkCamera, PHX_START, (void*)shk_callback );
+	if ( PHX_OK != eStat ){
+	  printf("SHK: PHX_StreamRead --> PHX_START\n");
+	  shkctrlC(0);
+	}
+	camera_running = 1;
+	printf("SHK: Camera started\n");
+      }
+      if(camera_running && !sm_p->state_array[sm_p->state].shk.run_camera){
+	eStat = PHX_StreamRead( shkCamera, PHX_STOP, (void*)shk_callback );
+	if ( PHX_OK != eStat ){
+	  printf("SHK: PHX_StreamRead --> PHX_STOP\n");
+	  shkctrlC(0);
+	}
+	camera_running = 0;
+	printf("SHK: Camera stopped\n");
+      }
+    
+      /* Check in with the watchdog */
+      if(!camera_running)
+	checkin(sm_p,SHKID);
+
+      /* Sleep */
+      sleep(sm_p->w[SHKID].per);
+    }
   }
 
   shkctrlC(0);

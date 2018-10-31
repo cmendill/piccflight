@@ -157,46 +157,70 @@ int lyt_proc(void){
     printf("LYT: Camera current size        : [%d x %d]\n", (bParamValue&0x0000FFFF), (bParamValue&0xFFFF0000)>>16 );
   }
     
-  /* STOP Capture to put camera in known state */
-  eStat = PHX_StreamRead( lytCamera, PHX_STOP, (void*)lyt_callback );
-  if ( PHX_OK != eStat ){
-    printf("LYT: PHX_StreamRead --> PHX_STOP\n");
-    lytctrlC(0);
-  }
-  camera_running = 0;
-
   /* ----------------------- Enter Main Loop ----------------------- */
   while(1){
-    /* Check if camera should start/stop */
-    if(!camera_running && sm_p->state_array[sm_p->state].lyt.run_camera){
-      eStat = PHX_StreamRead( lytCamera, PHX_START, (void*)lyt_callback );
-      if ( PHX_OK != eStat ){
-	printf("LYT: PHX_StreamRead --> PHX_START\n");
-	lytctrlC(0);
-      }
-      camera_running = 1;
-      printf("LYT: Camera started\n");
-    }
-    if(camera_running && !sm_p->state_array[sm_p->state].lyt.run_camera){
-      eStat = PHX_StreamRead( lytCamera, PHX_STOP, (void*)lyt_callback );
-      if ( PHX_OK != eStat ){
-	printf("LYT: PHX_StreamRead --> PHX_STOP\n");
-	lytctrlC(0);
-      }
-      camera_running = 0;
-      printf("LYT: Camera stopped\n");
-    }
     
-    /* Check if we've been asked to exit */
-    if(sm_p->w[LYTID].die)
+    /* STOP Capture to put camera in known state */
+    eStat = PHX_StreamRead( lytCamera, PHX_STOP, (void*)lyt_callback );
+    if ( PHX_OK != eStat ){
+      printf("LYT: PHX_StreamRead --> PHX_STOP\n");
       lytctrlC(0);
+    }
+    camera_running = 0;
 
-    /* Check in with the watchdog */
-    if(!camera_running)
-      checkin(sm_p,LYTID);
+    /* Setup exposure */
+    bParamValue = lround(sm_p->lyt_exptime*1000000);
+    eStat = BOBCAT_ParameterSet( lytCamera, BOBCAT_FRM_TIME, &bParamValue );
+    if ( PHX_OK != eStat ){
+      printf("LYT: BOBCAT_ParameterSet --> BOBCAT_FRM_TIME %d\n",bParamValue);
+      lytctrlC(0);
+    }
+    bParamValue = lround(sm_p->lyt_exptime*1000000)-1;
+    eStat = BOBCAT_ParameterSet( lytCamera, BOBCAT_EXP_TIME, &bParamValue );
+    if ( PHX_OK != eStat ){
+      printf("LYT: BOBCAT_ParameterSet --> BOBCAT_EXP_TIME %d\n",bParamValue);
+      lytctrlC(0);
+    }
 
-    /* Sleep */
-    sleep(sm_p->w[LYTID].per);
+    /* ----------------------- Enter Exposure Loop ----------------------- */
+    while(1){
+      /* Check if we've been asked to exit */
+      if(sm_p->w[LYTID].die)
+	lytctrlC(0);
+
+      /* Check if we've been asked to reset the exposure */
+      if(sm_p->lyt_reset_camera){
+	sm_p->lyt_reset_camera = 0;
+	break;
+      }
+      
+      /* Check if camera should start/stop */
+      if(!camera_running && sm_p->state_array[sm_p->state].lyt.run_camera){
+	eStat = PHX_StreamRead( lytCamera, PHX_START, (void*)lyt_callback );
+	if ( PHX_OK != eStat ){
+	  printf("LYT: PHX_StreamRead --> PHX_START\n");
+	  lytctrlC(0);
+	}
+	camera_running = 1;
+	printf("LYT: Camera started\n");
+      }
+      if(camera_running && !sm_p->state_array[sm_p->state].lyt.run_camera){
+	eStat = PHX_StreamRead( lytCamera, PHX_STOP, (void*)lyt_callback );
+	if ( PHX_OK != eStat ){
+	  printf("LYT: PHX_StreamRead --> PHX_STOP\n");
+	  lytctrlC(0);
+	}
+	camera_running = 0;
+	printf("LYT: Camera stopped\n");
+      }
+    
+      /* Check in with the watchdog */
+      if(!camera_running)
+	checkin(sm_p,LYTID);
+
+      /* Sleep */
+      sleep(sm_p->w[LYTID].per);
+    }
   }
 
   lytctrlC(0);
