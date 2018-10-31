@@ -317,7 +317,7 @@ enum bufids {SCIEVENT, SCIFULL,
 #define ALP_DMAX              0x3FFF
 #define ALP_DMIN              0x0000
 #define ALP_DMID              0x2000
-#define ALP_MAX_POWER         2.54841998
+#define ALP_MAX_POWER         40
 #define ALP_N_CHANNEL         128 // data size for the ALPAO DM controller
 #define ALP_HEADER_LENGTH     2   // leading uint16_ts for the header
 #define ALP_CHECKSUM_LENGTH   1   // trailing uint16_t for the checksum
