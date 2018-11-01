@@ -591,6 +591,9 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   //Save gains
   memcpy(&lytevent.gain_alp_zern[0][0],(double *)&sm_p->lyt_gain_alp_zern[0][0],sizeof(lytevent.gain_alp_zern));
   memcpy(lytevent.gain_alp_act,(double *)sm_p->lyt_gain_alp_act,sizeof(lytevent.gain_alp_act));
+  
+  //Save zernike targets
+  memcpy(lytevent.zernike_target,(double *)sm_p->lyt_zernike_target,sizeof(lytevent.zernike_target));
 
   //Fake data
   if(sm_p->w[LYTID].fakemode != FAKEMODE_NONE){

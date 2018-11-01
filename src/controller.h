@@ -338,6 +338,10 @@ enum bufids {SCIEVENT, SCIFULL,
 #define ALP_LYT_POKE          0.01 //lyt alp actuator calibration poke
 #define ALP_LYT_ZPOKE         0.01 //lyt zernike microns RMS
 #define ALP_LYT_NCALIM        110  //lyt number of calibration images to take per step
+#define ALP_ZERNIKE_MIN      -5.0  //ALP min zernike command
+#define ALP_ZERNIKE_MAX       5.0  //ALP max zernike command
+#define ALP_DZERNIKE_MIN     -1.0  //ALP min delta zernike command
+#define ALP_DZERNIKE_MAX      1.0  //ALP max delta zernike command
 
 /*************************************************
  * HEXAPOD Parameters
@@ -566,9 +570,10 @@ typedef struct {
   double intensity;
   double background;
   double origin[2];
-  double cenbox_origin[2];
+  double target[2];
   double centroid[2];
-  double deviation[2];
+  double target_deviation[2];
+  double origin_deviation[2];
   double command[2];
 } shkcell_t;
 
@@ -809,7 +814,7 @@ typedef volatile struct {
 
   //Other Commands
   int hex_getpos;
-  int shk_setcenboxorigin;
+  int shk_settarget;
   int shk_setorigin;
   int shk_revertorigin;
   int shk_saveorigin;
@@ -823,7 +828,8 @@ typedef volatile struct {
   int sci_loadorigin;
   
   //Zernike Targets
-  double zernike_target[LOWFS_N_ZERNIKE];
+  double shk_zernike_target[LOWFS_N_ZERNIKE];
+  double lyt_zernike_target[LOWFS_N_ZERNIKE];
 
   //Zernike control switches
   int zernike_control[LOWFS_N_ZERNIKE];

@@ -466,6 +466,18 @@ int handle_command(char *line, sm_t *sm_p){
   }
 
   //User ALP control
+  if(!strncasecmp(line,"alp zero flat",13)){
+    if(sm_p->state_array[sm_p->state].alp_commander == WATID){
+      printf("CMD: Setting ALP to all zeros\n");
+      if(sm_p->alp_ready)
+	if(alp_zero_flat(sm_p,WATID)==0)
+	  printf("CMD: ERROR: alp_revert_flat failed!\n");
+    }
+    else
+      printf("CMD: Manual ALPAO DM control disabled in this state.\n");
+    return(CMD_NORMAL);
+  }
+  
   if(!strncasecmp(line,"alp revert flat",15)){
     if(sm_p->state_array[sm_p->state].alp_commander == WATID){
       printf("CMD: Reverting ALP flat to default\n");
@@ -526,6 +538,13 @@ int handle_command(char *line, sm_t *sm_p){
     return(CMD_NORMAL);
   }
 
+  //Reset user ALP zernike matrix
+  sprintf(cmd,"alp reset");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    alp_zern2alp(NULL,NULL,FUNCTION_RESET);
+    return(CMD_NORMAL);
+  }
+
   sprintf(cmd,"alp zernike");
   if(!strncasecmp(line,cmd,strlen(cmd))){
     if(sm_p->state_array[sm_p->state].alp_commander == WATID){
@@ -542,7 +561,7 @@ int handle_command(char *line, sm_t *sm_p){
       }
       ftemp  = atof(pch);
       printf("CMD: Trying to change Z[%d] by %f microns\n",itemp,ftemp);
-      if(itemp >= 0 && itemp < LOWFS_N_ZERNIKE && ftemp >= -1 && ftemp <= 1){
+      if(itemp >= 0 && itemp < LOWFS_N_ZERNIKE && ftemp >= ALP_DZERNIKE_MIN && ftemp <= ALP_DZERNIKE_MAX){
 	//Get current command
 	alp_get_command(sm_p,&alp);
 
@@ -799,9 +818,9 @@ int handle_command(char *line, sm_t *sm_p){
   }
 
   //SHK Commands
-  if(!strncasecmp(line,"shk set cenbox origin",21)){
-    printf("CMD: Setting SHK centroid box origin\n");
-    sm_p->shk_setcenboxorigin=1;
+  if(!strncasecmp(line,"shk set target",14)){
+    printf("CMD: Setting SHK target\n");
+    sm_p->shk_settarget=1;
     return(CMD_NORMAL);
   }
 
@@ -940,6 +959,58 @@ int handle_command(char *line, sm_t *sm_p){
     sm_p->zernike_control[itemp]=1;
     printf("CMD: Enabling control of Zernike %d\n\n",itemp);
     print_zernikes(sm_p);
+    return CMD_NORMAL;
+  }
+
+  //SHK Zernike Targets
+  sprintf(cmd,"shk zernike");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    pch = strtok(line+strlen(cmd)," ");
+    if(pch == NULL){
+      printf("CMD: Bad command format.\n");
+      return CMD_NORMAL;
+    }
+    itemp  = atoi(pch);
+    pch = strtok(NULL," ");
+    if(pch == NULL){
+      printf("CMD: Bad command format.\n");
+      return CMD_NORMAL;
+    }
+    ftemp  = atof(pch);
+    if(itemp >= 0 && itemp < LOWFS_N_ZERNIKE && ftemp >= ALP_ZERNIKE_MIN && ftemp <= ALP_ZERNIKE_MAX){
+      sm_p->shk_zernike_target[itemp] = ftemp;
+      printf("CMD: Setting SHK target Z[%d] = %f microns\n",itemp,ftemp);
+    }
+    else{
+      printf("CMD: Zernike cmd out of bounds\n");
+      return CMD_NORMAL;
+    }
+    return CMD_NORMAL;
+  }
+  
+  //LYT Zernike Targets
+  sprintf(cmd,"lyt zernike");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    pch = strtok(line+strlen(cmd)," ");
+    if(pch == NULL){
+      printf("CMD: Bad command format.\n");
+      return CMD_NORMAL;
+    }
+    itemp  = atoi(pch);
+    pch = strtok(NULL," ");
+    if(pch == NULL){
+      printf("CMD: Bad command format.\n");
+      return CMD_NORMAL;
+    }
+    ftemp  = atof(pch);
+    if(itemp >= 0 && itemp < LOWFS_N_ZERNIKE && ftemp >= ALP_ZERNIKE_MIN && ftemp <= ALP_ZERNIKE_MAX){
+      sm_p->lyt_zernike_target[itemp] = ftemp;
+      printf("CMD: Setting LYT target Z[%d] = %f microns\n",itemp,ftemp);
+    }
+    else{
+      printf("CMD: Zernike cmd out of bounds\n");
+      return CMD_NORMAL;
+    }
     return CMD_NORMAL;
   }
 

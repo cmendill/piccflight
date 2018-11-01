@@ -139,6 +139,20 @@ cmd: lyt calibrate alp [arg]
         record lyt data through one complete cycle of an alp calmode
 	arg = string command for the alp calmode
 
+------------- CAMERA CONTROL -------------
+
+cmd: sci exptime [arg]
+        set the sci camera exposure time
+	arg = exposure time in seconds
+
+cmd: shk exptime [arg]
+        set the shk camera exposure time
+	arg = exposure time in seconds
+
+cmd: lyt exptime [arg]
+        set the lyt camera exposure time
+	arg = exposure time in seconds
+
 
 ------------- CAMERA RESET -------------
 
@@ -181,6 +195,17 @@ cmd: shk load origin
 cmd: shk shift origin [arg]
         shift the cell and centroid box origins 1 pixel in the given direction
 	arg = +x, -x, +y, -y
+
+cmd: shk zernike [arg1] [arg2]
+	change the shk zernike target	
+	arg1 = zernike index [0,1,2,3,...,22]
+	arg2 = zernike wavefront amplitude [microns RMS]
+
+------------- LYT LOWFS CONTROL -------------
+cmd: lyt zernike [arg1] [arg2]
+	change the lyt zernike target	
+	arg1 = zernike index [0,1,2,3,...,22]
+	arg2 = zernike wavefront amplitude [microns RMS]
 
 
 ------------- CONTROL SYSTEM GAIN -------------

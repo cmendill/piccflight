@@ -249,6 +249,16 @@ int alp_set_zrandom(sm_t *sm_p, int proc_id){
 }
 
 /**************************************************************/
+/* ALP_ZERO_FLAT                                              */
+/* - Set ALP to all zeros                                     */
+/**************************************************************/
+int alp_zero_flat(sm_t *sm_p, int proc_id){
+  alp_t alp;
+  memset(&alp,0,sizeof(alp_t));
+  return(alp_send_command(sm_p,&alp,proc_id,1));
+}
+
+/**************************************************************/
 /* ALP_REVERT_FLAT                                            */
 /* - Set ALP to #defined flat map                             */
 /**************************************************************/
