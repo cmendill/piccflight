@@ -325,6 +325,22 @@ void init_state(int state_number, state_t *state){
     return;
   }
 
+  //STATE_SCI_BMC_CALIBRATE
+  if(state_number == STATE_SCI_BMC_CALIBRATE){
+    //Set name
+    sprintf(state->name,"STATE_SCI_BMC_CALIBRATE");
+    //Set cmd
+    sprintf(state->cmd,"sbc");
+    //Config Cameras
+    state->shk.run_camera = 1;
+    state->sci.run_camera = 1;
+    state->sci.run_camera = 1;
+    state->acq.run_camera = 1;
+    //Set SCIID as bmc commander
+    state->bmc_commander = SCIID;
+    return;
+  }
+
   //STATE_SCI_DARK_HOLE
   if(state_number == STATE_SCI_DARK_HOLE){
     //Set name

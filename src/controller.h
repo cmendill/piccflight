@@ -88,6 +88,7 @@ enum states { STATE_STANDBY,
 	      STATE_LYT_ALP_CALIBRATE,
 	      STATE_LYT_ZERN_LOWFC,
 	      STATE_LYT_FULL_LOWFC,
+	      STATE_SCI_BMC_CALIBRATE,
 	      STATE_SCI_DARK_HOLE,
 	      NSTATES};
 
@@ -155,7 +156,9 @@ enum states { STATE_STANDBY,
 #define DATANAME               "output/flight_data/folder_%5.5d/picture.%s.%8.8d.dat"
 #define SHK_HEX_CALFILE        "output/calibration/shk_hex_%s_caldata.dat"
 #define SHK_ALP_CALFILE        "output/calibration/shk_alp_%s_caldata.dat"
+#define SHK_TGT_CALFILE        "output/calibration/shk_tgt_%s_caldata.dat"
 #define LYT_ALP_CALFILE        "output/calibration/lyt_alp_%s_caldata.dat"
+#define SCI_BMC_CALFILE        "output/calibration/sci_bmc_%s_caldata.dat"
 #define SHKCEL2SHKZER_OUTFILE  "output/calibration/shkcel2shkzer_flight_output.dat"
 #define SHKZER2SHKCEL_OUTFILE  "output/calibration/shkzer2shkcel_flight_output.dat"
 #define SHK_OUTFILE            "output/calibration/shk_output.dat"
@@ -342,6 +345,15 @@ enum bufids {SCIEVENT, SCIFULL,
 #define ALP_ZERNIKE_MAX       5.0  //ALP max zernike command
 #define ALP_DZERNIKE_MIN     -1.0  //ALP min delta zernike command
 #define ALP_DZERNIKE_MAX      1.0  //ALP max delta zernike command
+
+
+/*************************************************
+ * TARGET Parameters
+ *************************************************/
+#define TGT_SHK_NCALIM        110  //shk number of calibration images to take per step
+#define TGT_LYT_NCALIM        110  //lyt number of calibration images to take per step
+#define TGT_LYT_ZPOKE         0.01 //lyt zernike microns RMS
+#define TGT_SHK_ZPOKE         0.10 //shk zernike microns RMS
 
 /*************************************************
  * HEXAPOD Parameters
@@ -616,6 +628,10 @@ typedef struct pktheader_struct{
   uint32  alp_calmode;  //alp calmode
   uint32  bmc_calmode;  //bmc calmode
   uint32  tgt_calmode;  //tgt calmode
+  uint32  hex_calstep;  //hex calstep
+  uint32  alp_calstep;  //alp calstep
+  uint32  bmc_calstep;  //bmc calstep
+  uint32  tgt_calstep;  //tgt calstep
   char    state_name[MAX_COMMAND]; //string name of state
   char    hex_calmode_name[MAX_COMMAND]; //string name of hex_calmode
   char    alp_calmode_name[MAX_COMMAND]; //string name of alp_calmode
@@ -641,8 +657,6 @@ typedef struct shkevent_struct{
   pkthed_t  hed;
   uint32    beam_ncells;
   uint32    boxsize;
-  uint32    hex_calstep;
-  uint32    alp_calstep;
   double    xtilt;
   double    ytilt;
   double    kP_alp_cell;
@@ -664,8 +678,6 @@ typedef struct shkevent_struct{
 
 typedef struct lytevent_struct{
   pkthed_t  hed;
-  uint32    alp_calstep;
-  uint32    bmc_calstep;
   double    xtilt;
   double    ytilt;
   double    gain_alp_act[LOWFS_N_PID];

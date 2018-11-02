@@ -14,12 +14,15 @@
 #include "controller.h"
 #include "hex_functions.h"
 #include "alp_functions.h"
+#include "bmc_functions.h"
+#include "tgt_functions.h"
 #include "common_functions.h"
 #include "fakemodes.h"
 
 /* Prototypes */
 void getshk_proc(void); //get shkevents
 void getlyt_proc(void); //get lytevents
+void getsci_proc(void); //get scievents
 void init_fakemode(int fakemode, calmode_t *fake);
 
 /**************************************************************/
@@ -77,6 +80,19 @@ void print_hex_calmodes(calmode_t *hex){
   printf("#    Command    Name\n");
   for(i=0;i<HEX_NCALMODES;i++)
     printf("%02d   %-6s     %s\n",i,hex[i].cmd,hex[i].name);
+  printf("*************************************************\n");
+}
+
+/**************************************************************/
+/* PRINT_BMC_CALMODES                                         */
+/*  - Print available BMC calmodes                            */
+/**************************************************************/
+void print_bmc_calmodes(calmode_t *bmc){
+  int i;
+  printf("************ Available BMC Calmodes  ************\n");
+  printf("#    Command    Name\n");
+  for(i=0;i<BMC_NCALMODES;i++)
+    printf("%02d   %-6s     %s\n",i,bmc[i].cmd,bmc[i].name);
   printf("*************************************************\n");
 }
 
@@ -139,6 +155,7 @@ int handle_command(char *line, sm_t *sm_p){
   static double rot_poke = HEX_ROT_POKE;///0.01;
   static calmode_t alpcalmodes[ALP_NCALMODES];
   static calmode_t hexcalmodes[HEX_NCALMODES];
+  static calmode_t bmccalmodes[BMC_NCALMODES];
   static calmode_t tgtcalmodes[TGT_NCALMODES];
   static calmode_t fakemodes[NFAKEMODES];
   static int init=0;
@@ -286,6 +303,22 @@ int handle_command(char *line, sm_t *sm_p){
     }
     if(!cmdfound)
       print_hex_calmodes(hexcalmodes);
+
+    return(CMD_NORMAL);
+  }
+
+  //BMC Calmodes
+  if(!strncasecmp(line,"bmc calmode",11)){
+    cmdfound = 0;
+    for(i=0;i<BMC_NCALMODES;i++){
+      if(!strncasecmp(line+12,bmccalmodes[i].cmd,strlen(bmccalmodes[i].cmd))){
+	sm_p->bmc_calmode=i;
+	printf("CMD: Changed BMC calibration mode to %s\n",bmccalmodes[i].name);
+	cmdfound = 1;
+      }
+    }
+    if(!cmdfound)
+      print_bmc_calmodes(bmccalmodes);
 
     return(CMD_NORMAL);
   }
@@ -676,7 +709,7 @@ int handle_command(char *line, sm_t *sm_p){
   
   //SHK HEX Calibration
   if(!strncasecmp(line,"shk calibrate hex",17)){
-    if(sm_p->state == STATE_SHK_HEX_CALIBRATE){
+    if(sm_p->state_array[sm_p->state].hex_commander == SHKID){
       //Get calmode
       cmdfound = 0;
       for(i=0;i<HEX_NCALMODES;i++){
@@ -710,14 +743,14 @@ int handle_command(char *line, sm_t *sm_p){
       return(CMD_NORMAL);
     }
     else{
-      printf("CMD: Must be in STATE_SHK_HEX_CALIBRATE\n");
+      printf("CMD: Failed: SHK not HEX commander\n");
       return(CMD_NORMAL);
     }
   }
 
   //SHK ALP Calibration
   if(!strncasecmp(line,"shk calibrate alp",17)){
-    if(sm_p->state == STATE_SHK_ALP_CALIBRATE){
+    if(sm_p->state_array[sm_p->state].alp_commander == SHKID){
       //Get calmode
       cmdfound = 0;
       for(i=0;i<ALP_NCALMODES;i++){
@@ -751,14 +784,55 @@ int handle_command(char *line, sm_t *sm_p){
       return(CMD_NORMAL);
     }
     else{
-      printf("CMD: Must be in STATE_SHK_ALP_CALIBRATE\n");
+      printf("CMD: Failed: SHK not ALP commander\n");
+      return(CMD_NORMAL);
+    }
+  }
+
+  //SHK TGT Calibration
+  if(!strncasecmp(line,"shk calibrate tgt",17)){
+    if(sm_p->state_array[sm_p->state].alp_commander == SHKID){
+      //Get calmode
+      cmdfound = 0;
+      for(i=0;i<TGT_NCALMODES;i++){
+	if(!strncasecmp(line+18,tgtcalmodes[i].cmd,strlen(tgtcalmodes[i].cmd))){
+	  calmode  = i;
+	  cmdfound = 1;
+	}
+      }
+      if(!cmdfound){
+	printf("CMD: Could not find tgt calmode\n");
+	print_tgt_calmodes(tgtcalmodes);
+	return(CMD_NORMAL);
+      }
+      printf("CMD: Running SHK TGT calibration\n");
+      //Change calibration output filename
+      sprintf((char *)sm_p->calfile,SHK_TGT_CALFILE,(char *)tgtcalmodes[calmode].cmd);
+      //Start data recording
+      printf("  -- Starting data recording to file: %s\n",sm_p->calfile);
+      sm_p->w[DIAID].launch = getshk_proc;
+      sm_p->w[DIAID].run    = 1;
+      sleep(3);
+      //Start probe pattern
+      sm_p->tgt_calmode = calmode;
+      printf("  -- Changing TGT calibration mode to %s\n",tgtcalmodes[sm_p->tgt_calmode].name);
+      while(sm_p->tgt_calmode == calmode)
+	sleep(1);
+      printf("  -- Stopping data recording\n");
+      //Stop data recording
+      sm_p->w[DIAID].run    = 0;
+      printf("  -- Done\n");
+      return(CMD_NORMAL);
+    }
+    else{
+      printf("CMD: Failed: SHK not ALP commander\n");
       return(CMD_NORMAL);
     }
   }
 
   //LYT ALP Calibration
   if(!strncasecmp(line,"lyt calibrate alp",17)){
-    if(sm_p->state == STATE_LYT_ALP_CALIBRATE){
+    if(sm_p->state_array[sm_p->state].alp_commander == LYTID){
       //Get calmode
       cmdfound = 0;
       for(i=0;i<ALP_NCALMODES;i++){
@@ -792,7 +866,48 @@ int handle_command(char *line, sm_t *sm_p){
       return(CMD_NORMAL);
     }
     else{
-      printf("CMD: Must be in STATE_LYT_ALP_CALIBRATE\n");
+      printf("CMD: Failed: LYT not ALP commander\n");
+      return(CMD_NORMAL);
+    }
+  }
+
+  //SCI BMC Calibration
+  if(!strncasecmp(line,"sci calibrate bmc",17)){
+    if(sm_p->state_array[sm_p->state].bmc_commander == SCIID){
+      //Get calmode
+      cmdfound = 0;
+      for(i=0;i<BMC_NCALMODES;i++){
+	if(!strncasecmp(line+18,bmccalmodes[i].cmd,strlen(bmccalmodes[i].cmd))){
+	  calmode  = i;
+	  cmdfound = 1;
+	}
+      }
+      if(!cmdfound){
+	printf("CMD: Could not find bmc calmode\n");
+	print_bmc_calmodes(bmccalmodes);
+	return(CMD_NORMAL);
+      }
+      printf("CMD: Running SCI BMC calibration\n");
+      //Change calibration output filename
+      sprintf((char *)sm_p->calfile,SCI_BMC_CALFILE,(char *)bmccalmodes[calmode].cmd);
+      //Start data recording
+      printf("  -- Starting data recording to file: %s\n",sm_p->calfile);
+      sm_p->w[DIAID].launch = getsci_proc;
+      sm_p->w[DIAID].run    = 1;
+      sleep(3);
+      //Start probe pattern
+      sm_p->bmc_calmode = calmode;
+      printf("  -- Changing BMC calibration mode to %s\n",bmccalmodes[sm_p->bmc_calmode].name);
+      while(sm_p->bmc_calmode == calmode)
+	sleep(1);
+      printf("  -- Stopping data recording\n");
+      //Stop data recording
+      sm_p->w[DIAID].run    = 0;
+      printf("  -- Done\n");
+      return(CMD_NORMAL);
+    }
+    else{
+      printf("CMD: Failed: SCI not BMC commander\n");
       return(CMD_NORMAL);
     }
   }

@@ -358,7 +358,6 @@ void sci_process_image(sm_t *sm_p,uint16 *img_buffer,double ccdtemp){
   scievent.hed.temp         = ccdtemp;
   scievent.hed.imxsize      = SCIXS;
   scievent.hed.imysize      = SCIYS;
-  scievent.hed.mode         = 0;
   scievent.hed.start_sec    = start.tv_sec;
   scievent.hed.start_nsec   = start.tv_nsec;
 

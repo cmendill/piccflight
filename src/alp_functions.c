@@ -364,7 +364,7 @@ int alp_load_flat(sm_t *sm_p,int proc_id){
 int alp_calibrate(int calmode, alp_t *alp, uint32_t *step, int procid, int reset){
   int i,j,index;
   static struct timespec start,this,last,delta;
-    static double zernike_errors[LOWFS_N_ZERNIKE][ZERNIKE_ERRORS_NUMBER]={{0}};
+  static double zernike_errors[LOWFS_N_ZERNIKE][ZERNIKE_ERRORS_NUMBER]={{0}};
   const double zernike_timestep = ZERNIKE_ERRORS_PERIOD;
   static int init=0;
   time_t t;

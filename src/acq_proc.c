@@ -104,7 +104,6 @@ void cb(uvc_frame_t *frame, void *ptr) {
   acqevent.hed.temp         = 0;
   acqevent.hed.imxsize      = ACQXS;
   acqevent.hed.imysize      = ACQYS;
-  acqevent.hed.mode         = 0;
   acqevent.hed.start_sec    = start.tv_sec;
   acqevent.hed.start_nsec   = start.tv_nsec;
 

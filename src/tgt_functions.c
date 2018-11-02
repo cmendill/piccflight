@@ -13,6 +13,7 @@
 /* piccflight headers */
 #include "controller.h"
 #include "common_functions.h"
+#include "tgt_functions.h"
 
 /**************************************************************/
 /* TGT_INIT_CALMODE                                           */
@@ -40,7 +41,7 @@ void tgt_init_calmode(int calmode, calmode_t *tgt){
 /* TGT_CALIBRATE                                              */
 /* - Run calibration routines for TGT                         */
 /**************************************************************/
-int tgt_calibrate(int calmode, double *zernikes, int procid, int reset){
+int tgt_calibrate(int calmode, double *zernikes, uint32_t *step, int procid, int reset){
   int i,j;
   time_t t;
   static int init=0;
@@ -51,7 +52,7 @@ int tgt_calibrate(int calmode, double *zernikes, int procid, int reset){
   /* Initialize */
   if(!init || reset){
     countA = 0;
-    countB = 0
+    countB = 0;
     init=1;
     //Return if reset
     if(reset) return calmode;
@@ -59,12 +60,12 @@ int tgt_calibrate(int calmode, double *zernikes, int procid, int reset){
 
   /* Set calibration parameters */
   if(procid == SHKID){
-    zpoke  = ALP_SHK_ZPOKE;
-    ncalim = ALP_SHK_NCALIM;
+    zpoke  = TGT_SHK_ZPOKE;
+    ncalim = TGT_SHK_NCALIM;
   }
   if(procid == LYTID){
-    zpoke  = ALP_LYT_ZPOKE;
-    ncalim = ALP_LYT_NCALIM;
+    zpoke  = TGT_LYT_ZPOKE;
+    ncalim = TGT_LYT_NCALIM;
   }
 
   
@@ -96,18 +97,21 @@ int tgt_calibrate(int calmode, double *zernikes, int procid, int reset){
 
     //Check counters
     if(countA >= 0 && countA < (2*LOWFS_N_ZERNIKE*ncalim)){
+      //Set step counter
+      *step = (countA/ncalim);
       //Poke one zernike by adding it on top of the flat
-      if((countA[calmode]/ncalim) % 2 == 1){
-	zernikes[(countB[calmode]/ncalim) % LOWFS_N_ZERNIKE] = zpoke;
+      if((countA/ncalim) % 2 == 1){
+	zernikes[(countB/ncalim) % LOWFS_N_ZERNIKE] = zpoke;
 	countB++;
       }
       countA++;
     }
     else{
       //Calibration done
-      countA = 0;
-      countB = 0;
-      return TGT_CALMODE_NONE;
+      //Turn off calibration
+      printf("TGT: Stopping calmode TGT_CALMODE_ZPOKE\n");
+      init = 0;
+      calmode = TGT_CALMODE_NONE;
     }
     
     return calmode;
