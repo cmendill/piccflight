@@ -17,6 +17,7 @@
 #include "hex_functions.h"
 #include "alp_functions.h"
 #include "bmc_functions.h"
+#include "tgt_functions.h"
 #include "phx_config.h"
 #include "rtd_functions.h"
 #include "fakemodes.h"
@@ -868,6 +869,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     //Reset calibration routines
     alp_calibrate(0,NULL,NULL,SHKID,FUNCTION_RESET);
     hex_calibrate(0,NULL,NULL,FUNCTION_RESET);
+    tgt_calibrate(0,NULL,SHKID,FUNCTION_RESET);
     //Reset PID controllers
     shk_alp_cellpid(NULL,FUNCTION_RESET);
     shk_alp_zernpid(NULL,NULL,FUNCTION_RESET);
@@ -940,6 +942,10 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   //Set centroid boxsize to max in STATE_STANDBY
   if(state == STATE_STANDBY) shkevent.boxsize = SHK_MAX_BOXSIZE;
 
+  //Run target calibration
+  if(sm_p->tgt_calmode != TGT_CALMODE_NONE)
+    sm_p->tgt_calmode = tgt_calibrate(sm_p->tgt_calmode,shkevent.zernike_target,SHKID,FUNCTION_NO_RESET);
+  
   //Set centroid targets based on zernike targets
   shk_zernike_ops(&shkevent,0,1,FUNCTION_NO_RESET);
   

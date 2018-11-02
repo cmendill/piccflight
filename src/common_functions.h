@@ -24,6 +24,7 @@ int  read_from_socket(int s,void *buf,int num);
 void *get_in_addr(struct sockaddr *sa);
 int  eth_send(char *addr,char *port,void *data,int nbytes);
 void recursive_mkdir(const char *dir, mode_t mode);
+void random_array(double *array, long num, double amplitude);
 
 #endif
 

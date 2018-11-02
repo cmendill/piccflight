@@ -611,15 +611,16 @@ typedef struct pktheader_struct{
   float   temp;         //sensor temperature, if available
   uint32  imxsize;      //image x size [px]
   uint32  imysize;      //image y size [px]
-  uint32  mode;         //camera mode
   uint32  state;        //system state
   uint32  hex_calmode;  //hex calmode
   uint32  alp_calmode;  //alp calmode
   uint32  bmc_calmode;  //bmc calmode
+  uint32  tgt_calmode;  //tgt calmode
   char    state_name[MAX_COMMAND]; //string name of state
   char    hex_calmode_name[MAX_COMMAND]; //string name of hex_calmode
   char    alp_calmode_name[MAX_COMMAND]; //string name of alp_calmode
   char    bmc_calmode_name[MAX_COMMAND]; //string name of bmc_calmode
+  char    tgt_calmode_name[MAX_COMMAND]; //string name of tgt_calmode
   int64   start_sec;    //event start time
   int64   start_nsec;   //event start time
   int64   end_sec;      //event end time
@@ -749,12 +750,6 @@ typedef volatile struct {
   int state;                    //Current operational state
   state_t state_array[NSTATES]; //Array of states
 
-  //Camera modes
-  int sci_mode;        //Science camera mode
-  int lyt_mode;        //Lyot LOWFS camera mode
-  int shk_mode;        //Shack-Hartmann camera mode
-  int acq_mode;        //Acquisition camera mode
-
   //Camera exposure times
   double sci_exptime;
   double shk_exptime;
@@ -775,14 +770,11 @@ typedef volatile struct {
   int   hex_command_lock;
   hex_t hex_command;
 
-  //ALP Calibration Mode
+  //Calibration Modes
   int alp_calmode;
-
-  //HEX Calibration Mode
   int hex_calmode;
-
-  //BMC Calibration Mode
   int bmc_calmode;
+  int tgt_calmode;
 
   //Calibration file name
   char calfile[MAX_FILENAME];

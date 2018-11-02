@@ -434,3 +434,19 @@ void recursive_mkdir(const char *dir, mode_t mode) {
     }
   mkdir(tmp, mode);
 }
+
+/**************************************************************/
+/* RANDOM_ARRAY                                               */
+/* - Create an array of random numbers                        */
+/**************************************************************/
+void zernike_random(double *array, long num, double amplitude){
+  time_t t;
+  long i;
+  
+  //Init random numbers
+  srand((unsigned) time(&t));
+  
+  //Calculate zernike perturbation 
+  for(i=0;i<num;i++)
+    array[i] = (2*(rand() / (double) RAND_MAX) - 1) * amplitude;
+}

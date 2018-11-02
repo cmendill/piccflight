@@ -309,10 +309,6 @@ int main(int argc,char **argv){
   sm_p->memlock            = 0;
   sm_p->die                = 0;
   sm_p->state              = STATE_STANDBY;
-  sm_p->sci_mode           = SCI_MODE_DEFAULT;
-  sm_p->shk_mode           = SHK_MODE_DEFAULT;
-  sm_p->lyt_mode           = LYT_MODE_DEFAULT;
-  sm_p->acq_mode           = ACQ_MODE_DEFAULT;
   sm_p->sci_exptime        = SCI_EXPTIME_DEFAULT;
   sm_p->shk_exptime        = SHK_EXPTIME_DEFAULT;
   sm_p->lyt_exptime        = LYT_EXPTIME_DEFAULT;

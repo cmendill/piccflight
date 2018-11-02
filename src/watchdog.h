@@ -19,11 +19,6 @@
 /*************************************************
  * Shared Memory DEFAULTS
  *************************************************/
-//Camera modes
-#define SCI_MODE_DEFAULT 0
-#define SHK_MODE_DEFAULT 0
-#define LYT_MODE_DEFAULT 0
-#define ACQ_MODE_DEFAULT 0
 
 //Exposure times
 #define SCI_EXPTIME_DEFAULT 0.010
