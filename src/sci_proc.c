@@ -109,10 +109,9 @@ void sci_loadorigin(scievent_t *sci){
   FILE *fd=NULL;
   char filename[MAX_FILENAME];
   uint64 fsize,rsize;
-  const uint32 xorigin[SCI_NBANDS] = SCI_XORIGIN;
-  const uint32 yorigin[SCI_NBANDS] = SCI_YORIGIN;
-  scievent_t rdevent;
-
+  uint32 xorigin[SCI_NBANDS] = SCI_XORIGIN;
+  uint32 yorigin[SCI_NBANDS] = SCI_YORIGIN;
+  
   /* Initialize with default origins */
   memcpy(sci->xorigin,xorigin,sizeof(xorigin));
   memcpy(sci->yorigin,yorigin,sizeof(yorigin));
@@ -129,7 +128,7 @@ void sci_loadorigin(scievent_t *sci){
   fseek(fd, 0L, SEEK_END);
   fsize = ftell(fd);
   rewind(fd);
-  rsize = sizeof(scievent_t);
+  rsize = sizeof(xorigin) + sizeof(yorigin);
   if(fsize != rsize){
     printf("SCI: incorrect SCI_ORIGIN_FILE size %lu != %lu\n",fsize,rsize);
     fclose(fd);
@@ -137,7 +136,12 @@ void sci_loadorigin(scievent_t *sci){
   }
   
   //Read file
-  if(fread(&rdevent,rsize,1,fd) != 1){
+  if(fread(xorigin,sizeof(xorigin),1,fd) != 1){
+    perror("SCI: loadorigin fread");
+    fclose(fd);
+    return;
+  }
+  if(fread(yorigin,sizeof(yorigin),1,fd) != 1){
     perror("SCI: loadorigin fread");
     fclose(fd);
     return;
@@ -148,10 +152,8 @@ void sci_loadorigin(scievent_t *sci){
   printf("SCI: Read: %s\n",filename);
 
   //Copy origins
-  memcpy(sci->xorigin,rdevent.xorigin,sizeof(rdevent.xorigin));
-  memcpy(sci->yorigin,rdevent.yorigin,sizeof(rdevent.yorigin));
-  
-  
+  memcpy(sci->xorigin,xorigin,sizeof(xorigin));
+  memcpy(sci->yorigin,yorigin,sizeof(yorigin));
 }
 
 /***************************************************************/
@@ -182,8 +184,13 @@ void sci_saveorigin(scievent_t *sci){
     return;
   }
   
-  //Save scievent
-  if(fwrite(sci,sizeof(scievent_t),1,fd) != 1){
+  //Save origins
+  if(fwrite(sci->xorigin,sizeof(sci->xorigin),1,fd) != 1){
+    printf("SCI: saveorigin fwrite error!\n");
+    fclose(fd);
+    return;
+  }
+  if(fwrite(sci->yorigin,sizeof(sci->yorigin),1,fd) != 1){
     printf("SCI: saveorigin fwrite error!\n");
     fclose(fd);
     return;

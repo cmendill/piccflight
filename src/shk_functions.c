@@ -149,7 +149,7 @@ void shk_saveorigin(shkevent_t *shkevent){
   char temp[MAX_FILENAME];
   char path[MAX_FILENAME];
   int i;
-
+  
   /* Open output file */
   //--setup filename
   sprintf(outfile,"%s",SHK_ORIGIN_FILE);
@@ -166,11 +166,13 @@ void shk_saveorigin(shkevent_t *shkevent){
     return;
   }
   
-  //Save shkevent
-  if(fwrite(shkevent,sizeof(shkevent_t),1,fd) != 1){
-    printf("SHK: saveorigin fwrite error!\n");
-    fclose(fd);
-    return;
+  //Save origin
+  for(i=0;i<SHK_NCELLS;i++){
+    if(fwrite(shkevent->cells[i].origin,2*sizeof(double),1,fd) != 1){
+      printf("SHK: saveorigin fwrite error!\n");
+      fclose(fd);
+      return;
+    }
   }
   printf("SHK: Wrote: %s\n",outfile);
 
@@ -187,8 +189,8 @@ void shk_loadorigin(shkevent_t*shkevent){
   FILE *fd=NULL;
   char filename[MAX_FILENAME];
   uint64 fsize,rsize;
-  shkevent_t rdevent;
   int i;
+  shkcell_t cells[SHK_NCELLS];
   
   /* Open origin file */
   //--setup filename
@@ -202,7 +204,7 @@ void shk_loadorigin(shkevent_t*shkevent){
   fseek(fd, 0L, SEEK_END);
   fsize = ftell(fd);
   rewind(fd);
-  rsize = sizeof(shkevent_t);
+  rsize = 2*SHK_NCELLS*sizeof(double);
   if(fsize != rsize){
     printf("SHK: incorrect SHK_ORIGIN_FILE size %lu != %lu\n",fsize,rsize);
     fclose(fd);
@@ -210,10 +212,12 @@ void shk_loadorigin(shkevent_t*shkevent){
   }
   
   //Read file
-  if(fread(&rdevent,rsize,1,fd) != 1){
-    perror("SHK: loadorigin fread");
-    fclose(fd);
-    return;
+  for(i=0;i<SHK_NCELLS;i++){
+    if(fread(cells[i].origin,2*sizeof(double),1,fd) != 1){
+      perror("SHK: loadorigin fread");
+      fclose(fd);
+      return;
+    }
   }
   //Close file
   fclose(fd);
@@ -221,9 +225,9 @@ void shk_loadorigin(shkevent_t*shkevent){
 
   //Copy origins
   for(i=0;i<SHK_NCELLS;i++){
-    shkevent->cells[i].origin[0] = rdevent.cells[i].origin[0];
-    shkevent->cells[i].origin[1] = rdevent.cells[i].origin[1];
-  }
+    shkevent->cells[i].origin[0] = cells[i].origin[0];
+    shkevent->cells[i].origin[1] = cells[i].origin[1];
+ }
   return;
 }
 
