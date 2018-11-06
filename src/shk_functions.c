@@ -297,6 +297,14 @@ void shk_centroid_cell(uint16 *image, shkcell_t *cell, int shk_boxsize){
   if(cell->index == 0)
     background = total/npix;
   
+  //Set max pixel
+  cell->maxpix = maxpix;
+  cell->maxval = maxval;
+
+  //Save total intensity and background
+  cell->intensity  = total;
+  cell->background = background;
+
   //Calculate target deviation
   cell->target_deviation[0] = cell->centroid[0] - cell->target[0];
   cell->target_deviation[1] = cell->centroid[1] - cell->target[1];
@@ -650,6 +658,56 @@ void shk_zernike_ops(shkevent_t *shkevent, int fit_zernikes, int set_targets, in
 }
 
 /**************************************************************/
+/* SHK_ALP_GAINS                                              */
+/*  - Apply gains to certain ALP actuators                    */
+/**************************************************************/
+void shk_alp_gains(double *actuators){
+  
+  actuators[0]  *= 0.5;
+  actuators[1]  *= 0.5;
+  actuators[2]  *= 0.5;
+  actuators[3]  *= 0.5;
+  actuators[4]  *= 0.5;
+  actuators[92] *= 0.5;
+  actuators[93] *= 0.5;
+  actuators[94] *= 0.5;
+  actuators[95] *= 0.5;
+  actuators[96] *= 0.5;
+  actuators[21] *= 0.5;
+  actuators[32] *= 0.5;
+  actuators[43] *= 0.5;
+  actuators[54] *= 0.5;
+  actuators[65] *= 0.5;
+  actuators[31] *= 0.5;
+  actuators[42] *= 0.5;
+  actuators[53] *= 0.5;
+  actuators[64] *= 0.5;
+  actuators[75] *= 0.5;
+  /*
+  actuators[0]  = actuators[6];
+  actuators[1]  = actuators[7];
+  actuators[2]  = actuators[8];
+  actuators[3]  = actuators[9];
+  actuators[4]  = actuators[10];
+  actuators[92] = actuators[86];
+  actuators[93] = actuators[87];
+  actuators[94] = actuators[88];
+  actuators[95] = actuators[89];
+  actuators[96] = actuators[90];
+  actuators[21] = actuators[22];
+  actuators[32] = actuators[33];
+  actuators[43] = actuators[44];
+  actuators[54] = actuators[55];
+  actuators[65] = actuators[66];
+  actuators[31] = actuators[30];
+  actuators[42] = actuators[41];
+  actuators[53] = actuators[52];
+  actuators[64] = actuators[63];
+  actuators[75] = actuators[74];
+  */
+}
+
+/**************************************************************/
 /* SHK_CELLS2ALP                                              */
 /*  - Convert SHK cell commands to ALPAO DM commands          */
 /**************************************************************/
@@ -717,7 +775,6 @@ void shk_cells2alp(shkcell_t *cells, double *actuators, int reset){
 
   //Do Matrix Multiply
   num_dgemv(cells2alp_matrix, shk_xydev, actuators, ALP_NACT, 2*beam_ncells);
-
 }
 
 /**************************************************************/
