@@ -321,6 +321,8 @@ enum bufids {SCIEVENT, SCIFULL,
 #define ALP_DMIN              0x0000
 #define ALP_DMID              0x2000
 #define ALP_MAX_POWER         40
+#define ALP_MAX_BIAS          0.642161299 //sqrt(max_power/97)
+#define ALP_MIN_BIAS         -0.642161299 //sqrt(max_power/97)
 #define ALP_N_CHANNEL         128 // data size for the ALPAO DM controller
 #define ALP_HEADER_LENGTH     2   // leading uint16_ts for the header
 #define ALP_CHECKSUM_LENGTH   1   // trailing uint16_t for the checksum
@@ -350,8 +352,8 @@ enum bufids {SCIEVENT, SCIFULL,
 /*************************************************
  * TARGET Parameters
  *************************************************/
-#define TGT_SHK_NCALIM        110  //shk number of calibration images to take per step
-#define TGT_LYT_NCALIM        110  //lyt number of calibration images to take per step
+#define TGT_SHK_NCALIM        100  //shk number of calibration images to take per step
+#define TGT_LYT_NCALIM        100  //lyt number of calibration images to take per step
 #define TGT_LYT_ZPOKE         0.01 //lyt zernike microns RMS
 #define TGT_SHK_ZPOKE         0.10 //shk zernike microns RMS
 
