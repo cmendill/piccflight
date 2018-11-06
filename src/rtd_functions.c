@@ -226,25 +226,53 @@ static uint16_t rtd_alp_dither_bit(int frame_index, double fraction) {
 /**************************************************************/
 static void rtd_alp_build_dither_block(double *cmd) {
   int      iframe, iact, imain, isub;
+  int      i;
+  int      dma_buffer_length    = rtd_alp_dma_buffer_size/2;
+  //regular command: 97 actuators
   double   fraction[ALP_NACT];
   uint16_t frame[ALP_NACT];
   double   multiplier[ALP_NACT] = ALP_MULTIPLIER;
   double   devcmd[ALP_NACT]     = {0};
   int      mapping[ALP_NACT]    = ALP_MAPPING;
-  int      i;
-  int      dma_buffer_length    = rtd_alp_dma_buffer_size/2;
+  //hidden command: 12 actuators
+  double   hidden_fraction[ALP_HIDDEN_NACT];
+  uint16_t hidden_frame[ALP_HIDDEN_NACT];
+  double   hidden_multiplier[ALP_HIDDEN_NACT] = ALP_HIDDEN_MULTIPLIER;
+  double   hidden_devcmd[ALP_HIDDEN_NACT]     = {0};
+  int      hidden_mapping[ALP_HIDDEN_NACT]    = ALP_HIDDEN_MAPPING;
+  double   hidden_cmd[ALP_HIDDEN_NACT]        = {0};
   
-  //Initialize the DMA buffer
+  //Slave hidden actuators to neighbors
+  hidden_cmd[0]  = 0.3*cmd[0]  + 0.3*cmd[5];
+  hidden_cmd[1]  = 0.3*cmd[5]  + 0.3*cmd[12];
+  hidden_cmd[2]  = 0.3*cmd[12] + 0.3*cmd[21];
+  hidden_cmd[3]  = 0.3*cmd[65] + 0.3*cmd[76];
+  hidden_cmd[4]  = 0.3*cmd[76] + 0.3*cmd[85];
+  hidden_cmd[5]  = 0.3*cmd[85] + 0.3*cmd[92];
+  hidden_cmd[6]  = 0.3*cmd[96] + 0.3*cmd[91];
+  hidden_cmd[7]  = 0.3*cmd[91] + 0.3*cmd[84];
+  hidden_cmd[8]  = 0.3*cmd[84] + 0.3*cmd[75];
+  hidden_cmd[9]  = 0.3*cmd[31] + 0.3*cmd[20];
+  hidden_cmd[10] = 0.3*cmd[20] + 0.3*cmd[11];
+  hidden_cmd[11] = 0.3*cmd[11] + 0.3*cmd[4];
+   
+  //Initialize the DMA buffer -- COMMANDS DO NOT WORK WITHOUT THIS (WHY?)
   for(i=0;i<dma_buffer_length;i++)
     rtd_alp_dma_buffer[i]=ALP_DMID;
-
+  
   //Do driver multiplictaion, initial A2D conversion and set dither fraction
   for(iact=0;iact<ALP_NACT;iact++){
     devcmd[iact]   = multiplier[iact]*cmd[iact];
     frame[iact]    = (uint16_t) ((devcmd[iact]+1.0) * ALP_DMID);
     fraction[iact] = fmod(devcmd[iact],ALP_MIN_ANALOG_STEP)/ALP_MIN_ANALOG_STEP + ((devcmd[iact]<=0.0)?1.0:0.0);
   }
-
+  for(iact=0;iact<ALP_HIDDEN_NACT;iact++){
+    hidden_devcmd[iact]   = hidden_multiplier[iact]*hidden_cmd[iact];
+    hidden_frame[iact]    = (uint16_t) ((hidden_devcmd[iact]+1.0) * ALP_DMID);
+    hidden_fraction[iact] = fmod(hidden_devcmd[iact],ALP_MIN_ANALOG_STEP)/ALP_MIN_ANALOG_STEP + ((hidden_devcmd[iact]<=0.0)?1.0:0.0);
+  }
+  
+  
   //Loop through dither frames -- add one by one to the output DMA buffer
   for(iframe = 0; iframe < rtd_alp_dithers_per_frame; iframe++) {
     //Set buffer index of the start of this frame
@@ -261,7 +289,13 @@ static void rtd_alp_build_dither_block(double *cmd) {
       if(rtd_alp_dma_buffer[isub] > ALP_DMAX) rtd_alp_dma_buffer[isub] = ALP_DMAX;
       if(rtd_alp_dma_buffer[isub] < ALP_DMIN) rtd_alp_dma_buffer[isub] = ALP_DMIN;
     }
-
+    for(iact=0;iact<ALP_HIDDEN_NACT;iact++){
+      isub = imain+hidden_mapping[iact]+ALP_HEADER_LENGTH;
+      rtd_alp_dma_buffer[isub] = hidden_frame[iact] + rtd_alp_dither_bit(iframe,hidden_fraction[iact]);
+      if(rtd_alp_dma_buffer[isub] > ALP_DMAX) rtd_alp_dma_buffer[isub] = ALP_DMAX;
+      if(rtd_alp_dma_buffer[isub] < ALP_DMIN) rtd_alp_dma_buffer[isub] = ALP_DMIN;
+    }
+    
     //Closeout frame
     isub = imain+ALP_N_CHANNEL+ALP_HEADER_LENGTH;
     rtd_alp_dma_buffer[isub]  = ALP_END_WORD;

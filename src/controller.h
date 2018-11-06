@@ -311,9 +311,10 @@ enum bufids {SCIEVENT, SCIFULL,
  *************************************************/
 #define ALP_NAME              "BAX197"
 #define ALP_NACT              97
+#define ALP_HIDDEN_NACT       12
 #define ALP_STROKE            2.0
-#define ALPXS                 10
-#define ALPYS                 10
+#define ALPXS                 11
+#define ALPYS                 11
 #define ALP_AMIN             -1.0
 #define ALP_AMAX              1.0
 #define ALP_AMID              0.0
@@ -355,7 +356,7 @@ enum bufids {SCIEVENT, SCIFULL,
 #define TGT_SHK_NCALIM        100  //shk number of calibration images to take per step
 #define TGT_LYT_NCALIM        100  //lyt number of calibration images to take per step
 #define TGT_LYT_ZPOKE         0.01 //lyt zernike microns RMS
-#define TGT_SHK_ZPOKE         0.10 //shk zernike microns RMS
+#define TGT_SHK_ZPOKE         0.05 //shk zernike microns RMS
 
 /*************************************************
  * HEXAPOD Parameters
