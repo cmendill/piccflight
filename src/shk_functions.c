@@ -53,45 +53,6 @@ void shk_init_cells(shkevent_t *shkevent){
 }
 
 /***************************************************************/
-/* SHK_SETTARGET                                               */
-/*  - Set cell targets to current centroids                    */
-/***************************************************************/
-int shk_settarget(shkevent_t *shkevent){
-  int i;
-  static double cx[SHK_NCELLS]={0}, cy[SHK_NCELLS]={0};
-  static int count=0;
-  const int navg = SHK_ORIGIN_NAVG;
-
-  //Average the centroids
-  if(count < navg){
-    for(i=0;i<SHK_NCELLS;i++){
-      if(shkevent->cells[i].beam_select){
-	cx[i] += shkevent->cells[i].centroid[0] / navg;
-	cy[i] += shkevent->cells[i].centroid[1] / navg;
-      }
-    }
-    count++;
-    return 1;
-  }
-  else{
-    //Set cell targets
-    for(i=0;i<SHK_NCELLS;i++){
-      if(shkevent->cells[i].beam_select){
-	shkevent->cells[i].target[0] = cx[i];
-	shkevent->cells[i].target[1] = cy[i];
-      }
-    }
-
-    //Reset
-    count = 0;
-    memset(cx,0,sizeof(cx));
-    memset(cy,0,sizeof(cy));
-    printf("SHK: New centroid box origin set\n");
-    return 0;
-  }
-}
-
-/***************************************************************/
 /* SHK_SETORIGIN                                               */
 /*  - Set cell origins to current centroid                     */
 /***************************************************************/
@@ -1019,10 +980,6 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   //Calculate centroids
   shk_centroid(buffer->pvAddress,&shkevent);
   
-  //Command: Set cell targets
-  if(sm_p->shk_settarget)
-    sm_p->shk_settarget = shk_settarget(&shkevent);
-
   //Command: Set cell origins
   if(sm_p->shk_setorigin){
     sm_p->shk_setorigin = shk_setorigin(&shkevent);

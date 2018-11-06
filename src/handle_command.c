@@ -983,12 +983,6 @@ int handle_command(char *line, sm_t *sm_p){
   }
 
   //SHK Commands
-  if(!strncasecmp(line,"shk set target",14)){
-    printf("CMD: Setting SHK target\n");
-    sm_p->shk_settarget=1;
-    return(CMD_NORMAL);
-  }
-
   if(!strncasecmp(line,"shk set origin",14)){
     printf("CMD: Setting SHK origin\n");
     sm_p->shk_setorigin=1;

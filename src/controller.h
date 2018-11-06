@@ -820,7 +820,6 @@ typedef volatile struct {
 
   //Other Commands
   int hex_getpos;
-  int shk_settarget;
   int shk_setorigin;
   int shk_revertorigin;
   int shk_saveorigin;
