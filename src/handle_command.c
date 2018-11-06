@@ -580,6 +580,23 @@ int handle_command(char *line, sm_t *sm_p){
     return(CMD_NORMAL);
   }
 
+  if(!strncasecmp(line,"alp bias",8)){
+    if(sm_p->state_array[sm_p->state].alp_commander == WATID){
+      ftemp = atof(line+8);
+      if((ftemp >= ALP_MIN_BIAS) && (ftemp <= ALP_MAX_BIAS)){
+	printf("CMD: Setting ALP bias = %f\n",ftemp);
+	if(sm_p->alp_ready)
+	  if(alp_set_bias(sm_p,ftemp,WATID)==0)
+	    printf("CMD: ERROR: alp_set_random failed!\n");
+      }
+      else
+	printf("CMD: ALP bias must be between %f and %f \n",ALP_MIN_BIAS,ALP_MAX_BIAS);
+    }
+    else
+      printf("CMD: Manual ALPAO DM control disabled in this state.\n");
+    return(CMD_NORMAL);
+  }
+
   if(!strncasecmp(line,"alp random",10)){
     if(sm_p->state_array[sm_p->state].alp_commander == WATID){
       printf("CMD: Sending random actuator pattern to ALP DM\n");
