@@ -192,6 +192,22 @@ int alp_send_command(sm_t *sm_p, alp_t *cmd, int proc_id, int n_dither){
 
 
 /**************************************************************/
+/* ALP_SET_BIAS                                               */
+/* - Set all actuators to the same value                      */
+/**************************************************************/
+int alp_set_bias(sm_t *sm_p, double bias, int proc_id){
+  alp_t alp;
+  int i;
+  
+  //Set bias
+  for(i=0;i<ALP_NACT;i++)
+    alp.act_cmd[i] = bias;
+  
+  //Send command
+  return(alp_send_command(sm_p,&alp,proc_id,1));
+}
+
+/**************************************************************/
 /* ALP_SET_RANDOM                                             */
 /* - Add a random perturbation to the ALP                     */
 /**************************************************************/
