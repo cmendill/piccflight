@@ -225,16 +225,14 @@ static uint16_t rtd_alp_dither_bit(int frame_index, double fraction) {
 /* - Build a block of dither command frames                   */
 /**************************************************************/
 static void rtd_alp_build_dither_block(double *cmd) {
-  int      iframe, iact, imain, isub;
-  int      i;
-  int      dma_buffer_length    = rtd_alp_dma_buffer_size/2;
-  //regular command: 97 actuators
+  long      iframe, iact, imain, isub;
+  //Regular commands: 97 actuators
   double   fraction[ALP_NACT];
   uint16_t frame[ALP_NACT];
   double   multiplier[ALP_NACT] = ALP_MULTIPLIER;
   double   devcmd[ALP_NACT]     = {0};
   int      mapping[ALP_NACT]    = ALP_MAPPING;
-  //hidden command: 12 actuators
+  //Hidden commands: 12 actuators
   double   hidden_fraction[ALP_HIDDEN_NACT];
   uint16_t hidden_frame[ALP_HIDDEN_NACT];
   double   hidden_multiplier[ALP_HIDDEN_NACT] = ALP_HIDDEN_MULTIPLIER;
@@ -255,10 +253,6 @@ static void rtd_alp_build_dither_block(double *cmd) {
   hidden_cmd[9]  = 0.3*cmd[31] + 0.3*cmd[20];
   hidden_cmd[10] = 0.3*cmd[20] + 0.3*cmd[11];
   hidden_cmd[11] = 0.3*cmd[11] + 0.3*cmd[4];
-   
-  //Initialize the DMA buffer -- COMMANDS DO NOT WORK WITHOUT THIS (WHY?)
-  for(i=0;i<dma_buffer_length;i++)
-    rtd_alp_dma_buffer[i]=ALP_DMID;
   
   //Do driver multiplictaion, initial A2D conversion and set dither fraction
   for(iact=0;iact<ALP_NACT;iact++){
@@ -271,7 +265,6 @@ static void rtd_alp_build_dither_block(double *cmd) {
     hidden_frame[iact]    = (uint16_t) ((hidden_devcmd[iact]+1.0) * ALP_DMID);
     hidden_fraction[iact] = fmod(hidden_devcmd[iact],ALP_MIN_ANALOG_STEP)/ALP_MIN_ANALOG_STEP + ((hidden_devcmd[iact]<=0.0)?1.0:0.0);
   }
-  
   
   //Loop through dither frames -- add one by one to the output DMA buffer
   for(iframe = 0; iframe < rtd_alp_dithers_per_frame; iframe++) {
@@ -581,6 +574,9 @@ DM7820_Error rtd_init_alp(DM7820_Board_Descriptor* p_rtd_board, int dithers_per_
   dm7820_status = DM7820_FIFO_DMA_Configure(p_rtd_board, DM7820_FIFO_QUEUE_0, DM7820_DMA_DEMAND_ON_PCI_TO_DM7820, rtd_alp_dma_buffer_size);
   DM7820_Return_Status(dm7820_status, "DM7820_FIFO_DMA_Configure()");
 
+  /* Initialize DMA buffer */
+  memset(rtd_alp_dma_buffer,0,rtd_alp_dma_buffer_size);
+
   /* ========================== Secondary FIFO 0 configuration ========================== */
 
   /* Enable FIFO 0 */
@@ -672,6 +668,9 @@ DM7820_Error rtd_init_tlm(DM7820_Board_Descriptor* p_rtd_board, uint32_t dma_siz
   /* Configuring DMA 1 */
   dm7820_status = DM7820_FIFO_DMA_Configure(p_rtd_board,DM7820_FIFO_QUEUE_1,DM7820_DMA_DEMAND_ON_PCI_TO_DM7820,rtd_tlm_dma_buffer_size);
   DM7820_Return_Status(dm7820_status, "DM7820_FIFO_DMA_Configure()");
+
+  /* Initialize DMA buffer */
+  memset(rtd_tlm_dma_buffer,0,rtd_tlm_dma_buffer_size);
 
   /*============================== Secondary FIFO 1 Setup  ================================*/
   
