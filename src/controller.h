@@ -346,25 +346,25 @@ enum bufids {SCIEVENT, SCIFULL,
 #define ALP_END_WORD          0xF100
 #define ALP_FRAME_END         0xFEED
 #define ALP_BIAS              0.0
-#define ALP_SHK_POKE          0.05 //shk alp actuator calibration poke
-#define ALP_SHK_ZPOKE         0.10 //shk zernike microns RMS
-#define ALP_SHK_NCALIM        35   //shk number of calibration images to take per step
-#define ALP_LYT_POKE          0.01 //lyt alp actuator calibration poke
-#define ALP_LYT_ZPOKE         0.01 //lyt zernike microns RMS
-#define ALP_LYT_NCALIM        110  //lyt number of calibration images to take per step
-#define ALP_ZERNIKE_MIN      -5.0  //ALP min zernike command
-#define ALP_ZERNIKE_MAX       5.0  //ALP max zernike command
-#define ALP_DZERNIKE_MIN     -1.0  //ALP min delta zernike command
-#define ALP_DZERNIKE_MAX      1.0  //ALP max delta zernike command
+#define ALP_SHK_POKE          0.05  //shk alp actuator calibration poke
+#define ALP_SHK_ZPOKE         0.02  //shk zernike microns RMS
+#define ALP_SHK_NCALIM        35    //shk number of calibration images to take per step
+#define ALP_LYT_POKE          0.01  //lyt alp actuator calibration poke
+#define ALP_LYT_ZPOKE         0.005 //lyt zernike microns RMS
+#define ALP_LYT_NCALIM        110   //lyt number of calibration images to take per step
+#define ALP_ZERNIKE_MIN      -5.0   //ALP min zernike command
+#define ALP_ZERNIKE_MAX       5.0   //ALP max zernike command
+#define ALP_DZERNIKE_MIN     -1.0   //ALP min delta zernike command
+#define ALP_DZERNIKE_MAX      1.0   //ALP max delta zernike command
 
 
 /*************************************************
  * TARGET Parameters
  *************************************************/
-#define TGT_SHK_NCALIM        100  //shk number of calibration images to take per step
-#define TGT_LYT_NCALIM        100  //lyt number of calibration images to take per step
-#define TGT_LYT_ZPOKE         0.01 //lyt zernike microns RMS
-#define TGT_SHK_ZPOKE         0.05 //shk zernike microns RMS
+#define TGT_SHK_NCALIM        100   //shk number of calibration images to take per step
+#define TGT_LYT_NCALIM        100   //lyt number of calibration images to take per step
+#define TGT_LYT_ZPOKE         0.005 //lyt tgt zpoke [microns rms]
+#define TGT_SHK_ZPOKE         0.02  //shk tgt zpoke [microns rms]
 
 /*************************************************
  * HEXAPOD Parameters

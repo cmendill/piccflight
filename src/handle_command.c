@@ -1122,6 +1122,13 @@ int handle_command(char *line, sm_t *sm_p){
   }
 
   //SHK Zernike Targets
+  sprintf(cmd,"shk zernike zero");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    printf("CMD: Setting SHK Zernike targets to zero\n");
+    for(i=0;i<LOWFS_N_ZERNIKE;i++) sm_p->shk_zernike_target[i]=0;
+    return CMD_NORMAL;
+  }
+
   sprintf(cmd,"shk zernike");
   if(!strncasecmp(line,cmd,strlen(cmd))){
     pch = strtok(line+strlen(cmd)," ");
@@ -1148,6 +1155,13 @@ int handle_command(char *line, sm_t *sm_p){
   }
   
   //LYT Zernike Targets
+  sprintf(cmd,"lyt zernike zero");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    printf("CMD: Setting LYT Zernike targets to zero\n");
+    for(i=0;i<LOWFS_N_ZERNIKE;i++) sm_p->lyt_zernike_target[i]=0;
+    return CMD_NORMAL;
+  }
+
   sprintf(cmd,"lyt zernike");
   if(!strncasecmp(line,cmd,strlen(cmd))){
     pch = strtok(line+strlen(cmd)," ");

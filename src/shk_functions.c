@@ -601,6 +601,7 @@ void shk_zernike_ops(shkevent_t *shkevent, int fit_zernikes, int set_targets, in
   static int beam_ncells=0;
   static int init=0;
   int i;
+  double surf2wave=1;
 
   /* Initialize Fitting Matrix */
   if(!init || reset){
@@ -630,12 +631,15 @@ void shk_zernike_ops(shkevent_t *shkevent, int fit_zernikes, int set_targets, in
   
   /* Set Targets */
   if(set_targets){
-    //Do Zernike target to cell target matrix multipy 
+    //Do Zernike target to cell target matrix multiply 
     num_dgemv(zern2shk, shkevent->zernike_target, shk_xydev, 2*beam_ncells, LOWFS_N_ZERNIKE);
+    //Convert xydev from pixels/surface back to pixels
+    if(INSTRUMENT_INPUT_TYPE == INPUT_TYPE_SINGLE_PASS) surf2wave = 2.0;
+    if(INSTRUMENT_INPUT_TYPE == INPUT_TYPE_DOUBLE_PASS) surf2wave = 4.0;
     //Set cell targets 
     for(i=0;i<beam_ncells;i++){
-      shkevent->cells[beam_cell_index[i]].target[0] = shkevent->cells[beam_cell_index[i]].origin[0] + shk_xydev[2*i + 0];
-      shkevent->cells[beam_cell_index[i]].target[1] = shkevent->cells[beam_cell_index[i]].origin[1] + shk_xydev[2*i + 1];
+      shkevent->cells[beam_cell_index[i]].target[0] = shkevent->cells[beam_cell_index[i]].origin[0] + shk_xydev[2*i + 0]*surf2wave;
+      shkevent->cells[beam_cell_index[i]].target[1] = shkevent->cells[beam_cell_index[i]].origin[1] + shk_xydev[2*i + 1]*surf2wave;
     }
   }
 }

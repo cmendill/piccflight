@@ -42,12 +42,13 @@ void tgt_init_calmode(int calmode, calmode_t *tgt){
 /* - Run calibration routines for TGT                         */
 /**************************************************************/
 int tgt_calibrate(int calmode, double *zernikes, uint32_t *step, int procid, int reset){
-  int i,j;
+  int i,j,z;
   time_t t;
   static int init=0;
   static long countA=0,countB=0,ncalim=0;
-  static double zpoke=0;
-  
+  const double shk_zpoke[LOWFS_N_ZERNIKE]={0.2,0.2,0.05,0.05,0.05,0.05,0.05,0.03,0.03,0.03,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02};
+  const double lyt_zpoke[LOWFS_N_ZERNIKE]={0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005};
+  double zpoke[LOWFS_N_ZERNIKE]={0};
   
   /* Initialize */
   if(!init || reset){
@@ -60,11 +61,11 @@ int tgt_calibrate(int calmode, double *zernikes, uint32_t *step, int procid, int
 
   /* Set calibration parameters */
   if(procid == SHKID){
-    zpoke  = TGT_SHK_ZPOKE;
+    memcpy(zpoke,shk_zpoke,sizeof(zpoke));
     ncalim = TGT_SHK_NCALIM;
   }
   if(procid == LYTID){
-    zpoke  = TGT_LYT_ZPOKE;
+    memcpy(zpoke,lyt_zpoke,sizeof(zpoke));
     ncalim = TGT_LYT_NCALIM;
   }
 
@@ -101,7 +102,8 @@ int tgt_calibrate(int calmode, double *zernikes, uint32_t *step, int procid, int
       *step = (countA/ncalim);
       //Poke one zernike by adding it on top of the flat
       if((countA/ncalim) % 2 == 1){
-	zernikes[(countB/ncalim) % LOWFS_N_ZERNIKE] = zpoke;
+	z = (countB/ncalim) % LOWFS_N_ZERNIKE;
+	zernikes[z] = zpoke[z];
 	countB++;
       }
       countA++;
