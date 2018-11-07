@@ -208,6 +208,7 @@ void shk_centroid_cell(uint16 *image, shkcell_t *cell, int shk_boxsize){
   double xhist[SHKXS]={0};
   double yhist[SHKYS]={0};
   double val;
+  double wave2surf = 1;
 
 
   //Initialize boxsize to maximum
@@ -283,100 +284,121 @@ void shk_centroid_cell(uint16 *image, shkcell_t *cell, int shk_boxsize){
     cell->target_deviation[1] = 0;
     cell->centroid[0] = cell->target[0];
     cell->centroid[1] = cell->target[1];
-    return;
   }
 
   /***********************************************************/
   /********************** Spot Found *************************/
   /***********************************************************/
-
-  //Check if the spot is captured
-  if(cell->spot_captured){
-    //If spot was captured, but is now outside the box, unset captured
-    if((abs(cell->target_deviation[0]) > shk_boxsize) || (abs(cell->target_deviation[1]) > shk_boxsize)){
-      cell->spot_captured=0;
-    }
-  }
-  else{
-    //If spot was not captured, check if it is within the capture region
-    if((abs(cell->target_deviation[0]) < (shk_boxsize-SHK_BOX_DEADBAND)) && (abs(cell->target_deviation[1]) < (shk_boxsize-SHK_BOX_DEADBAND))){
-      cell->spot_captured=1;
-    }
-  }
-
-  //Set boxsize to commanded value if spot is captured
-  if(cell->spot_captured)
-    boxsize = shk_boxsize;
-  
-  //Calculate corners of centroid box
-  blx = floor(cell->target[0] - boxsize);
-  bly = floor(cell->target[1] - boxsize);
-  trx = floor(cell->target[0] + boxsize);
-  try = floor(cell->target[1] + boxsize);
-
-  //Impose limits
-  blx = blx > SHK_XMAX ? SHK_XMAX : blx;
-  bly = bly > SHK_YMAX ? SHK_YMAX : bly;
-  blx = blx < SHK_XMIN ? SHK_XMIN : blx;
-  bly = bly < SHK_YMIN ? SHK_YMIN : bly;
-  trx = trx > SHK_XMAX ? SHK_XMAX : trx;
-  try = try > SHK_YMAX ? SHK_YMAX : try;
-  trx = trx < SHK_XMIN ? SHK_XMIN : trx;
-  try = try < SHK_YMIN ? SHK_YMIN : try;
-
-  //Save limits
-  cell->blx = blx;
-  cell->bly = bly;
-  cell->trx = trx;
-  cell->try = try;
-
-  //Build x,y histograms
-  npix   = 0;
-  maxval = 0;
-  maxpix = 0;
-  total  = 0;
-  for(x=blx;x<=trx;x++){
-    for(y=bly;y<=try;y++){
-      px = x + y*SHKYS;
-      val = (double)image[px] - background;
-      xhist[x] += val;
-      yhist[y] += val;
-      npix++;
-      if(image[px] > maxval){
-	maxval=image[px];
-	maxpix=px;
+  if(cell->spot_found){
+    //Check if the spot is captured
+    if(cell->spot_captured){
+      //If spot was captured, but is now outside the box, unset captured
+      if((abs(cell->target_deviation[0]) > shk_boxsize) || (abs(cell->target_deviation[1]) > shk_boxsize)){
+	cell->spot_captured=0;
       }
     }
-  }
+    else{
+      //If spot was not captured, check if it is within the capture region
+      if((abs(cell->target_deviation[0]) < (shk_boxsize-SHK_BOX_DEADBAND)) && (abs(cell->target_deviation[1]) < (shk_boxsize-SHK_BOX_DEADBAND))){
+	cell->spot_captured=1;
+      }
+    }
+
+    //Set boxsize to commanded value if spot is captured
+    if(cell->spot_captured)
+      boxsize = shk_boxsize;
   
-  //Weight histograms
-  for(x=blx;x<=trx;x++){
-    xnum  += ((double)x+0.5) * xhist[x];
+    //Calculate corners of centroid box
+    blx = floor(cell->target[0] - boxsize);
+    bly = floor(cell->target[1] - boxsize);
+    trx = floor(cell->target[0] + boxsize);
+    try = floor(cell->target[1] + boxsize);
+
+    //Impose limits
+    blx = blx > SHK_XMAX ? SHK_XMAX : blx;
+    bly = bly > SHK_YMAX ? SHK_YMAX : bly;
+    blx = blx < SHK_XMIN ? SHK_XMIN : blx;
+    bly = bly < SHK_YMIN ? SHK_YMIN : bly;
+    trx = trx > SHK_XMAX ? SHK_XMAX : trx;
+    try = try > SHK_YMAX ? SHK_YMAX : try;
+    trx = trx < SHK_XMIN ? SHK_XMIN : trx;
+    try = try < SHK_YMIN ? SHK_YMIN : try;
+
+    //Save limits
+    cell->blx = blx;
+    cell->bly = bly;
+    cell->trx = trx;
+    cell->try = try;
+
+    //Build x,y histograms
+    npix   = 0;
+    maxval = 0;
+    maxpix = 0;
+    total  = 0;
+    for(x=blx;x<=trx;x++){
+      for(y=bly;y<=try;y++){
+	px = x + y*SHKYS;
+	val = (double)image[px] - background;
+	xhist[x] += val;
+	yhist[y] += val;
+	npix++;
+	if(image[px] > maxval){
+	  maxval=image[px];
+	  maxpix=px;
+	}
+      }
+    }
+  
+    //Weight histograms
+    for(x=blx;x<=trx;x++){
+      xnum  += ((double)x+0.5) * xhist[x];
+    }
+    for(y=bly;y<=try;y++){
+      ynum  += ((double)y+0.5) * yhist[y];
+      total += yhist[y];
+    }
+
+    //Calculate centroid
+    cell->centroid[0] = xnum/total;
+    cell->centroid[1] = ynum/total;
+
+    //Calculate target deviation
+    cell->target_deviation[0] = cell->centroid[0] - cell->target[0];
+    cell->target_deviation[1] = cell->centroid[1] - cell->target[1];
+
+    //Calculate origin deviation
+    cell->origin_deviation[0] = cell->centroid[0] - cell->origin[0];
+    cell->origin_deviation[1] = cell->centroid[1] - cell->origin[1];
+
+    //Set max pixel
+    cell->maxpix = maxpix;
+    cell->maxval = maxval;
+
+    //Save total intensity and background
+    cell->intensity  = total;
+    cell->background = background;
   }
-  for(y=bly;y<=try;y++){
-    ynum  += ((double)y+0.5) * yhist[y];
-    total += yhist[y];
-  }
 
-  //Calculate centroid
-  cell->centroid[0] = xnum/total;
-  cell->centroid[1] = ynum/total;
-
-  //Calculate target deviation
-  cell->target_deviation[0] = cell->centroid[0] - cell->target[0];
-  cell->target_deviation[1] = cell->centroid[1] - cell->target[1];
-
-  //Calculate origin deviation
-  cell->origin_deviation[0] = cell->centroid[0] - cell->origin[0];
-  cell->origin_deviation[1] = cell->centroid[1] - cell->origin[1];
-
-  //Set max pixel
-  cell->maxpix = maxpix;
-  cell->maxval = maxval;
-
-  //Save total intensity and background
-  cell->intensity  = total;
-  cell->background = background;
+  /**********************************************************/
+  /* APPLY UNIT CONVERSION                                  */
+  /* -- This changes the units of deviation from [pixels]   */ 
+  /*    to [pixels/surface deviation].                      */
+  /* -- In single pass, a surface poke will create twice    */
+  /*    as much pixel deviation because of reflection.      */
+  /*    Therefore the multiplier is 0.5.                    */
+  /* -- In double pass, a surface poke will create twice    */
+  /*    as much pixel deviation as in single pass.          */
+  /*    Therefore the multiplier is 0.25.                   */
+  /* -- This will change Zernike fitting to surface units   */
+  /* -- NOTE: This only changes the deviation. Centroid,    */
+  /*    target and origin remain in pixel units.            */
+  /**********************************************************/
+  if(INSTRUMENT_INPUT_TYPE == INPUT_TYPE_SINGLE_PASS) wave2surf = 0.5;
+  if(INSTRUMENT_INPUT_TYPE == INPUT_TYPE_DOUBLE_PASS) wave2surf = 0.25;
+  cell->target_deviation[0] *= wave2surf;
+  cell->target_deviation[1] *= wave2surf;
+  cell->origin_deviation[0] *= wave2surf;
+  cell->origin_deviation[1] *= wave2surf;
 }
 
 /**************************************************************/
@@ -599,8 +621,8 @@ void shk_zernike_ops(shkevent_t *shkevent, int fit_zernikes, int set_targets, in
   if(fit_zernikes){
     //Format displacement array
     for(i=0;i<beam_ncells;i++){
-      shk_xydev[2*i + 0] = shkevent->cells[beam_cell_index[i]].origin_deviation[0]; //pixels
-      shk_xydev[2*i + 1] = shkevent->cells[beam_cell_index[i]].origin_deviation[1]; //pixels
+      shk_xydev[2*i + 0] = shkevent->cells[beam_cell_index[i]].origin_deviation[0]; //pixels/surface
+      shk_xydev[2*i + 1] = shkevent->cells[beam_cell_index[i]].origin_deviation[1]; //pixels/surface
     }
     //Do Zernike fit matrix multiply
     num_dgemv(shk2zern, shk_xydev, shkevent->zernike_measured, LOWFS_N_ZERNIKE, 2*beam_ncells);
@@ -619,56 +641,6 @@ void shk_zernike_ops(shkevent_t *shkevent, int fit_zernikes, int set_targets, in
 }
 
 /**************************************************************/
-/* SHK_ALP_GAINS                                              */
-/*  - Apply gains to certain ALP actuators                    */
-/**************************************************************/
-void shk_alp_gains(double *actuators){
-  
-  actuators[0]  *= 0.5;
-  actuators[1]  *= 0.5;
-  actuators[2]  *= 0.5;
-  actuators[3]  *= 0.5;
-  actuators[4]  *= 0.5;
-  actuators[92] *= 0.5;
-  actuators[93] *= 0.5;
-  actuators[94] *= 0.5;
-  actuators[95] *= 0.5;
-  actuators[96] *= 0.5;
-  actuators[21] *= 0.5;
-  actuators[32] *= 0.5;
-  actuators[43] *= 0.5;
-  actuators[54] *= 0.5;
-  actuators[65] *= 0.5;
-  actuators[31] *= 0.5;
-  actuators[42] *= 0.5;
-  actuators[53] *= 0.5;
-  actuators[64] *= 0.5;
-  actuators[75] *= 0.5;
-  /*
-  actuators[0]  = actuators[6];
-  actuators[1]  = actuators[7];
-  actuators[2]  = actuators[8];
-  actuators[3]  = actuators[9];
-  actuators[4]  = actuators[10];
-  actuators[92] = actuators[86];
-  actuators[93] = actuators[87];
-  actuators[94] = actuators[88];
-  actuators[95] = actuators[89];
-  actuators[96] = actuators[90];
-  actuators[21] = actuators[22];
-  actuators[32] = actuators[33];
-  actuators[43] = actuators[44];
-  actuators[54] = actuators[55];
-  actuators[65] = actuators[66];
-  actuators[31] = actuators[30];
-  actuators[42] = actuators[41];
-  actuators[53] = actuators[52];
-  actuators[64] = actuators[63];
-  actuators[75] = actuators[74];
-  */
-}
-
-/**************************************************************/
 /* SHK_CELLS2ALP                                              */
 /*  - Convert SHK cell commands to ALPAO DM commands          */
 /**************************************************************/
@@ -682,7 +654,7 @@ void shk_cells2alp(shkcell_t *cells, double *actuators, int reset){
   int i;
   static int beam_ncells = 0;
   static int beam_cell_index[SHK_NCELLS]={0};
-
+  
   /* Initialize */
   if(!init || reset){
     /* Get number of cells in the beam */

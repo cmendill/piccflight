@@ -64,6 +64,7 @@ typedef int8_t int8;
 #define PHASE_RAD2NM (LAMBDA*1000./TWOPI)
 #define MAX_FILENAME 128
 #define MAX_COMMAND  32
+
 /*************************************************
  * Process ID Numbers
  *************************************************/
@@ -96,6 +97,13 @@ enum states { STATE_STANDBY,
  * Commands
  *************************************************/
 #define CMD_SENDDATA  0x0ABACABB
+
+/*************************************************
+* Instrument Input Type
+*************************************************/
+#define INPUT_TYPE_SINGLE_PASS   0 //Normal operation
+#define INPUT_TYPE_DOUBLE_PASS   1 //Fed from PSI
+#define INSTRUMENT_INPUT_TYPE    INPUT_TYPE_DOUBLE_PASS
 
 /*************************************************
 * Enable Switches
