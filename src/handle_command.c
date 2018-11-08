@@ -1122,7 +1122,7 @@ int handle_command(char *line, sm_t *sm_p){
   }
 
   //SHK Zernike Targets
-  sprintf(cmd,"shk zernike zero");
+  sprintf(cmd,"shk zernike reset");
   if(!strncasecmp(line,cmd,strlen(cmd))){
     printf("CMD: Setting SHK Zernike targets to zero\n");
     for(i=0;i<LOWFS_N_ZERNIKE;i++) sm_p->shk_zernike_target[i]=0;
