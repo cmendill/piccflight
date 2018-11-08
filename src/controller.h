@@ -264,9 +264,9 @@ enum bufids {SCIEVENT, SCIFULL,
  * Camera Exposure Time Limits
  *************************************************/
 #define SHK_EXPTIME_MIN  0.010
-#define SHK_EXPTIME_MAX  0.100
+#define SHK_EXPTIME_MAX  0.500
 #define LYT_EXPTIME_MIN  0.001
-#define LYT_EXPTIME_MAX  0.100
+#define LYT_EXPTIME_MAX  0.500
 #define SCI_EXPTIME_MIN  0.001
 #define SCI_EXPTIME_MAX  600.0
 #define ACQ_EXPTIME_MIN  0.001
