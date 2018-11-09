@@ -175,7 +175,8 @@ int lyt_proc(void){
       printf("LYT: BOBCAT_ParameterSet --> BOBCAT_FRM_TIME %d\n",bParamValue);
       lytctrlC(0);
     }
-    bParamValue = lround(sm_p->lyt_exptime*1000000)-1;
+    eStat = BOBCAT_ParameterGet( lytCamera, BOBCAT_INFO_MAX_EXP_TIME, &bParamValue );
+    printf("LYT: Setting exp = %d | frm = %ld\n",bParamValue, lround(sm_p->lyt_exptime*1000000));
     eStat = BOBCAT_ParameterSet( lytCamera, BOBCAT_EXP_TIME, &bParamValue );
     if ( PHX_OK != eStat ){
       printf("LYT: BOBCAT_ParameterSet --> BOBCAT_EXP_TIME %d\n",bParamValue);
