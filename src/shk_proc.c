@@ -161,14 +161,16 @@ int shk_proc(void){
       shkctrlC(0);
     }
     camera_running = 0;
-
+    printf("SHK: Camera stopped\n");
     /* Setup exposure */
+    usleep(500000);
     bParamValue = lround(sm_p->shk_exptime*1000000);
     eStat = BOBCAT_ParameterSet( shkCamera, BOBCAT_FRM_TIME, &bParamValue );
     if ( PHX_OK != eStat ){
       printf("SHK: BOBCAT_ParameterSet --> BOBCAT_FRM_TIME %d\n",bParamValue);
       shkctrlC(0);
     }
+    usleep(500000);
     eStat = BOBCAT_ParameterGet( shkCamera, BOBCAT_INFO_MAX_EXP_TIME, &bParamValue );
     printf("SHK: Setting exp = %d | frm = %ld\n",bParamValue, lround(sm_p->shk_exptime*1000000));
     eStat = BOBCAT_ParameterSet( shkCamera, BOBCAT_EXP_TIME, &bParamValue );
