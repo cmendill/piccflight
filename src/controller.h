@@ -200,6 +200,9 @@ enum states { STATE_STANDBY,
 #define ADC_IOPORT_LENGTH        16
 #define ADC_PORTA_PAGE           0x01
 #define ADC_PORTA_CONFIG         0x80
+#define ADC1_NCHAN               16
+#define ADC2_NCHAN               32
+#define ADC3_NCHAN               32
 
 /*************************************************
  * Circular Buffer Info
@@ -208,12 +211,15 @@ enum bufids {SCIEVENT, SCIFULL,
 	     SHKEVENT, SHKFULL,
 	     LYTEVENT, LYTFULL,
 	     ACQEVENT, ACQFULL,
+	     THMEVENT, MTREVENT,
 	     NCIRCBUF};
 
 #define SCIEVENTSIZE     3
 #define SHKEVENTSIZE     3
 #define LYTEVENTSIZE     3
 #define ACQEVENTSIZE     3
+#define THMEVENTSIZE     3
+#define MTREVENTSIZE     3
 #define SCIFULLSIZE      3
 #define SHKFULLSIZE      3
 #define LYTFULLSIZE      3
@@ -705,6 +711,13 @@ typedef struct acqevent_struct{
   hex_t     hex;
   wsp_t     wsp;
 } acqevent_t;
+
+typedef struct thmevent_struct{
+  pkthed_t  hed;
+  uint16_t  adc1[ADC1_NCHAN];
+  uint16_t  adc2[ADC2_NCHAN];
+  uint16_t  adc3[ADC3_NCHAN];
+} thmevent_t;
 
 /*************************************************
  * Full Frame Structures
