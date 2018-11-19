@@ -29,8 +29,8 @@
 #define SCI_LR_X (SCI_UL_X+(SCI_ROI_XSIZE/SCI_HBIN))
 #define SCI_LR_Y (SCI_UL_Y+(SCI_ROI_YSIZE/SCI_VBIN))
 #define SCI_NFLUSHES 4
-#define SCI_XORIGIN {436,874,1316,1756,2202}; //band cutout x centers (relative to the ROI)
-#define SCI_YORIGIN {594,600,820,952,722};    //band cutout y centers (relative to the ROI)
+#define SCI_XORIGIN {332,852,1380,1892,2416}; //band cutout x centers (relative to the ROI)
+#define SCI_YORIGIN {580,584,816,960,720};    //band cutout y centers (relative to the ROI)
 
 /* Process File Descriptor */
 int sci_shmfd;
