@@ -8,10 +8,18 @@
 #include <string.h>
 #include <fcntl.h>
 #include <ctype.h>
+#include <math.h>
 
 /* piccflight headers */
 #include "controller.h"
 #include "common_functions.h"
+#include "dscud.h"
+
+/* settings */
+#define MAX_AD_OFFSET  2
+#define MAX_AD_GAIN    2
+#define AD_CONFIG_MODE 3
+#define AD_RANGE_CODE  3
 
 /* Process File Descriptor */
 int thm_shmfd;
@@ -28,9 +36,29 @@ void thmctrlC(int sig)
 
 /* Main Process */
 void thm_proc(void){
-  uint32 count = 0;
-  BYTE result; // returned error code
-  DSCB board1, board2, board3;  // handle used to refer to the board
+  static thmevent_t thmevent;  
+  static struct timespec start, end;
+  static int init = 0;
+  static unsigned long count=0;
+  
+  //DSCUD Variables
+  BYTE result;                    // returned error code
+  DSCB board1, board2, board3;    // handle used to refer to the board
+  ERRPARAMS errorParams;          // structure for returning error code and error string
+  int i, j;                       // miscellaneous counters
+  DSCSAMPLE samples1[ADC1_NCHAN]; // digital readings
+  DSCSAMPLE samples2[ADC2_NCHAN]; // digital readings
+  DSCSAMPLE samples3[ADC3_NCHAN]; // digital readings
+  DFLOAT voltage;                 //voltage value
+  
+
+  /* Initialize */
+  if(!init){
+    memset(&thmevent,0,sizeof(thmevent));
+    count=0;
+    init=1;
+    if(THM_DEBUG) printf("THM: Initialized\n");
+  }
 
   /* Open Shared Memory */
   sm_t *sm_p;
@@ -43,22 +71,37 @@ void thm_proc(void){
   sigset(SIGINT, thmctrlC);	/* usually ^C */
  
   /* Define structures containing board settings */
-  DSCCB
-  dsccb1 = {
+  DSCCB dsccb1 = {
     .base_address = ADC1_BASE,
     .int_level = 5
-  },
-    dsccb2 = {
+  };
+  DSCCB dsccb2 = {
     .base_address = ADC2_BASE,
     .int_level = 5
-  },
-  dsccb3 = {
+  };
+  DSCCB dsccb3 = {
     .base_address = ADC3_BASE,
     .int_level = 5
   };
 
-  /* Define structure containing A/D conversion settings (all boards set to the same settings) */
-  DSCADSETTINGS dscadsettings = {
+  /* Define structure containing A/D conversion settings */
+  DSCADSETTINGS dscadsettings1 = {
+    .range = RANGE_5,
+    .polarity = BIPOLAR,
+    .gain = GAIN_8,
+    .load_cal = (BYTE)TRUE,
+    .current_channel = 0,
+    .scan_interval = SCAN_INTERVAL_10 // allows the channel switching to be 10 microseconds
+  };
+  DSCADSETTINGS dscadsettings2 = {
+    .range = RANGE_5,
+    .polarity = BIPOLAR,
+    .gain = GAIN_8,
+    .load_cal = (BYTE)TRUE,
+    .current_channel = 0,
+    .scan_interval = SCAN_INTERVAL_10 // allows the channel switching to be 10 microseconds
+  };
+  DSCADSETTINGS dscadsettings3 = {
     .range = RANGE_5,
     .polarity = BIPOLAR,
     .gain = GAIN_8,
@@ -68,149 +111,163 @@ void thm_proc(void){
   };
 
 
-  /* Define structure containing A/D scan settings (all boards set to the same scan settings) */
-  DSCADSCAN dscadscan = {
-    .low_channel = 13, 
-    .high_channel = 15,
-    .gain = dscadsettings.gain
+  /* Define structure containing A/D scan settings */
+  DSCADSCAN dscadscan1 = {
+    .low_channel = 0, 
+    .high_channel = ADC1_NCHAN-1,
+    .gain = dscadsettings1.gain
+  };
+  DSCADSCAN dscadscan2 = {
+    .low_channel = 0, 
+    .high_channel = ADC2_NCHAN-1,
+    .gain = dscadsettings2.gain
+  };
+  DSCADSCAN dscadscan3 = {
+    .low_channel = 0, 
+    .high_channel = ADC3_NCHAN-1,
+    .gain = dscadsettings3.gain
   };
 
+  
   /* Define structure containing auto-calibration settings */
-  DSCAUTOCAL dscautocal = {
-    .adrange = 3, // see page 42
-    .boot_adrange = 3 // see page 42
+  DSCAUTOCAL dscautocal1 = {
+    .adrange = AD_RANGE_CODE, // see page 42
+    .boot_adrange = AD_RANGE_CODE // see page 42
   };
-
-  ERRPARAMS errorParams; // structure for returning error code and error string
-  int i, j; // miscellaneous counters
-
-  int n_chnl; // number of channels
-  n_chnl = dscadscan.high_channel - dscadscan.low_channel + 1;
-
-  DSCSAMPLE *samples1, *samples2, *samples3; // sample readings
-  samples1 = (DSCSAMPLE*)malloc( sizeof(DSCSAMPLE) * ( ADC1_NCHAN ) );
-  samples2 = (DSCSAMPLE*)malloc( sizeof(DSCSAMPLE) * ( ADC2_NCHAN ) );
-  samples3 = (DSCSAMPLE*)malloc( sizeof(DSCSAMPLE) * ( ADC3_NCHAN ) );
-
-  DFLOAT voltage; //voltage value
+  DSCAUTOCAL dscautocal2 = {
+    .adrange = AD_RANGE_CODE, // see page 42
+    .boot_adrange = AD_RANGE_CODE // see page 42
+  };
+  DSCAUTOCAL dscautocal3 = {
+    .adrange = AD_RANGE_CODE, // see page 42
+    .boot_adrange = AD_RANGE_CODE // see page 42
+  };
 
   
   
   //=========================================================================
   // LIBRARY INITIALIZATION
   //=========================================================================
-  if( dscInit( DSC_VERSION ) != DE_NONE ) {
+  if(dscInit(DSC_VERSION) != DE_NONE) {
     dscGetLastError(&errorParams);
-    fprintf( stderr, "dscInit error: %s %s\n", dscGetErrorString(errorParams.ErrCode), errorParams.errstring );
-    return 0;
+    fprintf(stderr, "dscInit error: %s %s\n", dscGetErrorString(errorParams.ErrCode), errorParams.errstring);
+    thmctrlC(0);
   }
   
   //=========================================================================
   // BOARD 1 CONFIGURATION
   //=========================================================================
-  printf( "Board 1\n" );
-  printf( "\tinitialization\n" );
-  if(dscInitBoard(DSC_DMM32X, &dsccb1, &board1)!= DE_NONE) {
+  //-- Init Board
+  if(dscInitBoard(DSC_DMM32X, &dsccb1, &board1) != DE_NONE) {
     dscGetLastError(&errorParams);
-    fprintf( stderr, "\tdscInitBoard error: %s %s\n", dscGetErrorString(errorParams.ErrCode), errorParams.errstring );
-    return 0;
+    fprintf(stderr, "THM: Board 1 dscInitBoard error: %s %s\n", dscGetErrorString(errorParams.ErrCode), errorParams.errstring);
+    thmctrlC(0);
   }
-  printf( "\tAD settings\n" );
-  if( ( result = dscADSetSettings( board1, &dscadsettings ) ) != DE_NONE ) {
+  //-- ADC Settings
+  if((result = dscADSetSettings(board1, &dscadsettings1)) != DE_NONE) {
     dscGetLastError(&errorParams);
-    fprintf( stderr, "\tdscADSetSettings error: %s %s\n", dscGetErrorString(errorParams.ErrCode), errorParams.errstring );
-    return 0;
+    fprintf(stderr, "THM: Board 1 dscADSetSettings error: %s %s\n", dscGetErrorString(errorParams.ErrCode), errorParams.errstring);
+    thmctrlC(0);
   }
-  printf( "\tAD auto-calibration...this will take a few seconds\n" );
-  if( dscADAutoCal( board1, &dscautocal ) != DE_NONE ) {
-      dscGetLastError(&errorParams);
-      fprintf( stderr, "\tdscADAutoCal error: %s %s\n", dscGetErrorString(errorParams.ErrCode), errorParams.errstring );
-      return 0;
-  }
-  printf( "\tCalibration Verification:\n" );  
-  if( ( result = dscADCalVerify( board1, &dscautocal ) ) != DE_NONE ) {
+  //-- Auto Calibration Settings
+  if(dscADAutoCal(board1, &dscautocal1) != DE_NONE) {
     dscGetLastError(&errorParams);
-    fprintf( stderr, "\tdscADCalVerify error: %s %s\n", dscGetErrorString(errorParams.ErrCode), errorParams.errstring );
-    return 0;
+    fprintf(stderr, "THM: Board 1 dscADAutoCal error: %s %s\n", dscGetErrorString(errorParams.ErrCode), errorParams.errstring);
+    thmctrlC(0);
   }
-  printf( "\tConfiguration Mode: %d, Offset Error: %9.3f, Gain Error: %9.3f\n", 3, dscautocal.ad_offset, dscautocal.ad_gain );
-  if ( fabs( dscautocal.ad_offset ) > 2 || fabs( dscautocal.ad_gain ) > 2 )
-    printf( "\tValues for offset or gain exceeded specified tolerance\n" );
-  else
-    printf( "\tValues for offset and gain met specified tolerance\n" );
-  
+  //-- Verify Auto Calibration
+  if((result = dscADCalVerify(board1, &dscautocal1)) != DE_NONE) {
+    dscGetLastError(&errorParams);
+    fprintf(stderr, "THM: Board 1 dscADCalVerify error: %s %s\n", dscGetErrorString(errorParams.ErrCode), errorParams.errstring);
+    thmctrlC(0);
+  }
+  if((fabs(dscautocal1.ad_offset) > MAX_AD_OFFSET) || (fabs(dscautocal1.ad_gain) > MAX_AD_GAIN)){
+    fprintf(stderr, "THM: Board 1 Configuration Mode: %d, Offset Error: %9.3f, Gain Error: %9.3f\n", AD_CONFIG_MODE, dscautocal1.ad_offset, dscautocal1.ad_gain);
+    fprintf(stderr, "THM: Board 1 values for offset or gain exceeded specified tolerance\n" );
+    thmctrlC(0);
+  }
+  //-- Check in with watchdog
+  checkin(sm_p,THMID);
+
   //=========================================================================
   // BOARD 2 CONFIGURATION
   //=========================================================================
-  printf( "Board 2\n" );
-  printf( "\tinitialization\n" );
-  if(dscInitBoard(DSC_DMM32X, &dsccb2, &board2)!= DE_NONE) {
+  //-- Init Board
+  if(dscInitBoard(DSC_DMM32X, &dsccb2, &board2) != DE_NONE) {
     dscGetLastError(&errorParams);
-    fprintf( stderr, "\tdscInitBoard error: %s %s\n", dscGetErrorString(errorParams.ErrCode), errorParams.errstring );
-    return 0;
+    fprintf(stderr, "THM: Board 2 dscInitBoard error: %s %s\n", dscGetErrorString(errorParams.ErrCode), errorParams.errstring);
+    thmctrlC(0);
   }
-  printf( "\tAD settings\n" );
-  if( ( result = dscADSetSettings( board2, &dscadsettings ) ) != DE_NONE ) {
+  //-- ADC Settings
+  if((result = dscADSetSettings(board2, &dscadsettings2)) != DE_NONE) {
     dscGetLastError(&errorParams);
-    fprintf( stderr, "\tdscADSetSettings error: %s %s\n", dscGetErrorString(errorParams.ErrCode), errorParams.errstring );
-    return 0;
+    fprintf(stderr, "THM: Board 2 dscADSetSettings error: %s %s\n", dscGetErrorString(errorParams.ErrCode), errorParams.errstring);
+    thmctrlC(0);
   }
-  printf( "\tAD auto-calibration...this will take a few seconds\n" );
-  if( dscADAutoCal( board2, &dscautocal ) != DE_NONE ) {
-      dscGetLastError(&errorParams);
-      fprintf( stderr, "\tdscADAutoCal error: %s %s\n", dscGetErrorString(errorParams.ErrCode), errorParams.errstring );
-      return 0;
-  }
-  printf( "\tCalibration Verification:\n" );  
-  if( ( result = dscADCalVerify( board2, &dscautocal ) ) != DE_NONE ) {
+  //-- Auto Calibration Settings
+  if(dscADAutoCal(board2, &dscautocal2) != DE_NONE) {
     dscGetLastError(&errorParams);
-    fprintf( stderr, "\tdscADCalVerify error: %s %s\n", dscGetErrorString(errorParams.ErrCode), errorParams.errstring );
-    return 0;
+    fprintf(stderr, "THM: Board 2 dscADAutoCal error: %s %s\n", dscGetErrorString(errorParams.ErrCode), errorParams.errstring);
+    thmctrlC(0);
   }
-  printf( "\tConfiguration Mode: %d, Offset Error: %9.3f, Gain Error: %9.3f\n", 3, dscautocal.ad_offset, dscautocal.ad_gain );
-  if ( fabs( dscautocal.ad_offset ) > 2 || fabs( dscautocal.ad_gain ) > 2 )
-    printf( "\tValues for offset or gain exceeded specified tolerance\n" );
-  else
-    printf( "\tValues for offset and gain met specified tolerance\n" );
-
+  //-- Verify Auto Calibration
+  if((result = dscADCalVerify(board2, &dscautocal2)) != DE_NONE) {
+    dscGetLastError(&errorParams);
+    fprintf(stderr, "THM: Board 2 dscADCalVerify error: %s %s\n", dscGetErrorString(errorParams.ErrCode), errorParams.errstring);
+    thmctrlC(0);
+  }
+  if((fabs(dscautocal2.ad_offset) > MAX_AD_OFFSET) || (fabs(dscautocal2.ad_gain) > MAX_AD_GAIN)){
+    fprintf(stderr, "THM: Board 2 Configuration Mode: %d, Offset Error: %9.3f, Gain Error: %9.3f\n", AD_CONFIG_MODE, dscautocal2.ad_offset, dscautocal2.ad_gain);
+    fprintf(stderr, "THM: Board 2 values for offset or gain exceeded specified tolerance\n" );
+    thmctrlC(0);
+  }
+  //-- Check in with watchdog
+  checkin(sm_p,THMID);
 
   //=========================================================================
   // BOARD 3 CONFIGURATION
   //=========================================================================
-  printf( "Board 3\n" );
-  printf( "\tinitialization\n" );
-  if(dscInitBoard(DSC_DMM32X, &dsccb3, &board3)!= DE_NONE) {
+  //-- Init Board
+  if(dscInitBoard(DSC_DMM32X, &dsccb3, &board3) != DE_NONE) {
     dscGetLastError(&errorParams);
-    fprintf( stderr, "\tdscInitBoard error: %s %s\n", dscGetErrorString(errorParams.ErrCode), errorParams.errstring );
-    return 0;
+    fprintf(stderr, "THM: Board 3 dscInitBoard error: %s %s\n", dscGetErrorString(errorParams.ErrCode), errorParams.errstring);
+    thmctrlC(0);
   }
-  printf( "\tAD settings\n" );
-  if( ( result = dscADSetSettings( board3, &dscadsettings ) ) != DE_NONE ) {
+  //-- ADC Settings
+  if((result = dscADSetSettings(board3, &dscadsettings3)) != DE_NONE) {
     dscGetLastError(&errorParams);
-    fprintf( stderr, "\tdscADSetSettings error: %s %s\n", dscGetErrorString(errorParams.ErrCode), errorParams.errstring );
-    return 0;
+    fprintf(stderr, "THM: Board 3 dscADSetSettings error: %s %s\n", dscGetErrorString(errorParams.ErrCode), errorParams.errstring);
+    thmctrlC(0);
   }
-  printf( "\tAD auto-calibration...this will take a few seconds\n" );
-  if( dscADAutoCal( board3, &dscautocal ) != DE_NONE ) {
-      dscGetLastError(&errorParams);
-      fprintf( stderr, "\tdscADAutoCal error: %s %s\n", dscGetErrorString(errorParams.ErrCode), errorParams.errstring );
-      return 0;
-  }
-  printf( "\tCalibration Verification:\n" );  
-  if( ( result = dscADCalVerify( board3, &dscautocal ) ) != DE_NONE ) {
+  //-- Auto Calibration Settings
+  if(dscADAutoCal(board3, &dscautocal3) != DE_NONE) {
     dscGetLastError(&errorParams);
-    fprintf( stderr, "\tdscADCalVerify error: %s %s\n", dscGetErrorString(errorParams.ErrCode), errorParams.errstring );
-    return 0;
+    fprintf(stderr, "THM: Board 3 dscADAutoCal error: %s %s\n", dscGetErrorString(errorParams.ErrCode), errorParams.errstring);
+    thmctrlC(0);
   }
-  printf( "\tConfiguration Mode: %d, Offset Error: %9.3f, Gain Error: %9.3f\n", 3, dscautocal.ad_offset, dscautocal.ad_gain );
-  if ( fabs( dscautocal.ad_offset ) > 2 || fabs( dscautocal.ad_gain ) > 2 )
-    printf( "\tValues for offset or gain exceeded specified tolerance\n" );
-  else
-    printf( "\tValues for offset and gain met specified tolerance\n" );
+  //-- Verify Auto Calibration
+  if((result = dscADCalVerify(board3, &dscautocal3)) != DE_NONE) {
+    dscGetLastError(&errorParams);
+    fprintf(stderr, "THM: Board 3 dscADCalVerify error: %s %s\n", dscGetErrorString(errorParams.ErrCode), errorParams.errstring);
+    thmctrlC(0);
+  }
+  if((fabs(dscautocal3.ad_offset) > MAX_AD_OFFSET) || (fabs(dscautocal3.ad_gain) > MAX_AD_GAIN)){
+    fprintf(stderr, "THM: Board 3 Configuration Mode: %d, Offset Error: %9.3f, Gain Error: %9.3f\n", AD_CONFIG_MODE, dscautocal3.ad_offset, dscautocal3.ad_gain);
+    fprintf(stderr, "THM: Board 3 values for offset or gain exceeded specified tolerance\n" );
+    thmctrlC(0);
+  }
+  //-- Check in with watchdog
+  checkin(sm_p,THMID);
+  printf("THM: 3 ADC Boards Initialized\n");
 
 
-  
+  //=========================================================================
+  // BEGIN MAIN LOOP
+  //=========================================================================
   while(1){
+    /* Get start timestamp */
+    clock_gettime(CLOCK_REALTIME,&start);
+
     /* Check if we've been asked to exit */
     if(sm_p->w[THMID].die)
       thmctrlC(0);
@@ -218,57 +275,78 @@ void thm_proc(void){
     /* Check in with the watchdog */
     checkin(sm_p,THMID);
     
+    /* Fill out event header */
+    thmevent.hed.packet_type  = THMEVENT;
+    thmevent.hed.frame_number = count++;
+    thmevent.hed.start_sec    = start.tv_sec;
+    thmevent.hed.start_nsec   = start.tv_nsec;
+
     //=========================================================================
     // SCANNING AND OUTPUT
     // Perform the actual sampling and then output the results.
-    // To calculate the actual input voltages, we must convert the sample code (which must be cast to a short to get the correct code) and then plug it into one of the formulas located in the manual for your board (under "A/D Conversion Formulas"). 
+    // To calculate the voltages, convert the sample code (cast as short)
+    // and then plug it into one of the formulas located in the manual for
+    // your board (under "A/D Conversion Formulas"). 
     //=========================================================================
+
     //Board 1 ADC
-    if( ( result = dscADScan( board1, &dscadscan, samples1 ) ) != DE_NONE ) {
+    if((result = dscADScan(board1, &dscadscan1, samples1 )) != DE_NONE){
       dscGetLastError(&errorParams);
-      fprintf( stderr, "dscADScan error: %s %s\n", dscGetErrorString(errorParams.ErrCode), errorParams.errstring );
-      free( samples1 ); // remember to deallocate malloc() memory
-      return 0;
+      fprintf(stderr, "THM: Board 1 dscADScan error: %s %s\n", dscGetErrorString(errorParams.ErrCode), errorParams.errstring);
+      thmctrlC(0);
     }
-    for( i = 0; i < (dscadscan.high_channel - dscadscan.low_channel)+ 1; i++) {
-      if( dscADCodeToVoltage( board1, dscadsettings, dscadscan.sample_values[i], &voltage) != DE_NONE) {
+    for(i = 0; i < ADC1_NCHAN; i++){
+      if(dscADCodeToVoltage(board1, dscadsettings1, dscadscan1.sample_values[i], &voltage) != DE_NONE) {
 	dscGetLastError(&errorParams);
-	fprintf( stderr, "dscADCodeToVoltage error: %s %s\n", dscGetErrorString(errorParams.ErrCode), errorParams.errstring );
-	free( samples1 ); // remember to deallocate malloc() memory
-	return 0;
+	fprintf(stderr, "THM: Board 1 dscADCodeToVoltage error: %s %s\n", dscGetErrorString(errorParams.ErrCode), errorParams.errstring);
+	fprintf(stderr, "THM: Gain = %d\n",dscadsettings1.gain);
+	thmctrlC(0);
       }
-    }
-    //Board 2 ADC
-    if( ( result = dscADScan( board2, &dscadscan, samples2 ) ) != DE_NONE ) {
-      dscGetLastError(&errorParams);
-      fprintf( stderr, "dscADScan error: %s %s\n", dscGetErrorString(errorParams.ErrCode), errorParams.errstring );
-      free( samples2 ); // remember to deallocate malloc() memory
-      return 0;
-    }
-    for( i = 0; i < (dscadscan.high_channel - dscadscan.low_channel)+ 1; i++) {
-      if( dscADCodeToVoltage( board2, dscadsettings, dscadscan.sample_values[i], &voltage) != DE_NONE) {
-	dscGetLastError(&errorParams);
-	fprintf( stderr, "dscADCodeToVoltage error: %s %s\n", dscGetErrorString(errorParams.ErrCode), errorParams.errstring );
-	free( samples2 ); // remember to deallocate malloc() memory
-	return 0;
-      }
-    }
-    //Board 3 ADC
-    if( ( result = dscADScan( board3, &dscadscan, samples3 ) ) != DE_NONE ) {
-      dscGetLastError(&errorParams);
-      fprintf( stderr, "dscADScan error: %s %s\n", dscGetErrorString(errorParams.ErrCode), errorParams.errstring );
-      free( samples3 ); // remember to deallocate malloc() memory
-      return 0;
-    }
-    for( i = 0; i < (dscadscan.high_channel - dscadscan.low_channel)+ 1; i++) {
-      if( dscADCodeToVoltage( board3, dscadsettings, dscadscan.sample_values[i], &voltage) != DE_NONE) {
-	dscGetLastError(&errorParams);
-	fprintf( stderr, "dscADCodeToVoltage error: %s %s\n", dscGetErrorString(errorParams.ErrCode), errorParams.errstring );
-	free( samples3 ); // remember to deallocate malloc() memory
-	return 0;
-      }
+      thmevent.adc1[i] = voltage;
     }
 
+    //Board 2 ADC
+    if((result = dscADScan(board2, &dscadscan2, samples2 )) != DE_NONE){
+      dscGetLastError(&errorParams);
+      fprintf(stderr, "THM: Board 2 dscADScan error: %s %s\n", dscGetErrorString(errorParams.ErrCode), errorParams.errstring);
+      thmctrlC(0);
+    }
+    for(i = 0; i < ADC2_NCHAN; i++){
+      if(dscADCodeToVoltage(board2, dscadsettings2, dscadscan2.sample_values[i], &voltage) != DE_NONE) {
+	dscGetLastError(&errorParams);
+	fprintf(stderr, "THM: Board 2 dscADCodeToVoltage error: %s %s\n", dscGetErrorString(errorParams.ErrCode), errorParams.errstring);
+	fprintf(stderr, "THM: Gain = %d\n",dscadsettings2.gain);
+	thmctrlC(0);
+      }
+      thmevent.adc2[i] = voltage;
+    }
+
+    //Board 3 ADC
+    if((result = dscADScan(board3, &dscadscan3, samples3 )) != DE_NONE){
+      dscGetLastError(&errorParams);
+      fprintf(stderr, "THM: Board 3 dscADScan error: %s %s\n", dscGetErrorString(errorParams.ErrCode), errorParams.errstring);
+      thmctrlC(0);
+    }
+    for(i = 0; i < ADC3_NCHAN; i++){
+      if(dscADCodeToVoltage(board3, dscadsettings3, dscadscan3.sample_values[i], &voltage) != DE_NONE) {
+	dscGetLastError(&errorParams);
+	fprintf(stderr, "THM: Board 3 dscADCodeToVoltage error: %s %s\n", dscGetErrorString(errorParams.ErrCode), errorParams.errstring);
+	fprintf(stderr, "THM: Gain = %d\n",dscadsettings3.gain);
+	thmctrlC(0);
+      }
+      thmevent.adc3[i] = voltage;
+    }
+
+    
+    
+    /* Get end timestamp */
+    clock_gettime(CLOCK_REALTIME,&end);
+    thmevent.hed.end_sec = end.tv_sec;
+    thmevent.hed.end_nsec = end.tv_nsec;
+
+    /* Write data to circular buffer */
+    write_to_buffer(sm_p,&thmevent,THMEVENT);
+    
     /* Sleep */
     sleep(sm_p->w[THMID].per);
   }

@@ -714,10 +714,14 @@ typedef struct acqevent_struct{
 
 typedef struct thmevent_struct{
   pkthed_t  hed;
-  uint16_t  adc1[ADC1_NCHAN];
-  uint16_t  adc2[ADC2_NCHAN];
-  uint16_t  adc3[ADC3_NCHAN];
+  float     adc1[ADC1_NCHAN];
+  float     adc2[ADC2_NCHAN];
+  float     adc3[ADC3_NCHAN];
 } thmevent_t;
+
+typedef struct mtrevent_struct{
+  pkthed_t  hed;
+} mtrevent_t;
 
 /*************************************************
  * Full Frame Structures
@@ -866,6 +870,8 @@ typedef volatile struct {
   shkevent_t shkevent[SHKEVENTSIZE];
   lytevent_t lytevent[LYTEVENTSIZE];
   acqevent_t acqevent[ACQEVENTSIZE];
+  thmevent_t thmevent[THMEVENTSIZE];
+  mtrevent_t mtrevent[MTREVENTSIZE];
 
   //Full frame circular buffers
   scifull_t scifull[SCIFULLSIZE];

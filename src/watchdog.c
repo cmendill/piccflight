@@ -358,6 +358,14 @@ int main(int argc,char **argv){
   sm_p->circbuf[ACQEVENT].nbytes  = sizeof(acqevent_t);
   sm_p->circbuf[ACQEVENT].bufsize = ACQEVENTSIZE;
   sprintf((char *)sm_p->circbuf[ACQEVENT].name,"ACQEVENT");
+  sm_p->circbuf[THMEVENT].buffer  = (void *)sm_p->thmevent;
+  sm_p->circbuf[THMEVENT].nbytes  = sizeof(thmevent_t);
+  sm_p->circbuf[THMEVENT].bufsize = THMEVENTSIZE;
+  sprintf((char *)sm_p->circbuf[MTREVENT].name,"THMEVENT");
+  sm_p->circbuf[MTREVENT].buffer  = (void *)sm_p->mtrevent;
+  sm_p->circbuf[MTREVENT].nbytes  = sizeof(mtrevent_t);
+  sm_p->circbuf[MTREVENT].bufsize = MTREVENTSIZE;
+  sprintf((char *)sm_p->circbuf[MTREVENT].name,"MTREVENT");
 
   //-- Full frame buffers
   sm_p->circbuf[SCIFULL].buffer  = (void *)sm_p->scifull;

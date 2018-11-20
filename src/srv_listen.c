@@ -149,6 +149,8 @@ void *srv_listen(void *t) {
 	      srv_send[LYTFULL]=1;
 	      srv_send[ACQFULL]=1;
 	      srv_send[SCIFULL]=1;
+	      srv_send[THMEVENT]=1;
+	      srv_send[MTREVENT]=1;
 	      clientfd = i;
 	    }
 	  }
