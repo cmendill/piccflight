@@ -39,7 +39,7 @@ extern void shk_proc(void); //shack-hartmann camera
 extern void lyt_proc(void); //lyot lowfs camera
 extern void tlm_proc(void); //telemetry
 extern void acq_proc(void); //acquisition camera
-extern void mot_proc(void); //motor controller
+extern void mtr_proc(void); //motor controller
 extern void thm_proc(void); //thermal controller
 extern void srv_proc(void); //data server
 extern void dia_proc(void); //diagnostic program
@@ -297,7 +297,7 @@ int main(int argc,char **argv){
     case LYTID:sm_p->w[i].launch = lyt_proc; break;
     case TLMID:sm_p->w[i].launch = tlm_proc; break;
     case ACQID:sm_p->w[i].launch = acq_proc; break;
-    case MOTID:sm_p->w[i].launch = mot_proc; break;
+    case MTRID:sm_p->w[i].launch = mtr_proc; break;
     case THMID:sm_p->w[i].launch = thm_proc; break;
     case SRVID:sm_p->w[i].launch = srv_proc; break;
     case DIAID:sm_p->w[i].launch = dia_proc; break;
@@ -385,17 +385,28 @@ int main(int argc,char **argv){
   sm_p->circbuf[ACQFULL].bufsize = ACQFULLSIZE;
   sprintf((char *)sm_p->circbuf[ACQFULL].name,"ACQFULL");
 
-  /* Setup IO Permissions for Debugging DIO Pulses */
+  /* Setup IO Permissions for all ISA boards */
+  if(ioperm(REL_BASE,REL_IOPORT_LENGTH,1)){
+    perror("WAT: REL ioperm()");
+  }
+  if(ioperm(ADC1_BASE,ADC_IOPORT_LENGTH,1)){
+    perror("WAT: ADC1 ioperm()");
+  }
+  if(ioperm(ADC2_BASE,ADC_IOPORT_LENGTH,1)){
+    perror("WAT: ADC2 ioperm()");
+  }
+  if(ioperm(ADC3_BASE,ADC_IOPORT_LENGTH,1)){
+    perror("WAT: ADC3 ioperm()");
+  }
+
+  
+  /* Setup Debugging DIO Pulses */
   if(DIO_ENABLE){
-    if(ioperm(ADC2_BASE,ADC_IOPORT_LENGTH,1))
-      perror("WAT: ioperm()");
-    else{
-      //configure ADC DIO output
-      outb(ADC_PORTA_PAGE,ADC2_BASE+ADC_PAGE_OFFSET);
-      outb(ADC_PORTA_CONFIG,ADC2_BASE+ADC_PORTA_CONFIG_OFFSET);
-      //set DIO ready
-      sm_p->dio_ready=1;
-    }
+    //configure ADC DIO output
+    outb(ADC_PORTA_PAGE,ADC2_BASE+ADC_PAGE_OFFSET);
+    outb(ADC_PORTA_CONFIG,ADC2_BASE+ADC_PORTA_CONFIG_OFFSET);
+    //set DIO ready
+    sm_p->dio_ready=1;
   }
 
   /* Init RTD Driver */
@@ -501,10 +512,18 @@ int main(int argc,char **argv){
   else
     printf("WAT: cleanup done.\n");
 
-  //Clean up DIO ports
-  if(DIO_ENABLE){
-    if(ioperm(ADC2_BASE,ADC_IOPORT_LENGTH,0))
-      perror("WAT: ioperm()");
+  //Clean up IOPERM
+  if(ioperm(REL_BASE,REL_IOPORT_LENGTH,0)){
+    perror("WAT: REL ioperm()");
+  }
+  if(ioperm(ADC1_BASE,ADC_IOPORT_LENGTH,0)){
+    perror("WAT: ADC1 ioperm()");
+  }
+  if(ioperm(ADC2_BASE,ADC_IOPORT_LENGTH,0)){
+    perror("WAT: ADC2 ioperm()");
+  }
+  if(ioperm(ADC3_BASE,ADC_IOPORT_LENGTH,0)){
+    perror("WAT: ADC3 ioperm()");
   }
 
   //Cleanup RTD

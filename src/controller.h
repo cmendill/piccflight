@@ -68,7 +68,7 @@ typedef int8_t int8;
 /*************************************************
  * Process ID Numbers
  *************************************************/
-enum procids {WATID, SCIID, SHKID, LYTID, TLMID, ACQID, MOTID, THMID, SRVID, DIAID, NCLIENTS};
+enum procids {WATID, SCIID, SHKID, LYTID, TLMID, ACQID, MTRID, THMID, SRVID, DIAID, NCLIENTS};
 
 /*************************************************
  * States
@@ -114,7 +114,7 @@ enum states { STATE_STANDBY,
 #define WSP_ENABLE      0 // WASP
 #define LED_ENABLE      0 // LED
 #define HTR_ENABLE      0 // Heaters
-#define MOT_ENABLE      0 // Motors
+#define MTR_ENABLE      0 // Mtrors
 #define TLM_ENABLE      1 // Telemetry
 #define DIO_ENABLE      1 // DIO ports
 
@@ -127,7 +127,7 @@ enum states { STATE_STANDBY,
 #define ACTUATOR_WSP 4
 #define ACTUATOR_LED 5
 #define ACTUATOR_HTR 6
-#define ACTUATOR_MOT 7
+#define ACTUATOR_MTR 7
 
 /*************************************************
  * LOWFS Status
@@ -203,6 +203,7 @@ enum states { STATE_STANDBY,
 #define ADC1_NCHAN               16
 #define ADC2_NCHAN               32
 #define ADC3_NCHAN               32
+#define REL_IOPORT_LENGTH        4
 
 /*************************************************
  * Circular Buffer Info
@@ -287,7 +288,7 @@ enum bufids {SCIEVENT, SCIFULL,
 #define LYT_DEBUG       0 // print lyt messages
 #define TLM_DEBUG       0 // print tlm messages
 #define ACQ_DEBUG       0 // print acq messages
-#define MOT_DEBUG       0 // print mot messages
+#define MTR_DEBUG       0 // print mtr messages
 #define THM_DEBUG       0 // print thm messages
 #define SRV_DEBUG       0 // print srv messages
 #define HEX_DEBUG       1 // print hex messages
@@ -721,6 +722,10 @@ typedef struct thmevent_struct{
 
 typedef struct mtrevent_struct{
   pkthed_t  hed;
+  uint16_t  inst_fwd_status;
+  uint16_t  inst_aft_status;
+  uint16_t  m1_status;
+  uint16_t  m2_status;
 } mtrevent_t;
 
 /*************************************************
@@ -857,7 +862,17 @@ typedef volatile struct {
   int sci_revertorigin;
   int sci_saveorigin;
   int sci_loadorigin;
-  
+
+  //Door Commands
+  int open_door_inst_fwd;
+  int open_door_inst_aft;
+  int open_door_m1;
+  int open_door_m2;
+  int close_door_inst_fwd;
+  int close_door_inst_aft;
+  int close_door_m1;
+  int close_door_m2;
+    
   //Zernike Targets
   double shk_zernike_target[LOWFS_N_ZERNIKE];
   double lyt_zernike_target[LOWFS_N_ZERNIKE];
