@@ -389,6 +389,9 @@ int main(int argc,char **argv){
   if(ioperm(REL_BASE,REL_IOPORT_LENGTH,1)){
     perror("WAT: REL ioperm()");
   }
+  if(ioperm(SSR_BASE,SSR_IOPORT_LENGTH,1)){
+    perror("WAT: SSR ioperm()");
+  }
   if(ioperm(ADC1_BASE,ADC_IOPORT_LENGTH,1)){
     perror("WAT: ADC1 ioperm()");
   }
@@ -515,6 +518,9 @@ int main(int argc,char **argv){
   //Clean up IOPERM
   if(ioperm(REL_BASE,REL_IOPORT_LENGTH,0)){
     perror("WAT: REL ioperm()");
+  }
+  if(ioperm(SSR_BASE,SSR_IOPORT_LENGTH,0)){
+    perror("WAT: SSR ioperm()");
   }
   if(ioperm(ADC1_BASE,ADC_IOPORT_LENGTH,0)){
     perror("WAT: ADC1 ioperm()");

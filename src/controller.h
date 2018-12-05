@@ -114,7 +114,7 @@ enum states { STATE_STANDBY,
 #define WSP_ENABLE      0 // WASP
 #define LED_ENABLE      0 // LED
 #define HTR_ENABLE      0 // Heaters
-#define MTR_ENABLE      0 // Mtrors
+#define MTR_ENABLE      0 // Motors
 #define TLM_ENABLE      1 // Telemetry
 #define DIO_ENABLE      1 // DIO ports
 
@@ -204,6 +204,7 @@ enum states { STATE_STANDBY,
 #define ADC2_NCHAN               32
 #define ADC3_NCHAN               32
 #define REL_IOPORT_LENGTH        4
+#define SSR_IOPORT_LENGTH        8
 
 /*************************************************
  * Circular Buffer Info
@@ -478,6 +479,12 @@ enum bufids {SCIEVENT, SCIFULL,
 #define TLM_BUFFER_SIZE    (TLM_BUFFER_LENGTH*2) //TLM DMA buffer size
 
 /*************************************************
+ * Motor Parameters
+ *************************************************/
+#define MTR_NDOORS         4
+
+
+/*************************************************
  * Config Structure
  *************************************************/
 typedef struct procinfo_struct{
@@ -722,10 +729,7 @@ typedef struct thmevent_struct{
 
 typedef struct mtrevent_struct{
   pkthed_t  hed;
-  uint16_t  inst_fwd_status;
-  uint16_t  inst_aft_status;
-  uint16_t  m1_status;
-  uint16_t  m2_status;
+  uint16_t  door_status[MTR_NDOORS];
 } mtrevent_t;
 
 /*************************************************
@@ -864,15 +868,9 @@ typedef volatile struct {
   int sci_loadorigin;
 
   //Door Commands
-  int open_door_inst_fwd;
-  int open_door_inst_aft;
-  int open_door_m1;
-  int open_door_m2;
-  int close_door_inst_fwd;
-  int close_door_inst_aft;
-  int close_door_m1;
-  int close_door_m2;
-    
+  int open_door[MTR_NDOORS];
+  int close_door[MTR_NDOORS];
+      
   //Zernike Targets
   double shk_zernike_target[LOWFS_N_ZERNIKE];
   double lyt_zernike_target[LOWFS_N_ZERNIKE];

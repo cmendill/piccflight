@@ -13,23 +13,32 @@
 #include "controller.h"
 #include "common_functions.h"
 
-/* Relay bit masks */
-#define RELAY_1_ON     1 << 0
-#define RELAY_2_ON     1 << 1
-#define RELAY_3_ON     1 << 2
-#define RELAY_4_ON     1 << 3
-#define RELAY_5_ON     1 << 4
-#define RELAY_6_ON     1 << 5
-#define RELAY_7_ON     1 << 6
-#define RELAY_8_ON     1 << 7
-#define RELAY_9_ON     1 << 8
-#define RELAY_10_ON    1 << 9
-#define RELAY_11_ON    1 << 10
-#define RELAY_12_ON    1 << 11
-#define RELAY_13_ON    1 << 12
-#define RELAY_14_ON    1 << 13
-#define RELAY_15_ON    1 << 14
-#define RELAY_16_ON    1 << 15
+/* Relay Bit Masks */
+#define RELAY_1_ON     (1 << 0)
+#define RELAY_2_ON     (1 << 1)
+#define RELAY_3_ON     (1 << 2)
+#define RELAY_4_ON     (1 << 3)
+#define RELAY_5_ON     (1 << 4)
+#define RELAY_6_ON     (1 << 5)
+#define RELAY_7_ON     (1 << 6)
+#define RELAY_8_ON     (1 << 7)
+#define RELAY_9_ON     (1 << 8)
+#define RELAY_10_ON    (1 << 9)
+#define RELAY_11_ON    (1 << 10)
+#define RELAY_12_ON    (1 << 11)
+#define RELAY_13_ON    (1 << 12)
+#define RELAY_14_ON    (1 << 13)
+#define RELAY_15_ON    (1 << 14)
+#define RELAY_16_ON    (1 << 15)
+
+/* Door Status Bits */
+#define DOOR_STATUS_OPEN    (1 << 0)
+#define DOOR_STATUS_CLOSED  (1 << 1)
+#define DOOR_STATUS_OPENING (1 << 2)
+#define DOOR_STATUS_CLOSING (1 << 3)
+
+/* Door Parameters */
+#define DOOR_TIMEOUT        {10,10,10,10}
 
 
 /* Process File Descriptor */
@@ -45,9 +54,51 @@ void mtrctrlC(int sig)
   exit(sig);
 }
 
+/**************************************************************/
+/* MTR_GET_STATUS                                             */
+/*  - Get door status                                         */
+/**************************************************************/
+void mtr_get_status(mtrevent_t *mtrevent){
+  byte status;
+
+  //Read status from SSR input port
+  status = inb(SSR_BASE+1);
+  
+  //Set status words for each door
+  mtrevent->door_status[0] = (DOOR_STATUS_OPEN * (status && (1 << 0))) | (DOOR_STATUS_CLOSED * (status && (1 << 1)));
+  mtrevent->door_status[1] = (DOOR_STATUS_OPEN * (status && (1 << 2))) | (DOOR_STATUS_CLOSED * (status && (1 << 3)));
+  mtrevent->door_status[2] = (DOOR_STATUS_OPEN * (status && (1 << 4))) | (DOOR_STATUS_CLOSED * (status && (1 << 5)));
+  mtrevent->door_status[3] = (DOOR_STATUS_OPEN * (status && (1 << 6))) | (DOOR_STATUS_CLOSED * (status && (1 << 7)));
+  
+}
+
 /* Main Process */
 void mtr_proc(void){
-  uint32 count = 0;
+  static uint32 count = 0;
+  static mtrevent_t mtrevent;
+  static struct timespec start,end;
+  static int door_open_count[MTR_NDOORS] = {0};
+  static int door_close_count[MTR_NDOORS] = {0};
+  const  int door_timeout[MTR_NDOORS] = DOOR_TIMEOUT;
+  int i;
+  
+  /* Setup relays */
+  uint16_t door_open_relays[MTR_NDOORS] = {0};
+  uint16_t door_close_relays[MTR_NDOORS] = {0};
+  uint16_t door_activate_relay[MTR_NDOORS] = {0};
+  door_activate_relay[0] = RELAY_1_ON;
+  door_activate_relay[1] = RELAY_4_ON;
+  door_activate_relay[2] = RELAY_9_ON;
+  door_activate_relay[3] = RELAY_13_ON;
+  door_close_relays[0]   = RELAY_2_ON | RELAY_3_ON;
+  door_close_relays[1]   = RELAY_5_ON | RELAY_6_ON;
+  door_close_relays[2]   = RELAY_10_ON | RELAY_11_ON;
+  door_close_relays[3]   = RELAY_14_ON | RELAY_15_ON;
+  door_open_relays[0]    = 0;
+  door_open_relays[1]    = 0;
+  door_open_relays[2]    = 0;
+  door_open_relays[3]    = 0;
+
   /* Open Shared Memory */
   sm_t *sm_p;
   if((sm_p = openshm(&mtr_shmfd)) == NULL){
@@ -58,7 +109,15 @@ void mtr_proc(void){
   /* Set soft interrupt handler */
   sigset(SIGINT, mtrctrlC);	/* usually ^C */
 
+  /* Turn all relays off */
+  outs(0x0000,REL_BASE);
+
+  /* Start main loop */
   while(1){
+
+    /* Get start time */
+    clock_gettime(CLOCK_REALTIME,&start);
+
     /* Check if we've been asked to exit */
     if(sm_p->w[MTRID].die)
       mtrctrlC(0);
@@ -66,24 +125,92 @@ void mtr_proc(void){
     /* Check in with the watchdog */
     checkin(sm_p,MTRID);
 
-    /* Turn all relays off */
-    outs(0x0000,REL_BASE);
+    /* Fill out event header */
+    mtrevent.hed.packet_type  = MTREVENT;
+    mtrevent.hed.frame_number = count++;
+    mtrevent.hed.start_sec    = start.tv_sec;
+    mtrevent.hed.start_nsec   = start.tv_nsec;
 
-    /* Check for commands */
-    if(sm_p->open_door_inst_fwd){
-      //Set Relay 2 & 3 OFF
-      outs(0x0000,REL_BASE);
-      //Set Relay 1 ON
-      outs(RELAY_1_ON,REL_BASE);
-      //Wait for interrupt or timeout
-      sleep(10);
-      //Set Relay 1 OFF
-      outs(0x0000,REL_BASE);
-      //Clear command
-      sm_p->open_door_inst_fwd = 0;
-    }
-      
+    /* Get door status */
+    mtr_get_status(&mtrevent);
     
+    /* Check for commands */
+    for(i=0;i<MTR_NDOORS;i++){
+      //OPEN DOOR
+      if(sm_p->open_door[i]){
+	if((mtrevent.door_status[i] & DOOR_STATUS_OPEN) || (door_open_count[i] > door_timeout[i])){
+	  //Issue timeout warning
+	  if(door_open_count[i] > door_timeout[i])
+	    printf("MTR: Door %d opening TIMEOUT!\n",i+1);
+	  //Set door status
+	  mtrevent.door_status[i] &= ~DOOR_STATUS_OPENING;
+	  //Set all relays OFF
+	  outs(0x0000,REL_BASE);
+	  //Clear command
+	  sm_p->open_door[i] = 0;
+	  //Reset counter
+	  door_open_count[i] = 0;
+	}
+	else{
+	  //Set door status
+	  mtrevent.door_status[i] |= DOOR_STATUS_OPENING;
+	  //Set directional relays
+	  outs(door_open_relays[i],REL_BASE);
+	  //Sleep
+	  usleep(10000);
+	  //Activate door
+	  outs(door_activate_relay[i],REL_BASE);
+	  //Increment counter
+	  door_open_count[i]++;
+	}
+      }
+      else{
+	//Reset counter
+	door_open_count[i] = 0;
+      }
+      
+      //CLOSE DOOR
+      if(sm_p->close_door[i]){
+	if((mtrevent.door_status[i] & DOOR_STATUS_CLOSE) || (door_close_count[i] > door_timeout[i])){
+	  //Issue timeout warning
+	  if(door_close_count[i] > door_timeout[i])
+	    printf("MTR: Door %d closing TIMEOUT!\n",i+1);
+	  //Set door status
+	  mtrevent.door_status[i] &= ~DOOR_STATUS_CLOSING;
+	  //Set all relays OFF
+	  outs(0x0000,REL_BASE);
+	  //Clear command
+	  sm_p->close_door[i] = 0;
+	  //Reset counter
+	  door_close_count[i] = 0;
+	}
+	else{
+	  //Set door status
+	  mtrevent.door_status[i] |= DOOR_STATUS_CLOSING;
+	  //Set directional relays
+	  outs(door_close_relays[i],REL_BASE);
+	  //Sleep
+	  usleep(10000);
+	  //Activate door
+	  outs(door_activate_relay[i],REL_BASE);
+	  //Increment counter
+	  door_close_count[i]++;
+	}
+      }
+      else{
+	//Reset counter
+	door_close_count[i] = 0;
+      }
+    }
+
+    /* Get end time */
+    clock_gettime(CLOCK_REALTIME,&end);
+    mtrevent.hed.end_sec    = end.tv_sec;
+    mtrevent.hed.end_nsec   = end.tv_nsec;
+
+    /* Write event to circular buffer */
+    write_to_buffer(sm_p,&mtrevent,MTREVENT);
+
     /* Sleep */
     sleep(sm_p->w[MTRID].per);
   }
