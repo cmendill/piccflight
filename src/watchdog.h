@@ -6,11 +6,11 @@
  *************************************************/
 
 /*!!!!!!!!!! ALL NUMBERS MUST BE < 255 !!!!!!!!!*/
-//      procids {WATID, SCIID, SHKID, LYTID, TLMID, ACQID, MOTID, THMID, SRVID, DIAID};
-#define PROCRUN {    1,     0,     1,     0,     0,     0,     0,     0,     1,     0}
+//      procids {WATID, SCIID, SHKID, LYTID, TLMID, ACQID, MTRID, THMID, SRVID, DIAID};
+#define PROCRUN {    1,     0,     0,     0,     0,     0,     1,     0,     0,     0}
 #define PROCASK {    0,     0,     0,     0,     0,     0,     0,     0,     0,     1}
 #define PROCTMO {    5,     5,     5,     5,     5,     5,     5,     5,     5,     5}
-#define PROCNAM {"WAT", "SCI", "SHK", "LYT", "TLM", "ACQ", "MOT", "THM", "SRV", "DIA"}
+#define PROCNAM {"WAT", "SCI", "SHK", "LYT", "TLM", "ACQ", "MTR", "THM", "SRV", "DIA"}
 #define PROCMOD {   "",    "",    "",    "",    "",    "",    "",    "",    "",    ""}
 #define PROCPRI {    1,     1,     1,     1,     1,     1,     1,     1,     1,     1}
 #define PROCPER {    1,     1,     1,     1,     1,     1,     1,     1,     1,     1}
