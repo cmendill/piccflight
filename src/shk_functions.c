@@ -107,9 +107,9 @@ void shk_saveorigin(shkevent_t *shkevent){
   struct stat st = {0};
   FILE *fd=NULL;
   static char outfile[MAX_FILENAME];
+  int i;
   char temp[MAX_FILENAME];
   char path[MAX_FILENAME];
-  int i;
   
   /* Open output file */
   //--setup filename
@@ -442,8 +442,11 @@ void shk_zernike_matrix(shkcell_t *cells, double *matrix_fwd, double *matrix_inv
   double dz_dxdy[2*SHK_NCELLS*LOWFS_N_ZERNIKE] = {0};
   double x_1 = 0, x_2 = 0, x_3 = 0, x_4 = 0, x_5=0;
   double y_1 = 0, y_2 = 0, y_3 = 0, y_4 = 0, y_5=0;
-  FILE *matrix=NULL;
-  char matrix_file[MAX_FILENAME];
+  struct stat st = {0};
+  FILE *fd=NULL;
+  char outfile[MAX_FILENAME];
+  char temp[MAX_FILENAME];
+  char path[MAX_FILENAME];
   float cell_size_px = SHK_LENSLET_PITCH_UM/SHK_PX_PITCH_UM;
 
 
@@ -546,46 +549,63 @@ void shk_zernike_matrix(shkcell_t *cells, double *matrix_fwd, double *matrix_inv
 
   /* Write forward matrix to file */
   //Set up file name
-  sprintf(matrix_file, SHKZER2SHKCEL_OUTFILE);
+  sprintf(outfile, SHKZER2SHKCEL_OUTFILE);
+  //Create output folder if it does not exist
+  strcpy(temp,outfile);
+  strcpy(path,dirname(temp));
+  if(stat(path, &st) == -1){
+    printf("SHK: creating folder %s\n",path);
+    recursive_mkdir(path, 0777);
+  }
   //Open file
-  if((matrix = fopen(matrix_file, "w")) == NULL){
-    perror("fopen");
-    printf("zern2shk file\n");
+  if((fd = fopen(outfile, "w")) == NULL){
+    perror("SHK: zern2shk fopen");
   }
-  //Write matrix
-  if(fwrite(dz_dxdy,2*beam_ncells*LOWFS_N_ZERNIKE*sizeof(double),1,matrix) !=1){
-    perror("fwrite");
-    printf("zern2shk file\r");
+  else{
+    //Write matrix
+    if(fwrite(dz_dxdy,2*beam_ncells*LOWFS_N_ZERNIKE*sizeof(double),1,fd) !=1){
+      perror("SHK: zern2shk fwrite");
+      fclose(fd);
+    }else{
+      //Close file
+      fclose(fd);
+      if(SHK_DEBUG) printf("SHK: Wrote Zernike matrix file: %s\n",outfile);
+    }
   }
-  //Close file
-  fclose(matrix);
-  if(SHK_DEBUG) printf("SHK: Wrote Zernike matrix file: %s\n",matrix_file);
-
+  
   //Copy forward matrix to calling routine
   memcpy(matrix_fwd,dz_dxdy,sizeof(dz_dxdy));
   
   //Invert Matrix NOTE: This changes the forward matrix
   if(SHK_DEBUG) printf("SHK: Inverting the Zernike matrix\n");
   num_dgesvdi(dz_dxdy, matrix_inv, 2*beam_ncells, LOWFS_N_ZERNIKE);
-  
-
-  
+    
   /* Write inverse matrix to file */
   //Set up file name
-  sprintf(matrix_file, SHKCEL2SHKZER_OUTFILE);
+  sprintf(outfile, SHKCEL2SHKZER_OUTFILE);
+  //Create output folder if it does not exist
+  strcpy(temp,outfile);
+  strcpy(path,dirname(temp));
+  if (stat(path, &st) == -1){
+    printf("SHK: creating folder %s\n",path);
+    recursive_mkdir(path, 0777);
+  }
   //Open file
-  if((matrix = fopen(matrix_file, "w")) == NULL){
-    perror("fopen");
-    printf("shk2zern file\n");
+  if((fd = fopen(outfile, "w")) == NULL){
+    perror("SHK: shk2zern fopen");
   }
-  //Write matrix
-  if(fwrite(matrix_inv,2*beam_ncells*LOWFS_N_ZERNIKE*sizeof(double),1,matrix) !=1){
-    perror("fwrite");
-    printf("shk2zern file\r");
+  else{
+    //Write matrix
+    if(fwrite(matrix_inv,2*beam_ncells*LOWFS_N_ZERNIKE*sizeof(double),1,fd) !=1){
+      perror("SHK: shk2zern fwrite");
+      fclose(fd);
+    }
+    else{
+      //Close file
+      fclose(fd);
+      if(SHK_DEBUG) printf("SHK: Wrote zernike matrix file: %s\n",outfile);
+    }
   }
-  //Close file
-  fclose(matrix);
-  if(SHK_DEBUG) printf("SHK: Wrote zernike matrix file: %s\n",matrix_file);
 }
 
 /**************************************************************/
@@ -672,8 +692,7 @@ void shk_cells2alp(shkcell_t *cells, double *actuators, int reset){
     sprintf(matrix_file,SHKCEL2ALPACT_FILE);
     //--open file
     if((matrix = fopen(matrix_file,"r")) == NULL){
-      printf("cells2alp file\r");
-      perror("fopen");
+      perror("SHK: cells2alp fopen");
       goto end_of_init;
     }
     //--check file size
@@ -688,8 +707,7 @@ void shk_cells2alp(shkcell_t *cells, double *actuators, int reset){
     }
     //--read matrix
     if(fread(cells2alp_matrix,2*beam_ncells*ALP_NACT*sizeof(double),1,matrix) != 1){
-      perror("fread");
-      printf("cells2alp file\r");
+      perror("SHK: cells2alp fread");
       fclose(matrix);
       goto end_of_init;
     }

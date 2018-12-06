@@ -103,7 +103,7 @@ enum states { STATE_STANDBY,
 *************************************************/
 #define INPUT_TYPE_SINGLE_PASS   0 //Normal operation
 #define INPUT_TYPE_DOUBLE_PASS   1 //Fed from PSI
-#define INSTRUMENT_INPUT_TYPE    INPUT_TYPE_SINGLE_PASS
+#define INSTRUMENT_INPUT_TYPE    INPUT_TYPE_DOUBLE_PASS
 
 /*************************************************
 * Enable Switches
