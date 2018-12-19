@@ -17,7 +17,7 @@ PC104 STACK
  - REL: RTD DM6956HR-H --------------------------> Motor control
  - ALP: Winford BRKAVH68FV1-R-FT ----------------> VHDCI breakout board for ALPAO DM 
 
-BIOS Setup
+Versalogic Baycat BIOS Setup
  - Boot-->Boot Priority Order
      - 1. USB HDD
      - 2. ATA HDD1
@@ -53,7 +53,7 @@ LINUX INSTALLATION
  - The flight computer runs Ubuntu Server 12.04.5 64bit
  - Download ubuntu-12.04.5-server-amd64.iso from releases.ubuntu.com/12.04/
  - Create bootable USB key with the iso (tested with Startup Disk Creator on Ubuntu)
- - Connect a USB mouse and VGA monitor to the flight comoputer
+ - Connect a USB mouse and VGA monitor to the flight computer
  - No network needed for install
  - Insert the USB key and boot to install Ubuntu     
  - Install Options:
@@ -110,7 +110,8 @@ INSTALL PACKAGES
  - mkl 
      Download Intel MKL library (l_mkl_2018.3.222.tgz)
      Transfer to flight computer
-     Run install script
+     Unzip with: tar xzf l_mkl_2018.3.222.tgz
+     Run install script with: sudo ./install.sh
      Elect to ignore "Unsupported operating system" and "Missing system commands" errors
 
 CONFIGURE SSH KEY LOGIN
