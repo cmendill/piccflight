@@ -21,6 +21,16 @@
 #define AD_CONFIG_MODE 3
 #define AD_RANGE_CODE  3
 
+/* temperature conversion */
+#define ADC1_VREF       4.71    //volts
+#define ADC2_VREF       4.71    //volts
+#define ADC3_VREF       4.71    //volts
+#define ADC1_R1         1000.0  //ohms
+#define ADC2_R1         2000.0  //ohms
+#define ADC3_R1         2000.0  //ohms
+#define RTD_ALPHA       0.00385 //ohms/ohms/degC
+#define RTD_OHMS        100.0   //ohms
+
 /* Process File Descriptor */
 int thm_shmfd;
 
@@ -49,8 +59,8 @@ void thm_proc(void){
   DSCSAMPLE samples1[ADC1_NCHAN]; // digital readings
   DSCSAMPLE samples2[ADC2_NCHAN]; // digital readings
   DSCSAMPLE samples3[ADC3_NCHAN]; // digital readings
-  DFLOAT voltage;                 //voltage value
-  
+  DFLOAT voltage;                 // voltage value
+  double resistance;              // calculated RTD resistance
 
   /* Initialize */
   if(!init){
@@ -302,7 +312,9 @@ void thm_proc(void){
 	fprintf(stderr, "THM: Gain = %d\n",dscadsettings1.gain);
 	thmctrlC(0);
       }
-      thmevent.adc1[i] = voltage;
+      //thmevent.adc1[i] = voltage;
+      resistance = (voltage * ADC1_R1) / (ADC1_VREF - voltage);
+      thmevent.adc1[i] = (resistance - RTD_OHMS)/(RTD_ALPHA * RTD_OHMS);
     }
 
     //Board 2 ADC
@@ -318,7 +330,9 @@ void thm_proc(void){
 	fprintf(stderr, "THM: Gain = %d\n",dscadsettings2.gain);
 	thmctrlC(0);
       }
-      thmevent.adc2[i] = voltage;
+      //thmevent.adc2[i] = voltage;
+      resistance = (voltage * ADC2_R1) / (ADC2_VREF - voltage);
+      thmevent.adc2[i] = (resistance - RTD_OHMS)/(RTD_ALPHA * RTD_OHMS);
     }
 
     //Board 3 ADC
@@ -334,7 +348,9 @@ void thm_proc(void){
 	fprintf(stderr, "THM: Gain = %d\n",dscadsettings3.gain);
 	thmctrlC(0);
       }
-      thmevent.adc3[i] = voltage;
+      //thmevent.adc3[i] = voltage;
+      resistance = (voltage * ADC3_R1) / (ADC3_VREF - voltage);
+      thmevent.adc3[i] = (resistance - RTD_OHMS)/(RTD_ALPHA * RTD_OHMS);
     }
 
     
