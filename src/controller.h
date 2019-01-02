@@ -205,6 +205,7 @@ enum states { STATE_STANDBY,
 #define ADC3_NCHAN               32
 #define REL_IOPORT_LENGTH        4
 #define SSR_IOPORT_LENGTH        8
+#define SSR_NCHAN                16
 
 /*************************************************
  * Circular Buffer Info
@@ -722,9 +723,11 @@ typedef struct acqevent_struct{
 
 typedef struct thmevent_struct{
   pkthed_t  hed;
-  float     adc1[ADC1_NCHAN];
-  float     adc2[ADC2_NCHAN];
-  float     adc3[ADC3_NCHAN];
+  float     adc1_temp[ADC1_NCHAN];   //adc1 temperatures [C]
+  float     adc2_temp[ADC2_NCHAN];   //adc2 temperatures [C]
+  float     adc3_temp[ADC3_NCHAN];   //adc3 temperatures [C]
+  uint8_t   htr_power[SSR_NCHAN];    //heater power [0-100%]
+  uint8_t   htr_override[SSR_NCHAN]; //heater override flags
 } thmevent_t;
 
 typedef struct mtrevent_struct{
@@ -870,6 +873,10 @@ typedef volatile struct {
   //Door Commands
   int open_door[MTR_NDOORS];
   int close_door[MTR_NDOORS];
+
+  //Heater Commands
+  int htr_override[SSR_NCHAN];
+  int htr_power[SSR_NCHAN];
       
   //Zernike Targets
   double shk_zernike_target[LOWFS_N_ZERNIKE];

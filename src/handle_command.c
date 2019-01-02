@@ -1238,6 +1238,61 @@ int handle_command(char *line, sm_t *sm_p){
     return CMD_NORMAL;
   }
   
+  //Heater commands
+  sprintf(cmd,"htr");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    //All Heaters
+    sprintf(cmd,"htr all override on");
+    if(!strncasecmp(line,cmd,strlen(cmd))){
+      printf("CMD: Enabling ALL heaters manual override\n");
+      for(i=0;i<SSR_NCHAN;i++) sm_p->htr_override[i] = 1;
+      return CMD_NORMAL;
+    }
+    sprintf(cmd,"htr all override off");
+    if(!strncasecmp(line,cmd,strlen(cmd))){
+      printf("CMD: Disabling ALL heaters manual override\n");
+      for(i=0;i<SSR_NCHAN;i++) sm_p->htr_override[i] = 0;
+      return CMD_NORMAL;
+    }
+    //Loop through heaters
+    for(i=0;i<SSR_NCHAN;i++){
+      sprintf(cmd,"htr %d override on",i);
+      if(!strncasecmp(line,cmd,strlen(cmd))){
+        printf("CMD: Enabling heater %d manual override\n",i);
+	sm_p->htr_override[i] = 1;
+	return CMD_NORMAL;
+      }
+      sprintf(cmd,"htr %d override off",i);
+      if(!strncasecmp(line,cmd,strlen(cmd))){
+        printf("CMD: Disabling heater %d manual override\n",i);
+	sm_p->htr_override[i] = 0;
+	return CMD_NORMAL;
+      }
+      sprintf(cmd,"htr %d power",i);
+      if(!strncasecmp(line,cmd,strlen(cmd))){
+	if(sm_p->htr_override[i]){
+	  itemp = atoi(line+strlen(cmd));
+	  if(itemp >= 0 && itemp <= 100){
+	    sm_p->htr_power[i] = itemp;
+	    printf("CMD: Setting heater %d power to %d percent\n",i,sm_p->htr_power[i]);
+	    return CMD_NORMAL;
+	  }
+	  else{
+	    printf("CMD: Heater power out of bounds [0-100]\n");
+	    return CMD_NORMAL;
+	  }
+	}
+	else{
+	  printf("CMD: Heater %d manual override is disabled\n",i);
+	  return CMD_NORMAL;
+	}
+      }
+    }
+    printf("CMD: Bad heater command format\n");
+    return CMD_NORMAL;
+  }
+
+  
   /****************************************
    * BLANK COMMAND
    ***************************************/

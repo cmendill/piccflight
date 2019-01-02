@@ -9,6 +9,7 @@
 #include <fcntl.h>
 #include <ctype.h>
 #include <math.h>
+#include <sys/io.h>
 
 /* piccflight headers */
 #include "controller.h"
@@ -20,6 +21,7 @@
 #define MAX_AD_GAIN    2
 #define AD_CONFIG_MODE 3
 #define AD_RANGE_CODE  3
+#define HTR_NSTEPS     100
 
 /* temperature conversion */
 #define ADC1_VREF       4.71    //volts
@@ -50,7 +52,11 @@ void thm_proc(void){
   static struct timespec start, end;
   static int init = 0;
   static unsigned long count=0;
-  
+  double resistance;              // calculated RTD resistance
+  uint16_t htr_output;            // heater output word
+  unsigned char htr_lsb=0,htr_msb=0;
+  const long htr_sleep = ONE_MILLION / HTR_NSTEPS; //us
+
   //DSCUD Variables
   BYTE result;                    // returned error code
   DSCB board1, board2, board3;    // handle used to refer to the board
@@ -60,8 +66,9 @@ void thm_proc(void){
   DSCSAMPLE samples2[ADC2_NCHAN]; // digital readings
   DSCSAMPLE samples3[ADC3_NCHAN]; // digital readings
   DFLOAT voltage;                 // voltage value
-  double resistance;              // calculated RTD resistance
 
+
+    
   /* Initialize */
   if(!init){
     memset(&thmevent,0,sizeof(thmevent));
@@ -312,9 +319,8 @@ void thm_proc(void){
 	fprintf(stderr, "THM: Gain = %d\n",dscadsettings1.gain);
 	thmctrlC(0);
       }
-      //thmevent.adc1[i] = voltage;
       resistance = (voltage * ADC1_R1) / (ADC1_VREF - voltage);
-      thmevent.adc1[i] = (resistance - RTD_OHMS)/(RTD_ALPHA * RTD_OHMS);
+      thmevent.adc1_temp[i] = (resistance - RTD_OHMS)/(RTD_ALPHA * RTD_OHMS);
     }
 
     //Board 2 ADC
@@ -330,9 +336,8 @@ void thm_proc(void){
 	fprintf(stderr, "THM: Gain = %d\n",dscadsettings2.gain);
 	thmctrlC(0);
       }
-      //thmevent.adc2[i] = voltage;
       resistance = (voltage * ADC2_R1) / (ADC2_VREF - voltage);
-      thmevent.adc2[i] = (resistance - RTD_OHMS)/(RTD_ALPHA * RTD_OHMS);
+      thmevent.adc2_temp[i] = (resistance - RTD_OHMS)/(RTD_ALPHA * RTD_OHMS);
     }
 
     //Board 3 ADC
@@ -348,23 +353,39 @@ void thm_proc(void){
 	fprintf(stderr, "THM: Gain = %d\n",dscadsettings3.gain);
 	thmctrlC(0);
       }
-      //thmevent.adc3[i] = voltage;
       resistance = (voltage * ADC3_R1) / (ADC3_VREF - voltage);
-      thmevent.adc3[i] = (resistance - RTD_OHMS)/(RTD_ALPHA * RTD_OHMS);
+      thmevent.adc3_temp[i] = (resistance - RTD_OHMS)/(RTD_ALPHA * RTD_OHMS);
     }
 
+    /* Heaters Override Commands */
+    for(i=0;i<SSR_NCHAN;i++){
+      thmevent.htr_override[i] = sm_p->htr_override[i];
+      if(sm_p->htr_override[i])
+	thmevent.htr_power[i] = sm_p->htr_power[i];
+    }
     
-    
+    /* Command Heaters */
+    for(i=0;i<HTR_NSTEPS;i++){
+      htr_output = 0;
+      for(j=0;j<SSR_NCHAN;j++)
+      	htr_output |= (i < thmevent.htr_power[j]) << j;
+      htr_lsb = ~htr_output & 0x00FF;
+      htr_msb = (~htr_output & 0xFF00) >> 8;
+      outb(htr_lsb,SSR_BASE+0);
+      outb(htr_msb,SSR_BASE+4);
+      
+      //sleep
+      usleep(htr_sleep);
+    }
+    if(THM_DEBUG) printf("THM: MSB: 0x%2.2x  LSB: 0x%2.2x\n",htr_msb,htr_lsb);
+
     /* Get end timestamp */
     clock_gettime(CLOCK_REALTIME,&end);
     thmevent.hed.end_sec = end.tv_sec;
     thmevent.hed.end_nsec = end.tv_nsec;
-
+    
     /* Write data to circular buffer */
     write_to_buffer(sm_p,&thmevent,THMEVENT);
-    
-    /* Sleep */
-    sleep(sm_p->w[THMID].per);
   }
 
 
