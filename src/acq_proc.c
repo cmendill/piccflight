@@ -141,7 +141,7 @@ void cb(uvc_frame_t *frame, void *ptr) {
     
     //Fake data
     if(sm_p->w[ACQID].fakemode != FAKEMODE_NONE){
-      if(sm_p->w[ACQID].fakemode == FAKEMODE_GEN_IMAGE_CAMERA_SYNC)
+      if(sm_p->w[ACQID].fakemode == FAKEMODE_TEST_PATTERN)
 	for(i=0;i<ACQXS;i++)
 	  for(j=0;j<ACQYS;j++)
 	    acqfull.image.data[i][j]=fakepx++;

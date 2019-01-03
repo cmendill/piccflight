@@ -370,7 +370,7 @@ void sci_process_image(sm_t *sm_p,uint16 *img_buffer,double ccdtemp){
 
   //Fake data
   if(sm_p->w[SCIID].fakemode != FAKEMODE_NONE){
-    if(sm_p->w[SCIID].fakemode == FAKEMODE_GEN_IMAGE_CAMERA_SYNC)
+    if(sm_p->w[SCIID].fakemode == FAKEMODE_TEST_PATTERN)
       for(k=0;k<SCI_NBANDS;k++)
 	for(i=0;i<SCIXS;i++)
 	  for(j=0;j<SCIYS;j++)
@@ -415,7 +415,7 @@ void sci_process_image(sm_t *sm_p,uint16 *img_buffer,double ccdtemp){
 
     //Fake data
     if(sm_p->w[SCIID].fakemode != FAKEMODE_NONE){
-      if(sm_p->w[SCIID].fakemode == FAKEMODE_GEN_IMAGE_CAMERA_SYNC)
+      if(sm_p->w[SCIID].fakemode == FAKEMODE_TEST_PATTERN)
 	for(k=0;k<SCI_NBANDS;k++)
 	  for(i=0;i<SCIXS;i++)
 	    for(j=0;j<SCIYS;j++)

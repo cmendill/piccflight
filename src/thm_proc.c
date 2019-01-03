@@ -22,6 +22,7 @@
 #define AD_CONFIG_MODE 3
 #define AD_RANGE_CODE  3
 #define HTR_NSTEPS     100
+#define HTR_NCYCLES    10
 
 /* temperature conversion */
 #define ADC1_VREF       4.71    //volts
@@ -42,6 +43,9 @@ void thmctrlC(int sig)
 #if MSG_CTRLC
   printf("THM: ctrlC! exiting.\n");
 #endif
+  //turn off all heaters
+  outb(0xFF,SSR_BASE+0);
+  outb(0xFF,SSR_BASE+4);
   close(thm_shmfd);
   exit(sig);
 }
@@ -55,13 +59,13 @@ void thm_proc(void){
   double resistance;              // calculated RTD resistance
   uint16_t htr_output;            // heater output word
   unsigned char htr_lsb=0,htr_msb=0;
-  const long htr_sleep = ONE_MILLION / HTR_NSTEPS; //us
+  const long htr_sleep = ONE_MILLION / HTR_NSTEPS / HTR_NCYCLES; //us
 
   //DSCUD Variables
   BYTE result;                    // returned error code
   DSCB board1, board2, board3;    // handle used to refer to the board
   ERRPARAMS errorParams;          // structure for returning error code and error string
-  int i, j;                       // miscellaneous counters
+  int i, j, k;                    // miscellaneous counters
   DSCSAMPLE samples1[ADC1_NCHAN]; // digital readings
   DSCSAMPLE samples2[ADC2_NCHAN]; // digital readings
   DSCSAMPLE samples3[ADC3_NCHAN]; // digital readings
@@ -365,17 +369,19 @@ void thm_proc(void){
     }
     
     /* Command Heaters */
-    for(i=0;i<HTR_NSTEPS;i++){
-      htr_output = 0;
-      for(j=0;j<SSR_NCHAN;j++)
-      	htr_output |= (i < thmevent.htr_power[j]) << j;
-      htr_lsb = ~htr_output & 0x00FF;
-      htr_msb = (~htr_output & 0xFF00) >> 8;
-      outb(htr_lsb,SSR_BASE+0);
-      outb(htr_msb,SSR_BASE+4);
-      
-      //sleep
-      usleep(htr_sleep);
+    for(k=0;k<HTR_NCYCLES;k++){
+      for(i=0;i<HTR_NSTEPS;i++){
+	htr_output = 0;
+	for(j=0;j<SSR_NCHAN;j++)
+	  htr_output |= (i < thmevent.htr_power[j]) << j;
+	htr_lsb = ~htr_output & 0x00FF;
+	htr_msb = (~htr_output & 0xFF00) >> 8;
+	outb(htr_lsb,SSR_BASE+0);
+	outb(htr_msb,SSR_BASE+4);
+	
+	//sleep
+	usleep(htr_sleep);
+      }
     }
     if(THM_DEBUG) printf("THM: MSB: 0x%2.2x  LSB: 0x%2.2x\n",htr_msb,htr_lsb);
 
