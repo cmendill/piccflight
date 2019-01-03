@@ -39,7 +39,7 @@
 #define DOOR_STATUS_CLOSING (1 << 3)
 
 /* Door Parameters */
-#define DOOR_TIMEOUT        {6,1,1,1}
+#define DOOR_TIMEOUT        {180,1,6,1}
 
 
 /* Process File Descriptor */
@@ -220,9 +220,9 @@ void mtr_proc(void){
     /* Print status messages */
     for(i=0;i<MTR_NDOORS;i++){
       if(mtrevent.door_status[i] & DOOR_STATUS_OPEN)    printf("MTR: Door %d OPEN\n",i+1); 
-      if(mtrevent.door_status[i] & DOOR_STATUS_OPENING) printf("MTR: Door %d OPENING\n",i+1); 
+      if(mtrevent.door_status[i] & DOOR_STATUS_OPENING) printf("MTR: Door %d OPENING %d/%d\n",i+1,door_open_count[i],door_timeout[i]); 
       if(mtrevent.door_status[i] & DOOR_STATUS_CLOSED)  printf("MTR: Door %d CLOSED\n",i+1); 
-      if(mtrevent.door_status[i] & DOOR_STATUS_CLOSING) printf("MTR: Door %d CLOSING\n",i+1); 
+      if(mtrevent.door_status[i] & DOOR_STATUS_CLOSING) printf("MTR: Door %d CLOSING %d/%d\n",i+1,door_close_count[i],door_timeout[i]); 
     }
         
     
