@@ -352,6 +352,7 @@ static DM7820_Error rtd_alp_write_dma_fifo(DM7820_Board_Descriptor* p_rtd_board)
 static DM7820_Error rtd_tlm_write_dma_fifo(DM7820_Board_Descriptor* p_rtd_board) {
   DM7820_Error dm7820_status=0,dm7820_return=0;
   uint8_t fifo_status;
+  uint32_t count=0;
   
   //Sleep until current DMA transfer is done
   while(DM7820_General_Check_DMA_1_Transfer(p_rtd_board) == 0)
@@ -368,6 +369,11 @@ static DM7820_Error rtd_tlm_write_dma_fifo(DM7820_Board_Descriptor* p_rtd_board)
     if((dm7820_status = DM7820_FIFO_Get_Status(p_rtd_board,DM7820_FIFO_QUEUE_1,DM7820_FIFO_STATUS_READ_REQUEST,&fifo_status)))
       perror("DM7820_FIFO_Get_Status");
     dm7820_return |= dm7820_status;
+    if(count++ > 10000){
+      printf("RTD: rtd_tlm_write_dma_fifo TIMEOUT\n");
+      //One second timeout
+      return 1;
+    }
   }
 
   //Write data to driver's DMA buffer

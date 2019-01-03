@@ -219,7 +219,8 @@ void tlm_proc(void){
 	}else{
 	  //RTD write fake data
 	  if(sm_p->tlm_ready){
-	    rtd_send_tlm(sm_p->p_rtd_board,(char *)fakeword,sizeof(uint16)*NFAKE);
+	    if(rtd_send_tlm(sm_p->p_rtd_board,(char *)fakeword,sizeof(uint16)*NFAKE))
+	      printf("TLM: rtd_send_tlm failed!\n");
 	    usleep(50000);
 	  }
 	}
