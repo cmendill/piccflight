@@ -107,6 +107,8 @@ INSTALL PACKAGES
  - libusb
      sudo apt-get install libusb-1.0-0-dev
      sudo ln -s /usr/include/libusb-1.0/libusb.h /usr/include/libusb.h	
+ - setserial
+     sudo apt-get install setserial
  - mkl 
      Download Intel MKL library (l_mkl_2018.3.222.tgz)
      Transfer to flight computer
