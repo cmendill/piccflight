@@ -133,3 +133,11 @@ AUTO MODULE LOADING
     rtd_dm7820
     fliusb
    
+SERIAL PORT SETUP (EMM-4M-XT)
+ - After installing setserial, check available devices with:
+    sudo setserial -g /dev/ttyS*
+ - Then setup ports:
+    sudo setserial /dev/ttyS10 port 0x380 irq 5 uart 16654 Baud_base 115200
+    sudo setserial /dev/ttyS11 port 0x388 irq 6 uart 16654 Baud_base 115200
+    sudo setserial /dev/ttyS12 port 0x288 irq 10 uart 16654 Baud_base 115200
+    sudo setserial /dev/ttyS13 port 0x230 irq 11 uart 16654 Baud_base 115200

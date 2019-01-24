@@ -1237,6 +1237,18 @@ int handle_command(char *line, sm_t *sm_p){
     }
     return CMD_NORMAL;
   }
+  sprintf(cmd,"stop door");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    itemp = atoi(line+strlen(cmd));
+    if(itemp >= 1 && itemp <= MTR_NDOORS){
+      printf("CMD: Stopping door %d\n",itemp);
+      sm_p->stop_door[itemp-1] = 1;
+    }
+    else{
+      printf("CMD: Door index out of range: [1,%d]\n",MTR_NDOORS);
+    }
+    return CMD_NORMAL;
+  }
   
   //Heater commands
   sprintf(cmd,"htr");

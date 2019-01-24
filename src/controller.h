@@ -873,7 +873,8 @@ typedef volatile struct {
   //Door Commands
   int open_door[MTR_NDOORS];
   int close_door[MTR_NDOORS];
-
+  int stop_door[MTR_NDOORS];
+  
   //Heater Commands
   int htr_override[SSR_NCHAN];
   int htr_power[SSR_NCHAN];

@@ -37,6 +37,7 @@
 #define DOOR_STATUS_CLOSED  (1 << 1)
 #define DOOR_STATUS_OPENING (1 << 2)
 #define DOOR_STATUS_CLOSING (1 << 3)
+#define DOOR_STATUS_STOPPED (1 << 4)
 
 /* Door Parameters */
 #define DOOR_TIMEOUT        {180,1,6,1}
@@ -207,8 +208,25 @@ void mtr_proc(void){
 	//Reset counter
 	door_close_count[i] = 0;
       }
+    
+      //STOP DOOR
+      if(sm_p->stop_door[i]){
+	//Set all relays OFF
+	outw(0x0000,REL_BASE);
+	//Set door status
+	mtrevent.door_status[i] |= DOOR_STATUS_STOPPED;
+	mtrevent.door_status[i] &= ~DOOR_STATUS_CLOSING;
+	mtrevent.door_status[i] &= ~DOOR_STATUS_OPENING;
+	//Clear commands
+	sm_p->stop_door[i]  = 0;
+	sm_p->open_door[i]  = 0;
+	sm_p->close_door[i] = 0;
+	//Reset counters
+	door_open_count[i]  = 0;
+	door_close_count[i] = 0;
+      }
     }
-
+    
     /* Get end time */
     clock_gettime(CLOCK_REALTIME,&end);
     mtrevent.hed.end_sec    = end.tv_sec;
@@ -223,6 +241,7 @@ void mtr_proc(void){
       if(mtrevent.door_status[i] & DOOR_STATUS_OPENING) printf("MTR: Door %d OPENING %d/%d\n",i+1,door_open_count[i],door_timeout[i]); 
       if(mtrevent.door_status[i] & DOOR_STATUS_CLOSED)  printf("MTR: Door %d CLOSED\n",i+1); 
       if(mtrevent.door_status[i] & DOOR_STATUS_CLOSING) printf("MTR: Door %d CLOSING %d/%d\n",i+1,door_close_count[i],door_timeout[i]); 
+      if(mtrevent.door_status[i] & DOOR_STATUS_STOPPED) printf("MTR: Door %d STOPPED\n",i+1); 
     }
         
     
@@ -234,6 +253,7 @@ void mtr_proc(void){
 	printf("MTR: Door %d  CLOSED: %d\n",i+1,(mtrevent.door_status[i] & DOOR_STATUS_CLOSED) > 0); 
 	printf("MTR: Door %d OPENING: %d\n",i+1,(mtrevent.door_status[i] & DOOR_STATUS_OPENING) > 0); 
 	printf("MTR: Door %d CLOSING: %d\n",i+1,(mtrevent.door_status[i] & DOOR_STATUS_CLOSING) > 0); 
+	printf("MTR: Door %d STOPPED: %d\n",i+1,(mtrevent.door_status[i] & DOOR_STATUS_STOPPED) > 0); 
       }
     }
 
