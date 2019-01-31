@@ -297,7 +297,8 @@ void thm_proc(void){
     checkin(sm_p,THMID);
     
     /* Fill out event header */
-    thmevent.hed.packet_type  = THMEVENT;
+    thmevent.hed.version      = PICC_PKT_VERSION;
+    thmevent.hed.type         = THMEVENT;
     thmevent.hed.frame_number = count++;
     thmevent.hed.start_sec    = start.tv_sec;
     thmevent.hed.start_nsec   = start.tv_nsec;

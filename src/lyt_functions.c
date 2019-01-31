@@ -575,7 +575,8 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   ts2double(&delta,&dt);
 
   //Fill out event header
-  lytevent.hed.packet_type  = LYTEVENT;
+  lytevent.hed.version      = PICC_PKT_VERSION;
+  lytevent.hed.type         = LYTEVENT;
   lytevent.hed.frame_number = frame_number;
   lytevent.hed.exptime      = 0;
   lytevent.hed.ontime       = dt;
@@ -728,7 +729,7 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   if(dt > LYT_FULL_IMAGE_TIME){
     //Copy packet header
     memcpy(&lytfull.hed,&lytevent.hed,sizeof(pkthed_t));
-    lytfull.hed.packet_type = LYTFULL;
+    lytfull.hed.type = LYTFULL;
 
     //Fake data
     if(sm_p->w[LYTID].fakemode != FAKEMODE_NONE){

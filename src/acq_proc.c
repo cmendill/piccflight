@@ -97,7 +97,8 @@ void cb(uvc_frame_t *frame, void *ptr) {
   ts2double(&delta,&dt);
 
   /* Fill out event header */
-  acqevent.hed.packet_type  = ACQEVENT;
+  acqevent.hed.version      = PICC_PKT_VERSION;
+  acqevent.hed.type         = ACQEVENT;
   acqevent.hed.frame_number = frame->sequence;
   acqevent.hed.exptime      = 0;
   acqevent.hed.ontime       = dt;
@@ -137,7 +138,7 @@ void cb(uvc_frame_t *frame, void *ptr) {
     
     //Copy packet header
     memcpy(&acqfull.hed,&acqevent.hed,sizeof(pkthed_t));
-    acqfull.hed.packet_type = ACQFULL;
+    acqfull.hed.type = ACQFULL;
     
     //Fake data
     if(sm_p->w[ACQID].fakemode != FAKEMODE_NONE){

@@ -127,7 +127,8 @@ void mtr_proc(void){
     checkin(sm_p,MTRID);
 
     /* Fill out event header */
-    mtrevent.hed.packet_type  = MTREVENT;
+    mtrevent.hed.version      = PICC_PKT_VERSION;
+    mtrevent.hed.type         = MTREVENT;
     mtrevent.hed.frame_number = count++;
     mtrevent.hed.start_sec    = start.tv_sec;
     mtrevent.hed.start_nsec   = start.tv_nsec;

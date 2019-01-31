@@ -641,9 +641,11 @@ typedef struct wsp_struct{
 /*************************************************
  * Packet Header
  *************************************************/
+#define PICC_PKT_VERSION     1  //packet version number
 typedef struct pktheader_struct{
-  uint32  packet_type;
-  uint32  frame_number;
+  uint16  version;      //packet version number
+  uint16  type;         //packet type
+  uint32  frame_number; //image frame number
   float   exptime;      //commanded exposure time
   float   ontime;       //measured frame time
   float   temp;         //sensor temperature, if available

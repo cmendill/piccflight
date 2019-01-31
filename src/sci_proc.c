@@ -358,7 +358,8 @@ void sci_process_image(sm_t *sm_p,uint16 *img_buffer,double ccdtemp){
   }
 
   /* Fill out event header */
-  scievent.hed.packet_type  = SCIEVENT;
+  scievent.hed.version      = PICC_PKT_VERSION;
+  scievent.hed.type         = SCIEVENT;
   scievent.hed.frame_number = frame_number++;
   scievent.hed.exptime      = sm_p->sci_exptime;
   scievent.hed.ontime       = dt;
@@ -411,7 +412,7 @@ void sci_process_image(sm_t *sm_p,uint16 *img_buffer,double ccdtemp){
     if(SCI_DEBUG) printf("SCI: Buffer Size: %lu\n",sizeof(sci_t));  
     /* Copy packet header */
     memcpy(&scifull.hed,&scievent.hed,sizeof(pkthed_t));
-    scifull.hed.packet_type = SCIFULL;
+    scifull.hed.type = SCIFULL;
 
     //Fake data
     if(sm_p->w[SCIID].fakemode != FAKEMODE_NONE){

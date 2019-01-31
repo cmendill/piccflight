@@ -919,7 +919,8 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   ts2double(&delta,&dt);
 
   //Fill out event header
-  shkevent.hed.packet_type  = SHKEVENT;
+  shkevent.hed.version      = PICC_PKT_VERSION;
+  shkevent.hed.type         = SHKEVENT;
   shkevent.hed.frame_number = frame_number;
   shkevent.hed.exptime      = 0;
   shkevent.hed.ontime       = dt;
@@ -1192,7 +1193,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   if(dt > SHK_FULL_IMAGE_TIME){
     //Copy packet header
     memcpy(&shkfull.hed,&shkevent.hed,sizeof(pkthed_t));
-    shkfull.hed.packet_type = SHKFULL;
+    shkfull.hed.type = SHKFULL;
 
     //Fake data
     if(sm_p->w[SHKID].fakemode != FAKEMODE_NONE){
