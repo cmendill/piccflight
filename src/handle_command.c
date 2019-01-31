@@ -7,6 +7,7 @@
 #include <signal.h>
 #include <fcntl.h>
 #include <ctype.h>
+#include <sys/io.h>
 
 /* piccflight headers */
 #include "watchdog.h"
@@ -151,6 +152,7 @@ int handle_command(char *line, sm_t *sm_p){
   int   i=0,j=0,hex_axis=0;
   double hex_poke=0;
   int    calmode=0;
+  uint16_t led;
   static double trl_poke = HEX_TRL_POKE;//0.01;
   static double rot_poke = HEX_ROT_POKE;///0.01;
   static calmode_t alpcalmodes[ALP_NCALMODES];
@@ -1303,7 +1305,29 @@ int handle_command(char *line, sm_t *sm_p){
     printf("CMD: Bad heater command format\n");
     return CMD_NORMAL;
   }
-
+  
+  //LED commands
+  sprintf(cmd,"led on");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    ftemp = atof(line+strlen(cmd));
+    if(ftemp >= 0 && ftemp <= 5){
+      printf("CMD: Turning LED ON %f volts \n",ftemp);
+      led = (ftemp/5.0) * 0x0FFF;
+      outb((led & 0x00FF),ADC1_BASE+4);
+      outb(((led & 0xFF00) >> 8),ADC1_BASE+5);
+    }else{
+      printf("CMD: LED voltage range = [0,5]\n");
+    }
+    return CMD_NORMAL;
+  }
+  sprintf(cmd,"led off");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    printf("CMD: Turning LED OFF\n");
+    outb(0x00,ADC1_BASE+4);
+    outb(0x00,ADC1_BASE+5);
+    return CMD_NORMAL;
+  }
+  
   
   /****************************************
    * BLANK COMMAND
