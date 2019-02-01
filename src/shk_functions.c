@@ -305,13 +305,13 @@ void shk_centroid_cell(uint16 *image, shkcell_t *cell, int shk_boxsize, int samp
     //Check if the spot is captured
     if(cell->spot_captured){
       //If spot was captured, but is now outside the box, unset captured
-      if((abs(xdeviation) > shk_boxsize) || (abs(ydeviation) > shk_boxsize)){
+      if((fabs(xdeviation) > shk_boxsize) || (fabs(ydeviation) > shk_boxsize)){
 	cell->spot_captured=0;
       }
     }
     else{
       //If spot was not captured, check if it is within the capture region
-      if((abs(xdeviation) < (shk_boxsize-SHK_BOX_DEADBAND)) && (abs(ydeviation) < (shk_boxsize-SHK_BOX_DEADBAND))){
+      if((fabs(xdeviation) < (shk_boxsize-SHK_BOX_DEADBAND)) && (fabs(ydeviation) < (shk_boxsize-SHK_BOX_DEADBAND))){
 	cell->spot_captured=1;
       }
     }
@@ -908,7 +908,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   ts2double(&delta,&dt);
 
   //Get sample index
-  sample = shkevent->hed.frame_number % SHK_NSAMPLES;
+  sample = shkevent.hed.frame_number % SHK_NSAMPLES;
 
   //Fill out event header
   shkevent.hed.version      = PICC_PKT_VERSION;
@@ -933,10 +933,9 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   memcpy(shkevent.hed.tgt_calmode_name,tgtcalmodes[shkevent.hed.tgt_calmode].name,sizeof(tgtcalmodes[shkevent.hed.tgt_calmode].name));
   
   //Save gains
-  memcpy(shkevent.gain_alp_cell,sm_p->shk_gain_alp_cell,sizeof(shkevent.gain_alp_cell));
-  memcpy(shkevent.gain_alp_zern,sm_p->shk_gain_alp_zern,sizeof(shkevent.gain_alp_zern));
-  memcpy(shkevent.gain_hex_cell,sm_p->shk_gain_hex_cell,sizeof(shkevent.gain_hex_cell));
-  memcpy(shkevent.gain_hex_zern,sm_p->shk_gain_hex_zern,sizeof(shkevent.gain_hex_zern));
+  memcpy(shkevent.gain_alp_cell,(void *)sm_p->shk_gain_alp_cell,sizeof(shkevent.gain_alp_cell));
+  memcpy(shkevent.gain_alp_zern,(void *)sm_p->shk_gain_alp_zern,sizeof(shkevent.gain_alp_zern));
+  memcpy(shkevent.gain_hex_zern,(void *)sm_p->shk_gain_hex_zern,sizeof(shkevent.gain_hex_zern));
   
   //Save zernike targets
   for(i=0;i<LOWFS_N_ZERNIKE;i++){
@@ -955,15 +954,16 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   if(state == STATE_STANDBY) shkevent.boxsize = SHK_MAX_BOXSIZE;
 
   //Run target calibration
-  if((sm_p->state_array[state].alp_commander == SHKID))
+  if(sm_p->state_array[state].alp_commander == SHKID){
     if(shkevent.hed.tgt_calmode != TGT_CALMODE_NONE){
       sm_p->tgt_calmode = tgt_calibrate(shkevent.hed.tgt_calmode,zernike_target,&shkevent.hed.tgt_calstep,SHKID,FUNCTION_NO_RESET);
       for(i=0;i<LOWFS_N_ZERNIKE;i++){
 	//This is done this way to preserve double data types in function call above
-	shkevent.zernike_target[i] = zernike_target;
+	shkevent.zernike_target[i] = zernike_target[i];
       }
     }
-
+  }
+  
   //Set centroid targets based on zernike targets
   shk_zernike_ops(&shkevent,0,1,FUNCTION_NO_RESET);
   
@@ -1196,7 +1196,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
       memcpy(&(shkfull.image.data[0][0]),buffer->pvAddress,sizeof(shkfull.image.data));
     }
     
-    //Copy event
+    //Copy shkevent
     memcpy(&shkfull.shkevent,&shkevent,sizeof(shkevent));
 
     //Get final timestamp
@@ -1205,7 +1205,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     shkfull.hed.end_nsec = end.tv_nsec;
     
     //Write event to circular buffer
-    close_buffer(sm_p,&shkfull,SHKFULL);
+    write_to_buffer(sm_p,&shkfull,SHKFULL);
 
     //Reset time
     memcpy(&full_last,&start,sizeof(struct timespec));

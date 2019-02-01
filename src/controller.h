@@ -700,8 +700,10 @@ typedef struct pktheader_struct{
 typedef struct shkevent_struct{
   pkthed_t  hed;
   uint32    boxsize;
+  uint32    padding;
   float     gain_alp_zern[LOWFS_N_ZERNIKE][LOWFS_N_PID];
   float     gain_alp_cell[LOWFS_N_PID];
+  float     gain_hex_zern[LOWFS_N_PID];
   shkcell_t cells[SHK_BEAM_NCELLS];
   float     zernike_target[LOWFS_N_ZERNIKE];
   float     zernike_measured[LOWFS_N_ZERNIKE][SHK_NSAMPLES];
@@ -851,7 +853,6 @@ typedef volatile struct {
   int shk_boxsize;                                        //SHK centroid boxsize
   float shk_gain_alp_cell[LOWFS_N_PID];                   //SHK ALP cell gains
   float shk_gain_alp_zern[LOWFS_N_ZERNIKE][LOWFS_N_PID];  //SHK ALP zern gains
-  float shk_gain_hex_cell[LOWFS_N_PID];                   //SHK HEX cell gains
   float shk_gain_hex_zern[LOWFS_N_PID];                   //SHK HEX zern gains
 
   //Lyot LOWFS Settings
