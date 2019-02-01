@@ -451,11 +451,31 @@ enum bufids {SCIEVENT, SCIFULL,
 #define SHK_YMAX              (SHKYS-1)
 #define SHK_BOXSIZE_CMD_STD   0  //use the current runtime boxsize
 #define SHK_BOXSIZE_CMD_MAX   1  //use the maximum boxsize
+#define SHK_NSAMPLES          20 //number of samples per shkevent
+#define SHK_BEAM_SELECT	{			\
+      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,		\
+      0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,		\
+      0,0,0,0,1,1,1,1,1,1,1,1,0,0,0,0,		\
+      0,0,0,1,1,1,1,1,1,1,1,1,1,0,0,0,		\
+      0,0,1,1,1,1,1,1,1,1,1,1,1,1,0,0,		\
+      0,0,1,1,1,1,1,1,1,1,1,1,1,1,0,0,		\
+      0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,		\
+      0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,		\
+      0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,		\
+      0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,		\
+      0,0,1,1,1,1,1,1,1,1,1,1,1,1,0,0,		\
+      0,0,1,1,1,1,1,1,1,1,1,1,1,1,0,0,		\
+      0,0,0,1,1,1,1,1,1,1,1,1,1,0,0,0,		\
+      0,0,0,0,1,1,1,1,1,1,1,1,0,0,0,0,		\
+      0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,		\
+      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
+#define SHK_BEAM_NCELLS 148
 
 /*************************************************
  * Lyot-LOWFS Parameters
  *************************************************/
 #define LYT_CONTROL_NPIX      709 //number of controlled pixels on LLOWFS
+#define LYT_NSAMPLES          200 //number of samples per lytevent
 
 /*************************************************
  * SCI Camera Parameters
@@ -587,32 +607,28 @@ typedef struct lyt_struct{
 } lyt_t;
 
 typedef struct acq_struct{
-  uint16 data[ACQXS][ACQYS];
+  uint8 data[ACQXS][ACQYS];
 } acq_t;
 
-typedef struct {
-  //keep aligned on 8 byte boundary
-  uint16 index;
-  uint16 beam_select;
-  uint16 spot_found;
-  uint16 spot_captured;
-  //-----
-  uint32 maxpix;
-  uint32 maxval;
-  //-----
-  uint16 blx;
-  uint16 bly;
-  uint16 trx;
-  uint16 try;
-  //-----
-  double intensity;
-  double background;
-  double origin[2];
-  double target[2];
-  double centroid[2];
-  double target_deviation[2];
-  double origin_deviation[2];
-  double command[2];
+typedef struct shkcell_struct{
+  uint16    spot_found;
+  uint16    spot_captured;
+  uint16    maxpix;
+  uint16    maxval;
+  uint16    blx;
+  uint16    bly;
+  uint16    tlx;
+  uint16    tly;
+  uint32    intensity;
+  uint32    background;
+  float     xorigin;
+  float     yorigin;
+  float     xtarget;
+  float     ytarget;
+  float     xcentroid[SHK_NSAMPLES];
+  float     ycentroid[SHK_NSAMPLES];
+  float     xcommand[SHK_NSAMPLES];
+  float     ycommand[SHK_NSAMPLES];
 } shkcell_t;
 
 /*************************************************
@@ -641,30 +657,37 @@ typedef struct wsp_struct{
 /*************************************************
  * Packet Header
  *************************************************/
-#define PICC_PKT_VERSION     1  //packet version number
+#define PICC_PKT_VERSION     2  //packet version number
 typedef struct pktheader_struct{
   uint16  version;      //packet version number
-  uint16  type;         //packet type
-  uint32  frame_number; //image frame number
+  uint16  type;         //packet ID word
+  uint16  imxsize;      //image x size [px]
+  uint16  imysize;      //image y size [px]
+
+  uint32  frame_number; //image counter
+  uint32  state;        //system state
+
   float   exptime;      //commanded exposure time
+  float   frametime;    //commanded frame time
   float   ontime;       //measured frame time
   float   temp;         //sensor temperature, if available
-  uint32  imxsize;      //image x size [px]
-  uint32  imysize;      //image y size [px]
-  uint32  state;        //system state
-  uint32  hex_calmode;  //hex calmode
-  uint32  alp_calmode;  //alp calmode
-  uint32  bmc_calmode;  //bmc calmode
-  uint32  tgt_calmode;  //tgt calmode
+
+  uint16  hex_calmode;  //hex calmode
+  uint16  alp_calmode;  //alp calmode
+  uint16  bmc_calmode;  //bmc calmode
+  uint16  tgt_calmode;  //tgt calmode
+
   uint32  hex_calstep;  //hex calstep
   uint32  alp_calstep;  //alp calstep
   uint32  bmc_calstep;  //bmc calstep
   uint32  tgt_calstep;  //tgt calstep
-  char    state_name[MAX_COMMAND]; //string name of state
+
+  char    state_name[MAX_COMMAND];       //string name of state
   char    hex_calmode_name[MAX_COMMAND]; //string name of hex_calmode
   char    alp_calmode_name[MAX_COMMAND]; //string name of alp_calmode
   char    bmc_calmode_name[MAX_COMMAND]; //string name of bmc_calmode
   char    tgt_calmode_name[MAX_COMMAND]; //string name of tgt_calmode
+  
   int64   start_sec;    //event start time
   int64   start_nsec;   //event start time
   int64   end_sec;      //event end time
@@ -674,6 +697,22 @@ typedef struct pktheader_struct{
 /*************************************************
  * Event Structures
  *************************************************/
+typedef struct shkevent_struct{
+  pkthed_t  hed;
+  uint32    boxsize;
+  float     gain_alp_zern[LOWFS_N_ZERNIKE][LOWFS_N_PID];
+  float     gain_alp_cell[LOWFS_N_PID];
+  shkcell_t cells[SHK_BEAM_NCELLS];
+  float     zernike_target[LOWFS_N_ZERNIKE];
+  float     zernike_measured[LOWFS_N_ZERNIKE][SHK_NSAMPLES];
+  float     alp_acmd[ALP_NACT][SHK_NSAMPLES];
+  float     alp_zcmd[LOWFS_N_ZERNIKE][SHK_NSAMPLES];
+  float     hex_acmd[HEX_NAXES];
+  float     hex_zcmd[LOWFS_N_ZERNIKE];
+  float     wsp_pcmd;
+  float     wsp_ycmd;
+} shkevent_t;
+
 typedef struct scievent_struct{
   pkthed_t hed;
   uint32   xorigin[SCI_NBANDS];
@@ -681,35 +720,10 @@ typedef struct scievent_struct{
   sci_t    image[SCI_NBANDS];
 } scievent_t;
 
-typedef struct shkevent_struct{
-  pkthed_t  hed;
-  uint32    beam_ncells;
-  uint32    boxsize;
-  double    xtilt;
-  double    ytilt;
-  double    kP_alp_cell;
-  double    kI_alp_cell;
-  double    kD_alp_cell;
-  double    kP_alp_zern;
-  double    kI_alp_zern;
-  double    kD_alp_zern;
-  double    kP_hex_zern;
-  double    kI_hex_zern;
-  double    kD_hex_zern;
-  shkcell_t cells[SHK_NCELLS];
-  double    zernike_measured[LOWFS_N_ZERNIKE];
-  double    zernike_target[LOWFS_N_ZERNIKE];
-  hex_t     hex;
-  alp_t     alp;
-  wsp_t     wsp;
-} shkevent_t;
-
 typedef struct lytevent_struct{
   pkthed_t  hed;
-  double    xtilt;
-  double    ytilt;
-  double    gain_alp_act[LOWFS_N_PID];
-  double    gain_alp_zern[LOWFS_N_ZERNIKE][LOWFS_N_PID];
+  float     gain_alp_act[LOWFS_N_PID];
+  float     gain_alp_zern[LOWFS_N_ZERNIKE][LOWFS_N_PID];
   double    zernike_measured[LOWFS_N_ZERNIKE];
   double    zernike_target[LOWFS_N_ZERNIKE];
   double    alp_measured[ALP_NACT];
@@ -805,10 +819,10 @@ typedef volatile struct {
   state_t state_array[NSTATES]; //Array of states
 
   //Camera exposure times
-  double sci_exptime;
-  double shk_exptime;
-  double lyt_exptime;
-  double acq_exptime;
+  float sci_exptime;
+  float shk_exptime;
+  float lyt_exptime;
+  float acq_exptime;
    
   //ALP Command
   int   alp_command_lock;
@@ -834,23 +848,15 @@ typedef volatile struct {
   char calfile[MAX_FILENAME];
 
   //Shack-Hartmann Settings
-  int shk_boxsize;            //SHK centroid boxsize
-  double shk_kP_alp_cell;     //SHK ALP cell gains
-  double shk_kI_alp_cell;     //SHK ALP cell gains
-  double shk_kD_alp_cell;     //SHK ALP cell gains
-  double shk_kP_alp_zern;     //SHK ALP zernike gains
-  double shk_kI_alp_zern;     //SHK ALP zernike gains
-  double shk_kD_alp_zern;     //SHK ALP zernike gains
-  double shk_kP_hex_cell;     //SHK HEX cell gains
-  double shk_kI_hex_cell;     //SHK HEX cell gains
-  double shk_kD_hex_cell;     //SHK HEX cell gains
-  double shk_kP_hex_zern;     //SHK HEX zernike gains
-  double shk_kI_hex_zern;     //SHK HEX zernike gains
-  double shk_kD_hex_zern;     //SHK HEX zernike gains
+  int shk_boxsize;                                        //SHK centroid boxsize
+  float shk_gain_alp_cell[LOWFS_N_PID];                   //SHK ALP cell gains
+  float shk_gain_alp_zern[LOWFS_N_ZERNIKE][LOWFS_N_PID];  //SHK ALP zern gains
+  float shk_gain_hex_cell[LOWFS_N_PID];                   //SHK HEX cell gains
+  float shk_gain_hex_zern[LOWFS_N_PID];                   //SHK HEX zern gains
 
   //Lyot LOWFS Settings
-  double lyt_gain_alp_zern[LOWFS_N_ZERNIKE][LOWFS_N_PID];  //LYT ALP zernike PID gains
-  double lyt_gain_alp_act[LOWFS_N_PID];                    //LYT ALP actuator PID gains
+  float lyt_gain_alp_zern[LOWFS_N_ZERNIKE][LOWFS_N_PID];  //LYT ALP zernike PID gains
+  float lyt_gain_alp_act[LOWFS_N_PID];                    //LYT ALP actuator PID gains
   
   //Camera Reset Commands
   int shk_reset_camera;
@@ -882,8 +888,8 @@ typedef volatile struct {
   int htr_power[SSR_NCHAN];
       
   //Zernike Targets
-  double shk_zernike_target[LOWFS_N_ZERNIKE];
-  double lyt_zernike_target[LOWFS_N_ZERNIKE];
+  float shk_zernike_target[LOWFS_N_ZERNIKE];
+  float lyt_zernike_target[LOWFS_N_ZERNIKE];
 
   //Zernike control switches
   int zernike_control[LOWFS_N_ZERNIKE];
