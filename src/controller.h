@@ -617,8 +617,8 @@ typedef struct shkcell_struct{
   uint16    maxval;
   uint16    blx;
   uint16    bly;
-  uint16    tlx;
-  uint16    tly;
+  uint16    trx;
+  uint16    try;
   uint32    intensity;
   uint32    background;
   float     xorigin;

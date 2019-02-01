@@ -128,12 +128,12 @@ void shk_saveorigin(shkevent_t *shkevent){
   
   //Save origin
   for(i=0;i<SHK_BEAM_NCELLS;i++){
-    if(fwrite(shkevent->cells[i].xorigin,sizeof(shkevent->cells[i].xorigin),1,fd) != 1){
+    if(fwrite(&shkevent->cells[i].xorigin,sizeof(shkevent->cells[i].xorigin),1,fd) != 1){
       printf("SHK: saveorigin fwrite error!\n");
       fclose(fd);
       return;
     }
-    if(fwrite(shkevent->cells[i].yorigin,sizeof(shkevent->cells[i].yorigin),1,fd) != 1){
+    if(fwrite(&shkevent->cells[i].yorigin,sizeof(shkevent->cells[i].yorigin),1,fd) != 1){
       printf("SHK: saveorigin fwrite error!\n");
       fclose(fd);
       return;
@@ -178,12 +178,12 @@ void shk_loadorigin(shkevent_t*shkevent){
   
   //Read file
   for(i=0;i<SHK_BEAM_NCELLS;i++){
-    if(fread(cells[i].xorigin,sizeof(cells[i].xorigin),1,fd) != 1){
+    if(fread(&cells[i].xorigin,sizeof(cells[i].xorigin),1,fd) != 1){
       perror("SHK: loadorigin fread");
       fclose(fd);
       return;
     }
-    if(fread(cells[i].yorigin,sizeof(cells[i].yorigin),1,fd) != 1){
+    if(fread(&cells[i].yorigin,sizeof(cells[i].yorigin),1,fd) != 1){
       perror("SHK: loadorigin fread");
       fclose(fd);
       return;
@@ -243,8 +243,8 @@ void shk_centroid_cell(uint16 *image, shkcell_t *cell, int shk_boxsize, int samp
   //Save box corners
   cell->blx = blx;
   cell->bly = bly;
-  cell->tlx = tlx;
-  cell->tly = tly;
+  cell->trx = trx;
+  cell->try = try;
   
   //Initially set centroid to brightest pixel
   maxval = 0;
@@ -339,8 +339,8 @@ void shk_centroid_cell(uint16 *image, shkcell_t *cell, int shk_boxsize, int samp
     //Save box corners
     cell->blx = blx;
     cell->bly = bly;
-    cell->tlx = tlx;
-    cell->tly = tly;
+    cell->trx = trx;
+    cell->try = try;
     
     //Build x,y histograms
     maxval = 0;
@@ -411,10 +411,13 @@ void shk_centroid_cell(uint16 *image, shkcell_t *cell, int shk_boxsize, int samp
 /**************************************************************/
 void shk_centroid(uint16 *image, shkevent_t *shkevent){
   int i;
-  
+
+  //Get sample index
+  int sample = shkevent->hed.frame_number % SHK_NSAMPLES;
+
   //Centroid cells
   for(i=0;i<SHK_BEAM_NCELLS;i++)
-    shk_centroid_cell(image,&shkevent->cells[i],shkevent->boxsize);
+    shk_centroid_cell(image,&shkevent->cells[i],shkevent->boxsize,sample);
 }
 
 /**************************************************************/
@@ -424,8 +427,7 @@ void shk_centroid(uint16 *image, shkevent_t *shkevent){
 void shk_zernike_matrix(shkcell_t *cells, double *matrix_fwd, double *matrix_inv){
   int i;
   double max_x = 0, max_y = 0, min_x = SHKXS, min_y = SHKYS;
-  double beam_xcenter,beam_ycenter,beam_radius,beam_radius_m;
-  double unit_xconversion,unit_yconverseion;
+  double beam_xcenter,beam_ycenter,beam_radius,beam_radius_m,unit_conversion;
   double dz_dxdy[2*SHK_BEAM_NCELLS*LOWFS_N_ZERNIKE] = {0};
   double x_1 = 0, x_2 = 0, x_3 = 0, x_4 = 0, x_5=0;
   double y_1 = 0, y_2 = 0, y_3 = 0, y_4 = 0, y_5=0;
@@ -456,7 +458,7 @@ void shk_zernike_matrix(shkcell_t *cells, double *matrix_fwd, double *matrix_inv
   printf("SHK: Building Zernike matrix for %d cells\n",SHK_BEAM_NCELLS);
   if(SHK_DEBUG) printf("SHK: (MinX,MaxX): (%f, %f) [px]\n",min_x,max_x);
   if(SHK_DEBUG) printf("SHK: (MinY,MaxY): (%f, %f) [px]\n",min_y,max_y);
-  if(SHK_DEBUG) printf("SHK: Beam center: (%f, %f) [px]\n",beam_center[0],beam_center[1]);
+  if(SHK_DEBUG) printf("SHK: Beam center: (%f, %f) [px]\n",beam_xcenter,beam_ycenter);
   if(SHK_DEBUG) printf("SHK: Beam radius: (%f) [px]\n",beam_radius);
   if(SHK_DEBUG) printf("SHK: Unit conver: (%f)     \n",unit_conversion);
 
@@ -645,7 +647,7 @@ void shk_zernike_ops(shkevent_t *shkevent, int fit_zernikes, int set_targets, in
     if(INSTRUMENT_INPUT_TYPE == INPUT_TYPE_SINGLE_PASS) surf2wave = 2.0;
     if(INSTRUMENT_INPUT_TYPE == INPUT_TYPE_DOUBLE_PASS) surf2wave = 4.0;
     //Set cell targets 
-    for(i=0;i<beam_ncells;i++){
+    for(i=0;i<SHK_BEAM_NCELLS;i++){
       shkevent->cells[i].xtarget = shkevent->cells[i].xorigin + shk_xydev[2*i + 0]*surf2wave;
       shkevent->cells[i].ytarget = shkevent->cells[i].yorigin + shk_xydev[2*i + 1]*surf2wave;
     }
@@ -656,7 +658,7 @@ void shk_zernike_ops(shkevent_t *shkevent, int fit_zernikes, int set_targets, in
 /* SHK_CELLS2ALP                                              */
 /*  - Convert SHK cell commands to ALPAO DM commands          */
 /**************************************************************/
-void shk_cells2alp(shkcell_t *cells, double *actuators, int reset){
+void shk_cells2alp(shkcell_t *cells, double *actuators, int sample, int reset){
   FILE *matrix=NULL;
   char matrix_file[MAX_FILENAME];
   uint64 fsize,rsize;
@@ -704,8 +706,8 @@ void shk_cells2alp(shkcell_t *cells, double *actuators, int reset){
 
   //Format displacement array
   for(i=0;i<SHK_BEAM_NCELLS;i++){
-    shk_xydev[2*i + 0] = cells[i].xcommand;
-    shk_xydev[2*i + 1] = cells[i].ycommand;
+    shk_xydev[2*i + 0] = cells[i].xcommand[sample];
+    shk_xydev[2*i + 1] = cells[i].ycommand[sample];
   }
 
   //Do Matrix Multiply
@@ -814,7 +816,7 @@ void shk_hex_zernpid(shkevent_t *shkevent, double *zernike_delta, int reset){
     //Calculate integral
     zint[i] += error;
     //Calculate command
-    zernike_delta[i] = shkevent->kP_hex_zern * error + shkevent->kI_hex_zern * zint[i];
+    zernike_delta[i] = shkevent->gain_hex_zern[0] * error + shkevent->gain_hex_zern[1] * zint[i];
   }
 }
 
@@ -867,7 +869,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     //Reset zernike matrix
     shk_zernike_ops(&shkevent,0,0,FUNCTION_RESET);
     //Reset cells2alp mapping
-    shk_cells2alp(shkevent.cells,NULL,FUNCTION_RESET);
+    shk_cells2alp(shkevent.cells,NULL,0,FUNCTION_RESET);
     //Reset zern2alp mapping
     alp_zern2alp(NULL,NULL,FUNCTION_RESET);
     //Reset calibration routines
@@ -1129,7 +1131,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
       shk_alp_cellpid(&shkevent, FUNCTION_NO_RESET);
 
       // - convert cell commands to actuator deltas
-      shk_cells2alp(shkevent.cells,alp_delta.act_cmd,FUNCTION_NO_RESET);
+      shk_cells2alp(shkevent.cells,alp_delta.act_cmd,sample,FUNCTION_NO_RESET);
 
       // - add actuator deltas to ALP command
       for(i=0;i<ALP_NACT;i++)

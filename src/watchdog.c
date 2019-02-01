@@ -314,27 +314,26 @@ int main(int argc,char **argv){
   sm_p->lyt_exptime        = LYT_EXPTIME_DEFAULT;
   sm_p->acq_exptime        = ACQ_EXPTIME_DEFAULT;
   sm_p->shk_boxsize        = SHK_BOXSIZE_DEFAULT;
-  sm_p->shk_kP_alp_cell    = SHK_KP_ALP_CELL_DEFAULT;
-  sm_p->shk_kI_alp_cell    = SHK_KI_ALP_CELL_DEFAULT;
-  sm_p->shk_kD_alp_cell    = SHK_KD_ALP_CELL_DEFAULT;
-  sm_p->shk_kP_alp_zern    = SHK_KP_ALP_ZERN_DEFAULT;
-  sm_p->shk_kI_alp_zern    = SHK_KI_ALP_ZERN_DEFAULT;
-  sm_p->shk_kD_alp_zern    = SHK_KD_ALP_ZERN_DEFAULT;
-  sm_p->shk_kP_hex_zern    = SHK_KP_HEX_ZERN_DEFAULT;
-  sm_p->shk_kI_hex_zern    = SHK_KI_HEX_ZERN_DEFAULT;
-  sm_p->shk_kD_hex_zern    = SHK_KD_HEX_ZERN_DEFAULT;
   sm_p->hex_tilt_correct   = HEX_TILT_CORRECT_DEFAULT;
   sm_p->alp_n_dither       = -1;
   sm_p->alp_proc_id        = -1;
-
+  
   //Enable control of all zernikes by default
   for(i=0;i<LOWFS_N_ZERNIKE;i++) sm_p->zernike_control[i] = 1;
 
+  //SHK PID Gains
+  float shk_gain_alp_zern[LOWFS_N_ZERNIKE][LOWFS_N_PID] = SHK_GAIN_ALP_ZERN_DEFAULT;
+  memcpy((float *)&sm_p->shk_gain_alp_zern[0][0],&shk_gain_alp_zern[0][0],sizeof(shk_gain_alp_zern));
+  float shk_gain_alp_cell[LOWFS_N_PID] = SHK_GAIN_ALP_CELL_DEFAULT;
+  memcpy((float *)sm_p->shk_gain_alp_cell,shk_gain_alp_cell,sizeof(shk_gain_alp_cell));
+  float shk_gain_hex_zern[LOWFS_N_PID] = SHK_GAIN_HEX_ZERN_DEFAULT;
+  memcpy((float *)sm_p->shk_gain_hex_zern,shk_gain_hex_zern,sizeof(shk_gain_hex_zern));
+
   //LYT PID Gains
-  double lyt_gain_alp_zern[LOWFS_N_ZERNIKE][LOWFS_N_PID] = LYT_GAIN_ALP_ZERN_DEFAULT;
-  memcpy((double *)&sm_p->lyt_gain_alp_zern[0][0],&lyt_gain_alp_zern[0][0],sizeof(lyt_gain_alp_zern));
-  double lyt_gain_alp_act[LOWFS_N_PID] = LYT_GAIN_ALP_ACT_DEFAULT;
-  memcpy((double *)&sm_p->lyt_gain_alp_act,&lyt_gain_alp_act,sizeof(lyt_gain_alp_act));
+  float lyt_gain_alp_zern[LOWFS_N_ZERNIKE][LOWFS_N_PID] = LYT_GAIN_ALP_ZERN_DEFAULT;
+  memcpy((float *)&sm_p->lyt_gain_alp_zern[0][0],&lyt_gain_alp_zern[0][0],sizeof(lyt_gain_alp_zern));
+  float lyt_gain_alp_act[LOWFS_N_PID] = LYT_GAIN_ALP_ACT_DEFAULT;
+  memcpy((float *)&sm_p->lyt_gain_alp_act,&lyt_gain_alp_act,sizeof(lyt_gain_alp_act));
   
   /* Initialize States */
   for(i=0;i<NSTATES;i++)
