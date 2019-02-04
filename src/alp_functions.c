@@ -396,18 +396,6 @@ int alp_calibrate(int calmode, alp_t *alp, uint32_t *step, int procid, int reset
   static alp_t alp_start[ALP_NCALMODES];
   static uint64 countA[ALP_NCALMODES] = {0};
   static uint64 countB[ALP_NCALMODES] = {0};
-
-  /* Set calibration parameters */
-  if(procid == SHKID){
-    poke   = ALP_SHK_POKE;
-    zpoke  = ALP_SHK_ZPOKE;
-    ncalim = ALP_SHK_NCALIM;
-  }
-  if(procid == LYTID){
-    poke   = ALP_LYT_POKE;
-    zpoke  = ALP_LYT_ZPOKE;
-    ncalim = ALP_LYT_NCALIM;
-  }
   
   /* Reset */
   if(reset){
@@ -454,6 +442,18 @@ int alp_calibrate(int calmode, alp_t *alp, uint32_t *step, int procid, int reset
       fclose(fileptr);
     }
     init=1;
+  }
+
+  /* Set calibration parameters */
+  if(procid == SHKID){
+    poke   = ALP_SHK_POKE;
+    zpoke  = ALP_SHK_ZPOKE;
+    ncalim = ALP_SHK_NCALIM;
+  }
+  if(procid == LYTID){
+    poke   = ALP_LYT_POKE;
+    zpoke  = ALP_LYT_ZPOKE;
+    ncalim = ALP_LYT_NCALIM;
   }
 
   /* Calculate times */

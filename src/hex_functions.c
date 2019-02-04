@@ -425,7 +425,7 @@ void hex_zern2hex_alt(double *zernikes, double *axes){
 /* HEX_CALIBRATE                                              */
 /*  - Run hexapod calibration routines                        */
 /**************************************************************/
-int hex_calibrate(int calmode, hex_t *hex, uint32_t *step, int reset){
+int hex_calibrate(int calmode, hex_t *hex, int procid, uint32_t *step, int reset){
   int i;
   const double hexdef[HEX_NAXES] = HEX_POS_DEFAULT;
   static struct timespec start,this,last,delta;
@@ -439,7 +439,8 @@ int hex_calibrate(int calmode, hex_t *hex, uint32_t *step, int reset){
   const double poke[HEX_NAXES]={HEX_X_CAL_POKE,HEX_Y_CAL_POKE,HEX_Z_CAL_POKE,HEX_U_CAL_POKE,HEX_V_CAL_POKE,HEX_W_CAL_POKE};
   const double tcor[HEX_NAXES]={HEX_X_CAL_TCOR,HEX_Y_CAL_TCOR,HEX_Z_CAL_TCOR,HEX_U_CAL_TCOR,HEX_V_CAL_TCOR,HEX_W_CAL_TCOR};
   int iax;
- 
+  int ncalim=0;
+
   /* Reset */
   if(reset){
     memset(countA,0,sizeof(countA));
@@ -458,6 +459,14 @@ int hex_calibrate(int calmode, hex_t *hex, uint32_t *step, int reset){
     memset(hex_start,0,sizeof(hex_start));
     clock_gettime(CLOCK_REALTIME, &start);
     init=1;
+  }
+
+  /* Set calibration parameters */
+  if(procid == SHKID){
+    ncalim = HEX_SHK_NCALIM;
+  }
+  if(procid == LYTID){
+    ncalim = HEX_LYT_NCALIM;
   }
 
 
@@ -481,15 +490,15 @@ int hex_calibrate(int calmode, hex_t *hex, uint32_t *step, int reset){
       mode_init[calmode]=1;
     }
     //Proceed with calibration
-    if(countA[calmode] >= 0 && countA[calmode] < (2*HEX_NAXES*HEX_NCALIM)){
+    if(countA[calmode] >= 0 && countA[calmode] < (2*HEX_NAXES*ncalim)){
       //Set calibration step
-      *step = countA[calmode]/HEX_NCALIM;
+      *step = countA[calmode]/ncalim;
       //Set hex to starting position
       memcpy(hex,&hex_start[HEX_CALMODE_POKE],sizeof(hex_t));
 	
-      if((countA[calmode]/HEX_NCALIM) % 2 == 1){
+      if((countA[calmode]/ncalim) % 2 == 1){
 	//move one axis
-	iax = (countB[calmode]/HEX_NCALIM) % HEX_NAXES;
+	iax = (countB[calmode]/ncalim) % HEX_NAXES;
 	hex->axis_cmd[iax] += poke[iax];
 	countB[calmode]++;
       }
@@ -517,15 +526,15 @@ int hex_calibrate(int calmode, hex_t *hex, uint32_t *step, int reset){
       mode_init[calmode]=1;
     }
     //Proceed with calibration
-    if(countA[calmode] >= 0 && countA[calmode] < (2*HEX_NAXES*HEX_NCALIM)){
+    if(countA[calmode] >= 0 && countA[calmode] < (2*HEX_NAXES*ncalim)){
       //Set calibration step
-      *step = countA[calmode]/HEX_NCALIM;
+      *step = countA[calmode]/ncalim;
       //Set hex to starting position
       memcpy(hex,&hex_start[HEX_CALMODE_TCOR],sizeof(hex_t));
 	
-      if((countA[calmode]/HEX_NCALIM) % 2 == 1){
+      if((countA[calmode]/ncalim) % 2 == 1){
 	//move one axis
-	iax = (countB[calmode]/HEX_NCALIM) % HEX_NAXES;
+	iax = (countB[calmode]/ncalim) % HEX_NAXES;
 	hex->axis_cmd[iax] += tcor[iax];
 	//correct tilt
 	if(iax == HEX_AXIS_X)

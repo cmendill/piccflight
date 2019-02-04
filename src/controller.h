@@ -313,119 +313,6 @@ enum bufids {SCIEVENT, SCIFULL,
 #define GAIN_D_MAX      0        //(.)   Maximum D gain
 
 /*************************************************
- * BMC DM Parameters
- *************************************************/
-#define BMC_NACT    952
-#define BMC_STROKE  1.5
-#define BMCXS        34
-#define BMCYS        34
-#define BMC_DMAX     ((1<<14) - 1)
-#define BMC_DMIN     0
-#define BMC_DMID     ((DM_DMIN+DM_DMAX)/2)
-
-/*************************************************
- * ALPAO DM Parameters
- *************************************************/
-#define ALP_NAME              "BAX197"
-#define ALP_NACT              97
-#define ALP_HIDDEN_NACT       12
-#define ALP_STROKE            2.0
-#define ALPXS                 11
-#define ALPYS                 11
-#define ALP_AMIN             -1.0
-#define ALP_AMAX              1.0
-#define ALP_AMID              0.0
-#define ALP_DMAX              0x3FFF
-#define ALP_DMIN              0x0000
-#define ALP_DMID              0x2000
-#define ALP_MAX_POWER         40
-#define ALP_MAX_BIAS          0.642161299 //sqrt(max_power/97)
-#define ALP_MIN_BIAS         -0.642161299 //sqrt(max_power/97)
-#define ALP_N_CHANNEL         128 // data size for the ALPAO DM controller
-#define ALP_HEADER_LENGTH     2   // leading uint16_ts for the header
-#define ALP_CHECKSUM_LENGTH   1   // trailing uint16_t for the checksum
-#define ALP_PAD_LENGTH        1   // pad end with an empty word
-#define ALP_FRAME_LENGTH      (ALP_HEADER_LENGTH+ALP_N_CHANNEL+ALP_CHECKSUM_LENGTH) //[uint16_t]
-#define ALP_FRAME_SIZE        (2*ALP_FRAME_LENGTH) //[bytes]
-#define ALP_DATA_LENGTH       (ALP_FRAME_LENGTH+ALP_PAD_LENGTH) //[uint16_t]
-#define ALP_DATA_SIZE         (2*ALP_DATA_LENGTH) //[bytes]
-#define ALP_MIN_ANALOG_STEP   0.000122070312500 // hardcoded pow(2.0,-13);
-#define ALP_START_WORD        0xF800
-#define ALP_INIT_COUNTER      0x5C00
-#define ALP_END_WORD          0xF100
-#define ALP_FRAME_END         0xFEED
-#define ALP_BIAS              0.0
-#define ALP_SHK_POKE          0.05  //shk alp actuator calibration poke
-#define ALP_SHK_ZPOKE         0.02  //shk zernike microns RMS
-#define ALP_SHK_NCALIM        35    //shk number of calibration images to take per step
-#define ALP_LYT_POKE          0.01  //lyt alp actuator calibration poke
-#define ALP_LYT_ZPOKE         0.005 //lyt zernike microns RMS
-#define ALP_LYT_NCALIM        110   //lyt number of calibration images to take per step
-#define ALP_ZERNIKE_MIN      -5.0   //ALP min zernike command
-#define ALP_ZERNIKE_MAX       5.0   //ALP max zernike command
-#define ALP_DZERNIKE_MIN     -1.0   //ALP min delta zernike command
-#define ALP_DZERNIKE_MAX      1.0   //ALP max delta zernike command
-
-
-/*************************************************
- * TARGET Parameters
- *************************************************/
-#define TGT_SHK_NCALIM        100   //shk number of calibration images to take per step
-#define TGT_LYT_NCALIM        100   //lyt number of calibration images to take per step
-#define TGT_LYT_ZPOKE         0.005 //lyt tgt zpoke [microns rms]
-#define TGT_SHK_ZPOKE         0.02  //shk tgt zpoke [microns rms]
-
-/*************************************************
- * HEXAPOD Parameters
- *************************************************/
-#define HEX_DEVICE       "/dev/ttyS0"
-#define HEX_BAUD         115200
-#define HEX_NAXES        6
-#define HEX_AXES_ALL     "X Y Z U V W"
-#define HEX_AXES_PIV     "R S T"
-#define HEX_AXIS_X       0
-#define HEX_AXIS_Y       1
-#define HEX_AXIS_Z       2
-#define HEX_AXIS_U       3
-#define HEX_AXIS_V       4
-#define HEX_AXIS_W       5
-#define HEX_POS_HOME     {0,0,0,0,0,0}
-#define HEX_POS_DEFAULT  {-1.213673,3.527778,-0.157447,0.228300,0.437629,0.001699}
-#define HEX_TRL_POKE      0.01
-#define HEX_ROT_POKE      0.001
-#define HEX_X_CAL_POKE    0.01
-#define HEX_Y_CAL_POKE    0.01
-#define HEX_Z_CAL_POKE    0.05
-#define HEX_U_CAL_POKE    0.001
-#define HEX_V_CAL_POKE    0.001
-#define HEX_W_CAL_POKE    0.005
-#define HEX_X_CAL_TCOR    0.5
-#define HEX_Y_CAL_TCOR    0.5
-#define HEX_Z_CAL_TCOR    0.05
-#define HEX_U_CAL_TCOR    0.001
-#define HEX_V_CAL_TCOR    0.001
-#define HEX_W_CAL_TCOR    0.005
-#define HEX_NCALIM        10
-#define HEX_PIVOT_X       0//122.32031250
-#define HEX_PIVOT_Y       0//206.61012268
-#define HEX_PIVOT_Z       0//74.0
-#define DEG_ROT_X         0.0 //deg
-#define DEG_ROT_Y         0.0 //deg
-#define DEG_ROT_Z         30.0 // deg
-#define DEG2RAD           3.14159265 / 180.0000000
-#define THETA_X           DEG_ROT_X * DEG2RAD
-#define THETA_Y           DEG_ROT_Y * DEG2RAD
-#define THETA_Z           DEG_ROT_Z * DEG2RAD
-#define COS_X             cos(THETA_X)
-#define SIN_X             sin(THETA_X)
-#define COS_Y             cos(THETA_Y)
-#define SIN_Y             sin(THETA_Y)
-#define COS_Z             cos(THETA_Z)
-#define SIN_Z             sin(THETA_Z)
-#define HEX_REF_TIMEOUT   20  //seconds
-#define HEX_PERIOD        0.5 //seconds, time between commands
-
-/*************************************************
  * Shack-Hartmann Parameters
  *************************************************/
 #define SHK_PX_PITCH_UM       5.5
@@ -481,6 +368,119 @@ enum bufids {SCIEVENT, SCIFULL,
  * SCI Camera Parameters
  *************************************************/
 #define SCI_NBANDS              5 //number of bands on a single SCI camera image
+
+/*************************************************
+ * BMC DM Parameters
+ *************************************************/
+#define BMC_NACT    952
+#define BMC_STROKE  1.5
+#define BMCXS        34
+#define BMCYS        34
+#define BMC_DMAX     ((1<<14) - 1)
+#define BMC_DMIN     0
+#define BMC_DMID     ((DM_DMIN+DM_DMAX)/2)
+
+/*************************************************
+ * ALPAO DM Parameters
+ *************************************************/
+#define ALP_NAME              "BAX197"
+#define ALP_NACT              97
+#define ALP_HIDDEN_NACT       12
+#define ALP_STROKE            2.0
+#define ALPXS                 11
+#define ALPYS                 11
+#define ALP_AMIN             -1.0
+#define ALP_AMAX              1.0
+#define ALP_AMID              0.0
+#define ALP_DMAX              0x3FFF
+#define ALP_DMIN              0x0000
+#define ALP_DMID              0x2000
+#define ALP_MAX_POWER         40
+#define ALP_MAX_BIAS          0.642161299 //sqrt(max_power/97)
+#define ALP_MIN_BIAS         -0.642161299 //sqrt(max_power/97)
+#define ALP_N_CHANNEL         128 // data size for the ALPAO DM controller
+#define ALP_HEADER_LENGTH     2   // leading uint16_ts for the header
+#define ALP_CHECKSUM_LENGTH   1   // trailing uint16_t for the checksum
+#define ALP_PAD_LENGTH        1   // pad end with an empty word
+#define ALP_FRAME_LENGTH      (ALP_HEADER_LENGTH+ALP_N_CHANNEL+ALP_CHECKSUM_LENGTH) //[uint16_t]
+#define ALP_FRAME_SIZE        (2*ALP_FRAME_LENGTH) //[bytes]
+#define ALP_DATA_LENGTH       (ALP_FRAME_LENGTH+ALP_PAD_LENGTH) //[uint16_t]
+#define ALP_DATA_SIZE         (2*ALP_DATA_LENGTH) //[bytes]
+#define ALP_MIN_ANALOG_STEP   0.000122070312500 // hardcoded pow(2.0,-13);
+#define ALP_START_WORD        0xF800
+#define ALP_INIT_COUNTER      0x5C00
+#define ALP_END_WORD          0xF100
+#define ALP_FRAME_END         0xFEED
+#define ALP_BIAS              0.0
+#define ALP_SHK_POKE          0.05  //shk alp actuator calibration poke
+#define ALP_SHK_ZPOKE         0.02  //shk zernike microns RMS
+#define ALP_SHK_NCALIM        (SHK_NSAMPLES * 2) //shk number of calibration images to take per step
+#define ALP_LYT_POKE          0.01  //lyt alp actuator calibration poke
+#define ALP_LYT_ZPOKE         0.005 //lyt zernike microns RMS
+#define ALP_LYT_NCALIM        (LYT_NSAMPLES * 1) //lyt number of calibration images to take per step
+#define ALP_ZERNIKE_MIN      -5.0   //ALP min zernike command
+#define ALP_ZERNIKE_MAX       5.0   //ALP max zernike command
+#define ALP_DZERNIKE_MIN     -1.0   //ALP min delta zernike command
+#define ALP_DZERNIKE_MAX      1.0   //ALP max delta zernike command
+
+
+/*************************************************
+ * TARGET Parameters
+ *************************************************/
+#define TGT_SHK_NCALIM        5     //shk number of SHK_NSAMPLES sets to take per step
+#define TGT_LYT_NCALIM        5     //lyt number of LYT_NSAMPLES sets to take per step
+#define TGT_LYT_ZPOKE         0.005 //lyt tgt zpoke [microns rms]
+#define TGT_SHK_ZPOKE         0.02  //shk tgt zpoke [microns rms]
+
+/*************************************************
+ * HEXAPOD Parameters
+ *************************************************/
+#define HEX_DEVICE       "/dev/ttyS0"
+#define HEX_BAUD         115200
+#define HEX_NAXES        6
+#define HEX_AXES_ALL     "X Y Z U V W"
+#define HEX_AXES_PIV     "R S T"
+#define HEX_AXIS_X       0
+#define HEX_AXIS_Y       1
+#define HEX_AXIS_Z       2
+#define HEX_AXIS_U       3
+#define HEX_AXIS_V       4
+#define HEX_AXIS_W       5
+#define HEX_POS_HOME     {0,0,0,0,0,0}
+#define HEX_POS_DEFAULT  {-1.213673,3.527778,-0.157447,0.228300,0.437629,0.001699}
+#define HEX_TRL_POKE      0.01
+#define HEX_ROT_POKE      0.001
+#define HEX_X_CAL_POKE    0.01
+#define HEX_Y_CAL_POKE    0.01
+#define HEX_Z_CAL_POKE    0.05
+#define HEX_U_CAL_POKE    0.001
+#define HEX_V_CAL_POKE    0.001
+#define HEX_W_CAL_POKE    0.005
+#define HEX_X_CAL_TCOR    0.5
+#define HEX_Y_CAL_TCOR    0.5
+#define HEX_Z_CAL_TCOR    0.05
+#define HEX_U_CAL_TCOR    0.001
+#define HEX_V_CAL_TCOR    0.001
+#define HEX_W_CAL_TCOR    0.005
+#define HEX_SHK_NCALIM    (SHK_NSAMPLES * 2)
+#define HEX_PIVOT_X       0//122.32031250
+#define HEX_PIVOT_Y       0//206.61012268
+#define HEX_PIVOT_Z       0//74.0
+#define DEG_ROT_X         0.0 //deg
+#define DEG_ROT_Y         0.0 //deg
+#define DEG_ROT_Z         30.0 // deg
+#define DEG2RAD           3.14159265 / 180.0000000
+#define THETA_X           DEG_ROT_X * DEG2RAD
+#define THETA_Y           DEG_ROT_Y * DEG2RAD
+#define THETA_Z           DEG_ROT_Z * DEG2RAD
+#define COS_X             cos(THETA_X)
+#define SIN_X             sin(THETA_X)
+#define COS_Y             cos(THETA_Y)
+#define SIN_Y             sin(THETA_Y)
+#define COS_Z             cos(THETA_Z)
+#define SIN_Z             sin(THETA_Z)
+#define HEX_REF_TIMEOUT   20  //seconds
+#define HEX_PERIOD        0.5 //seconds, time between commands
 
 /*************************************************
  * RTD Parameters
@@ -592,7 +592,7 @@ typedef struct state_struct{
 } state_t;
 
 /*************************************************
- * Data Structures
+ * Image Structures
  *************************************************/
 typedef struct sci_struct{
   uint16 data[SCIXS][SCIYS];
@@ -610,26 +610,6 @@ typedef struct acq_struct{
   uint8 data[ACQXS][ACQYS];
 } acq_t;
 
-typedef struct shkcell_struct{
-  uint16    spot_found;
-  uint16    spot_captured;
-  uint16    maxpix;
-  uint16    maxval;
-  uint16    blx;
-  uint16    bly;
-  uint16    trx;
-  uint16    try;
-  uint32    intensity;
-  uint32    background;
-  float     xorigin;
-  float     yorigin;
-  float     xtarget;
-  float     ytarget;
-  float     xcentroid[SHK_NSAMPLES];
-  float     ycentroid[SHK_NSAMPLES];
-  float     xcommand[SHK_NSAMPLES];
-  float     ycommand[SHK_NSAMPLES];
-} shkcell_t;
 
 /*************************************************
  * Device Command Structures
@@ -658,7 +638,7 @@ typedef struct wsp_struct{
  * Packet Header
  *************************************************/
 #define PICC_PKT_VERSION     2  //packet version number
-typedef struct pktheader_struct{
+typedef struct pkthed_struct{
   uint16  version;      //packet version number
   uint16  type;         //packet ID word
   uint16  imxsize;      //image x size [px]
@@ -697,6 +677,29 @@ typedef struct pktheader_struct{
 /*************************************************
  * Event Structures
  *************************************************/
+typedef struct shkcell_struct{
+  uint16    spot_found;
+  uint16    spot_captured;
+  uint16    maxval;
+  uint16    padding;
+  uint16    blx;
+  uint16    bly;
+  uint16    trx;
+  uint16    try;
+  uint32    intensity;
+  uint32    background;
+  float     xorigin;
+  float     yorigin;
+  float     xtarget;
+  float     ytarget;
+  float     xorigin_deviation[SHK_NSAMPLES];
+  float     yorigin_deviation[SHK_NSAMPLES];
+  float     xtarget_deviation[SHK_NSAMPLES];
+  float     ytarget_deviation[SHK_NSAMPLES];
+  float     xcommand[SHK_NSAMPLES];
+  float     ycommand[SHK_NSAMPLES];
+} shkcell_t;
+
 typedef struct shkevent_struct{
   pkthed_t  hed;
   uint32    boxsize;

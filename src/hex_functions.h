@@ -17,7 +17,7 @@ int  hex_printpos(int id);
 int  hex_setpivot(int id, double *pivot);
 int  hex_zern2hex(double *zernikes, double *axes);
 void hex_zern2hex_alt(double *zernikes, double *axes);
-int  hex_calibrate(int calmode, hex_t *hex, uint32_t *step, int reset);
+int  hex_calibrate(int calmode, hex_t *hex, int procid, uint32_t *step, int reset);
 
 
 //Calibration Modes
