@@ -425,7 +425,7 @@ void hex_zern2hex_alt(double *zernikes, double *axes){
 /* HEX_CALIBRATE                                              */
 /*  - Run hexapod calibration routines                        */
 /**************************************************************/
-int hex_calibrate(int calmode, hex_t *hex, int procid, uint32_t *step, int reset){
+int hex_calibrate(int calmode, hex_t *hex, uint32_t *step, int procid, int reset){
   int i;
   const double hexdef[HEX_NAXES] = HEX_POS_DEFAULT;
   static struct timespec start,this,last,delta;

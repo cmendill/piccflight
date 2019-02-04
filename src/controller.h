@@ -210,11 +210,11 @@ enum states { STATE_STANDBY,
 /*************************************************
  * Circular Buffer Info
  *************************************************/
-enum bufids {SCIEVENT, SCIFULL,
-	     SHKEVENT, SHKFULL,
-	     LYTEVENT, LYTFULL,
-	     ACQEVENT, ACQFULL,
-	     THMEVENT, MTREVENT,
+enum bufids {BUFFER_SCIEVENT, BUFFER_SCIFULL,
+	     BUFFER_SHKEVENT, BUFFER_SHKFULL,
+	     BUFFER_LYTEVENT, BUFFER_LYTFULL,
+	     BUFFER_ACQEVENT, BUFFER_ACQFULL,
+	     BUFFER_THMEVENT, BUFFER_MTREVENT,
 	     NCIRCBUF};
 
 #define SCIEVENTSIZE     3
@@ -251,8 +251,8 @@ enum bufids {SCIEVENT, SCIFULL,
 /*************************************************
  * Camera Settings -- Keep sizes divisible by 4 (packets)
  *************************************************/
-#define SCIXS           300
-#define SCIYS           300
+#define SCIXS           100
+#define SCIYS           100
 #define SHKXS           1024
 #define SHKYS           1024
 #define LYTXS           32
@@ -462,7 +462,8 @@ enum bufids {SCIEVENT, SCIFULL,
 #define HEX_U_CAL_TCOR    0.001
 #define HEX_V_CAL_TCOR    0.001
 #define HEX_W_CAL_TCOR    0.005
-#define HEX_SHK_NCALIM    (SHK_NSAMPLES * 2)
+#define HEX_SHK_NCALIM    2 //Number of SHK_NSAMPLES sets
+#define HEX_LYT_NCALIM    2 //Number of LYT_NSAMPLES sets
 #define HEX_PIVOT_X       0//122.32031250
 #define HEX_PIVOT_Y       0//206.61012268
 #define HEX_PIVOT_Z       0//74.0
@@ -607,7 +608,7 @@ typedef struct lyt_struct{
 } lyt_t;
 
 typedef struct acq_struct{
-  uint8 data[ACQXS][ACQYS];
+  uint16 data[ACQXS][ACQYS];
 } acq_t;
 
 
@@ -702,37 +703,34 @@ typedef struct shkcell_struct{
 
 typedef struct shkevent_struct{
   pkthed_t  hed;
-  uint32    boxsize;
-  uint32    padding;
-  float     gain_alp_zern[LOWFS_N_ZERNIKE][LOWFS_N_PID];
-  float     gain_alp_cell[LOWFS_N_PID];
-  float     gain_hex_zern[LOWFS_N_PID];
-  shkcell_t cells[SHK_BEAM_NCELLS];
-  float     zernike_target[LOWFS_N_ZERNIKE];
-  float     zernike_measured[LOWFS_N_ZERNIKE][SHK_NSAMPLES];
-  float     alp_acmd[ALP_NACT][SHK_NSAMPLES];
-  float     alp_zcmd[LOWFS_N_ZERNIKE][SHK_NSAMPLES];
-  float     hex_acmd[HEX_NAXES];
-  float     hex_zcmd[LOWFS_N_ZERNIKE];
-  float     wsp_pcmd;
-  float     wsp_ycmd;
+  shkcell_t cells[SHK_BEAM_NCELLS]; //odd
+  uint32    boxsize; //odd
+  float     gain_alp_zern[LOWFS_N_ZERNIKE][LOWFS_N_PID]; //odd
+  float     gain_alp_cell[LOWFS_N_PID]; //odd
+  float     gain_hex_zern[LOWFS_N_PID]; //odd
+  float     zernike_target[LOWFS_N_ZERNIKE]; //odd
+  float     zernike_measured[LOWFS_N_ZERNIKE][SHK_NSAMPLES]; //even
+  float     alp_acmd[ALP_NACT][SHK_NSAMPLES]; //even
+  float     alp_zcmd[LOWFS_N_ZERNIKE][SHK_NSAMPLES]; //even
+  float     hex_acmd[HEX_NAXES]; //even
+  float     hex_zcmd[LOWFS_N_ZERNIKE]; //odd
+  float     wsp_pcmd; //odd
+  float     wsp_ycmd; //odd
 } shkevent_t;
 
 typedef struct scievent_struct{
   pkthed_t hed;
-  uint32   xorigin[SCI_NBANDS];
-  uint32   yorigin[SCI_NBANDS];
+  uint32   xorigin[SCI_NBANDS]; //odd
+  uint32   yorigin[SCI_NBANDS]; //odd
   sci_t    image[SCI_NBANDS];
 } scievent_t;
 
 typedef struct lytevent_struct{
   pkthed_t  hed;
-  float     gain_alp_act[LOWFS_N_PID];
-  float     gain_alp_zern[LOWFS_N_ZERNIKE][LOWFS_N_PID];
-  double    zernike_measured[LOWFS_N_ZERNIKE];
-  double    zernike_target[LOWFS_N_ZERNIKE];
-  double    alp_measured[ALP_NACT];
-  alp_t     alp;
+  float     gain_alp_zern[LOWFS_N_ZERNIKE][LOWFS_N_PID]; //odd
+  float     zernike_target[LOWFS_N_ZERNIKE]; //odd
+  float     zernike_measured[LOWFS_N_ZERNIKE][LYT_NSAMPLES]; //even
+  float     alp_zcmd[LOWFS_N_ZERNIKE][LYT_NSAMPLES]; //even
   lyt_t     image;
 } lytevent_t;
 

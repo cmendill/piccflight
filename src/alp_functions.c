@@ -459,7 +459,7 @@ int alp_calibrate(int calmode, alp_t *alp, uint32_t *step, int procid, int reset
   /* Calculate times */
   clock_gettime(CLOCK_REALTIME, &this);
   if(timespec_subtract(&delta,&this,&start))
-    printf("SHK: shk_process_image --> timespec_subtract error!\n");
+    printf("ALP: alp_calibrate --> timespec_subtract error!\n");
   ts2double(&delta,&dt);
 
   /* ALP_CALMODE_NONE: Do nothing. Just reset counters.            */

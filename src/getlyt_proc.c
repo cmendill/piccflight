@@ -66,7 +66,7 @@ void getlyt_proc(void){
 
   /* Enter loop to read LYT events */
   while(!sm_p->w[DIAID].die){
-    if(read_from_buffer(sm_p, &lytevent, LYTEVENT, DIAID)){
+    if(read_from_buffer(sm_p, &lytevent, BUFFER_LYTEVENT, DIAID)){
       //Save lytevent
       fwrite(&lytevent,sizeof(lytevent),1,out);
       

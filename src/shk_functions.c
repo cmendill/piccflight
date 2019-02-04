@@ -216,7 +216,7 @@ void shk_centroid_cell(uint16 *image, shkcell_t *cell, int cmd_boxsize, int samp
   uint16 x,y,blx,bly,trx,try;
   uint64 px;
   double wave2surf = 1;
-  double xcentroid,ycentroid,xdeviation,ydeviation;
+  double xcentroid=0,ycentroid=0,xdeviation=0,ydeviation=0;
   int    boxsize;
   
   //Calculate detector background (could be a seperate function)
@@ -231,14 +231,14 @@ void shk_centroid_cell(uint16 *image, shkcell_t *cell, int cmd_boxsize, int samp
   }
   background /= npix;
 
-  /********************************************************************
+  /********************************************************************/
   //NOTES: The technique here is to first search the maximum boxsize 
   //for the brightest pixel, then calculate the true centroid either 
   //using the commanded boxsize or the max boxsize, depending on the
   //brightest pixel position. This minimize the CPU work when we have
   //a small commanded boxsize, but we still need to check for the spot
   //every time through. 
-  /********************************************************************
+  /********************************************************************/
 
   /***********************************************************/
   /*********************** Find Spot *************************/
@@ -812,6 +812,8 @@ void shk_hex_zernpid(shkevent_t *shkevent, double *zernike_delta, int reset){
 void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   static shkfull_t shkfull;
   static shkevent_t shkevent;
+  shkfull_t *shkfull_p;
+  shkevent_t *shkevent_p;
   static calmode_t alpcalmodes[ALP_NCALMODES];
   static calmode_t hexcalmodes[HEX_NCALMODES];
   static calmode_t bmccalmodes[BMC_NCALMODES];
@@ -897,12 +899,10 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     printf("SHK: shk_process_image --> timespec_subtract error!\n");
   ts2double(&delta,&dt);
 
-  //Get sample index
-  sample = shkevent.hed.frame_number % SHK_NSAMPLES;
-
+  
   //Fill out event header
   shkevent.hed.version      = PICC_PKT_VERSION;
-  shkevent.hed.type         = SHKEVENT;
+  shkevent.hed.type         = BUFFER_SHKEVENT;
   shkevent.hed.frame_number = frame_number;
   shkevent.hed.exptime      = sm_p->shk_exptime;
   shkevent.hed.ontime       = dt;
@@ -926,8 +926,11 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   memcpy(shkevent.gain_alp_cell,(void *)sm_p->shk_gain_alp_cell,sizeof(shkevent.gain_alp_cell));
   memcpy(shkevent.gain_alp_zern,(void *)sm_p->shk_gain_alp_zern,sizeof(shkevent.gain_alp_zern));
   memcpy(shkevent.gain_hex_zern,(void *)sm_p->shk_gain_hex_zern,sizeof(shkevent.gain_hex_zern));
-  
-  //Perform target operations on the first of each  SHK_NSAMPLES
+
+  //Set sample index
+  sample = shkevent.hed.frame_number % SHK_NSAMPLES;
+
+  //Perform target operations on the first of each SHK_NSAMPLES
   if(sample == 0){
     //Save zernike targets
     for(i=0;i<LOWFS_N_ZERNIKE;i++){
@@ -958,10 +961,10 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   
   //Set centroid boxsize to max in STATE_STANDBY
   if(state == STATE_STANDBY) shkevent.boxsize = SHK_MAX_BOXSIZE;
-  
+ 
   //Calculate centroids
   shk_centroid(buffer->pvAddress,&shkevent);
-
+ 
   //Perform origin operations on the first of each SHK_NSAMPLES
   if(sample == 0){
     //Command: Set cell origins
@@ -1016,7 +1019,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     //Reset zernike matrix if cell origins have changed
     if(reset_zernike) shk_zernike_ops(&shkevent,0,0,FUNCTION_RESET);
   }
-  
+
   //Fit zernikes
   if(sm_p->state_array[state].shk.fit_zernikes)
     shk_zernike_ops(&shkevent,1,0,FUNCTION_NO_RESET);
@@ -1069,7 +1072,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
 
       //Run HEX calibration
       if(shkevent.hed.hex_calmode != HEX_CALMODE_NONE)
-	sm_p->hex_calmode = hex_calibrate(shkevent.hed.hex_calmode,&hex_try,&shkevent.hed.hex_calstep,FUNCTION_NO_RESET);
+	sm_p->hex_calmode = hex_calibrate(shkevent.hed.hex_calmode,&hex_try,&shkevent.hed.hex_calstep,SHKID,FUNCTION_NO_RESET);
 
       //Send command to HEX
       if(hex_send_command(sm_p,&hex_try,SHKID)){
@@ -1081,24 +1084,24 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
       memcpy(&hex_last,&start,sizeof(struct timespec));
     }
   }
-  
+
   /*************************************************************/
   /*******************  ALPAO DM Control Code  *****************/
   /*************************************************************/
-
+  
   //Get last ALP command
   alp_get_command(sm_p,&alp);
   memcpy(&alp_try,&alp,sizeof(alp_t));
 
   //Check if we will send a command
-  if((sm_p->state_array[state].alp_commander == SHKID) && sm_p->alp_ready){
-
+  //if((sm_p->state_array[state].alp_commander == SHKID) && sm_p->alp_ready){
+    if(0){
     //Check if ALP is controlling any Zernikes
     zernike_control = 0;
     for(i=0;i<LOWFS_N_ZERNIKE;i++)
       if(sm_p->state_array[state].shk.zernike_control[i] == ACTUATOR_ALP)
 	zernike_control = 1;
-
+    
     //Run Zernike control
     if(zernike_control){
       // - run Zernike PID
@@ -1138,20 +1141,20 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     //Calibrate ALP
     if(shkevent.hed.alp_calmode != ALP_CALMODE_NONE)
       sm_p->alp_calmode = alp_calibrate(shkevent.hed.alp_calmode,&alp_try,&shkevent.hed.alp_calstep,SHKID,FUNCTION_NO_RESET);
-
+  
     //Send command to ALP
     if(alp_send_command(sm_p,&alp_try,SHKID,n_dither)){
       // - copy command to current position
       memcpy(&alp,&alp_try,sizeof(alp_t));
     }
   }
-
+  
   //Copy HEX command to shkevent
   for(i=0;i<HEX_NAXES;i++)
     shkevent.hex_acmd[i] = hex.axis_cmd[i];
   for(i=0;i<LOWFS_N_ZERNIKE;i++)
     shkevent.hex_zcmd[i] = hex.zernike_cmd[i];
-      
+  
   //Copy ALP command to shkevent
   for(i=0;i<ALP_NACT;i++)
     shkevent.alp_acmd[i][sample] = alp.act_cmd[i];
@@ -1164,12 +1167,29 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   shkevent.hed.end_nsec = end.tv_nsec;
   
   //Write event to circular buffer on the last of each SHK_NSAMPLES
-  if(sample == SHK_NSAMPLES-1)
-    write_to_buffer(sm_p,&shkevent,SHKEVENT);
+  if(sample == SHK_NSAMPLES-1){
+    //Open SHKEVENT circular buffer
+    shkevent_p=(shkevent_t *)open_buffer(sm_p,BUFFER_SHKEVENT);
+
+    //Copy data
+    memcpy(shkevent_p,&shkevent,sizeof(shkevent_t));;
+    
+    //Get final timestamp
+    clock_gettime(CLOCK_REALTIME,&end);
+    shkevent_p->hed.end_sec  = end.tv_sec;
+    shkevent_p->hed.end_nsec = end.tv_nsec;
+    
+    //Close buffer
+    close_buffer(sm_p,BUFFER_SHKEVENT);
+
+    //Save end timestamps for full image code
+    shkevent.hed.end_sec  = end.tv_sec;
+    shkevent.hed.end_nsec = end.tv_nsec;
+  }
   
   //Save time
   memcpy(&last,&start,sizeof(struct timespec));
-
+  
   /*************************************************************/
   /**********************  Full Image Code  ********************/
   /*************************************************************/
@@ -1179,7 +1199,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   if(dt > SHK_FULL_IMAGE_TIME){
     //Copy packet header
     memcpy(&shkfull.hed,&shkevent.hed,sizeof(pkthed_t));
-    shkfull.hed.type = SHKFULL;
+    shkfull.hed.type = BUFFER_SHKFULL;
     
     //Fake data
     if(sm_p->w[SHKID].fakemode != FAKEMODE_NONE){
@@ -1201,8 +1221,20 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     shkfull.hed.end_sec  = end.tv_sec;
     shkfull.hed.end_nsec = end.tv_nsec;
     
-    //Write event to circular buffer
-    write_to_buffer(sm_p,&shkfull,SHKFULL);
+    //Open SHKFULL circular buffer
+    shkfull_p=(shkfull_t *)open_buffer(sm_p,BUFFER_SHKFULL);
+
+    //Copy data
+    memcpy(shkfull_p,&shkfull,sizeof(shkfull_t));;
+    
+    //Get final timestamp
+    clock_gettime(CLOCK_REALTIME,&end);
+    shkfull_p->hed.end_sec  = end.tv_sec;
+    shkfull_p->hed.end_nsec = end.tv_nsec;
+    
+    //Close buffer
+    close_buffer(sm_p,BUFFER_SHKFULL);
+    write_to_buffer(sm_p,&shkfull,BUFFER_SHKFULL);
 
     //Reset time
     memcpy(&full_last,&start,sizeof(struct timespec));

@@ -98,7 +98,7 @@ void cb(uvc_frame_t *frame, void *ptr) {
 
   /* Fill out event header */
   acqevent.hed.version      = PICC_PKT_VERSION;
-  acqevent.hed.type         = ACQEVENT;
+  acqevent.hed.type         = BUFFER_ACQEVENT;
   acqevent.hed.frame_number = frame->sequence;
   acqevent.hed.exptime      = 0;
   acqevent.hed.ontime       = dt;
@@ -109,7 +109,7 @@ void cb(uvc_frame_t *frame, void *ptr) {
   acqevent.hed.start_nsec   = start.tv_nsec;
 
   /* Open circular buffer */
-  acqevent_p=(acqevent_t *)open_buffer(sm_p,ACQEVENT);
+  acqevent_p=(acqevent_t *)open_buffer(sm_p,BUFFER_ACQEVENT);
 
   /* Copy acqevent */
   memcpy(acqevent_p,&acqevent,sizeof(acqevent_t));;
@@ -120,7 +120,7 @@ void cb(uvc_frame_t *frame, void *ptr) {
   acqevent_p->hed.end_nsec = end.tv_nsec;
 
   /* Close buffer */
-  close_buffer(sm_p,ACQEVENT);
+  close_buffer(sm_p,BUFFER_ACQEVENT);
 
   /* Save time */
   memcpy(&last,&start,sizeof(struct timespec));
@@ -138,7 +138,7 @@ void cb(uvc_frame_t *frame, void *ptr) {
     
     //Copy packet header
     memcpy(&acqfull.hed,&acqevent.hed,sizeof(pkthed_t));
-    acqfull.hed.type = ACQFULL;
+    acqfull.hed.type = BUFFER_ACQFULL;
     
     //Fake data
     if(sm_p->w[ACQID].fakemode != FAKEMODE_NONE){
@@ -153,7 +153,7 @@ void cb(uvc_frame_t *frame, void *ptr) {
     }
 
     //Open circular buffer
-    acqfull_p=(acqfull_t *)open_buffer(sm_p,ACQFULL);
+    acqfull_p=(acqfull_t *)open_buffer(sm_p,BUFFER_ACQFULL);
     
     //Copy data
     memcpy(acqfull_p,&acqfull,sizeof(acqfull_t));;
@@ -164,7 +164,7 @@ void cb(uvc_frame_t *frame, void *ptr) {
     acqfull_p->hed.end_nsec = end.tv_nsec;
 
     //Close buffer
-    close_buffer(sm_p,ACQFULL);
+    close_buffer(sm_p,BUFFER_ACQFULL);
 
     //Reset time
     memcpy(&first,&start,sizeof(struct timespec));

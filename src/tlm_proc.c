@@ -40,10 +40,10 @@ int checkdata(sm_t *sm_p){
   static int s,k,l,a;
   /*Check in with watchdog*/
   checkin(sm_p,TLMID);
-  s = check_buffer(sm_p, SCIEVENT, TLMID);
-  k = check_buffer(sm_p, SHKEVENT, TLMID);
-  l = check_buffer(sm_p, LYTEVENT, TLMID);
-  a = check_buffer(sm_p, ACQEVENT, TLMID);
+  s = check_buffer(sm_p, BUFFER_SCIEVENT, TLMID);
+  k = check_buffer(sm_p, BUFFER_SHKEVENT, TLMID);
+  l = check_buffer(sm_p, BUFFER_LYTEVENT, TLMID);
+  a = check_buffer(sm_p, BUFFER_ACQEVENT, TLMID);
   
   return(s || k || l || a);
 }
@@ -51,22 +51,22 @@ int checkdata(sm_t *sm_p){
 int checksci(sm_t *sm_p){
   /*Check in with watchdog*/
   checkin(sm_p,TLMID);
-  return(check_buffer(sm_p, SCIEVENT, TLMID));
+  return(check_buffer(sm_p, BUFFER_SCIEVENT, TLMID));
 }
 int checkshk(sm_t *sm_p){
   /*Check in with watchdog*/
   checkin(sm_p,TLMID);
-  return(check_buffer(sm_p, SHKEVENT, TLMID));
+  return(check_buffer(sm_p, BUFFER_SHKEVENT, TLMID));
 }
 int checklyt(sm_t *sm_p){
   /*Check in with watchdog*/
   checkin(sm_p,TLMID);
-  return(check_buffer(sm_p, LYTEVENT, TLMID));
+  return(check_buffer(sm_p, BUFFER_LYTEVENT, TLMID));
 }
 int checkacq(sm_t *sm_p){
   /*Check in with watchdog*/
   checkin(sm_p,TLMID);
-  return(check_buffer(sm_p, ACQEVENT, TLMID));
+  return(check_buffer(sm_p, BUFFER_ACQEVENT, TLMID));
 }
 
 
@@ -238,7 +238,7 @@ void tlm_proc(void){
       else{
 	
 	/*Get SCI data*/
-	if(read_from_buffer(sm_p, &sci, SCIEVENT, TLMID)){
+	if(read_from_buffer(sm_p, &sci, BUFFER_SCIEVENT, TLMID)){
 	  /*Check in with watchdog*/
 	  checkin(sm_p,TLMID);
 	  //save science data 
@@ -257,7 +257,7 @@ void tlm_proc(void){
 	}
 
 	/*Get SHK data*/
-	if(read_from_buffer(sm_p, &shk, SHKEVENT, TLMID)){
+	if(read_from_buffer(sm_p, &shk, BUFFER_SHKEVENT, TLMID)){
 	  //check in with watchdog
 	  checkin(sm_p,TLMID);
 	  //save shk data 
@@ -276,7 +276,7 @@ void tlm_proc(void){
 	}
 	
 	/*Get LYT data*/
-	if(read_from_buffer(sm_p, &lyt, LYTEVENT, TLMID)){
+	if(read_from_buffer(sm_p, &lyt, BUFFER_LYTEVENT, TLMID)){
 	  //check in with watchdog
 	  checkin(sm_p,TLMID);
 	  //save lyt data 
@@ -295,7 +295,7 @@ void tlm_proc(void){
 	}
 	
 	/*Get ACQ data*/
-	if(read_from_buffer(sm_p, &acq, ACQEVENT, TLMID)){
+	if(read_from_buffer(sm_p, &acq, BUFFER_ACQEVENT, TLMID)){
 	  //check in with watchdog
 	  checkin(sm_p,TLMID);
 	  //save acq data 

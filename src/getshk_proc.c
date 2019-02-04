@@ -66,7 +66,7 @@ void getshk_proc(void){
 
   /* Enter loop to read SHK events */
   while(!sm_p->w[DIAID].die){
-    if(read_from_buffer(sm_p, &shkevent, SHKEVENT, DIAID)){
+    if(read_from_buffer(sm_p, &shkevent, BUFFER_SHKEVENT, DIAID)){
       //Save shkevent
       fwrite(&shkevent,sizeof(shkevent),1,out);
       

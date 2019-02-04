@@ -66,7 +66,7 @@ void getsci_proc(void){
 
   /* Enter loop to read SCI events */
   while(!sm_p->w[DIAID].die){
-    if(read_from_buffer(sm_p, &scievent, SCIEVENT, DIAID)){
+    if(read_from_buffer(sm_p, &scievent, BUFFER_SCIEVENT, DIAID)){
       //Save scievent
       fwrite(&scievent,sizeof(scievent),1,out);
       

@@ -128,7 +128,7 @@ void mtr_proc(void){
 
     /* Fill out event header */
     mtrevent.hed.version      = PICC_PKT_VERSION;
-    mtrevent.hed.type         = MTREVENT;
+    mtrevent.hed.type         = BUFFER_MTREVENT;
     mtrevent.hed.frame_number = count++;
     mtrevent.hed.start_sec    = start.tv_sec;
     mtrevent.hed.start_nsec   = start.tv_nsec;
@@ -234,7 +234,7 @@ void mtr_proc(void){
     mtrevent.hed.end_nsec   = end.tv_nsec;
 
     /* Write event to circular buffer */
-    write_to_buffer(sm_p,&mtrevent,MTREVENT);
+    write_to_buffer(sm_p,&mtrevent,BUFFER_MTREVENT);
 
     /* Print status messages */
     for(i=0;i<MTR_NDOORS;i++){
