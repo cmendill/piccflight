@@ -19,13 +19,4 @@ int  hex_zern2hex(double *zernikes, double *axes);
 void hex_zern2hex_alt(double *zernikes, double *axes);
 int  hex_calibrate(int calmode, hex_t *hex, uint32_t *step, int procid, int reset);
 
-
-//Calibration Modes
-enum hexcalmodes {HEX_CALMODE_NONE,
-		  HEX_CALMODE_POKE,
-		  HEX_CALMODE_TCOR,
-		  HEX_CALMODE_SPIRAL,
-		  HEX_NCALMODES};
-
-
 #endif

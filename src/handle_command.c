@@ -182,6 +182,9 @@ int handle_command(char *line, sm_t *sm_p){
     //Init HEX calmodes
     for(i=0;i<HEX_NCALMODES;i++)
       hex_init_calmode(i,&hexcalmodes[i]);
+    //Init BMC calmodes
+    for(i=0;i<BMC_NCALMODES;i++)
+      bmc_init_calmode(i,&bmccalmodes[i]);
     //Init TGT calmodes
     for(i=0;i<TGT_NCALMODES;i++)
       tgt_init_calmode(i,&tgtcalmodes[i]);

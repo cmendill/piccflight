@@ -275,10 +275,6 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   static lytevent_t lytevent;
   lytfull_t *lytfull_p;
   lytevent_t *lytevent_p;
-  static calmode_t alpcalmodes[ALP_NCALMODES];
-  static calmode_t hexcalmodes[HEX_NCALMODES];
-  static calmode_t bmccalmodes[BMC_NCALMODES];
-  static calmode_t tgtcalmodes[TGT_NCALMODES];
   static struct timespec start,end,delta,last,full_last;
   static int init=0;
   double dt;
@@ -320,18 +316,6 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     lyt_zernike_fit(NULL,FUNCTION_RESET);
     //Reset reference image copying
     lyt_copy_lytpix2alpzer_refimg(NULL,FUNCTION_RESET);
-    //Init ALP calmodes
-    for(i=0;i<ALP_NCALMODES;i++)
-      alp_init_calmode(i,&alpcalmodes[i]);
-    //Init HEX calmodes
-    for(i=0;i<HEX_NCALMODES;i++)
-      hex_init_calmode(i,&hexcalmodes[i]);
-    //Init BMC calmodes
-    for(i=0;i<BMC_NCALMODES;i++)
-      bmc_init_calmode(i,&bmccalmodes[i]);
-    //Init TGT calmodes
-    for(i=0;i<TGT_NCALMODES;i++)
-      tgt_init_calmode(i,&tgtcalmodes[i]);
     //Reset last times
     memcpy(&full_last,&start,sizeof(struct timespec));
     memcpy(&last,&start,sizeof(struct timespec));
@@ -367,11 +351,6 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   lytevent.hed.alp_calmode  = sm_p->alp_calmode;
   lytevent.hed.bmc_calmode  = sm_p->bmc_calmode;
   lytevent.hed.tgt_calmode  = sm_p->tgt_calmode;
-  memcpy(lytevent.hed.state_name,(char *)sm_p->state_array[lytevent.hed.state].name,sizeof(lytevent.hed.state_name));
-  memcpy(lytevent.hed.hex_calmode_name,hexcalmodes[lytevent.hed.hex_calmode].name,sizeof(hexcalmodes[lytevent.hed.hex_calmode].name));
-  memcpy(lytevent.hed.alp_calmode_name,alpcalmodes[lytevent.hed.alp_calmode].name,sizeof(alpcalmodes[lytevent.hed.alp_calmode].name));
-  memcpy(lytevent.hed.bmc_calmode_name,bmccalmodes[lytevent.hed.bmc_calmode].name,sizeof(bmccalmodes[lytevent.hed.bmc_calmode].name));
-  memcpy(lytevent.hed.tgt_calmode_name,tgtcalmodes[lytevent.hed.tgt_calmode].name,sizeof(tgtcalmodes[lytevent.hed.tgt_calmode].name));
 
   //Save gains
   memcpy(&lytevent.gain_alp_zern[0][0],(double *)&sm_p->lyt_gain_alp_zern[0][0],sizeof(lytevent.gain_alp_zern));

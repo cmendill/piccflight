@@ -814,10 +814,6 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   static shkevent_t shkevent;
   shkfull_t *shkfull_p;
   shkevent_t *shkevent_p;
-  static calmode_t alpcalmodes[ALP_NCALMODES];
-  static calmode_t hexcalmodes[HEX_NCALMODES];
-  static calmode_t bmccalmodes[BMC_NCALMODES];
-  static calmode_t tgtcalmodes[TGT_NCALMODES];
   static struct timespec start,end,delta,last,full_last,hex_last;
   static int init=0;
   double dt;
@@ -867,19 +863,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     shk_alp_cellpid(NULL,FUNCTION_RESET);
     shk_alp_zernpid(NULL,NULL,FUNCTION_RESET);
     shk_hex_zernpid(NULL,NULL,FUNCTION_RESET);
-    //Init ALP calmodes
-    for(i=0;i<ALP_NCALMODES;i++)
-      alp_init_calmode(i,&alpcalmodes[i]);
-    //Init HEX calmodes
-    for(i=0;i<HEX_NCALMODES;i++)
-      hex_init_calmode(i,&hexcalmodes[i]);
-    //Init BMC calmodes
-    for(i=0;i<BMC_NCALMODES;i++)
-      bmc_init_calmode(i,&bmccalmodes[i]);
-    //Init TGT calmodes
-    for(i=0;i<TGT_NCALMODES;i++)
-      tgt_init_calmode(i,&tgtcalmodes[i]);
-    //Reset last times
+     //Reset last times
     memcpy(&full_last,&start,sizeof(struct timespec));
     memcpy(&hex_last,&start,sizeof(struct timespec));
     memcpy(&last,&start,sizeof(struct timespec));
@@ -916,11 +900,6 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   shkevent.hed.alp_calmode  = sm_p->alp_calmode;
   shkevent.hed.bmc_calmode  = sm_p->bmc_calmode;
   shkevent.hed.tgt_calmode  = sm_p->tgt_calmode;
-  memcpy(shkevent.hed.state_name,(char *)sm_p->state_array[shkevent.hed.state].name,sizeof(shkevent.hed.state_name));
-  memcpy(shkevent.hed.hex_calmode_name,hexcalmodes[shkevent.hed.hex_calmode].name,sizeof(hexcalmodes[shkevent.hed.hex_calmode].name));
-  memcpy(shkevent.hed.alp_calmode_name,alpcalmodes[shkevent.hed.alp_calmode].name,sizeof(alpcalmodes[shkevent.hed.alp_calmode].name));
-  memcpy(shkevent.hed.bmc_calmode_name,bmccalmodes[shkevent.hed.bmc_calmode].name,sizeof(bmccalmodes[shkevent.hed.bmc_calmode].name));
-  memcpy(shkevent.hed.tgt_calmode_name,tgtcalmodes[shkevent.hed.tgt_calmode].name,sizeof(tgtcalmodes[shkevent.hed.tgt_calmode].name));
   
   //Save gains
   memcpy(shkevent.gain_alp_cell,(void *)sm_p->shk_gain_alp_cell,sizeof(shkevent.gain_alp_cell));

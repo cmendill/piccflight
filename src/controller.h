@@ -94,6 +94,33 @@ enum states { STATE_STANDBY,
 	      NSTATES};
 
 /*************************************************
+ * Calibration Modes
+ *************************************************/
+enum alpcalmodes {ALP_CALMODE_NONE,
+		  ALP_CALMODE_ZERO,
+		  ALP_CALMODE_FLAT,
+		  ALP_CALMODE_POKE,
+		  ALP_CALMODE_ZPOKE,
+		  ALP_CALMODE_FLIGHT,
+		  ALP_CALMODE_RAMP,
+		  ALP_CALMODE_ZRAMP,
+		  ALP_NCALMODES};
+
+enum hexcalmodes {HEX_CALMODE_NONE,
+		  HEX_CALMODE_POKE,
+		  HEX_CALMODE_TCOR,
+		  HEX_CALMODE_SPIRAL,
+		  HEX_NCALMODES};
+
+enum tgtcalmodes {TGT_CALMODE_NONE,
+		  TGT_CALMODE_ZERO,
+		  TGT_CALMODE_ZPOKE,
+		  TGT_NCALMODES};
+
+enum bmccalmodes {BMC_CALMODE_NONE,
+		  BMC_NCALMODES};
+
+/*************************************************
  * Commands
  *************************************************/
 #define CMD_SENDDATA  0x0ABACABB
@@ -663,12 +690,6 @@ typedef struct pkthed_struct{
   uint32  bmc_calstep;  //bmc calstep
   uint32  tgt_calstep;  //tgt calstep
 
-  char    state_name[MAX_COMMAND];       //string name of state
-  char    hex_calmode_name[MAX_COMMAND]; //string name of hex_calmode
-  char    alp_calmode_name[MAX_COMMAND]; //string name of alp_calmode
-  char    bmc_calmode_name[MAX_COMMAND]; //string name of bmc_calmode
-  char    tgt_calmode_name[MAX_COMMAND]; //string name of tgt_calmode
-  
   int64   start_sec;    //event start time
   int64   start_nsec;   //event start time
   int64   end_sec;      //event end time
@@ -703,19 +724,19 @@ typedef struct shkcell_struct{
 
 typedef struct shkevent_struct{
   pkthed_t  hed;
-  shkcell_t cells[SHK_BEAM_NCELLS]; //odd
-  uint32    boxsize; //odd
-  float     gain_alp_zern[LOWFS_N_ZERNIKE][LOWFS_N_PID]; //odd
-  float     gain_alp_cell[LOWFS_N_PID]; //odd
-  float     gain_hex_zern[LOWFS_N_PID]; //odd
-  float     zernike_target[LOWFS_N_ZERNIKE]; //odd
-  float     zernike_measured[LOWFS_N_ZERNIKE][SHK_NSAMPLES]; //even
-  float     alp_acmd[ALP_NACT][SHK_NSAMPLES]; //even
-  float     alp_zcmd[LOWFS_N_ZERNIKE][SHK_NSAMPLES]; //even
-  float     hex_acmd[HEX_NAXES]; //even
-  float     hex_zcmd[LOWFS_N_ZERNIKE]; //odd
-  float     wsp_pcmd; //odd
-  float     wsp_ycmd; //odd
+  shkcell_t cells[SHK_BEAM_NCELLS];
+  uint32    boxsize;
+  float     gain_alp_zern[LOWFS_N_ZERNIKE][LOWFS_N_PID];
+  float     gain_alp_cell[LOWFS_N_PID];
+  float     gain_hex_zern[LOWFS_N_PID];
+  float     zernike_target[LOWFS_N_ZERNIKE];
+  float     zernike_measured[LOWFS_N_ZERNIKE][SHK_NSAMPLES];
+  float     alp_acmd[ALP_NACT][SHK_NSAMPLES];
+  float     alp_zcmd[LOWFS_N_ZERNIKE][SHK_NSAMPLES];
+  float     hex_acmd[HEX_NAXES];
+  float     hex_zcmd[LOWFS_N_ZERNIKE];
+  float     wsp_pcmd;
+  float     wsp_ycmd;
 } shkevent_t;
 
 typedef struct scievent_struct{
