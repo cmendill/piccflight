@@ -198,9 +198,9 @@ enum bmccalmodes {BMC_CALMODE_NONE,
 #define SHKZER2SHKCEL_OUTFILE  "output/calibration/shkzer2shkcel_flight_output.dat"
 #define SHK_OUTFILE            "output/calibration/shk_output.dat"
 #define LYT_OUTFILE            "output/calibration/lyt_output.dat"
-#define SHK_ORIGIN_FILE        "output/calibration/shk_origin.dat"
-#define ALP_FLAT_FILE          "output/calibration/alp_flat.dat"
-#define SCI_ORIGIN_FILE        "output/calibration/sci_origin.dat"
+#define SHK_ORIGIN_FILE        "output/settings/shk_origin.dat"
+#define ALP_FLAT_FILE          "output/settings/alp_flat.dat"
+#define SCI_ORIGIN_FILE        "output/settings/sci_origin.dat"
 
 /*************************************************
  * Network Addresses & Ports
