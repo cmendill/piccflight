@@ -595,8 +595,6 @@ void shk_zernike_ops(shkevent_t *shkevent, int fit_zernikes, int set_targets, in
   int i;
   double surf2wave=1;
   static int init = 0;
-  double zernike_measured[LOWFS_N_ZERNIKE];
-  double zernike_target[LOWFS_N_ZERNIKE];
   
   /* Initialize Fitting Matrix */
   if(!init || reset){
@@ -622,7 +620,7 @@ void shk_zernike_ops(shkevent_t *shkevent, int fit_zernikes, int set_targets, in
   /* Set Targets */
   if(set_targets){
     //Do Zernike target to cell target matrix multiply 
-    num_dgemv(zern2shk, zernike_target, shk_xydev, 2*SHK_BEAM_NCELLS, LOWFS_N_ZERNIKE);
+    num_dgemv(zern2shk, shkevent->zernike_target, shk_xydev, 2*SHK_BEAM_NCELLS, LOWFS_N_ZERNIKE);
     //Convert xydev from pixels/surface back to pixels
     if(INSTRUMENT_INPUT_TYPE == INPUT_TYPE_SINGLE_PASS) surf2wave = 2.0;
     if(INSTRUMENT_INPUT_TYPE == INPUT_TYPE_DOUBLE_PASS) surf2wave = 4.0;
