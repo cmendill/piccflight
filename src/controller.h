@@ -128,9 +128,9 @@ enum bmccalmodes {BMC_CALMODE_NONE,
 /*************************************************
 * Instrument Input Type
 *************************************************/
-#define INPUT_TYPE_SINGLE_PASS   0 //Normal operation
-#define INPUT_TYPE_DOUBLE_PASS   1 //Fed from PSI
-#define INSTRUMENT_INPUT_TYPE    INPUT_TYPE_DOUBLE_PASS
+#define INPUT_TYPE_SINGLE_PASS   0 //One reflection off DMs
+#define INPUT_TYPE_DOUBLE_PASS   1 //Two reflections off DMs
+#define INSTRUMENT_INPUT_TYPE    INPUT_TYPE_SINGLE_PASS
 
 /*************************************************
 * Enable Switches
