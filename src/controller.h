@@ -441,10 +441,10 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SCIFULL,
 #define ALP_BIAS              0.0
 #define ALP_SHK_POKE          0.05  //shk alp actuator calibration poke
 #define ALP_SHK_ZPOKE         0.02  //shk zernike microns RMS
-#define ALP_SHK_NCALIM        (SHK_NSAMPLES * 2) //shk number of calibration images to take per step
+#define ALP_SHK_NCALIM        40    //shk number of calibration images per alp step
 #define ALP_LYT_POKE          0.01  //lyt alp actuator calibration poke
 #define ALP_LYT_ZPOKE         0.005 //lyt zernike microns RMS
-#define ALP_LYT_NCALIM        (LYT_NSAMPLES * 1) //lyt number of calibration images to take per step
+#define ALP_LYT_NCALIM        200   //lyt number of calibration images per alp step
 #define ALP_ZERNIKE_MIN      -5.0   //ALP min zernike command
 #define ALP_ZERNIKE_MAX       5.0   //ALP max zernike command
 #define ALP_DZERNIKE_MIN     -1.0   //ALP min delta zernike command
@@ -454,8 +454,8 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SCIFULL,
 /*************************************************
  * TARGET Parameters
  *************************************************/
-#define TGT_SHK_NCALIM        5     //shk number of SHK_NSAMPLES sets to take per step
-#define TGT_LYT_NCALIM        5     //lyt number of LYT_NSAMPLES sets to take per step
+#define TGT_SHK_NCALIM        100   //shk number of calibration images per tgt step
+#define TGT_LYT_NCALIM        200   //lyt number of calibration images per tgt step
 #define TGT_LYT_ZPOKE         0.005 //lyt tgt zpoke [microns rms]
 #define TGT_SHK_ZPOKE         0.02  //shk tgt zpoke [microns rms]
 
@@ -489,14 +489,14 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SCIFULL,
 #define HEX_U_CAL_TCOR    0.001
 #define HEX_V_CAL_TCOR    0.001
 #define HEX_W_CAL_TCOR    0.005
-#define HEX_SHK_NCALIM    2 //Number of SHK_NSAMPLES sets
-#define HEX_LYT_NCALIM    2 //Number of LYT_NSAMPLES sets
-#define HEX_PIVOT_X       0//122.32031250
-#define HEX_PIVOT_Y       0//206.61012268
-#define HEX_PIVOT_Z       0//74.0
-#define DEG_ROT_X         0.0 //deg
-#define DEG_ROT_Y         0.0 //deg
-#define DEG_ROT_Z         30.0 // deg
+#define HEX_SHK_NCALIM    40
+#define HEX_LYT_NCALIM    200
+#define HEX_PIVOT_X       0    //122.32031250
+#define HEX_PIVOT_Y       0    //206.61012268
+#define HEX_PIVOT_Z       0    //74.0
+#define DEG_ROT_X         0.0  //deg
+#define DEG_ROT_Y         0.0  //deg
+#define DEG_ROT_Z         30.0 //deg
 #define DEG2RAD           3.14159265 / 180.0000000
 #define THETA_X           DEG_ROT_X * DEG2RAD
 #define THETA_Y           DEG_ROT_Y * DEG2RAD
