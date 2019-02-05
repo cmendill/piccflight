@@ -144,12 +144,12 @@ void print_zernikes(sm_t *sm_p){
 /*  - Handle user commands                                    */
 /**************************************************************/
 int handle_command(char *line, sm_t *sm_p){
-  float ftemp;
-  int   itemp;
-  char  stemp[CMD_MAX_LENGTH];
-  char  cmd[CMD_MAX_LENGTH];
-  int   cmdfound=0;
-  int   i=0,j=0,hex_axis=0;
+  double ftemp;
+  int    itemp;
+  char   stemp[CMD_MAX_LENGTH];
+  char   cmd[CMD_MAX_LENGTH];
+  int    cmdfound=0;
+  int    i=0,j=0,hex_axis=0;
   double hex_poke=0;
   int    calmode=0;
   uint16_t led;
@@ -1044,8 +1044,8 @@ int handle_command(char *line, sm_t *sm_p){
   if(!strncasecmp(line,"shk alp gain ",13) && strlen(line)>14){
     ftemp = atof(line+13);
     if(ftemp > 0){
-      float shk_gain_alp_zern[LOWFS_N_ZERNIKE][LOWFS_N_PID] = SHK_GAIN_ALP_ZERN_DEFAULT;
-      float shk_gain_alp_cell[LOWFS_N_PID] = SHK_GAIN_ALP_CELL_DEFAULT;
+      double shk_gain_alp_zern[LOWFS_N_ZERNIKE][LOWFS_N_PID] = SHK_GAIN_ALP_ZERN_DEFAULT;
+      double shk_gain_alp_cell[LOWFS_N_PID] = SHK_GAIN_ALP_CELL_DEFAULT;
       for(i=0;i<LOWFS_N_PID;i++)
 	sm_p->shk_gain_alp_cell[i] = shk_gain_alp_cell[i]*ftemp;
       for(i=0;i<LOWFS_N_ZERNIKE;i++) 
@@ -1060,7 +1060,7 @@ int handle_command(char *line, sm_t *sm_p){
   if(!strncasecmp(line,"shk hex gain ",13) && strlen(line)>14){
     ftemp = atof(line+13);
     if(ftemp > 0){
-      float shk_gain_hex_zern[LOWFS_N_PID] = SHK_GAIN_HEX_ZERN_DEFAULT;
+      double shk_gain_hex_zern[LOWFS_N_PID] = SHK_GAIN_HEX_ZERN_DEFAULT;
       for(i=0;i<LOWFS_N_PID;i++)
 	sm_p->shk_gain_hex_zern[i] = shk_gain_hex_zern[i]*ftemp;
       printf("CMD: SHK changing HEX gain multiplier to %f\n",ftemp);
@@ -1072,8 +1072,8 @@ int handle_command(char *line, sm_t *sm_p){
   if(!strncasecmp(line,"lyt alp gain ",13) && strlen(line)>14){
     ftemp = atof(line+13);
     if(ftemp > 0){
-      float lyt_gain_alp_zern[LOWFS_N_ZERNIKE][LOWFS_N_PID] = LYT_GAIN_ALP_ZERN_DEFAULT;
-      float lyt_gain_alp_act[LOWFS_N_PID] = LYT_GAIN_ALP_ACT_DEFAULT;
+      double lyt_gain_alp_zern[LOWFS_N_ZERNIKE][LOWFS_N_PID] = LYT_GAIN_ALP_ZERN_DEFAULT;
+      double lyt_gain_alp_act[LOWFS_N_PID] = LYT_GAIN_ALP_ACT_DEFAULT;
       // -- zernike gain
       for(i=0;i<LOWFS_N_ZERNIKE;i++) 
 	for(j=0;j<LOWFS_N_PID;j++)

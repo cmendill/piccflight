@@ -322,18 +322,18 @@ int main(int argc,char **argv){
   for(i=0;i<LOWFS_N_ZERNIKE;i++) sm_p->zernike_control[i] = 1;
 
   //SHK PID Gains
-  float shk_gain_alp_zern[LOWFS_N_ZERNIKE][LOWFS_N_PID] = SHK_GAIN_ALP_ZERN_DEFAULT;
-  memcpy((float *)&sm_p->shk_gain_alp_zern[0][0],&shk_gain_alp_zern[0][0],sizeof(shk_gain_alp_zern));
-  float shk_gain_alp_cell[LOWFS_N_PID] = SHK_GAIN_ALP_CELL_DEFAULT;
-  memcpy((float *)sm_p->shk_gain_alp_cell,shk_gain_alp_cell,sizeof(shk_gain_alp_cell));
-  float shk_gain_hex_zern[LOWFS_N_PID] = SHK_GAIN_HEX_ZERN_DEFAULT;
-  memcpy((float *)sm_p->shk_gain_hex_zern,shk_gain_hex_zern,sizeof(shk_gain_hex_zern));
+  double shk_gain_alp_zern[LOWFS_N_ZERNIKE][LOWFS_N_PID] = SHK_GAIN_ALP_ZERN_DEFAULT;
+  memcpy((double *)&sm_p->shk_gain_alp_zern[0][0],&shk_gain_alp_zern[0][0],sizeof(shk_gain_alp_zern));
+  double shk_gain_alp_cell[LOWFS_N_PID] = SHK_GAIN_ALP_CELL_DEFAULT;
+  memcpy((double *)sm_p->shk_gain_alp_cell,shk_gain_alp_cell,sizeof(shk_gain_alp_cell));
+  double shk_gain_hex_zern[LOWFS_N_PID] = SHK_GAIN_HEX_ZERN_DEFAULT;
+  memcpy((double *)sm_p->shk_gain_hex_zern,shk_gain_hex_zern,sizeof(shk_gain_hex_zern));
 
   //LYT PID Gains
-  float lyt_gain_alp_zern[LOWFS_N_ZERNIKE][LOWFS_N_PID] = LYT_GAIN_ALP_ZERN_DEFAULT;
-  memcpy((float *)&sm_p->lyt_gain_alp_zern[0][0],&lyt_gain_alp_zern[0][0],sizeof(lyt_gain_alp_zern));
-  float lyt_gain_alp_act[LOWFS_N_PID] = LYT_GAIN_ALP_ACT_DEFAULT;
-  memcpy((float *)&sm_p->lyt_gain_alp_act,&lyt_gain_alp_act,sizeof(lyt_gain_alp_act));
+  double lyt_gain_alp_zern[LOWFS_N_ZERNIKE][LOWFS_N_PID] = LYT_GAIN_ALP_ZERN_DEFAULT;
+  memcpy((double *)&sm_p->lyt_gain_alp_zern[0][0],&lyt_gain_alp_zern[0][0],sizeof(lyt_gain_alp_zern));
+  double lyt_gain_alp_act[LOWFS_N_PID] = LYT_GAIN_ALP_ACT_DEFAULT;
+  memcpy((double *)&sm_p->lyt_gain_alp_act,&lyt_gain_alp_act,sizeof(lyt_gain_alp_act));
   
   /* Initialize States */
   for(i=0;i<NSTATES;i++)

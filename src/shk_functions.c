@@ -33,7 +33,7 @@
 /*  - Set cell origins and beam select flags                  */
 /**************************************************************/
 void shk_init_cells(shkevent_t *shkevent){
-  float cell_size_px = SHK_LENSLET_PITCH_UM/SHK_PX_PITCH_UM;
+  double cell_size_px = SHK_LENSLET_PITCH_UM/SHK_PX_PITCH_UM;
   int i,j,c;
   int shk_beam_select[SHK_NCELLS] = SHK_BEAM_SELECT;
   
@@ -62,15 +62,12 @@ int shk_setorigin(shkevent_t *shkevent){
   static double cx[SHK_NCELLS]={0}, cy[SHK_NCELLS]={0};
   static int count = 0;
   const double navg = SHK_ORIGIN_NAVG;
-
-  //Get sample index
-  int sample = shkevent->hed.frame_number % SHK_NSAMPLES;
   
   //Average the centroids
   if(count++ < navg){
     for(i=0;i<SHK_BEAM_NCELLS;i++){
-      cx[i] += ((double)shkevent->cells[i].xorigin_deviation[sample] + shkevent->cells[i].xorigin) / navg;
-      cy[i] += ((double)shkevent->cells[i].yorigin_deviation[sample] + shkevent->cells[i].yorigin) / navg;
+      cx[i] += shkevent->cells[i].xcentroid/navg;
+      cy[i] += shkevent->cells[i].ycentroid/navg;
     }
     return 1;
   }
@@ -80,7 +77,7 @@ int shk_setorigin(shkevent_t *shkevent){
       shkevent->cells[i].xorigin = cx[i];
       shkevent->cells[i].yorigin = cy[i];
     }
-
+    
     //Reset
     count = 0;
     memset(cx,0,sizeof(cx));
@@ -208,7 +205,7 @@ void shk_loadorigin(shkevent_t*shkevent){
 /* SHK_CENTROID_CELL                                          */
 /*  - Measure the centroid of a single SHK cell               */
 /**************************************************************/
-void shk_centroid_cell(uint16 *image, shkcell_t *cell, int cmd_boxsize, int sample){
+void shk_centroid_cell(uint16 *image, shkcell_t *cell, int cmd_boxsize){
   double xnum,ynum,total,intensity,background,val;
   uint16 maxval,npix;
   double xhist[SHKXS]={0};
@@ -370,11 +367,15 @@ void shk_centroid_cell(uint16 *image, shkcell_t *cell, int cmd_boxsize, int samp
   cell->intensity  = intensity;
   cell->background = background;
 
+  //Save centroids
+  cell->xcentroid = xcentroid;
+  cell->ycentroid = ycentroid;
+  
   //Save deviations
-  cell->xtarget_deviation[sample] = xcentroid - cell->xtarget;
-  cell->ytarget_deviation[sample] = ycentroid - cell->ytarget;
-  cell->xorigin_deviation[sample] = xcentroid - cell->xorigin;
-  cell->yorigin_deviation[sample] = ycentroid - cell->yorigin;
+  cell->xtarget_deviation = xcentroid - cell->xtarget;
+  cell->ytarget_deviation = ycentroid - cell->ytarget;
+  cell->xorigin_deviation = xcentroid - cell->xorigin;
+  cell->yorigin_deviation = ycentroid - cell->yorigin;
   
   /**********************************************************/
   /* APPLY UNIT CONVERSION                                  */
@@ -392,10 +393,10 @@ void shk_centroid_cell(uint16 *image, shkcell_t *cell, int cmd_boxsize, int samp
   /**********************************************************/
   if(INSTRUMENT_INPUT_TYPE == INPUT_TYPE_SINGLE_PASS) wave2surf = 0.5;
   if(INSTRUMENT_INPUT_TYPE == INPUT_TYPE_DOUBLE_PASS) wave2surf = 0.25;
-  cell->xtarget_deviation[sample] *= wave2surf;
-  cell->ytarget_deviation[sample] *= wave2surf;
-  cell->xorigin_deviation[sample] *= wave2surf;
-  cell->yorigin_deviation[sample] *= wave2surf;
+  cell->xtarget_deviation *= wave2surf;
+  cell->ytarget_deviation *= wave2surf;
+  cell->xorigin_deviation *= wave2surf;
+  cell->yorigin_deviation *= wave2surf;
 }
 
 /**************************************************************/
@@ -405,12 +406,9 @@ void shk_centroid_cell(uint16 *image, shkcell_t *cell, int cmd_boxsize, int samp
 void shk_centroid(uint16 *image, shkevent_t *shkevent){
   int i;
 
-  //Get sample index
-  int sample = shkevent->hed.frame_number % SHK_NSAMPLES;
-
   //Centroid cells
   for(i=0;i<SHK_BEAM_NCELLS;i++)
-    shk_centroid_cell(image,&shkevent->cells[i],shkevent->boxsize,sample);
+    shk_centroid_cell(image,&shkevent->cells[i],shkevent->boxsize);
 }
 
 /**************************************************************/
@@ -429,7 +427,7 @@ void shk_zernike_matrix(shkcell_t *cells, double *matrix_fwd, double *matrix_inv
   char outfile[MAX_FILENAME];
   char temp[MAX_FILENAME];
   char path[MAX_FILENAME];
-  float cell_size_px = SHK_LENSLET_PITCH_UM/SHK_PX_PITCH_UM;
+  double cell_size_px = SHK_LENSLET_PITCH_UM/SHK_PX_PITCH_UM;
   
   
   // beam_center = [mean(x), mean(y)] of beam cell origins
@@ -599,7 +597,7 @@ void shk_zernike_ops(shkevent_t *shkevent, int fit_zernikes, int set_targets, in
   static int init = 0;
   double zernike_measured[LOWFS_N_ZERNIKE];
   double zernike_target[LOWFS_N_ZERNIKE];
-
+  
   /* Initialize Fitting Matrix */
   if(!init || reset){
     //Generate the zernike matrix
@@ -610,22 +608,15 @@ void shk_zernike_ops(shkevent_t *shkevent, int fit_zernikes, int set_targets, in
     if(reset) return;
   }
 
-  /* Get sample index */
-  int sample = shkevent->hed.frame_number % SHK_NSAMPLES;
-  
   /* Zernike Fitting */
   if(fit_zernikes){
     //Format displacement array (from origin for zernike fitting)
     for(i=0;i<SHK_BEAM_NCELLS;i++){
-      shk_xydev[2*i + 0] = shkevent->cells[i].xorigin_deviation[sample];
-      shk_xydev[2*i + 1] = shkevent->cells[i].yorigin_deviation[sample];
+      shk_xydev[2*i + 0] = shkevent->cells[i].xorigin_deviation;
+      shk_xydev[2*i + 1] = shkevent->cells[i].yorigin_deviation;
     }
     //Do Zernike fit matrix multiply
-    num_dgemv(shk2zern, shk_xydev, zernike_measured, LOWFS_N_ZERNIKE, 2*SHK_BEAM_NCELLS);
-
-    //Copy Zernike fits
-    for(i=0;i<LOWFS_N_ZERNIKE;i++)
-      shkevent->zernike_measured[i][sample] = zernike_measured[i];
+    num_dgemv(shk2zern, shk_xydev, shkevent->zernike_measured, LOWFS_N_ZERNIKE, 2*SHK_BEAM_NCELLS);
   }
   
   /* Set Targets */
@@ -647,7 +638,7 @@ void shk_zernike_ops(shkevent_t *shkevent, int fit_zernikes, int set_targets, in
 /* SHK_CELLS2ALP                                              */
 /*  - Convert SHK cell commands to ALPAO DM commands          */
 /**************************************************************/
-void shk_cells2alp(shkcell_t *cells, double *actuators, int sample, int reset){
+void shk_cells2alp(shkcell_t *cells, double *actuators, int reset){
   FILE *matrix=NULL;
   char matrix_file[MAX_FILENAME];
   uint64 fsize,rsize;
@@ -695,8 +686,8 @@ void shk_cells2alp(shkcell_t *cells, double *actuators, int sample, int reset){
 
   //Format displacement array
   for(i=0;i<SHK_BEAM_NCELLS;i++){
-    shk_xydev[2*i + 0] = cells[i].xcommand[sample];
-    shk_xydev[2*i + 1] = cells[i].ycommand[sample];
+    shk_xydev[2*i + 0] = cells[i].xcommand;
+    shk_xydev[2*i + 1] = cells[i].ycommand;
   }
 
   //Do Matrix Multiply
@@ -712,10 +703,7 @@ void shk_alp_cellpid(shkevent_t *shkevent, int reset){
   static double xint[SHK_BEAM_NCELLS] = {0};
   static double yint[SHK_BEAM_NCELLS] = {0};
   int i;
-  
-  //Get sample index
-  int sample = shkevent->hed.frame_number % SHK_NSAMPLES;
-  
+    
   //Initialize
   if(!init || reset){
     memset(xint,0,sizeof(xint));
@@ -727,16 +715,16 @@ void shk_alp_cellpid(shkevent_t *shkevent, int reset){
   //Run PID
   for(i=0;i<SHK_BEAM_NCELLS;i++){
     //Calculate integrals
-    xint[i] += shkevent->cells[i].xtarget_deviation[sample];
-    yint[i] += shkevent->cells[i].ytarget_deviation[sample];
+    xint[i] += shkevent->cells[i].xtarget_deviation;
+    yint[i] += shkevent->cells[i].ytarget_deviation;
     //Fix windup
     if(xint[i] > SHK_ALP_CELL_INT_MAX) xint[i]=SHK_ALP_CELL_INT_MAX;
     if(xint[i] < SHK_ALP_CELL_INT_MIN) xint[i]=SHK_ALP_CELL_INT_MIN;
     if(yint[i] > SHK_ALP_CELL_INT_MAX) yint[i]=SHK_ALP_CELL_INT_MAX;
     if(yint[i] < SHK_ALP_CELL_INT_MIN) yint[i]=SHK_ALP_CELL_INT_MIN;
     //Calculate command delta
-    shkevent->cells[i].xcommand[sample] = shkevent->gain_alp_cell[0] * shkevent->cells[i].xtarget_deviation[sample] + shkevent->gain_alp_cell[1] * xint[i];
-    shkevent->cells[i].ycommand[sample] = shkevent->gain_alp_cell[0] * shkevent->cells[i].ytarget_deviation[sample] + shkevent->gain_alp_cell[1] * yint[i];
+    shkevent->cells[i].xcommand = shkevent->gain_alp_cell[0] * shkevent->cells[i].xtarget_deviation + shkevent->gain_alp_cell[1] * xint[i];
+    shkevent->cells[i].ycommand = shkevent->gain_alp_cell[0] * shkevent->cells[i].ytarget_deviation + shkevent->gain_alp_cell[1] * yint[i];
   }
 }
 
@@ -747,7 +735,7 @@ void shk_alp_cellpid(shkevent_t *shkevent, int reset){
 void shk_alp_zernpid(shkevent_t *shkevent, double *zernike_delta, int reset){
   static int init = 0;
   static double zint[LOWFS_N_ZERNIKE] = {0};
-  double error;
+  double zerr;
   int i;
 
   //Initialize
@@ -757,20 +745,17 @@ void shk_alp_zernpid(shkevent_t *shkevent, double *zernike_delta, int reset){
     if(reset) return;
   }
 
-  //Get sample index
-  int sample = shkevent->hed.frame_number % SHK_NSAMPLES;
-
   //Run PID
   for(i=0;i<LOWFS_N_ZERNIKE;i++){
     //Calculate error
-    error = shkevent->zernike_measured[i][sample] - shkevent->zernike_target[i];
+    zerr = shkevent->zernike_measured[i] - shkevent->zernike_target[i];
     //Calculate integral
-    zint[i] += error;
+    zint[i] += zerr;
     //Fix windup
     if(zint[i] > SHK_ALP_ZERN_INT_MAX) zint[i]=SHK_ALP_ZERN_INT_MAX;
     if(zint[i] < SHK_ALP_ZERN_INT_MIN) zint[i]=SHK_ALP_ZERN_INT_MIN;
     //Calculate command delta
-    zernike_delta[i] = shkevent->gain_alp_zern[i][0] * error + shkevent->gain_alp_zern[i][1] * zint[i];
+    zernike_delta[i] = shkevent->gain_alp_zern[i][0] * zerr + shkevent->gain_alp_zern[i][1] * zint[i];
   }
 }
 
@@ -781,7 +766,7 @@ void shk_alp_zernpid(shkevent_t *shkevent, double *zernike_delta, int reset){
 void shk_hex_zernpid(shkevent_t *shkevent, double *zernike_delta, int reset){
   static int init = 0;
   static double zint[LOWFS_N_ZERNIKE] = {0};
-  double error;
+  double zerr;
   int i;
 
   //Initialize
@@ -791,17 +776,14 @@ void shk_hex_zernpid(shkevent_t *shkevent, double *zernike_delta, int reset){
     if(reset) return;
   }
 
-  //Get sample index
-  int sample = shkevent->hed.frame_number % SHK_NSAMPLES;
-
   //Run PID
   for(i=0;i<LOWFS_N_ZERNIKE;i++){
     //Calculate error
-    error = shkevent->zernike_measured[i][sample] - shkevent->zernike_target[i];
+    zerr = shkevent->zernike_measured[i] - shkevent->zernike_target[i];
     //Calculate integral
     zint[i] += error;
     //Calculate command
-    zernike_delta[i] = shkevent->gain_hex_zern[0] * error + shkevent->gain_hex_zern[1] * zint[i];
+    zernike_delta[i] = shkevent->gain_hex_zern[0] * zerr + shkevent->gain_hex_zern[1] * zint[i];
   }
 }
 
@@ -815,7 +797,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   shkfull_t *shkfull_p;
   shkevent_t *shkevent_p;
   static struct timespec start,end,delta,last,full_last,hex_last;
-  static int init=0,init_header=0;
+  static int init=0;
   double dt;
   int i,j;
   uint16_t fakepx=0;
@@ -825,8 +807,6 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   int zernike_control=0;
   uint32_t n_dither=1;
   int reset_zernike=0;
-  double zernike_target[LOWFS_N_ZERNIKE];
-  int sample;
   
   //Get time immidiately
   clock_gettime(CLOCK_REALTIME,&start);
@@ -868,11 +848,6 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     memcpy(&full_last,&start,sizeof(struct timespec));
     memcpy(&hex_last,&start,sizeof(struct timespec));
     memcpy(&last,&start,sizeof(struct timespec));
-    //Fill out static header items
-    shkevent.hed.version  = PICC_PKT_VERSION;
-    shkevent.hed.type     = BUFFER_SHKEVENT;
-    shkevent.hed.imxsize  = SHKXS;
-    shkevent.hed.imysize  = SHKYS;
     //Set init flag
     init=1;
     //Debugging
@@ -886,6 +861,10 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
 
   
   //Fill out event header
+  shkevent.hed.version      = PICC_PKT_VERSION;
+  shkevent.hed.type         = BUFFER_SHKEVENT;
+  shkevent.hed.imxsize      = SHKXS;
+  shkevent.hed.imysize      = SHKYS;
   shkevent.hed.frame_number = frame_number;
   shkevent.hed.exptime      = sm_p->shk_exptime;
   shkevent.hed.ontime       = dt;
@@ -893,49 +872,26 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   shkevent.hed.state        = state;
   shkevent.hed.start_sec    = start.tv_sec;
   shkevent.hed.start_nsec   = start.tv_nsec;
-  
-  //Header initialization to be repeated on the first sample
-  if(!init_header || (sample == 0)){
-    //Save gains
-    memcpy(shkevent.gain_alp_cell,(void *)sm_p->shk_gain_alp_cell,sizeof(shkevent.gain_alp_cell));
-    memcpy(shkevent.gain_alp_zern,(void *)sm_p->shk_gain_alp_zern,sizeof(shkevent.gain_alp_zern));
-    memcpy(shkevent.gain_hex_zern,(void *)sm_p->shk_gain_hex_zern,sizeof(shkevent.gain_hex_zern));
-    
-    //Save calmodes
-    shkevent.hed.hex_calmode = sm_p->hex_calmode;
-    shkevent.hed.alp_calmode = sm_p->alp_calmode;
-    shkevent.hed.bmc_calmode = sm_p->bmc_calmode;
-    shkevent.hed.tgt_calmode = sm_p->tgt_calmode;
 
-    //Save zernike targets
-    for(i=0;i<LOWFS_N_ZERNIKE;i++){
-      zernike_target[i] = sm_p->shk_zernike_target[i];
-      shkevent.zernike_target[i] = zernike_target[i];
-    }
-
-    //Set init flag
-    init_header = 1;
-  }
+  //Save gains
+  memcpy(shkevent.gain_alp_cell,(void *)sm_p->shk_gain_alp_cell,sizeof(shkevent.gain_alp_cell));
+  memcpy(shkevent.gain_alp_zern,(void *)sm_p->shk_gain_alp_zern,sizeof(shkevent.gain_alp_zern));
+  memcpy(shkevent.gain_hex_zern,(void *)sm_p->shk_gain_hex_zern,sizeof(shkevent.gain_hex_zern));
   
-  //Run target calibration on first sample
-  if(sample == 0){
-    if(sm_p->state_array[state].alp_commander == SHKID){
-      if(shkevent.hed.tgt_calmode != TGT_CALMODE_NONE){
-	sm_p->tgt_calmode = tgt_calibrate(shkevent.hed.tgt_calmode,zernike_target,&shkevent.hed.tgt_calstep,SHKID,FUNCTION_NO_RESET);
-	//Save targets: This is done this way to preserve double data types in function call above
-	for(i=0;i<LOWFS_N_ZERNIKE;i++)
-	  shkevent.zernike_target[i] = zernike_target[i];
-	//Re-init header if calmode changed
-	if(sm_p->tgt_calmode != shkevent.hed.tgt_calmode)
-	  init_header=0;
-	//NOTE: All calmodes should run for an integer number of sets of SHK_NSAMPLES
-	//      The calibrate function should return back to CALMODE_NONE on the last sample of a set
-	//      But, if we dropped a frame, the calibrate function may return CALMODE_NONE
-	//      in the middle of a set, and then sm_p->calmode would get re-written with the old
-	//      calmode and we would get stuck. This init_header block is used to prevent that.
-      }
-    }
-  }
+  //Save calmodes
+  shkevent.hed.hex_calmode = sm_p->hex_calmode;
+  shkevent.hed.alp_calmode = sm_p->alp_calmode;
+  shkevent.hed.bmc_calmode = sm_p->bmc_calmode;
+  shkevent.hed.tgt_calmode = sm_p->tgt_calmode;
+  
+  //Save zernike targets
+  memcpy(shkevent.zernike_target,sm_p->shk_zernike_target,sizeof(shkevent.zernike_target));
+  
+  
+  //Run target calibration
+  if(sm_p->state_array[state].alp_commander == SHKID)
+    if(shkevent.hed.tgt_calmode != TGT_CALMODE_NONE)
+      sm_p->tgt_calmode = tgt_calibrate(shkevent.hed.tgt_calmode,shkevent.zernike_target,&shkevent.hed.tgt_calstep,SHKID,FUNCTION_NO_RESET);
   
   //Set centroid targets based on zernike targets
   shk_zernike_ops(&shkevent,0,1,FUNCTION_NO_RESET);
@@ -953,129 +909,125 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   //Calculate centroids
   shk_centroid(buffer->pvAddress,&shkevent);
  
-  //Perform origin operations on the first sample
-  if(sample == 0){
-    //Command: Set cell origins
-    if(sm_p->shk_setorigin){
-      sm_p->shk_setorigin = shk_setorigin(&shkevent);
-      //Trigger zernike reset
-      if(!sm_p->shk_setorigin) reset_zernike=1;
-    }
-  
-    //Command: Revert cell origins
-    if(sm_p->shk_revertorigin){
-      shk_revertorigin(&shkevent);
-      sm_p->shk_revertorigin = 0;
-      //Trigger zernike reset
-      reset_zernike=1;
-    }
-
-    //Command: Save cell origins
-    if(sm_p->shk_saveorigin){
-      shk_saveorigin(&shkevent);
-      sm_p->shk_saveorigin = 0;
-    }
-
-    //Command: Load cell origins
-    if(sm_p->shk_loadorigin){
-      shk_loadorigin(&shkevent);
-      sm_p->shk_loadorigin = 0;
-      //Trigger zernike reset
-      reset_zernike=1;
-    }
-  
-    //Command: Shift cell x origins
-    if(sm_p->shk_xshiftorigin){
-      for(i=0;i<SHK_BEAM_NCELLS;i++)
-	shkevent.cells[i].xorigin += sm_p->shk_xshiftorigin;
-      printf("SHK: Shifted origin %d pixels in X\n",sm_p->shk_xshiftorigin);
-      sm_p->shk_xshiftorigin = 0;
-      //Trigger zernike reset
-      reset_zernike=1;
-    }
-  
-    //Command: Shift cell y origins
-    if(sm_p->shk_yshiftorigin){
-      for(i=0;i<SHK_BEAM_NCELLS;i++)
-	shkevent.cells[i].yorigin += sm_p->shk_yshiftorigin;
-      printf("SHK: Shifted origin %d pixels in Y\n",sm_p->shk_yshiftorigin);
-      sm_p->shk_yshiftorigin = 0;
-      //Trigger zernike reset
-      reset_zernike=1;
-    }
-   
-    //Reset zernike matrix if cell origins have changed
-    if(reset_zernike) shk_zernike_ops(&shkevent,0,0,FUNCTION_RESET);
+  //Command: Set cell origins
+  if(sm_p->shk_setorigin){
+    sm_p->shk_setorigin = shk_setorigin(&shkevent);
+    //Trigger zernike reset
+    if(!sm_p->shk_setorigin) reset_zernike=1;
   }
-
+  
+  //Command: Revert cell origins
+  if(sm_p->shk_revertorigin){
+    shk_revertorigin(&shkevent);
+    sm_p->shk_revertorigin = 0;
+    //Trigger zernike reset
+    reset_zernike=1;
+  }
+  
+  //Command: Save cell origins
+  if(sm_p->shk_saveorigin){
+    shk_saveorigin(&shkevent);
+    sm_p->shk_saveorigin = 0;
+  }
+  
+  //Command: Load cell origins
+  if(sm_p->shk_loadorigin){
+    shk_loadorigin(&shkevent);
+    sm_p->shk_loadorigin = 0;
+    //Trigger zernike reset
+    reset_zernike=1;
+  }
+  
+  //Command: Shift cell x origins
+  if(sm_p->shk_xshiftorigin){
+    for(i=0;i<SHK_BEAM_NCELLS;i++)
+      shkevent.cells[i].xorigin += sm_p->shk_xshiftorigin;
+    printf("SHK: Shifted origin %d pixels in X\n",sm_p->shk_xshiftorigin);
+    sm_p->shk_xshiftorigin = 0;
+    //Trigger zernike reset
+    reset_zernike=1;
+  }
+  
+  //Command: Shift cell y origins
+  if(sm_p->shk_yshiftorigin){
+    for(i=0;i<SHK_BEAM_NCELLS;i++)
+      shkevent.cells[i].yorigin += sm_p->shk_yshiftorigin;
+    printf("SHK: Shifted origin %d pixels in Y\n",sm_p->shk_yshiftorigin);
+    sm_p->shk_yshiftorigin = 0;
+    //Trigger zernike reset
+    reset_zernike=1;
+  }
+  
+  //Reset zernike matrix if cell origins have changed
+  if(reset_zernike) shk_zernike_ops(&shkevent,0,0,FUNCTION_RESET);
+  
   //Fit zernikes
   if(sm_p->state_array[state].shk.fit_zernikes)
     shk_zernike_ops(&shkevent,1,0,FUNCTION_NO_RESET);
-
+  
   /************************************************************/
   /*******************  Hexapod Control Code  *****************/
   /************************************************************/
-  //Perform HEX operations on the first sample
-  if(sample == 0){
-    //Check time since last command
-    if(timespec_subtract(&delta,&start,&hex_last))
-      printf("SHK: shk_process_image --> timespec_subtract error!\n");
-    ts2double(&delta,&dt);
 
-    //Get last HEX command
-    hex_get_command(sm_p,&hex);
-    memcpy(&hex_try,&hex,sizeof(hex_t));
+  //Check time since last command
+  if(timespec_subtract(&delta,&start,&hex_last))
+    printf("SHK: shk_process_image --> timespec_subtract error!\n");
+  ts2double(&delta,&dt);
+  
+  //Get last HEX command
+  hex_get_command(sm_p,&hex);
+  memcpy(&hex_try,&hex,sizeof(hex_t));
+  
+  //Check if we will send a command
+  if((sm_p->state_array[state].hex_commander == SHKID) && sm_p->hex_ready && (dt > HEX_PERIOD)){
+    
+    //Check if HEX is controlling any Zernikes
+    zernike_control = 0;
+    for(i=0;i<LOWFS_N_ZERNIKE;i++)
+      if(sm_p->state_array[state].shk.zernike_control[i] == ACTUATOR_HEX)
+	zernike_control = 1;
+    
+    //Run Zernike control
+    if(zernike_control){
+      // - run Zernike PID
+      shk_hex_zernpid(&shkevent, hex_delta.zernike_cmd, FUNCTION_NO_RESET);
+      
+      // - zero out uncontrolled Zernikes
+      for(i=0;i<LOWFS_N_ZERNIKE;i++)
+	if(sm_p->state_array[state].shk.zernike_control[i] != ACTUATOR_HEX)
+	  hex_delta.zernike_cmd[i] = 0;
 
-    //Check if we will send a command
-    if((sm_p->state_array[state].hex_commander == SHKID) && sm_p->hex_ready && (dt > HEX_PERIOD)){
+      // - convert Zernike deltas to axis deltas
+      hex_zern2hex_alt(hex_delta.zernike_cmd, hex_delta.axis_cmd);
 
-      //Check if HEX is controlling any Zernikes
-      zernike_control = 0;
+      // - add Zernike PID output deltas to HEX command
       for(i=0;i<LOWFS_N_ZERNIKE;i++)
 	if(sm_p->state_array[state].shk.zernike_control[i] == ACTUATOR_HEX)
-	  zernike_control = 1;
+	  hex_try.zernike_cmd[i] += hex_delta.zernike_cmd[i];
 
-      //Run Zernike control
-      if(zernike_control){
-	// - run Zernike PID
-	shk_hex_zernpid(&shkevent, hex_delta.zernike_cmd, FUNCTION_NO_RESET);
-
-	// - zero out uncontrolled Zernikes
-	for(i=0;i<LOWFS_N_ZERNIKE;i++)
-	  if(sm_p->state_array[state].shk.zernike_control[i] != ACTUATOR_HEX)
-	    hex_delta.zernike_cmd[i] = 0;
-
-	// - convert Zernike deltas to axis deltas
-	hex_zern2hex_alt(hex_delta.zernike_cmd, hex_delta.axis_cmd);
-
-	// - add Zernike PID output deltas to HEX command
-	for(i=0;i<LOWFS_N_ZERNIKE;i++)
-	  if(sm_p->state_array[state].shk.zernike_control[i] == ACTUATOR_HEX)
-	    hex_try.zernike_cmd[i] += hex_delta.zernike_cmd[i];
-
-	// - add axis deltas to HEX command
-	for(i=0;i<HEX_NAXES;i++)
-	  hex_try.axis_cmd[i] += hex_delta.axis_cmd[i];
-      }
-
-      //Run HEX calibration
-      if(shkevent.hed.hex_calmode != HEX_CALMODE_NONE){
-	sm_p->hex_calmode = hex_calibrate(shkevent.hed.hex_calmode,&hex_try,&shkevent.hed.hex_calstep,SHKID,FUNCTION_NO_RESET);
-	//Re-init header if calmode changed
-	if(sm_p->hex_calmode != shkevent.hed.hex_calmode)
-	  init_header=0;
-      }
-
-      //Send command to HEX
-      if(hex_send_command(sm_p,&hex_try,SHKID)){
-	// - copy command to current position
-	memcpy(&hex,&hex_try,sizeof(hex_t));
-      }
-
-      //Reset time
-      memcpy(&hex_last,&start,sizeof(struct timespec));
+      // - add axis deltas to HEX command
+      for(i=0;i<HEX_NAXES;i++)
+	hex_try.axis_cmd[i] += hex_delta.axis_cmd[i];
     }
+
+    //Run HEX calibration
+    if(shkevent.hed.hex_calmode != HEX_CALMODE_NONE){
+      sm_p->hex_calmode = hex_calibrate(shkevent.hed.hex_calmode,&hex_try,&shkevent.hed.hex_calstep,SHKID,FUNCTION_NO_RESET);
+      //Re-init header if calmode changed
+      if(sm_p->hex_calmode != shkevent.hed.hex_calmode)
+	init_header=0;
+    }
+
+    //Send command to HEX
+    if(hex_send_command(sm_p,&hex_try,SHKID)){
+      // - copy command to current position
+      memcpy(&hex,&hex_try,sizeof(hex_t));
+    }
+
+    //Reset time
+    memcpy(&hex_last,&start,sizeof(struct timespec));
   }
+
 
   /*************************************************************/
   /*******************  ALPAO DM Control Code  *****************/
@@ -1086,8 +1038,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   memcpy(&alp_try,&alp,sizeof(alp_t));
 
   //Check if we will send a command
-  //if((sm_p->state_array[state].alp_commander == SHKID) && sm_p->alp_ready){
-    if(0){
+  if((sm_p->state_array[state].alp_commander == SHKID) && sm_p->alp_ready){
     //Check if ALP is controlling any Zernikes
     zernike_control = 0;
     for(i=0;i<LOWFS_N_ZERNIKE;i++)
@@ -1123,8 +1074,8 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
       shk_alp_cellpid(&shkevent, FUNCTION_NO_RESET);
 
       // - convert cell commands to actuator deltas
-      shk_cells2alp(shkevent.cells,alp_delta.act_cmd,sample,FUNCTION_NO_RESET);
-
+      shk_cells2alp(shkevent.cells,alp_delta.act_cmd,FUNCTION_NO_RESET);
+      
       // - add actuator deltas to ALP command
       for(i=0;i<ALP_NACT;i++)
 	alp_try.act_cmd[i] += alp_delta.act_cmd[i];
@@ -1146,42 +1097,28 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   }
   
   //Copy HEX command to shkevent
-  for(i=0;i<HEX_NAXES;i++)
-    shkevent.hex_acmd[i] = hex.axis_cmd[i];
-  for(i=0;i<LOWFS_N_ZERNIKE;i++)
-    shkevent.hex_zcmd[i] = hex.zernike_cmd[i];
+  memcpy(&shkevent.hex,&hex,sizeof(hex_t));
   
   //Copy ALP command to shkevent
-  for(i=0;i<ALP_NACT;i++)
-    shkevent.alp_acmd[i][sample] = alp.act_cmd[i];
-  for(i=0;i<LOWFS_N_ZERNIKE;i++)
-    shkevent.alp_zcmd[i][sample] = alp.zernike_cmd[i];
+  memcpy(&shkevent.alp,&alp,sizeof(alp_t));
+  
+  //Open SHKEVENT circular buffer
+  shkevent_p=(shkevent_t *)open_buffer(sm_p,BUFFER_SHKEVENT);
+  
+  //Copy data
+  memcpy(shkevent_p,&shkevent,sizeof(shkevent_t));;
   
   //Get final timestamp
   clock_gettime(CLOCK_REALTIME,&end);
+  shkevent_p->hed.end_sec  = end.tv_sec;
+  shkevent_p->hed.end_nsec = end.tv_nsec;
+  
+  //Close buffer
+  close_buffer(sm_p,BUFFER_SHKEVENT);
+  
+  //Save end timestamps for full image code
   shkevent.hed.end_sec  = end.tv_sec;
   shkevent.hed.end_nsec = end.tv_nsec;
-  
-  //Write event to circular buffer on the last sample
-  if(sample == SHK_NSAMPLES-1){
-    //Open SHKEVENT circular buffer
-    shkevent_p=(shkevent_t *)open_buffer(sm_p,BUFFER_SHKEVENT);
-
-    //Copy data
-    memcpy(shkevent_p,&shkevent,sizeof(shkevent_t));;
-    
-    //Get final timestamp
-    clock_gettime(CLOCK_REALTIME,&end);
-    shkevent_p->hed.end_sec  = end.tv_sec;
-    shkevent_p->hed.end_nsec = end.tv_nsec;
-    
-    //Close buffer
-    close_buffer(sm_p,BUFFER_SHKEVENT);
-
-    //Save end timestamps for full image code
-    shkevent.hed.end_sec  = end.tv_sec;
-    shkevent.hed.end_nsec = end.tv_nsec;
-  }
   
   //Save time
   memcpy(&last,&start,sizeof(struct timespec));
@@ -1211,11 +1148,6 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     
     //Copy shkevent
     memcpy(&shkfull.shkevent,&shkevent,sizeof(shkevent));
-
-    //Get final timestamp
-    clock_gettime(CLOCK_REALTIME,&end);
-    shkfull.hed.end_sec  = end.tv_sec;
-    shkfull.hed.end_nsec = end.tv_nsec;
     
     //Open SHKFULL circular buffer
     shkfull_p=(shkfull_t *)open_buffer(sm_p,BUFFER_SHKFULL);
@@ -1230,8 +1162,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     
     //Close buffer
     close_buffer(sm_p,BUFFER_SHKFULL);
-    write_to_buffer(sm_p,&shkfull,BUFFER_SHKFULL);
-
+    
     //Reset time
     memcpy(&full_last,&start,sizeof(struct timespec));
   }

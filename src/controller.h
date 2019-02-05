@@ -679,12 +679,12 @@ typedef struct pkthed_struct{
   float   frametime;    //commanded frame time
   float   ontime;       //measured frame time
   float   temp;         //sensor temperature, if available
-
+  
   uint16  hex_calmode;  //hex calmode
   uint16  alp_calmode;  //alp calmode
   uint16  bmc_calmode;  //bmc calmode
   uint16  tgt_calmode;  //tgt calmode
-
+  
   uint32  hex_calstep;  //hex calstep
   uint32  alp_calstep;  //alp calstep
   uint32  bmc_calstep;  //bmc calstep
@@ -710,48 +710,47 @@ typedef struct shkcell_struct{
   uint16    try;
   uint32    intensity;
   uint32    background;
-  float     xorigin;
-  float     yorigin;
-  float     xtarget;
-  float     ytarget;
-  float     xorigin_deviation[SHK_NSAMPLES];
-  float     yorigin_deviation[SHK_NSAMPLES];
-  float     xtarget_deviation[SHK_NSAMPLES];
-  float     ytarget_deviation[SHK_NSAMPLES];
-  float     xcommand[SHK_NSAMPLES];
-  float     ycommand[SHK_NSAMPLES];
+  double    xorigin;
+  double    yorigin;
+  double    xtarget;
+  double    ytarget;
+  double    xcentroid;
+  double    ycentroid;
+  double    xorigin_deviation;
+  double    yorigin_deviation;
+  double    xtarget_deviation;
+  double    ytarget_deviation;
+  double    xcommand;
+  double    ycommand;
 } shkcell_t;
 
 typedef struct shkevent_struct{
   pkthed_t  hed;
   shkcell_t cells[SHK_BEAM_NCELLS];
   uint32    boxsize;
-  float     gain_alp_zern[LOWFS_N_ZERNIKE][LOWFS_N_PID];
-  float     gain_alp_cell[LOWFS_N_PID];
-  float     gain_hex_zern[LOWFS_N_PID];
-  float     zernike_target[LOWFS_N_ZERNIKE];
-  float     zernike_measured[LOWFS_N_ZERNIKE][SHK_NSAMPLES];
-  float     alp_acmd[ALP_NACT][SHK_NSAMPLES];
-  float     alp_zcmd[LOWFS_N_ZERNIKE][SHK_NSAMPLES];
-  float     hex_acmd[HEX_NAXES];
-  float     hex_zcmd[LOWFS_N_ZERNIKE];
-  float     wsp_pcmd;
-  float     wsp_ycmd;
+  double    gain_alp_zern[LOWFS_N_ZERNIKE][LOWFS_N_PID];
+  double    gain_alp_cell[LOWFS_N_PID];
+  double    gain_hex_zern[LOWFS_N_PID];
+  double    zernike_target[LOWFS_N_ZERNIKE];
+  double    zernike_measured[LOWFS_N_ZERNIKE];
+  alp_t     alp;
+  hex_t     hex;
+  wsp_t     wsp;
 } shkevent_t;
 
 typedef struct scievent_struct{
   pkthed_t hed;
-  uint32   xorigin[SCI_NBANDS]; //odd
-  uint32   yorigin[SCI_NBANDS]; //odd
+  uint32   xorigin[SCI_NBANDS];
+  uint32   yorigin[SCI_NBANDS];
   sci_t    image[SCI_NBANDS];
 } scievent_t;
 
 typedef struct lytevent_struct{
   pkthed_t  hed;
-  float     gain_alp_zern[LOWFS_N_ZERNIKE][LOWFS_N_PID]; //odd
-  float     zernike_target[LOWFS_N_ZERNIKE]; //odd
-  float     zernike_measured[LOWFS_N_ZERNIKE][LYT_NSAMPLES]; //even
-  float     alp_zcmd[LOWFS_N_ZERNIKE][LYT_NSAMPLES]; //even
+  double    gain_alp_zern[LOWFS_N_ZERNIKE][LOWFS_N_PID];
+  double    zernike_target[LOWFS_N_ZERNIKE];
+  double    zernike_measured[LOWFS_N_ZERNIKE];
+  double    alp_zcmd[LOWFS_N_ZERNIKE];
   lyt_t     image;
 } lytevent_t;
 
@@ -873,13 +872,13 @@ typedef volatile struct {
 
   //Shack-Hartmann Settings
   int shk_boxsize;                                        //SHK centroid boxsize
-  float shk_gain_alp_cell[LOWFS_N_PID];                   //SHK ALP cell gains
-  float shk_gain_alp_zern[LOWFS_N_ZERNIKE][LOWFS_N_PID];  //SHK ALP zern gains
-  float shk_gain_hex_zern[LOWFS_N_PID];                   //SHK HEX zern gains
+  double shk_gain_alp_cell[LOWFS_N_PID];                   //SHK ALP cell gains
+  double shk_gain_alp_zern[LOWFS_N_ZERNIKE][LOWFS_N_PID];  //SHK ALP zern gains
+  double shk_gain_hex_zern[LOWFS_N_PID];                   //SHK HEX zern gains
 
   //Lyot LOWFS Settings
-  float lyt_gain_alp_zern[LOWFS_N_ZERNIKE][LOWFS_N_PID];  //LYT ALP zernike PID gains
-  float lyt_gain_alp_act[LOWFS_N_PID];                    //LYT ALP actuator PID gains
+  double lyt_gain_alp_zern[LOWFS_N_ZERNIKE][LOWFS_N_PID];  //LYT ALP zernike PID gains
+  double lyt_gain_alp_act[LOWFS_N_PID];                    //LYT ALP actuator PID gains
   
   //Camera Reset Commands
   int shk_reset_camera;
@@ -911,8 +910,8 @@ typedef volatile struct {
   int htr_power[SSR_NCHAN];
       
   //Zernike Targets
-  float shk_zernike_target[LOWFS_N_ZERNIKE];
-  float lyt_zernike_target[LOWFS_N_ZERNIKE];
+  double shk_zernike_target[LOWFS_N_ZERNIKE];
+  double lyt_zernike_target[LOWFS_N_ZERNIKE];
 
   //Zernike control switches
   int zernike_control[LOWFS_N_ZERNIKE];
