@@ -815,7 +815,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   shkfull_t *shkfull_p;
   shkevent_t *shkevent_p;
   static struct timespec start,end,delta,last,full_last,hex_last;
-  static int init=0;
+  static int init=0,init_header=0;
   double dt;
   int i,j;
   uint16_t fakepx=0;
@@ -837,6 +837,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   //Check reset
   if(sm_p->w[SHKID].reset){
     init=0;
+    init_header=0;
     sm_p->w[SHKID].reset=0;
   }
 
@@ -863,15 +864,15 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     shk_alp_cellpid(NULL,FUNCTION_RESET);
     shk_alp_zernpid(NULL,NULL,FUNCTION_RESET);
     shk_hex_zernpid(NULL,NULL,FUNCTION_RESET);
-     //Reset last times
+    //Reset last times
     memcpy(&full_last,&start,sizeof(struct timespec));
     memcpy(&hex_last,&start,sizeof(struct timespec));
     memcpy(&last,&start,sizeof(struct timespec));
-    //Save zernike targets
-    for(i=0;i<LOWFS_N_ZERNIKE;i++){
-      zernike_target[i] = sm_p->shk_zernike_target[i];
-      shkevent.zernike_target[i] = zernike_target[i];
-    }
+    //Fill out static header items
+    shkevent.hed.version  = PICC_PKT_VERSION;
+    shkevent.hed.type     = BUFFER_SHKEVENT;
+    shkevent.hed.imxsize  = SHKXS;
+    shkevent.hed.imysize  = SHKYS;
     //Set init flag
     init=1;
     //Debugging
@@ -885,45 +886,53 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
 
   
   //Fill out event header
-  shkevent.hed.version      = PICC_PKT_VERSION;
-  shkevent.hed.type         = BUFFER_SHKEVENT;
   shkevent.hed.frame_number = frame_number;
   shkevent.hed.exptime      = sm_p->shk_exptime;
   shkevent.hed.ontime       = dt;
   shkevent.hed.temp         = 0;
   shkevent.hed.state        = state;
-  shkevent.hed.imxsize      = SHKXS;
-  shkevent.hed.imysize      = SHKYS;
   shkevent.hed.start_sec    = start.tv_sec;
   shkevent.hed.start_nsec   = start.tv_nsec;
-  shkevent.hed.hex_calmode  = sm_p->hex_calmode;
-  shkevent.hed.alp_calmode  = sm_p->alp_calmode;
-  shkevent.hed.bmc_calmode  = sm_p->bmc_calmode;
-  shkevent.hed.tgt_calmode  = sm_p->tgt_calmode;
   
-  //Save gains
-  memcpy(shkevent.gain_alp_cell,(void *)sm_p->shk_gain_alp_cell,sizeof(shkevent.gain_alp_cell));
-  memcpy(shkevent.gain_alp_zern,(void *)sm_p->shk_gain_alp_zern,sizeof(shkevent.gain_alp_zern));
-  memcpy(shkevent.gain_hex_zern,(void *)sm_p->shk_gain_hex_zern,sizeof(shkevent.gain_hex_zern));
+  //Header initialization to be repeated on the first sample
+  if(!init_header || (sample == 0)){
+    //Save gains
+    memcpy(shkevent.gain_alp_cell,(void *)sm_p->shk_gain_alp_cell,sizeof(shkevent.gain_alp_cell));
+    memcpy(shkevent.gain_alp_zern,(void *)sm_p->shk_gain_alp_zern,sizeof(shkevent.gain_alp_zern));
+    memcpy(shkevent.gain_hex_zern,(void *)sm_p->shk_gain_hex_zern,sizeof(shkevent.gain_hex_zern));
+    
+    //Save calmodes
+    shkevent.hed.hex_calmode = sm_p->hex_calmode;
+    shkevent.hed.alp_calmode = sm_p->alp_calmode;
+    shkevent.hed.bmc_calmode = sm_p->bmc_calmode;
+    shkevent.hed.tgt_calmode = sm_p->tgt_calmode;
 
-  //Set sample index
-  sample = shkevent.hed.frame_number % SHK_NSAMPLES;
-
-  //Perform target operations on the first of each SHK_NSAMPLES
-  if(sample == 0){
     //Save zernike targets
     for(i=0;i<LOWFS_N_ZERNIKE;i++){
       zernike_target[i] = sm_p->shk_zernike_target[i];
       shkevent.zernike_target[i] = zernike_target[i];
     }
-    //Run target calibration
+
+    //Set init flag
+    init_header = 1;
+  }
+  
+  //Run target calibration on first sample
+  if(sample == 0){
     if(sm_p->state_array[state].alp_commander == SHKID){
       if(shkevent.hed.tgt_calmode != TGT_CALMODE_NONE){
 	sm_p->tgt_calmode = tgt_calibrate(shkevent.hed.tgt_calmode,zernike_target,&shkevent.hed.tgt_calstep,SHKID,FUNCTION_NO_RESET);
-	for(i=0;i<LOWFS_N_ZERNIKE;i++){
-	  //This is done this way to preserve double data types in function call above
+	//Save targets: This is done this way to preserve double data types in function call above
+	for(i=0;i<LOWFS_N_ZERNIKE;i++)
 	  shkevent.zernike_target[i] = zernike_target[i];
-	}
+	//Re-init header if calmode changed
+	if(sm_p->tgt_calmode != shkevent.hed.tgt_calmode)
+	  init_header=0;
+	//NOTE: All calmodes should run for an integer number of sets of SHK_NSAMPLES
+	//      The calibrate function should return back to CALMODE_NONE on the last sample of a set
+	//      But, if we dropped a frame, the calibrate function may return CALMODE_NONE
+	//      in the middle of a set, and then sm_p->calmode would get re-written with the old
+	//      calmode and we would get stuck. This init_header block is used to prevent that.
       }
     }
   }
@@ -944,7 +953,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   //Calculate centroids
   shk_centroid(buffer->pvAddress,&shkevent);
  
-  //Perform origin operations on the first of each SHK_NSAMPLES
+  //Perform origin operations on the first sample
   if(sample == 0){
     //Command: Set cell origins
     if(sm_p->shk_setorigin){
@@ -1006,7 +1015,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   /************************************************************/
   /*******************  Hexapod Control Code  *****************/
   /************************************************************/
-  //Perform HEX operations on the first of each SHK_NSAMPLES
+  //Perform HEX operations on the first sample
   if(sample == 0){
     //Check time since last command
     if(timespec_subtract(&delta,&start,&hex_last))
@@ -1050,8 +1059,12 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
       }
 
       //Run HEX calibration
-      if(shkevent.hed.hex_calmode != HEX_CALMODE_NONE)
+      if(shkevent.hed.hex_calmode != HEX_CALMODE_NONE){
 	sm_p->hex_calmode = hex_calibrate(shkevent.hed.hex_calmode,&hex_try,&shkevent.hed.hex_calstep,SHKID,FUNCTION_NO_RESET);
+	//Re-init header if calmode changed
+	if(sm_p->hex_calmode != shkevent.hed.hex_calmode)
+	  init_header=0;
+      }
 
       //Send command to HEX
       if(hex_send_command(sm_p,&hex_try,SHKID)){
@@ -1118,8 +1131,12 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     }
 
     //Calibrate ALP
-    if(shkevent.hed.alp_calmode != ALP_CALMODE_NONE)
+    if(shkevent.hed.alp_calmode != ALP_CALMODE_NONE){
       sm_p->alp_calmode = alp_calibrate(shkevent.hed.alp_calmode,&alp_try,&shkevent.hed.alp_calstep,SHKID,FUNCTION_NO_RESET);
+      //Re-init header if calmode changed
+      if(sm_p->alp_calmode != shkevent.hed.alp_calmode)
+	init_header=0;
+    }
   
     //Send command to ALP
     if(alp_send_command(sm_p,&alp_try,SHKID,n_dither)){
@@ -1145,7 +1162,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   shkevent.hed.end_sec  = end.tv_sec;
   shkevent.hed.end_nsec = end.tv_nsec;
   
-  //Write event to circular buffer on the last of each SHK_NSAMPLES
+  //Write event to circular buffer on the last sample
   if(sample == SHK_NSAMPLES-1){
     //Open SHKEVENT circular buffer
     shkevent_p=(shkevent_t *)open_buffer(sm_p,BUFFER_SHKEVENT);
