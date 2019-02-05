@@ -728,6 +728,7 @@ typedef struct shkevent_struct{
   pkthed_t  hed;
   shkcell_t cells[SHK_BEAM_NCELLS];
   uint32    boxsize;
+  uint32    padding;
   double    gain_alp_zern[LOWFS_N_ZERNIKE][LOWFS_N_PID];
   double    gain_alp_cell[LOWFS_N_PID];
   double    gain_hex_zern[LOWFS_N_PID];
@@ -747,10 +748,12 @@ typedef struct scievent_struct{
 
 typedef struct lytevent_struct{
   pkthed_t  hed;
+  double    gain_alp_act[LOWFS_N_PID];
   double    gain_alp_zern[LOWFS_N_ZERNIKE][LOWFS_N_PID];
-  double    zernike_target[LOWFS_N_ZERNIKE];
   double    zernike_measured[LOWFS_N_ZERNIKE];
-  double    alp_zcmd[LOWFS_N_ZERNIKE];
+  double    zernike_target[LOWFS_N_ZERNIKE];
+  double    alp_measured[ALP_NACT];
+  alp_t     alp;
   lyt_t     image;
 } lytevent_t;
 

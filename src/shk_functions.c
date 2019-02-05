@@ -327,12 +327,6 @@ void shk_centroid_cell(uint16 *image, shkcell_t *cell, int cmd_boxsize){
     trx = trx < SHK_XMIN ? SHK_XMIN : trx;
     try = try < SHK_YMIN ? SHK_YMIN : try;
 
-    //Save box corners
-    cell->blx = blx;
-    cell->bly = bly;
-    cell->trx = trx;
-    cell->try = try;
-
     //Build x,y histograms
     for(x=blx;x<=trx;x++){
       for(y=bly;y<=try;y++){
@@ -360,6 +354,12 @@ void shk_centroid_cell(uint16 *image, shkcell_t *cell, int cmd_boxsize){
     ycentroid = ynum/total;
   }
   
+  //Save box corners
+  cell->blx = blx;
+  cell->bly = bly;
+  cell->trx = trx;
+  cell->try = try;
+
   //Save max pixel
   cell->maxval = maxval;
   
@@ -781,7 +781,7 @@ void shk_hex_zernpid(shkevent_t *shkevent, double *zernike_delta, int reset){
     //Calculate error
     zerr = shkevent->zernike_measured[i] - shkevent->zernike_target[i];
     //Calculate integral
-    zint[i] += error;
+    zint[i] += zerr;
     //Calculate command
     zernike_delta[i] = shkevent->gain_hex_zern[0] * zerr + shkevent->gain_hex_zern[1] * zint[i];
   }
@@ -796,6 +796,10 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   static shkevent_t shkevent;
   shkfull_t *shkfull_p;
   shkevent_t *shkevent_p;
+  static calmode_t alpcalmodes[ALP_NCALMODES];
+  static calmode_t hexcalmodes[HEX_NCALMODES];
+  static calmode_t bmccalmodes[BMC_NCALMODES];
+  static calmode_t tgtcalmodes[TGT_NCALMODES];
   static struct timespec start,end,delta,last,full_last,hex_last;
   static int init=0;
   double dt;
@@ -817,7 +821,6 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   //Check reset
   if(sm_p->w[SHKID].reset){
     init=0;
-    init_header=0;
     sm_p->w[SHKID].reset=0;
   }
 
@@ -833,7 +836,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     //Reset zernike matrix
     shk_zernike_ops(&shkevent,0,0,FUNCTION_RESET);
     //Reset cells2alp mapping
-    shk_cells2alp(shkevent.cells,NULL,0,FUNCTION_RESET);
+    shk_cells2alp(shkevent.cells,NULL,FUNCTION_RESET);
     //Reset zern2alp mapping
     alp_zern2alp(NULL,NULL,FUNCTION_RESET);
     //Reset calibration routines
@@ -844,6 +847,18 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     shk_alp_cellpid(NULL,FUNCTION_RESET);
     shk_alp_zernpid(NULL,NULL,FUNCTION_RESET);
     shk_hex_zernpid(NULL,NULL,FUNCTION_RESET);
+    //Init ALP calmodes
+    for(i=0;i<ALP_NCALMODES;i++)
+      alp_init_calmode(i,&alpcalmodes[i]);
+    //Init HEX calmodes
+    for(i=0;i<HEX_NCALMODES;i++)
+      hex_init_calmode(i,&hexcalmodes[i]);
+    //Init BMC calmodes
+    for(i=0;i<BMC_NCALMODES;i++)
+      bmc_init_calmode(i,&bmccalmodes[i]);
+    //Init TGT calmodes
+    for(i=0;i<TGT_NCALMODES;i++)
+      tgt_init_calmode(i,&tgtcalmodes[i]);
     //Reset last times
     memcpy(&full_last,&start,sizeof(struct timespec));
     memcpy(&hex_last,&start,sizeof(struct timespec));
@@ -885,8 +900,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   shkevent.hed.tgt_calmode = sm_p->tgt_calmode;
   
   //Save zernike targets
-  memcpy(shkevent.zernike_target,sm_p->shk_zernike_target,sizeof(shkevent.zernike_target));
-  
+  memcpy(shkevent.zernike_target,(void *)sm_p->shk_zernike_target,sizeof(shkevent.zernike_target));
   
   //Run target calibration
   if(sm_p->state_array[state].alp_commander == SHKID)
@@ -1011,13 +1025,9 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     }
 
     //Run HEX calibration
-    if(shkevent.hed.hex_calmode != HEX_CALMODE_NONE){
+    if(shkevent.hed.hex_calmode != HEX_CALMODE_NONE)
       sm_p->hex_calmode = hex_calibrate(shkevent.hed.hex_calmode,&hex_try,&shkevent.hed.hex_calstep,SHKID,FUNCTION_NO_RESET);
-      //Re-init header if calmode changed
-      if(sm_p->hex_calmode != shkevent.hed.hex_calmode)
-	init_header=0;
-    }
-
+ 
     //Send command to HEX
     if(hex_send_command(sm_p,&hex_try,SHKID)){
       // - copy command to current position
@@ -1082,13 +1092,9 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     }
 
     //Calibrate ALP
-    if(shkevent.hed.alp_calmode != ALP_CALMODE_NONE){
+    if(shkevent.hed.alp_calmode != ALP_CALMODE_NONE)
       sm_p->alp_calmode = alp_calibrate(shkevent.hed.alp_calmode,&alp_try,&shkevent.hed.alp_calstep,SHKID,FUNCTION_NO_RESET);
-      //Re-init header if calmode changed
-      if(sm_p->alp_calmode != shkevent.hed.alp_calmode)
-	init_header=0;
-    }
-  
+     
     //Send command to ALP
     if(alp_send_command(sm_p,&alp_try,SHKID,n_dither)){
       // - copy command to current position
