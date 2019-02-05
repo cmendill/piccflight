@@ -6,7 +6,8 @@ sync.sh
 *.o
 *.ko
 bin/watchdog
-bin/output
+bin/output/calibration
+bin/output/flight_data
 lib/libuvc/build/*
 lib/libuvc/CMakeFiles
 doc
