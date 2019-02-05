@@ -1,5 +1,5 @@
 #!/bin/bash
 
-rsync -crlpgoDvz --delete --exclude-from=excludes.txt ../piccflight picture@picture:
+rsync -avz --delete --exclude-from=excludes.txt ../piccflight picture@picture:
 
 
