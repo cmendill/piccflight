@@ -240,6 +240,7 @@ enum bmccalmodes {BMC_CALMODE_NONE,
 enum bufids {BUFFER_SCIEVENT, BUFFER_SCIFULL,
 	     BUFFER_SHKEVENT, BUFFER_SHKFULL,
 	     BUFFER_LYTEVENT, BUFFER_LYTFULL,
+	     BUFFER_SHKPKT,   BUFFER_LYTPKT,
 	     BUFFER_ACQEVENT, BUFFER_ACQFULL,
 	     BUFFER_THMEVENT, BUFFER_MTREVENT,
 	     NCIRCBUF};
@@ -250,6 +251,8 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SCIFULL,
 #define ACQEVENTSIZE     3
 #define THMEVENTSIZE     3
 #define MTREVENTSIZE     3
+#define SHKPKTSIZE       3
+#define LYTPKTSIZE       3
 #define SCIFULLSIZE      3
 #define SHKFULLSIZE      3
 #define LYTFULLSIZE      3
@@ -643,29 +646,29 @@ typedef struct acq_struct{
  * Device Command Structures
  *************************************************/
 typedef struct alp_struct{
-  double act_cmd[ALP_NACT];
-  double zernike_cmd[LOWFS_N_ZERNIKE];
+  double acmd[ALP_NACT];
+  double zcmd[LOWFS_N_ZERNIKE];
 } alp_t;
 
 typedef struct hex_struct{
-  double axis_cmd[HEX_NAXES];
-  double zernike_cmd[LOWFS_N_ZERNIKE];
+  double acmd[HEX_NAXES];
+  double zcmd[LOWFS_N_ZERNIKE];
 } hex_t;
 
 typedef struct bmc_struct{
-  uint16 act_cmd[BMC_NACT];
+  uint16 acmd[BMC_NACT];
 } bmc_t;
 
 typedef struct wsp_struct{
-  double pitch_cmd;
-  double yaw_cmd;
+  double pcmd;
+  double ycmd;
 } wsp_t;
 
 
 /*************************************************
  * Packet Header
  *************************************************/
-#define PICC_PKT_VERSION     2  //packet version number
+#define PICC_PKT_VERSION     3  //packet version number
 typedef struct pkthed_struct{
   uint16  version;      //packet version number
   uint16  type;         //packet ID word
@@ -703,11 +706,7 @@ typedef struct shkcell_struct{
   uint16    spot_found;
   uint16    spot_captured;
   uint16    maxval;
-  uint16    padding;
-  uint16    blx;
-  uint16    bly;
-  uint16    trx;
-  uint16    try;
+  uint16    boxsize;
   uint32    intensity;
   uint32    background;
   double    xorigin;
@@ -739,12 +738,41 @@ typedef struct shkevent_struct{
   wsp_t     wsp;
 } shkevent_t;
 
-typedef struct scievent_struct{
-  pkthed_t hed;
-  uint32   xorigin[SCI_NBANDS];
-  uint32   yorigin[SCI_NBANDS];
-  sci_t    image[SCI_NBANDS];
-} scievent_t;
+typedef struct pktcell_struct{
+  uint16    spot_found;
+  uint16    spot_captured;
+  uint16    maxval;
+  uint16    boxsize;
+  uint32    intensity;
+  uint32    background;
+  float     xorigin;
+  float     yorigin;
+  float     xtarget;
+  float     ytarget;
+  float     xorigin_deviation[SHK_NSAMPLES];
+  float     yorigin_deviation[SHK_NSAMPLES];
+  float     xtarget_deviation[SHK_NSAMPLES];
+  float     ytarget_deviation[SHK_NSAMPLES];
+  float     xcommand[SHK_NSAMPLES];
+  float     ycommand[SHK_NSAMPLES];
+} shkcell_t;
+
+typedef struct shkpkt_struct{
+  pkthed_t  hed;
+  pktcell_t cells[SHK_BEAM_NCELLS];
+  uint32    boxsize;
+  float     gain_alp_zern[LOWFS_N_ZERNIKE][LOWFS_N_PID];
+  float     gain_alp_cell[LOWFS_N_PID];
+  float     gain_hex_zern[LOWFS_N_PID];
+  float     zernike_target[LOWFS_N_ZERNIKE];
+  float     zernike_measured[LOWFS_N_ZERNIKE][SHK_NSAMPLES];
+  float     alp_acmd[ALP_NACT][SHK_NSAMPLES];
+  float     alp_zcmd[LOWFS_N_ZERNIKE][SHK_NSAMPLES];
+  float     hex_acmd[HEX_NAXES];
+  float     hex_zcmd[LOWFS_N_ZERNIKE];
+  float     wsp_pcmd;
+  float     wsp_ycmd;
+} shkpkt_t;
 
 typedef struct lytevent_struct{
   pkthed_t  hed;
@@ -756,6 +784,22 @@ typedef struct lytevent_struct{
   alp_t     alp;
   lyt_t     image;
 } lytevent_t;
+
+typedef struct lytpkt_struct{
+  pkthed_t  hed;
+  float     gain_alp_zern[LOWFS_N_ZERNIKE][LOWFS_N_PID]; //odd
+  float     zernike_target[LOWFS_N_ZERNIKE]; //odd
+  float     zernike_measured[LOWFS_N_ZERNIKE][LYT_NSAMPLES]; //even
+  float     alp_zcmd[LOWFS_N_ZERNIKE][LYT_NSAMPLES]; //even
+  lyt_t     image;
+} lytpkt_t;
+
+typedef struct scievent_struct{
+  pkthed_t hed;
+  uint32   xorigin[SCI_NBANDS];
+  uint32   yorigin[SCI_NBANDS];
+  sci_t    image[SCI_NBANDS];
+} scievent_t;
 
 typedef struct acqevent_struct{
   pkthed_t  hed;
@@ -926,6 +970,8 @@ typedef volatile struct {
   acqevent_t acqevent[ACQEVENTSIZE];
   thmevent_t thmevent[THMEVENTSIZE];
   mtrevent_t mtrevent[MTREVENTSIZE];
+  shkpkt_t   shkpkt[SHKPKTSIZE];
+  lytpkt_t   lytpkt[LYTPKTSIZE];
 
   //Full frame circular buffers
   scifull_t scifull[SCIFULLSIZE];

@@ -147,7 +147,7 @@ int hex_send_command(sm_t *sm_p, hex_t *cmd, int proc_id){
     if(proc_id == sm_p->state_array[sm_p->state].hex_commander){
       
       //Send the command
-      if(hex_move(sm_p->hexfd,cmd->axis_cmd) == 0){
+      if(hex_move(sm_p->hexfd,cmd->acmd) == 0){
 	//Copy command to current position
 	memcpy((hex_t *)&sm_p->hex_command,cmd,sizeof(hex_t));
 	//Set return value
@@ -499,7 +499,7 @@ int hex_calibrate(int calmode, hex_t *hex, uint32_t *step, int procid, int reset
       if((countA[calmode]/ncalim) % 2 == 1){
 	//move one axis
 	iax = (countB[calmode]/ncalim) % HEX_NAXES;
-	hex->axis_cmd[iax] += poke[iax];
+	hex->acmd[iax] += poke[iax];
 	countB[calmode]++;
       }
       countA[calmode]++;
@@ -535,14 +535,14 @@ int hex_calibrate(int calmode, hex_t *hex, uint32_t *step, int procid, int reset
       if((countA[calmode]/ncalim) % 2 == 1){
 	//move one axis
 	iax = (countB[calmode]/ncalim) % HEX_NAXES;
-	hex->axis_cmd[iax] += tcor[iax];
+	hex->acmd[iax] += tcor[iax];
 	//correct tilt
 	if(iax == HEX_AXIS_X)
-	  hex->axis_cmd[HEX_AXIS_V] += HEX_TCOR_DVDX * tcor[iax];
+	  hex->acmd[HEX_AXIS_V] += HEX_TCOR_DVDX * tcor[iax];
 	if(iax == HEX_AXIS_Y)
-	  hex->axis_cmd[HEX_AXIS_U] += HEX_TCOR_DUDY * tcor[iax];
+	  hex->acmd[HEX_AXIS_U] += HEX_TCOR_DUDY * tcor[iax];
 	if(iax == HEX_AXIS_Z)
-	  hex->axis_cmd[HEX_AXIS_U] += HEX_TCOR_DUDZ * tcor[iax];
+	  hex->acmd[HEX_AXIS_U] += HEX_TCOR_DUDZ * tcor[iax];
 	countB[calmode]++;
       }
       countA[calmode]++;
@@ -578,8 +578,8 @@ int hex_calibrate(int calmode, hex_t *hex, uint32_t *step, int procid, int reset
     if((countA[calmode]) < max_step){
       u_step = countA[calmode] * spiral_radius * cos(countA[calmode] * (PI/180.0));
       v_step = countA[calmode] * spiral_radius * sin(countA[calmode] * (PI/180.0));
-      hex->axis_cmd[HEX_AXIS_U] = hex_start[HEX_CALMODE_SPIRAL].axis_cmd[HEX_AXIS_U] + 0.005 + u_step;
-      hex->axis_cmd[HEX_AXIS_V] = hex_start[HEX_CALMODE_SPIRAL].axis_cmd[HEX_AXIS_V] + 0.005 + v_step;
+      hex->acmd[HEX_AXIS_U] = hex_start[HEX_CALMODE_SPIRAL].acmd[HEX_AXIS_U] + 0.005 + u_step;
+      hex->acmd[HEX_AXIS_V] = hex_start[HEX_CALMODE_SPIRAL].acmd[HEX_AXIS_V] + 0.005 + v_step;
       if((countA[calmode] % 20)==0)
 	printf("HEX: Searching... %lu\n", countA[calmode]);
 	

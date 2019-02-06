@@ -445,14 +445,14 @@ int handle_command(char *line, sm_t *sm_p){
       //Commands to Move Hexapod
       if(!strncasecmp(line,"hex gohome",10)){
 	printf("CMD: Moving hexapod to home positon\n");
-	memcpy(hexcmd.axis_cmd,hexhome,sizeof(hexhome));
+	memcpy(hexcmd.acmd,hexhome,sizeof(hexhome));
 	if(!hex_send_command(sm_p,&hexcmd,WATID))
 	  printf("CMD: Hexapod command failed\n");
 	return(CMD_NORMAL);
       }
       if(!strncasecmp(line,"hex godef",9)){
 	printf("CMD: Moving hexapod to default positon\n");
-	memcpy(hexcmd.axis_cmd,hexdef,sizeof(hexdef));
+	memcpy(hexcmd.acmd,hexdef,sizeof(hexdef));
 	if(!hex_send_command(sm_p,&hexcmd,WATID))
 	  printf("CMD: Hexapod command failed\n");
 	return(CMD_NORMAL);
@@ -523,7 +523,7 @@ int handle_command(char *line, sm_t *sm_p){
       move_hex:
 	printf("CMD: Moving hexapod axis %s by %f %s\n",hex_str_axes[hex_axis],hex_poke,hex_str_unit[hex_axis]);
 	hex_get_command(sm_p,&hexcmd);
-	hexcmd.axis_cmd[hex_axis] += hex_poke;
+	hexcmd.acmd[hex_axis] += hex_poke;
 	if(!hex_send_command(sm_p,&hexcmd,WATID))
 	  printf("CMD: Hexapod command failed\n");
       }
@@ -661,9 +661,9 @@ int handle_command(char *line, sm_t *sm_p){
 
 	//Add to current command
 	for(i=0;i<LOWFS_N_ZERNIKE;i++)
-	  alp.zernike_cmd[i] += dz[i]; 
+	  alp.zcmd[i] += dz[i]; 
 	for(i=0;i<ALP_NACT;i++)
-	  alp.act_cmd[i] += da[i]; 
+	  alp.acmd[i] += da[i]; 
 
 	//Send command
 	if(alp_send_command(sm_p,&alp,WATID,1)){
@@ -706,7 +706,7 @@ int handle_command(char *line, sm_t *sm_p){
 	alp_get_command(sm_p,&alp);
 
 	//Add to current command
-	alp.act_cmd[itemp] += ftemp;
+	alp.acmd[itemp] += ftemp;
 
 	//Send command
 	if(alp_send_command(sm_p,&alp,WATID,1)){

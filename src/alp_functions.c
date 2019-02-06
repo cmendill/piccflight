@@ -174,7 +174,7 @@ int alp_send_command(sm_t *sm_p, alp_t *cmd, int proc_id, int n_dither){
       }
 
       //Send the command
-      if(rtd_send_alp(sm_p->p_rtd_board,cmd->act_cmd) == 0){
+      if(rtd_send_alp(sm_p->p_rtd_board,cmd->acmd) == 0){
 	//Copy command to current position
 	memcpy((alp_t *)&sm_p->alp_command,cmd,sizeof(alp_t));
  	//Set return value
@@ -201,7 +201,7 @@ int alp_set_bias(sm_t *sm_p, double bias, int proc_id){
   
   //Set bias
   for(i=0;i<ALP_NACT;i++)
-    alp.act_cmd[i] = bias;
+    alp.acmd[i] = bias;
   
   //Send command
   return(alp_send_command(sm_p,&alp,proc_id,1));
@@ -224,7 +224,7 @@ int alp_set_random(sm_t *sm_p, int proc_id){
 
   //Add perturbation
   for(i=0;i<ALP_NACT;i++)
-    alp.act_cmd[i] += (2*(rand() / (double) RAND_MAX) - 1) * ALP_SHK_POKE;
+    alp.acmd[i] += (2*(rand() / (double) RAND_MAX) - 1) * ALP_SHK_POKE;
 
   //Send command
   return(alp_send_command(sm_p,&alp,proc_id,1));
@@ -256,9 +256,9 @@ int alp_set_zrandom(sm_t *sm_p, int proc_id){
 
   //Add to current command
   for(i=0;i<LOWFS_N_ZERNIKE;i++)
-    alp.zernike_cmd[i] += dz[i]; 
+    alp.zcmd[i] += dz[i]; 
   for(i=0;i<ALP_NACT;i++)
-    alp.act_cmd[i] += da[i]; 
+    alp.acmd[i] += da[i]; 
 
   //Send command
   return(alp_send_command(sm_p,&alp,proc_id,1));
@@ -282,7 +282,7 @@ int alp_revert_flat(sm_t *sm_p, int proc_id){
   alp_t alp;
   const double flat[ALP_NACT] = ALP_OFFSET;
   memset(&alp,0,sizeof(alp_t));
-  memcpy(alp.act_cmd,flat,sizeof(flat));
+  memcpy(alp.acmd,flat,sizeof(flat));
   return(alp_send_command(sm_p,&alp,proc_id,1));
 }
 
@@ -476,7 +476,7 @@ int alp_calibrate(int calmode, alp_t *alp, uint32_t *step, int procid, int reset
     memset(countB,0,sizeof(countB));
     //Set all ALP actuators to 0
     for(i=0;i<ALP_NACT;i++)
-      alp->act_cmd[i]=0;
+      alp->acmd[i]=0;
     return calmode;
   }
 
@@ -487,7 +487,7 @@ int alp_calibrate(int calmode, alp_t *alp, uint32_t *step, int procid, int reset
     memset(countB,0,sizeof(countB));
     //Set all ALP actuators to flat
     for(i=0;i<ALP_NACT;i++)
-      alp->act_cmd[i]=flat[i];
+      alp->acmd[i]=flat[i];
     return calmode;
   }
 
@@ -503,14 +503,14 @@ int alp_calibrate(int calmode, alp_t *alp, uint32_t *step, int procid, int reset
     if(countA[calmode] >= 0 && countA[calmode] < (2*ALP_NACT*ncalim)){
       //set all ALP actuators to starting position
       for(i=0;i<ALP_NACT;i++)
-	alp->act_cmd[i]=alp_start[calmode].act_cmd[i];
+	alp->acmd[i]=alp_start[calmode].acmd[i];
 
       //set step counter
       *step = (countA[calmode]/ncalim);
 
       //poke one actuator
       if((countA[calmode]/ncalim) % 2 == 1){
-	alp->act_cmd[(countB[calmode]/ncalim) % ALP_NACT] += poke;
+	alp->acmd[(countB[calmode]/ncalim) % ALP_NACT] += poke;
 	countB[calmode]++;
       }
       countA[calmode]++;
@@ -539,21 +539,21 @@ int alp_calibrate(int calmode, alp_t *alp, uint32_t *step, int procid, int reset
     if(countA[calmode] >= 0 && countA[calmode] < (2*LOWFS_N_ZERNIKE*ncalim)){
       //set all Zernikes to zero
       for(i=0;i<LOWFS_N_ZERNIKE;i++)
-	alp->zernike_cmd[i] = 0.0;
+	alp->zcmd[i] = 0.0;
 
       //set all ALP actuators to starting position
       for(i=0;i<ALP_NACT;i++)
-	alp->act_cmd[i]=alp_start[calmode].act_cmd[i];
+	alp->acmd[i]=alp_start[calmode].acmd[i];
 
       //set step counter
       *step = (countA[calmode]/ncalim);
 
       //poke one zernike by adding it on top of the flat
       if((countA[calmode]/ncalim) % 2 == 1){
-	alp->zernike_cmd[(countB[calmode]/ncalim) % LOWFS_N_ZERNIKE] = zpoke;
-	alp_zern2alp(alp->zernike_cmd,act,FUNCTION_NO_RESET);
+	alp->zcmd[(countB[calmode]/ncalim) % LOWFS_N_ZERNIKE] = zpoke;
+	alp_zern2alp(alp->zcmd,act,FUNCTION_NO_RESET);
 	for(i=0; i<ALP_NACT; i++)
-	  alp->act_cmd[i] += act[i];
+	  alp->acmd[i] += act[i];
 	countB[calmode]++;
       }
       countA[calmode]++;
@@ -582,14 +582,14 @@ int alp_calibrate(int calmode, alp_t *alp, uint32_t *step, int procid, int reset
       //set all ALP actuators to starting position -- only the first interation
       if((countB[calmode] % ncalim) == 0)
 	for(i=0;i<ALP_NACT;i++)
-	  alp->act_cmd[i]=alp_start[calmode].act_cmd[i];
+	  alp->acmd[i]=alp_start[calmode].acmd[i];
 
       //set step counter
       *step = (countA[calmode]/ncalim);
 
       //ramp one actuator
       if((countA[calmode]/ncalim) % 2 == 1){
-	alp->act_cmd[(countB[calmode]/ncalim) % ALP_NACT] += 5*poke/ncalim;
+	alp->acmd[(countB[calmode]/ncalim) % ALP_NACT] += 5*poke/ncalim;
 	countB[calmode]++;
       }
       countA[calmode]++;
@@ -619,21 +619,21 @@ int alp_calibrate(int calmode, alp_t *alp, uint32_t *step, int procid, int reset
       //set all Zernikes to zero -- only the first interation
       if((countB[calmode] % ncalim) == 0)
 	for(i=0;i<LOWFS_N_ZERNIKE;i++)
-	  alp->zernike_cmd[i] = 0.0;
+	  alp->zcmd[i] = 0.0;
 
       //set all ALP actuators to starting position
       for(i=0;i<ALP_NACT;i++)
-	alp->act_cmd[i]=alp_start[calmode].act_cmd[i];
+	alp->acmd[i]=alp_start[calmode].acmd[i];
 
       //set step counter
       *step = (countA[calmode]/ncalim);
 
       //ramp one zernike by adding it on top of the flat
       if((countA[calmode]/ncalim) % 2 == 1){
-	alp->zernike_cmd[(countB[calmode]/ncalim) % LOWFS_N_ZERNIKE] += 5*zpoke/ncalim;
-	alp_zern2alp(alp->zernike_cmd,act,FUNCTION_NO_RESET);
+	alp->zcmd[(countB[calmode]/ncalim) % LOWFS_N_ZERNIKE] += 5*zpoke/ncalim;
+	alp_zern2alp(alp->zcmd,act,FUNCTION_NO_RESET);
 	for(i=0; i<ALP_NACT; i++)
-	  alp->act_cmd[i] += act[i];
+	  alp->acmd[i] += act[i];
 	countB[calmode]++;
       }
       countA[calmode]++;
@@ -673,7 +673,7 @@ int alp_calibrate(int calmode, alp_t *alp, uint32_t *step, int procid, int reset
       alp_zern2alp(zernikes,act,FUNCTION_NO_RESET);
       //Add offsets to ALP position
       for(i=0;i<ALP_NACT;i++)
-	alp->act_cmd[i] += act[i];
+	alp->acmd[i] += act[i];
       countA[calmode]++;
     }else{
       //Set alp back to starting position

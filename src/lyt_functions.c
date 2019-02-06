@@ -645,24 +645,24 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     //Run Zernike control
     if(zernike_control){
       // - run Zernike PID
-      lyt_alp_zernpid(&lytevent, alp_delta.zernike_cmd, zernike_switch, FUNCTION_NO_RESET);
+      lyt_alp_zernpid(&lytevent, alp_delta.zcmd, zernike_switch, FUNCTION_NO_RESET);
 
       // - zero out uncontrolled Zernikes
       for(i=0;i<LOWFS_N_ZERNIKE;i++)
 	if(!zernike_switch[i])
-	  alp_delta.zernike_cmd[i] = 0;
+	  alp_delta.zcmd[i] = 0;
       
       // - convert zernike deltas to actuator deltas
-      alp_zern2alp(alp_delta.zernike_cmd,alp_delta.act_cmd,FUNCTION_NO_RESET);
+      alp_zern2alp(alp_delta.zcmd,alp_delta.acmd,FUNCTION_NO_RESET);
       
       // - add Zernike PID output deltas to ALP command
       for(i=0;i<LOWFS_N_ZERNIKE;i++)
 	if(zernike_switch[i])
-	  alp_try.zernike_cmd[i] += alp_delta.zernike_cmd[i];
+	  alp_try.zcmd[i] += alp_delta.zcmd[i];
 
       // - add actuator deltas to ALP command
       for(i=0;i<ALP_NACT;i++)
-	alp_try.act_cmd[i] += alp_delta.act_cmd[i];
+	alp_try.acmd[i] += alp_delta.acmd[i];
     }
 
     //Run ALP actuator control
@@ -671,11 +671,11 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
       lyt_actuator_fit(&lytevent.image,lytevent.alp_measured, FUNCTION_NO_RESET);
       
       // - run actuator PID
-      lyt_alp_actpid(&lytevent, alp_delta.act_cmd, FUNCTION_NO_RESET);
+      lyt_alp_actpid(&lytevent, alp_delta.acmd, FUNCTION_NO_RESET);
 
       // - add actuator deltas to ALP command
       for(i=0;i<ALP_NACT;i++)
-	alp_try.act_cmd[i] += alp_delta.act_cmd[i];
+	alp_try.acmd[i] += alp_delta.acmd[i];
     }
     
     //Calibrate ALP

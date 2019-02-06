@@ -366,6 +366,16 @@ int main(int argc,char **argv){
   sm_p->circbuf[BUFFER_MTREVENT].bufsize = MTREVENTSIZE;
   sprintf((char *)sm_p->circbuf[BUFFER_MTREVENT].name,"MTREVENT");
 
+  //-- Packet buffers
+  sm_p->circbuf[BUFFER_SHKPKT].buffer  = (void *)sm_p->shkpkt;
+  sm_p->circbuf[BUFFER_SHKPKT].nbytes  = sizeof(shkpkt_t);
+  sm_p->circbuf[BUFFER_SHKPKT].bufsize = SHKPKTSIZE;
+  sprintf((char *)sm_p->circbuf[BUFFER_SHKPKT].name,"SHKPKT");
+  sm_p->circbuf[BUFFER_LYTPKT].buffer  = (void *)sm_p->lytpkt;
+  sm_p->circbuf[BUFFER_LYTPKT].nbytes  = sizeof(lytpkt_t);
+  sm_p->circbuf[BUFFER_LYTPKT].bufsize = LYTPKTSIZE;
+  sprintf((char *)sm_p->circbuf[BUFFER_LYTPKT].name,"LYTPKT");
+
   //-- Full frame buffers
   sm_p->circbuf[BUFFER_SCIFULL].buffer  = (void *)sm_p->scifull;
   sm_p->circbuf[BUFFER_SCIFULL].nbytes  = sizeof(scifull_t);
