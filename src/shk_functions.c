@@ -1135,7 +1135,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   /**********************  SHK Packet Code  ********************/
   /*************************************************************/
 
-  //Samples, every time through
+  //Samples collected each time through
   for(i=0;i<SHK_BEAM_NCELLS;i++){
     shkpkt.cells[i].xorigin_deviation[sample] = shkevent.cells[i].xorigin_deviation;
     shkpkt.cells[i].yorigin_deviation[sample] = shkevent.cells[i].yorigin_deviation;

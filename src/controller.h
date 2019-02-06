@@ -787,10 +787,10 @@ typedef struct lytevent_struct{
 
 typedef struct lytpkt_struct{
   pkthed_t  hed;
-  float     gain_alp_zern[LOWFS_N_ZERNIKE][LOWFS_N_PID]; //odd
-  float     zernike_target[LOWFS_N_ZERNIKE]; //odd
-  float     zernike_measured[LOWFS_N_ZERNIKE][LYT_NSAMPLES]; //even
-  float     alp_zcmd[LOWFS_N_ZERNIKE][LYT_NSAMPLES]; //even
+  float     gain_alp_zern[LOWFS_N_ZERNIKE][LOWFS_N_PID];
+  float     zernike_target[LOWFS_N_ZERNIKE];
+  float     zernike_measured[LOWFS_N_ZERNIKE][LYT_NSAMPLES];
+  float     alp_zcmd[LOWFS_N_ZERNIKE][LYT_NSAMPLES];
   lyt_t     image;
 } lytpkt_t;
 

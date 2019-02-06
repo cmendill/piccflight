@@ -500,8 +500,10 @@ void lyt_actuator_fit(lyt_t *image, double *actuators, int reset){
 void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   static lytfull_t lytfull;
   static lytevent_t lytevent;
+  static lytpkt_t lytpkt;
   lytfull_t *lytfull_p;
   lytevent_t *lytevent_p;
+  lytpkt_t *lytpkt_p;
   static calmode_t alpcalmodes[ALP_NCALMODES];
   static calmode_t hexcalmodes[HEX_NCALMODES];
   static calmode_t bmccalmodes[BMC_NCALMODES];
@@ -516,13 +518,17 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   int zernike_control=0;
   int zernike_switch[LOWFS_N_ZERNIKE] = {0};
   uint32_t n_dither=1;
-
+  int sample;
+  
   //Get time immidiately
   clock_gettime(CLOCK_REALTIME,&start);
 
   //Get state
   state = sm_p->state;
 
+  //Get sample
+  sample = frame_number % LYT_NSAMPLES;
+  
   //Check reset
   if(sm_p->w[LYTID].reset){
     init=0;
@@ -534,6 +540,7 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     //Zero out events & commands
     memset(&lytfull,0,sizeof(lytfull_t));
     memset(&lytevent,0,sizeof(lytevent_t));
+    memset(&lytpkt,0,sizeof(lytpkt_t));
     //Reset zern2alp mapping
     alp_zern2alp(NULL,NULL,FUNCTION_RESET);
     //Reset calibration routines
@@ -714,7 +721,45 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   lytevent.hed.end_sec  = end.tv_sec;
   lytevent.hed.end_nsec = end.tv_nsec;
 
+  /*************************************************************/
+  /**********************  LYT Packet Code  ********************/
+  /*************************************************************/
 
+  //Samples, collected each time through
+  for(i=0;i<LOWFS_N_ZERNIKE;i++){
+    lytpkt.zernike_measured[i][sample] = lytevent.zernike_measured[i];
+    lytpkt.alp_zcmd[i][sample]         = lytevent.alp.zcmd[i];
+  }
+  
+  //Last sample, fill out rest of packet and write to circular buffer
+  if(sample == LYT_NSAMPLES-1){
+    //Header
+    memcpy(&lytpkt.hed,&lytevent.hed,sizeof(pkthed_t));
+    //Image
+    memcpy(&lytpkt.image,&lytevent.image,sizeof(lyt_t));
+    //Zernike gains and targets
+    for(i=0;i<LOWFS_N_ZERNIKE;i++){
+      lytpkt.zernike_target[i]         = lytevent.zernike_target[i]; 
+      for(j=0;j<LOWFS_N_PID;j++){
+	lytpkt.gain_alp_zern[i][j]     = lytevent.gain_alp_zern[i][j];
+      }
+    }
+
+    //Open LYTPKT circular buffer
+    lytpkt_p=(lytpkt_t *)open_buffer(sm_p,BUFFER_LYTPKT);
+
+    //Copy data
+    memcpy(lytpkt_p,&lytpkt,sizeof(lytpkt_t));;
+    
+    //Get final timestamp
+    clock_gettime(CLOCK_REALTIME,&end);
+    lytpkt_p->hed.end_sec  = end.tv_sec;
+    lytpkt_p->hed.end_nsec = end.tv_nsec;
+    
+    //Close buffer
+    close_buffer(sm_p,BUFFER_LYTPKT);
+  }
+  
   /*************************************************************/
   /**********************  Full Image Code  ********************/
   /*************************************************************/
