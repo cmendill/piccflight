@@ -755,7 +755,7 @@ typedef struct pktcell_struct{
   float     ytarget_deviation[SHK_NSAMPLES];
   float     xcommand[SHK_NSAMPLES];
   float     ycommand[SHK_NSAMPLES];
-} shkcell_t;
+} pktcell_t;
 
 typedef struct shkpkt_struct{
   pkthed_t  hed;

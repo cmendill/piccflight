@@ -15,7 +15,7 @@
 /* piccflight headers */
 #include "controller.h"
 #include "common_functions.h"
-#incdlue "watchdog.h"
+#include "watchdog.h"
 
 /* Globals */
 volatile int clientfd=-1;

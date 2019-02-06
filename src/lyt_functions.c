@@ -709,7 +709,7 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   lytevent.hed.end_nsec = end.tv_nsec;
 
   //Write LYTEVENT circular buffer
-  if(sm_p->write_circubuf[BUFFER_LYTEVENT]){
+  if(sm_p->write_circbuf[BUFFER_LYTEVENT]){
     //Open LYTEVENT circular buffer
     lytevent_p=(lytevent_t *)open_buffer(sm_p,BUFFER_LYTEVENT);
     
@@ -732,7 +732,7 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   /*************************************************************/
   /**********************  LYT Packet Code  ********************/
   /*************************************************************/
-  if(sm_p->write_circubuf[BUFFER_LYTPKT]){
+  if(sm_p->write_circbuf[BUFFER_LYTPKT]){
     //Samples, collected each time through
     for(i=0;i<LOWFS_N_ZERNIKE;i++){
       lytpkt.zernike_measured[i][sample] = lytevent.zernike_measured[i];
@@ -772,7 +772,7 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   /*************************************************************/
   /**********************  Full Image Code  ********************/
   /*************************************************************/
-  if(sm_p->write_circubuf[BUFFER_LYTFULL]){
+  if(sm_p->write_circbuf[BUFFER_LYTFULL]){
     if(timespec_subtract(&delta,&start,&full_last))
       printf("LYT: lyt_process_image --> timespec_subtract error!\n");
     ts2double(&delta,&dt);
