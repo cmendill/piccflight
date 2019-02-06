@@ -666,9 +666,9 @@ int alp_calibrate(int calmode, alp_t *alp, uint32_t *step, int procid, int reset
     //Set index
     index = (int)((dt-dt0)/zernike_timestep);
     if(index < ZERNIKE_ERRORS_NUMBER){
-      //Get zernikes for this timestep
+      //Get zernikes for this timestep, convert from wavefront to surface
       for(i=0;i<LOWFS_N_ZERNIKE;i++)
-	zernikes[i] = zernike_errors[i][index % ZERNIKE_ERRORS_NUMBER];
+	zernikes[i] = 0.5*zernike_errors[i][index];
       //Convert zernikes to actuators
       alp_zern2alp(zernikes,act,FUNCTION_NO_RESET);
       //Add offsets to ALP position
