@@ -344,54 +344,66 @@ int main(int argc,char **argv){
   sm_p->circbuf[BUFFER_SCIEVENT].buffer  = (void *)sm_p->scievent;
   sm_p->circbuf[BUFFER_SCIEVENT].nbytes  = sizeof(scievent_t);
   sm_p->circbuf[BUFFER_SCIEVENT].bufsize = SCIEVENTSIZE;
+  sm_p->write_circbuf[BUFFER_SCIEVENT]   = WRITE_SCIEVENT_DEFAULT;
   sprintf((char *)sm_p->circbuf[BUFFER_SCIEVENT].name,"SCIEVENT");
   sm_p->circbuf[BUFFER_SHKEVENT].buffer  = (void *)sm_p->shkevent;
   sm_p->circbuf[BUFFER_SHKEVENT].nbytes  = sizeof(shkevent_t);
   sm_p->circbuf[BUFFER_SHKEVENT].bufsize = SHKEVENTSIZE;
+  sm_p->write_circbuf[BUFFER_SHKEVENT]   = WRITE_SHKEVENT_DEFAULT;
   sprintf((char *)sm_p->circbuf[BUFFER_SHKEVENT].name,"SHKEVENT");
   sm_p->circbuf[BUFFER_LYTEVENT].buffer  = (void *)sm_p->lytevent;
   sm_p->circbuf[BUFFER_LYTEVENT].nbytes  = sizeof(lytevent_t);
   sm_p->circbuf[BUFFER_LYTEVENT].bufsize = LYTEVENTSIZE;
+  sm_p->write_circbuf[BUFFER_LYTEVENT]   = WRITE_LYTEVENT_DEFAULT;
   sprintf((char *)sm_p->circbuf[BUFFER_LYTEVENT].name,"LYTEVENT");
   sm_p->circbuf[BUFFER_ACQEVENT].buffer  = (void *)sm_p->acqevent;
   sm_p->circbuf[BUFFER_ACQEVENT].nbytes  = sizeof(acqevent_t);
   sm_p->circbuf[BUFFER_ACQEVENT].bufsize = ACQEVENTSIZE;
+  sm_p->write_circbuf[BUFFER_ACQEVENT]   = WRITE_ACQEVENT_DEFAULT;
   sprintf((char *)sm_p->circbuf[BUFFER_ACQEVENT].name,"ACQEVENT");
   sm_p->circbuf[BUFFER_THMEVENT].buffer  = (void *)sm_p->thmevent;
   sm_p->circbuf[BUFFER_THMEVENT].nbytes  = sizeof(thmevent_t);
   sm_p->circbuf[BUFFER_THMEVENT].bufsize = THMEVENTSIZE;
+  sm_p->write_circbuf[BUFFER_THMEVENT]   = WRITE_THMEVENT_DEFAULT;
   sprintf((char *)sm_p->circbuf[BUFFER_MTREVENT].name,"THMEVENT");
   sm_p->circbuf[BUFFER_MTREVENT].buffer  = (void *)sm_p->mtrevent;
   sm_p->circbuf[BUFFER_MTREVENT].nbytes  = sizeof(mtrevent_t);
   sm_p->circbuf[BUFFER_MTREVENT].bufsize = MTREVENTSIZE;
+  sm_p->write_circbuf[BUFFER_MTREVENT]   = WRITE_MTREVENT_DEFAULT;
   sprintf((char *)sm_p->circbuf[BUFFER_MTREVENT].name,"MTREVENT");
 
   //-- Packet buffers
   sm_p->circbuf[BUFFER_SHKPKT].buffer  = (void *)sm_p->shkpkt;
   sm_p->circbuf[BUFFER_SHKPKT].nbytes  = sizeof(shkpkt_t);
   sm_p->circbuf[BUFFER_SHKPKT].bufsize = SHKPKTSIZE;
+  sm_p->write_circbuf[BUFFER_SHKPKT]   = WRITE_SHKPKT_DEFAULT;
   sprintf((char *)sm_p->circbuf[BUFFER_SHKPKT].name,"SHKPKT");
   sm_p->circbuf[BUFFER_LYTPKT].buffer  = (void *)sm_p->lytpkt;
   sm_p->circbuf[BUFFER_LYTPKT].nbytes  = sizeof(lytpkt_t);
   sm_p->circbuf[BUFFER_LYTPKT].bufsize = LYTPKTSIZE;
+  sm_p->write_circbuf[BUFFER_LYTPKT]   = WRITE_LYTPKT_DEFAULT;
   sprintf((char *)sm_p->circbuf[BUFFER_LYTPKT].name,"LYTPKT");
 
   //-- Full frame buffers
   sm_p->circbuf[BUFFER_SCIFULL].buffer  = (void *)sm_p->scifull;
   sm_p->circbuf[BUFFER_SCIFULL].nbytes  = sizeof(scifull_t);
   sm_p->circbuf[BUFFER_SCIFULL].bufsize = SCIFULLSIZE;
+  sm_p->write_circbuf[BUFFER_SCIFULL]   = WRITE_SCIFULL_DEFAULT;
   sprintf((char *)sm_p->circbuf[BUFFER_SCIFULL].name,"SCIFULL");
   sm_p->circbuf[BUFFER_SHKFULL].buffer  = (void *)sm_p->shkfull;
   sm_p->circbuf[BUFFER_SHKFULL].nbytes  = sizeof(shkfull_t);
   sm_p->circbuf[BUFFER_SHKFULL].bufsize = SHKFULLSIZE;
+  sm_p->write_circbuf[BUFFER_SHKFULL]   = WRITE_SHKFULL_DEFAULT;
   sprintf((char *)sm_p->circbuf[BUFFER_SHKFULL].name,"SHKFULL");
   sm_p->circbuf[BUFFER_LYTFULL].buffer  = (void *)sm_p->lytfull;
   sm_p->circbuf[BUFFER_LYTFULL].nbytes  = sizeof(lytfull_t);
   sm_p->circbuf[BUFFER_LYTFULL].bufsize = LYTFULLSIZE;
+  sm_p->write_circbuf[BUFFER_LYTFULL]   = WRITE_LYTFULL_DEFAULT;
   sprintf((char *)sm_p->circbuf[BUFFER_LYTFULL].name,"LYTFULL");
   sm_p->circbuf[BUFFER_ACQFULL].buffer  = (void *)sm_p->acqfull;
   sm_p->circbuf[BUFFER_ACQFULL].nbytes  = sizeof(acqfull_t);
   sm_p->circbuf[BUFFER_ACQFULL].bufsize = ACQFULLSIZE;
+  sm_p->write_circbuf[BUFFER_ACQFULL]   = WRITE_ACQFULL_DEFAULT;
   sprintf((char *)sm_p->circbuf[BUFFER_ACQFULL].name,"ACQFULL");
 
   /* Setup IO Permissions for all ISA boards */

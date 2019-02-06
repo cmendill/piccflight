@@ -50,7 +50,10 @@ void thmctrlC(int sig)
   exit(sig);
 }
 
-/* Main Process */
+/**************************************************************/
+/* THM_PROC                                                   */
+/*  - Main thermal control process                            */
+/**************************************************************/
 void thm_proc(void){
   static thmevent_t thmevent;  
   static struct timespec start, end;
@@ -392,7 +395,7 @@ void thm_proc(void){
     thmevent.hed.end_nsec = end.tv_nsec;
     
     /* Write data to circular buffer */
-    write_to_buffer(sm_p,&thmevent,BUFFER_THMEVENT);
+    if(sm_p->write_circbuf[BUFFER_THMEVENT]) write_to_buffer(sm_p,&thmevent,BUFFER_THMEVENT);
   }
 
 

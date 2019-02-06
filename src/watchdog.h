@@ -20,6 +20,20 @@
  * Shared Memory DEFAULTS
  *************************************************/
 
+//Circular Buffer Switches
+#define WRITE_SCIEVENT_DEFAULT     1
+#define WRITE_SHKEVENT_DEFAULT     0
+#define WRITE_LYTEVENT_DEFAULT     0
+#define WRITE_ACQEVENT_DEFAULT     1
+#define WRITE_THMEVENT_DEFAULT     1
+#define WRITE_MTREVENT_DEFAULT     1
+#define WRITE_SCIFULL_DEFAULT      0
+#define WRITE_SHKFULL_DEFAULT      0
+#define WRITE_LYTFULL_DEFAULT      0
+#define WRITE_ACQFULL_DEFAULT      0
+#define WRITE_SHKPKT_DEFAULT       1
+#define WRITE_LYTPKT_DEFAULT       1
+
 //Exposure times
 #define SCI_EXPTIME_DEFAULT 0.010
 #define SHK_EXPTIME_DEFAULT 0.050

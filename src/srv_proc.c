@@ -15,6 +15,7 @@
 /* piccflight headers */
 #include "controller.h"
 #include "common_functions.h"
+#incdlue "watchdog.h"
 
 /* Globals */
 volatile int clientfd=-1;
@@ -80,8 +81,12 @@ void srv_proc(void) {
       //first check if there is any data
       data_ready = 0;
       for(i=0;i<NCIRCBUF;i++)
-	if(srv_send[i])
+	if(srv_send[i]){
+	  //enable data
+	  sm_p->write_circbuf[i] = 1;
+	  //check data
 	  data_ready += check_buffer(sm_p,i,SRVID);
+	}
       //read data if its ready
       if(data_ready){
 	for(i=0;i<NCIRCBUF;i++){
@@ -93,7 +98,22 @@ void srv_proc(void) {
 	      if(nbytes <=0){
 		close(clientfd);
 		clientfd=-1;
+		//reset srv_send
 		memset((void *)srv_send,0,sizeof srv_send);
+		//set data switches back to defaults
+		sm_p->write_circbuf[BUFFER_SCIEVENT] = WRITE_SCIEVENT_DEFAULT;
+		sm_p->write_circbuf[BUFFER_SHKEVENT] = WRITE_SHKEVENT_DEFAULT;
+		sm_p->write_circbuf[BUFFER_LYTEVENT] = WRITE_LYTEVENT_DEFAULT;
+		sm_p->write_circbuf[BUFFER_ACQEVENT] = WRITE_ACQEVENT_DEFAULT;
+		sm_p->write_circbuf[BUFFER_MTREVENT] = WRITE_MTREVENT_DEFAULT;
+		sm_p->write_circbuf[BUFFER_THMEVENT] = WRITE_THMEVENT_DEFAULT;
+		sm_p->write_circbuf[BUFFER_SCIFULL]  = WRITE_SCIFULL_DEFAULT;
+		sm_p->write_circbuf[BUFFER_SHKFULL]  = WRITE_SHKFULL_DEFAULT;
+		sm_p->write_circbuf[BUFFER_LYTFULL]  = WRITE_LYTFULL_DEFAULT;
+		sm_p->write_circbuf[BUFFER_ACQFULL]  = WRITE_ACQFULL_DEFAULT;
+		sm_p->write_circbuf[BUFFER_SHKPKT]   = WRITE_SHKPKT_DEFAULT;
+		sm_p->write_circbuf[BUFFER_LYTPKT]   = WRITE_LYTPKT_DEFAULT;
+				
 		printf("SRV: Client hung up\n");
 	      }
 	      //increment packet counter

@@ -876,6 +876,8 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     printf("SHK: shk_process_image --> timespec_subtract error!\n");
   ts2double(&delta,&dt);
 
+  //Save time
+  memcpy(&last,&start,sizeof(struct timespec));
   
   //Fill out event header
   shkevent.hed.version      = PICC_PKT_VERSION;
@@ -1109,144 +1111,152 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   
   //Copy ALP command to shkevent
   memcpy(&shkevent.alp,&alp,sizeof(alp_t));
-  
-  //Open SHKEVENT circular buffer
-  shkevent_p=(shkevent_t *)open_buffer(sm_p,BUFFER_SHKEVENT);
-  
-  //Copy data
-  memcpy(shkevent_p,&shkevent,sizeof(shkevent_t));;
-  
-  //Get final timestamp
+
+  //Get end timestamp
   clock_gettime(CLOCK_REALTIME,&end);
-  shkevent_p->hed.end_sec  = end.tv_sec;
-  shkevent_p->hed.end_nsec = end.tv_nsec;
-  
-  //Close buffer
-  close_buffer(sm_p,BUFFER_SHKEVENT);
-  
-  //Save end timestamps for full image code
   shkevent.hed.end_sec  = end.tv_sec;
   shkevent.hed.end_nsec = end.tv_nsec;
   
-  //Save time
-  memcpy(&last,&start,sizeof(struct timespec));
+  //Write SHKEVENT to circular buffer
+  if(sm_p->write_circbuf[BUFFER_SHKEVENT]){
+    
+    //Open SHKEVENT circular buffer
+    shkevent_p=(shkevent_t *)open_buffer(sm_p,BUFFER_SHKEVENT);
+    
+    //Copy data
+    memcpy(shkevent_p,&shkevent,sizeof(shkevent_t));;
+    
+    //Get final timestamp
+    clock_gettime(CLOCK_REALTIME,&end);
+    shkevent_p->hed.end_sec  = end.tv_sec;
+    shkevent_p->hed.end_nsec = end.tv_nsec;
+    
+    //Close buffer
+    close_buffer(sm_p,BUFFER_SHKEVENT);
+    
+    //Save end timestamps for full image code
+    shkevent.hed.end_sec  = end.tv_sec;
+    shkevent.hed.end_nsec = end.tv_nsec;
+  }
 
   /*************************************************************/
   /**********************  SHK Packet Code  ********************/
   /*************************************************************/
-
-  //Samples collected each time through
-  for(i=0;i<SHK_BEAM_NCELLS;i++){
-    shkpkt.cells[i].xorigin_deviation[sample] = shkevent.cells[i].xorigin_deviation;
-    shkpkt.cells[i].yorigin_deviation[sample] = shkevent.cells[i].yorigin_deviation;
-    shkpkt.cells[i].xtarget_deviation[sample] = shkevent.cells[i].xtarget_deviation;
-    shkpkt.cells[i].ytarget_deviation[sample] = shkevent.cells[i].ytarget_deviation;
-    shkpkt.cells[i].xcommand[sample]          = shkevent.cells[i].xcommand;
-    shkpkt.cells[i].ycommand[sample]          = shkevent.cells[i].ycommand;
-  }
-  for(i=0;i<LOWFS_N_ZERNIKE;i++){
-    shkpkt.zernike_measured[i][sample]        = shkevent.zernike_measured[i];
-    shkpkt.alp_zcmd[i][sample]                = shkevent.alp.zcmd[i];
-  }
-  for(i=0;i<ALP_NACT;i++){
-    shkpkt.alp_acmd[i][sample]                = shkevent.alp.acmd[i];
-  }
-
-  //Last sample, fill out rest of packet and write to circular buffer
-  if(sample == SHK_NSAMPLES-1){
-    //Header
-    memcpy(&shkpkt.hed,&shkevent.hed,sizeof(pkthed_t));
-    //Cells
+  if(sm_p->write_circbuf[BUFFER_SHKPKT]){
+    //Samples collected each time through
     for(i=0;i<SHK_BEAM_NCELLS;i++){
-      shkpkt.cells[i].spot_found              = shkevent.cells[i].spot_found;
-      shkpkt.cells[i].spot_captured           = shkevent.cells[i].spot_captured;
-      shkpkt.cells[i].maxval                  = shkevent.cells[i].maxval;
-      shkpkt.cells[i].boxsize                 = shkevent.cells[i].boxsize;
-      shkpkt.cells[i].intensity               = shkevent.cells[i].intensity;
-      shkpkt.cells[i].background              = shkevent.cells[i].background;
-      shkpkt.cells[i].xorigin                 = shkevent.cells[i].xorigin;
-      shkpkt.cells[i].yorigin                 = shkevent.cells[i].yorigin;
-      shkpkt.cells[i].xtarget                 = shkevent.cells[i].xtarget;
-      shkpkt.cells[i].ytarget                 = shkevent.cells[i].ytarget;
+      shkpkt.cells[i].xorigin_deviation[sample] = shkevent.cells[i].xorigin_deviation;
+      shkpkt.cells[i].yorigin_deviation[sample] = shkevent.cells[i].yorigin_deviation;
+      shkpkt.cells[i].xtarget_deviation[sample] = shkevent.cells[i].xtarget_deviation;
+      shkpkt.cells[i].ytarget_deviation[sample] = shkevent.cells[i].ytarget_deviation;
+      shkpkt.cells[i].xcommand[sample]          = shkevent.cells[i].xcommand;
+      shkpkt.cells[i].ycommand[sample]          = shkevent.cells[i].ycommand;
     }
-    //Zernike items
     for(i=0;i<LOWFS_N_ZERNIKE;i++){
-      shkpkt.zernike_target[i] = shkevent.zernike_target[i];
-      shkpkt.hex_zcmd[i]       = shkevent.hex.zcmd[i];
-      for(j=0;j<LOWFS_N_PID;j++){
-	shkpkt.gain_alp_zern[i][j] = shkevent.gain_alp_zern[i][j];
+      shkpkt.zernike_measured[i][sample]        = shkevent.zernike_measured[i];
+      shkpkt.alp_zcmd[i][sample]                = shkevent.alp.zcmd[i];
+    }
+    for(i=0;i<ALP_NACT;i++){
+      shkpkt.alp_acmd[i][sample]                = shkevent.alp.acmd[i];
+    }
+
+    //Last sample, fill out rest of packet and write to circular buffer
+    if(sample == SHK_NSAMPLES-1){
+      //Header
+      memcpy(&shkpkt.hed,&shkevent.hed,sizeof(pkthed_t));
+      //Cells
+      for(i=0;i<SHK_BEAM_NCELLS;i++){
+	shkpkt.cells[i].spot_found              = shkevent.cells[i].spot_found;
+	shkpkt.cells[i].spot_captured           = shkevent.cells[i].spot_captured;
+	shkpkt.cells[i].maxval                  = shkevent.cells[i].maxval;
+	shkpkt.cells[i].boxsize                 = shkevent.cells[i].boxsize;
+	shkpkt.cells[i].intensity               = shkevent.cells[i].intensity;
+	shkpkt.cells[i].background              = shkevent.cells[i].background;
+	shkpkt.cells[i].xorigin                 = shkevent.cells[i].xorigin;
+	shkpkt.cells[i].yorigin                 = shkevent.cells[i].yorigin;
+	shkpkt.cells[i].xtarget                 = shkevent.cells[i].xtarget;
+	shkpkt.cells[i].ytarget                 = shkevent.cells[i].ytarget;
       }
-    }
-    //Gains
-    for(i=0;i<LOWFS_N_PID;i++){
-      shkpkt.gain_alp_cell[i] = shkevent.gain_alp_cell[i];
-      shkpkt.gain_hex_zern[i] = shkevent.gain_hex_zern[i];
-    }
-    //Hex Commands
-    for(i=0;i<HEX_NAXES;i++){
-      shkpkt.hex_acmd[i] = shkevent.hex.acmd[i];
-    }
-    //Other event items
-    shkpkt.boxsize = shkevent.boxsize;
-    shkpkt.wsp_pcmd = shkevent.wsp.pcmd;
-    shkpkt.wsp_ycmd = shkevent.wsp.ycmd;
+      //Zernike items
+      for(i=0;i<LOWFS_N_ZERNIKE;i++){
+	shkpkt.zernike_target[i] = shkevent.zernike_target[i];
+	shkpkt.hex_zcmd[i]       = shkevent.hex.zcmd[i];
+	for(j=0;j<LOWFS_N_PID;j++){
+	  shkpkt.gain_alp_zern[i][j] = shkevent.gain_alp_zern[i][j];
+	}
+      }
+      //Gains
+      for(i=0;i<LOWFS_N_PID;i++){
+	shkpkt.gain_alp_cell[i] = shkevent.gain_alp_cell[i];
+	shkpkt.gain_hex_zern[i] = shkevent.gain_hex_zern[i];
+      }
+      //Hex Commands
+      for(i=0;i<HEX_NAXES;i++){
+	shkpkt.hex_acmd[i] = shkevent.hex.acmd[i];
+      }
+      //Other event items
+      shkpkt.boxsize = shkevent.boxsize;
+      shkpkt.wsp_pcmd = shkevent.wsp.pcmd;
+      shkpkt.wsp_ycmd = shkevent.wsp.ycmd;
 
-    //Open SHKPKT circular buffer
-    shkpkt_p=(shkpkt_t *)open_buffer(sm_p,BUFFER_SHKPKT);
+      //Open SHKPKT circular buffer
+      shkpkt_p=(shkpkt_t *)open_buffer(sm_p,BUFFER_SHKPKT);
 
-    //Copy data
-    memcpy(shkpkt_p,&shkpkt,sizeof(shkpkt_t));;
+      //Copy data
+      memcpy(shkpkt_p,&shkpkt,sizeof(shkpkt_t));;
     
-    //Get final timestamp
-    clock_gettime(CLOCK_REALTIME,&end);
-    shkpkt_p->hed.end_sec  = end.tv_sec;
-    shkpkt_p->hed.end_nsec = end.tv_nsec;
+      //Get final timestamp
+      clock_gettime(CLOCK_REALTIME,&end);
+      shkpkt_p->hed.end_sec  = end.tv_sec;
+      shkpkt_p->hed.end_nsec = end.tv_nsec;
     
-    //Close buffer
-    close_buffer(sm_p,BUFFER_SHKPKT);
-   }
-
+      //Close buffer
+      close_buffer(sm_p,BUFFER_SHKPKT);
+    }
+  }
   /*************************************************************/
   /**********************  Full Image Code  ********************/
   /*************************************************************/
-  if(timespec_subtract(&delta,&start,&full_last))
-    printf("SHK: shk_process_image --> timespec_subtract error!\n");
-  ts2double(&delta,&dt);
-  if(dt > SHK_FULL_IMAGE_TIME){
-    //Copy packet header
-    memcpy(&shkfull.hed,&shkevent.hed,sizeof(pkthed_t));
-    shkfull.hed.type = BUFFER_SHKFULL;
+  if(sm_p->write_circbuf[BUFFER_SHKFULL]){
+    if(timespec_subtract(&delta,&start,&full_last))
+      printf("SHK: shk_process_image --> timespec_subtract error!\n");
+    ts2double(&delta,&dt);
+    if(dt > SHK_FULL_IMAGE_TIME){
+      //Copy packet header
+      memcpy(&shkfull.hed,&shkevent.hed,sizeof(pkthed_t));
+      shkfull.hed.type = BUFFER_SHKFULL;
     
-    //Fake data
-    if(sm_p->w[SHKID].fakemode != FAKEMODE_NONE){
-      if(sm_p->w[SHKID].fakemode == FAKEMODE_TEST_PATTERN)
-	for(i=0;i<SHKXS;i++)
-	  for(j=0;j<SHKYS;j++)
-	    shkfull.image.data[i][j]=fakepx++;
-    }
-    else{
-      //Copy full image
-      memcpy(&(shkfull.image.data[0][0]),buffer->pvAddress,sizeof(shkfull.image.data));
-    }
+      //Fake data
+      if(sm_p->w[SHKID].fakemode != FAKEMODE_NONE){
+	if(sm_p->w[SHKID].fakemode == FAKEMODE_TEST_PATTERN)
+	  for(i=0;i<SHKXS;i++)
+	    for(j=0;j<SHKYS;j++)
+	      shkfull.image.data[i][j]=fakepx++;
+      }
+      else{
+	//Copy full image
+	memcpy(&(shkfull.image.data[0][0]),buffer->pvAddress,sizeof(shkfull.image.data));
+      }
     
-    //Copy shkevent
-    memcpy(&shkfull.shkevent,&shkevent,sizeof(shkevent));
+      //Copy shkevent
+      memcpy(&shkfull.shkevent,&shkevent,sizeof(shkevent));
     
-    //Open SHKFULL circular buffer
-    shkfull_p=(shkfull_t *)open_buffer(sm_p,BUFFER_SHKFULL);
+      //Open SHKFULL circular buffer
+      shkfull_p=(shkfull_t *)open_buffer(sm_p,BUFFER_SHKFULL);
 
-    //Copy data
-    memcpy(shkfull_p,&shkfull,sizeof(shkfull_t));;
+      //Copy data
+      memcpy(shkfull_p,&shkfull,sizeof(shkfull_t));;
     
-    //Get final timestamp
-    clock_gettime(CLOCK_REALTIME,&end);
-    shkfull_p->hed.end_sec  = end.tv_sec;
-    shkfull_p->hed.end_nsec = end.tv_nsec;
+      //Get final timestamp
+      clock_gettime(CLOCK_REALTIME,&end);
+      shkfull_p->hed.end_sec  = end.tv_sec;
+      shkfull_p->hed.end_nsec = end.tv_nsec;
     
-    //Close buffer
-    close_buffer(sm_p,BUFFER_SHKFULL);
+      //Close buffer
+      close_buffer(sm_p,BUFFER_SHKFULL);
     
-    //Reset time
-    memcpy(&full_last,&start,sizeof(struct timespec));
+      //Reset time
+      memcpy(&full_last,&start,sizeof(struct timespec));
+    }
   }
 }

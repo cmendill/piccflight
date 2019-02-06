@@ -240,9 +240,9 @@ enum bmccalmodes {BMC_CALMODE_NONE,
 enum bufids {BUFFER_SCIEVENT, BUFFER_SCIFULL,
 	     BUFFER_SHKEVENT, BUFFER_SHKFULL,
 	     BUFFER_LYTEVENT, BUFFER_LYTFULL,
-	     BUFFER_SHKPKT,   BUFFER_LYTPKT,
 	     BUFFER_ACQEVENT, BUFFER_ACQFULL,
 	     BUFFER_THMEVENT, BUFFER_MTREVENT,
+	     BUFFER_SHKPKT,   BUFFER_LYTPKT,
 	     NCIRCBUF};
 
 #define SCIEVENTSIZE     3
@@ -962,7 +962,7 @@ typedef volatile struct {
 
   //Zernike control switches
   int zernike_control[LOWFS_N_ZERNIKE];
-  
+
   //Events circular buffers
   scievent_t scievent[SCIEVENTSIZE];
   shkevent_t shkevent[SHKEVENTSIZE];
@@ -978,7 +978,10 @@ typedef volatile struct {
   shkfull_t shkfull[SHKFULLSIZE];
   lytfull_t lytfull[LYTFULLSIZE];
   acqfull_t acqfull[ACQFULLSIZE];
-
+  
+  //Circular buffer switches
+  int write_circbuf[NCIRCBUF];
+  
   //Circular buffer package
   circbuf_t circbuf[NCIRCBUF];
 

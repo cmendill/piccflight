@@ -15,6 +15,7 @@
 /* piccflight headers */
 #include "controller.h"
 #include "common_functions.h"
+#include "watchdog.h"
 
 /* Process File Descriptor */
 
@@ -64,6 +65,9 @@ void getlyt_proc(void){
     exit(0);
   }
 
+  /* Start circular buffer */
+  sm_p->write_circbuf[BUFFER_LYTEVENT] = 1;
+
   /* Enter loop to read LYT events */
   while(!sm_p->w[DIAID].die){
     if(read_from_buffer(sm_p, &lytevent, BUFFER_LYTEVENT, DIAID)){
@@ -74,6 +78,9 @@ void getlyt_proc(void){
       if(count++ % 10 == 0) checkin(sm_p,DIAID);
     }
   }
+
+  /* Set circular buffer back to default */
+  sm_p->write_circbuf[BUFFER_LYTEVENT] = WRITE_LYTEVENT_DEFAULT;
 
   /* Cleanup and exit */
   printf("GETLYT: Wrote %lu lytevents to %s\n",count,outfile);

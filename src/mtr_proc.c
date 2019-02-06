@@ -73,7 +73,10 @@ void mtr_get_status(mtrevent_t *mtrevent){
   mtrevent->door_status[3] = (DOOR_STATUS_OPEN * ((status & (1 << 6))>0)) | (DOOR_STATUS_CLOSED * ((status & (1 << 7))>0));
 }
 
-/* Main Process */
+/**************************************************************/
+/* MTR_PROC                                                   */
+/*  - Main motor control process                              */
+/**************************************************************/
 void mtr_proc(void){
   static uint32 count = 0;
   static mtrevent_t mtrevent;
@@ -234,7 +237,7 @@ void mtr_proc(void){
     mtrevent.hed.end_nsec   = end.tv_nsec;
 
     /* Write event to circular buffer */
-    write_to_buffer(sm_p,&mtrevent,BUFFER_MTREVENT);
+    if(sm_p->write_circbuf[BUFFER_MTREVENT]) write_to_buffer(sm_p,&mtrevent,BUFFER_MTREVENT);
 
     /* Print status messages */
     for(i=0;i<MTR_NDOORS;i++){

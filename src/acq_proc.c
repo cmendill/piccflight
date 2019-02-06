@@ -53,50 +53,57 @@ void acqctrlC(int sig)
 }
 
 
-/* Camera Callback Function */
-void cb(uvc_frame_t *frame, void *ptr) {
+/**************************************************************/
+/* ACQ_PROCESS_IMAGE                                          */
+/*  - Process ACQ camera image                                */
+/**************************************************************/
+void acq_process_image(uvc_frame_t *frame, void *ptr) {
   static acqevent_t acqevent;
   static acqfull_t acqfull;
   acqfull_t *acqfull_p;
   acqevent_t *acqevent_p;
-  static struct timespec first,start,end,delta,last;
+  static struct timespec start,end,delta,last,full_last;
   static int init=0;
   double dt;
   uint16_t fakepx=0;
   sm_t *sm_p = (sm_t *)ptr;
   int i,j;
   
-  /* Get time immidiately */
+  //Get time immidiately
   clock_gettime(CLOCK_REALTIME,&start);
   
-  /* Debugging */
+  //Debugging
   if(ACQ_DEBUG) printf("ACQ: Got frame: %d\n",frame->sequence);
 
-  /* Check in with the watchdog */
+  //Check in with the watchdog
   checkin(ptr,ACQID);
   
-  /* Check reset */
+  //Check reset
   if(sm_p->w[ACQID].reset){
     init=0;
     sm_p->w[ACQID].reset=0;
   }
   
-  /* Initialize */
+  //Initialize
   if(!init){
     memset(&acqfull,0,sizeof(acqfull));
     memset(&acqevent,0,sizeof(acqevent));
-    memcpy(&first,&start,sizeof(struct timespec));
+    memcpy(&last,&start,sizeof(struct timespec));
+    memcpy(&full_last,&start,sizeof(struct timespec));
     init=1;
     if(ACQ_DEBUG) printf("ACQ: Initialized\n");
   }
 
 
-  /* Measure exposure time */
+  //Measure exposure time
   if(timespec_subtract(&delta,&start,&last))
     printf("ACQ: call back --> timespec_subtract error!\n");
   ts2double(&delta,&dt);
 
-  /* Fill out event header */
+  //Save time
+  memcpy(&last,&start,sizeof(struct timespec));
+
+  //Fill out event header
   acqevent.hed.version      = PICC_PKT_VERSION;
   acqevent.hed.type         = BUFFER_ACQEVENT;
   acqevent.hed.frame_number = frame->sequence;
@@ -108,68 +115,70 @@ void cb(uvc_frame_t *frame, void *ptr) {
   acqevent.hed.start_sec    = start.tv_sec;
   acqevent.hed.start_nsec   = start.tv_nsec;
 
-  /* Open circular buffer */
-  acqevent_p=(acqevent_t *)open_buffer(sm_p,BUFFER_ACQEVENT);
+  //Write ACQEVENT to circular buffer 
+  if(sm_p->write_circbuf[BUFFER_ACQEVENT]){
+    //Open circular buffer
+    acqevent_p=(acqevent_t *)open_buffer(sm_p,BUFFER_ACQEVENT);
 
-  /* Copy acqevent */
-  memcpy(acqevent_p,&acqevent,sizeof(acqevent_t));;
+    //Copy acqevent
+    memcpy(acqevent_p,&acqevent,sizeof(acqevent_t));;
 
-  /* Get final timestamp */
-  clock_gettime(CLOCK_REALTIME,&end);
-  acqevent_p->hed.end_sec = end.tv_sec;
-  acqevent_p->hed.end_nsec = end.tv_nsec;
+    //Get final timestamp
+    clock_gettime(CLOCK_REALTIME,&end);
+    acqevent_p->hed.end_sec = end.tv_sec;
+    acqevent_p->hed.end_nsec = end.tv_nsec;
 
-  /* Close buffer */
-  close_buffer(sm_p,BUFFER_ACQEVENT);
-
-  /* Save time */
-  memcpy(&last,&start,sizeof(struct timespec));
+    //Close buffer
+    close_buffer(sm_p,BUFFER_ACQEVENT);
+  }
   
   /*************************************************************/
   /**********************  Full Image Code  ********************/
   /*************************************************************/
-  if(timespec_subtract(&delta,&start,&first))
-    printf("ACQ: acq_process_image --> timespec_subtract error!\n");
-  ts2double(&delta,&dt);
-  if(dt > ACQ_FULL_IMAGE_TIME){
-    //Debugging 
-    if(ACQ_DEBUG) printf("ACQ: Full Image: %d\n",frame->sequence);
-    if(ACQ_DEBUG) printf("ACQ: Frame Size: %lu  Buffer Size: %lu\n",frame->data_bytes,sizeof(acq_t));  
+  if(sm_p->write_circbuf[BUFFER_ACQFULL]){
+    if(timespec_subtract(&delta,&start,&full_last))
+      printf("ACQ: acq_process_image --> timespec_subtract error!\n");
+    ts2double(&delta,&dt);
+    if(dt > ACQ_FULL_IMAGE_TIME){
+      //Debugging 
+      if(ACQ_DEBUG) printf("ACQ: Full Image: %d\n",frame->sequence);
+      if(ACQ_DEBUG) printf("ACQ: Frame Size: %lu  Buffer Size: %lu\n",frame->data_bytes,sizeof(acq_t));  
     
-    //Copy packet header
-    memcpy(&acqfull.hed,&acqevent.hed,sizeof(pkthed_t));
-    acqfull.hed.type = BUFFER_ACQFULL;
+      //Copy packet header
+      memcpy(&acqfull.hed,&acqevent.hed,sizeof(pkthed_t));
+      acqfull.hed.type = BUFFER_ACQFULL;
     
-    //Fake data
-    if(sm_p->w[ACQID].fakemode != FAKEMODE_NONE){
-      if(sm_p->w[ACQID].fakemode == FAKEMODE_TEST_PATTERN)
-	for(i=0;i<ACQXS;i++)
-	  for(j=0;j<ACQYS;j++)
-	    acqfull.image.data[i][j]=fakepx++;
+      //Fake data
+      if(sm_p->w[ACQID].fakemode != FAKEMODE_NONE){
+	if(sm_p->w[ACQID].fakemode == FAKEMODE_TEST_PATTERN)
+	  for(i=0;i<ACQXS;i++)
+	    for(j=0;j<ACQYS;j++)
+	      acqfull.image.data[i][j]=fakepx++;
+      }
+      else{
+	//Copy full image
+	memcpy(&(acqfull.image.data[0][0]),frame->data,sizeof(acq_t));
+      }
+
+      //Open circular buffer
+      acqfull_p=(acqfull_t *)open_buffer(sm_p,BUFFER_ACQFULL);
+    
+      //Copy data
+      memcpy(acqfull_p,&acqfull,sizeof(acqfull_t));;
+
+      //Get final timestamp
+      clock_gettime(CLOCK_REALTIME,&end);
+      acqfull_p->hed.end_sec = end.tv_sec;
+      acqfull_p->hed.end_nsec = end.tv_nsec;
+
+      //Close buffer
+      close_buffer(sm_p,BUFFER_ACQFULL);
+
+      //Reset time
+      memcpy(&full_last,&start,sizeof(struct timespec));
     }
-    else{
-      //Copy full image
-      memcpy(&(acqfull.image.data[0][0]),frame->data,sizeof(acq_t));
-    }
-
-    //Open circular buffer
-    acqfull_p=(acqfull_t *)open_buffer(sm_p,BUFFER_ACQFULL);
-    
-    //Copy data
-    memcpy(acqfull_p,&acqfull,sizeof(acqfull_t));;
-
-    //Get final timestamp
-    clock_gettime(CLOCK_REALTIME,&end);
-    acqfull_p->hed.end_sec = end.tv_sec;
-    acqfull_p->hed.end_nsec = end.tv_nsec;
-
-    //Close buffer
-    close_buffer(sm_p,BUFFER_ACQFULL);
-
-    //Reset time
-    memcpy(&first,&start,sizeof(struct timespec));
   }
- }
+}
 
 /* Main Process */
 void acq_proc(void){
@@ -231,7 +240,7 @@ void acq_proc(void){
     /* Check if camera should start/stop */
     if(!camera_running && sm_p->state_array[sm_p->state].acq.run_camera){
       /*START stream*/
-      if((res = uvc_start_streaming(devh, &ctrl, cb, (void *)sm_p, 0))<0){
+      if((res = uvc_start_streaming(devh, &ctrl, acq_process_image, (void *)sm_p, 0))<0){
 	uvc_perror(res, "start_streaming"); /* unable to start stream */
 	acqctrlC(0);
       }

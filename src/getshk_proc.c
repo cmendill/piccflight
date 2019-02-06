@@ -15,6 +15,7 @@
 /* piccflight headers */
 #include "controller.h"
 #include "common_functions.h"
+#include "watchdog.h"
 
 /* Process File Descriptor */
 
@@ -64,6 +65,9 @@ void getshk_proc(void){
     exit(0);
   }
 
+  /* Start circular buffer */
+  sm_p->write_circbuf[BUFFER_SHKEVENT] = 1;
+  
   /* Enter loop to read SHK events */
   while(!sm_p->w[DIAID].die){
     if(read_from_buffer(sm_p, &shkevent, BUFFER_SHKEVENT, DIAID)){
@@ -74,6 +78,9 @@ void getshk_proc(void){
       if(count++ % 10 == 0) checkin(sm_p,DIAID);
     }
   }
+
+  /* Set circular buffer back to default */
+  sm_p->write_circbuf[BUFFER_SHKEVENT] = WRITE_SHKEVENT_DEFAULT;
 
   /* Cleanup and exit */
   printf("GETSHK: Wrote %lu shkevents to %s\n",count,outfile);

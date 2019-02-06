@@ -581,6 +581,9 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     printf("LYT: lyt_process_image --> timespec_subtract error!\n");
   ts2double(&delta,&dt);
 
+  //Save time
+  memcpy(&last,&start,sizeof(struct timespec));
+
   //Fill out event header
   lytevent.hed.version      = PICC_PKT_VERSION;
   lytevent.hed.type         = BUFFER_LYTEVENT;
@@ -700,111 +703,119 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   //Copy ALP command to lytevent
   memcpy(&lytevent.alp,&alp,sizeof(alp_t));
 
-  //Open LYTEVENT circular buffer
-  lytevent_p=(lytevent_t *)open_buffer(sm_p,BUFFER_LYTEVENT);
-
-  //Copy data
-  memcpy(lytevent_p,&lytevent,sizeof(lytevent_t));;
-
-  //Get final timestamp
+  //Get end timestamp
   clock_gettime(CLOCK_REALTIME,&end);
-  lytevent_p->hed.end_sec  = end.tv_sec;
-  lytevent_p->hed.end_nsec = end.tv_nsec;
-
-  //Close buffer
-  close_buffer(sm_p,BUFFER_LYTEVENT);
-
-  //Save time
-  memcpy(&last,&start,sizeof(struct timespec));
-
-  //Save end timestamps for full image code
   lytevent.hed.end_sec  = end.tv_sec;
   lytevent.hed.end_nsec = end.tv_nsec;
 
-  /*************************************************************/
-  /**********************  LYT Packet Code  ********************/
-  /*************************************************************/
-
-  //Samples, collected each time through
-  for(i=0;i<LOWFS_N_ZERNIKE;i++){
-    lytpkt.zernike_measured[i][sample] = lytevent.zernike_measured[i];
-    lytpkt.alp_zcmd[i][sample]         = lytevent.alp.zcmd[i];
-  }
-  
-  //Last sample, fill out rest of packet and write to circular buffer
-  if(sample == LYT_NSAMPLES-1){
-    //Header
-    memcpy(&lytpkt.hed,&lytevent.hed,sizeof(pkthed_t));
-    //Image
-    memcpy(&lytpkt.image,&lytevent.image,sizeof(lyt_t));
-    //Zernike gains and targets
-    for(i=0;i<LOWFS_N_ZERNIKE;i++){
-      lytpkt.zernike_target[i]         = lytevent.zernike_target[i]; 
-      for(j=0;j<LOWFS_N_PID;j++){
-	lytpkt.gain_alp_zern[i][j]     = lytevent.gain_alp_zern[i][j];
-      }
-    }
-
-    //Open LYTPKT circular buffer
-    lytpkt_p=(lytpkt_t *)open_buffer(sm_p,BUFFER_LYTPKT);
-
+  //Write LYTEVENT circular buffer
+  if(sm_p->write_circubuf[BUFFER_LYTEVENT]){
+    //Open LYTEVENT circular buffer
+    lytevent_p=(lytevent_t *)open_buffer(sm_p,BUFFER_LYTEVENT);
+    
     //Copy data
-    memcpy(lytpkt_p,&lytpkt,sizeof(lytpkt_t));;
+    memcpy(lytevent_p,&lytevent,sizeof(lytevent_t));;
     
     //Get final timestamp
     clock_gettime(CLOCK_REALTIME,&end);
-    lytpkt_p->hed.end_sec  = end.tv_sec;
-    lytpkt_p->hed.end_nsec = end.tv_nsec;
+    lytevent_p->hed.end_sec  = end.tv_sec;
+    lytevent_p->hed.end_nsec = end.tv_nsec;
     
     //Close buffer
-    close_buffer(sm_p,BUFFER_LYTPKT);
+    close_buffer(sm_p,BUFFER_LYTEVENT);
+  
+    //Save end timestamps for full image code
+    lytevent.hed.end_sec  = end.tv_sec;
+    lytevent.hed.end_nsec = end.tv_nsec;
+  }
+  
+  /*************************************************************/
+  /**********************  LYT Packet Code  ********************/
+  /*************************************************************/
+  if(sm_p->write_circubuf[BUFFER_LYTPKT]){
+    //Samples, collected each time through
+    for(i=0;i<LOWFS_N_ZERNIKE;i++){
+      lytpkt.zernike_measured[i][sample] = lytevent.zernike_measured[i];
+      lytpkt.alp_zcmd[i][sample]         = lytevent.alp.zcmd[i];
+    }
+  
+    //Last sample, fill out rest of packet and write to circular buffer
+    if(sample == LYT_NSAMPLES-1){
+      //Header
+      memcpy(&lytpkt.hed,&lytevent.hed,sizeof(pkthed_t));
+      //Image
+      memcpy(&lytpkt.image,&lytevent.image,sizeof(lyt_t));
+      //Zernike gains and targets
+      for(i=0;i<LOWFS_N_ZERNIKE;i++){
+	lytpkt.zernike_target[i]         = lytevent.zernike_target[i]; 
+	for(j=0;j<LOWFS_N_PID;j++){
+	  lytpkt.gain_alp_zern[i][j]     = lytevent.gain_alp_zern[i][j];
+	}
+      }
+
+      //Open LYTPKT circular buffer
+      lytpkt_p=(lytpkt_t *)open_buffer(sm_p,BUFFER_LYTPKT);
+
+      //Copy data
+      memcpy(lytpkt_p,&lytpkt,sizeof(lytpkt_t));;
+    
+      //Get final timestamp
+      clock_gettime(CLOCK_REALTIME,&end);
+      lytpkt_p->hed.end_sec  = end.tv_sec;
+      lytpkt_p->hed.end_nsec = end.tv_nsec;
+    
+      //Close buffer
+      close_buffer(sm_p,BUFFER_LYTPKT);
+    }
   }
   
   /*************************************************************/
   /**********************  Full Image Code  ********************/
   /*************************************************************/
-  if(timespec_subtract(&delta,&start,&full_last))
-    printf("LYT: lyt_process_image --> timespec_subtract error!\n");
-  ts2double(&delta,&dt);
-  if(dt > LYT_FULL_IMAGE_TIME){
-    //Copy packet header
-    memcpy(&lytfull.hed,&lytevent.hed,sizeof(pkthed_t));
-    lytfull.hed.type = BUFFER_LYTFULL;
+  if(sm_p->write_circubuf[BUFFER_LYTFULL]){
+    if(timespec_subtract(&delta,&start,&full_last))
+      printf("LYT: lyt_process_image --> timespec_subtract error!\n");
+    ts2double(&delta,&dt);
+    if(dt > LYT_FULL_IMAGE_TIME){
+      //Copy packet header
+      memcpy(&lytfull.hed,&lytevent.hed,sizeof(pkthed_t));
+      lytfull.hed.type = BUFFER_LYTFULL;
 
-    //Fake data
-    if(sm_p->w[LYTID].fakemode != FAKEMODE_NONE){
-      if(sm_p->w[LYTID].fakemode == FAKEMODE_TEST_PATTERN)
-	for(i=0;i<LYTXS;i++)
-	  for(j=0;j<LYTYS;j++)
-	    lytfull.image.data[i][j]=fakepx++;
-      if(sm_p->w[LYTID].fakemode == FAKEMODE_LYTPIX2ALPZER_REFIMG)
-	lyt_copy_lytpix2alpzer_refimg(&lytfull.image, FUNCTION_NO_RESET);
-      if(sm_p->w[LYTID].fakemode == FAKEMODE_LYTPIX2ALPACT_REFIMG)
-	lyt_copy_lytpix2alpact_refimg(&lytfull.image, FUNCTION_NO_RESET);
+      //Fake data
+      if(sm_p->w[LYTID].fakemode != FAKEMODE_NONE){
+	if(sm_p->w[LYTID].fakemode == FAKEMODE_TEST_PATTERN)
+	  for(i=0;i<LYTXS;i++)
+	    for(j=0;j<LYTYS;j++)
+	      lytfull.image.data[i][j]=fakepx++;
+	if(sm_p->w[LYTID].fakemode == FAKEMODE_LYTPIX2ALPZER_REFIMG)
+	  lyt_copy_lytpix2alpzer_refimg(&lytfull.image, FUNCTION_NO_RESET);
+	if(sm_p->w[LYTID].fakemode == FAKEMODE_LYTPIX2ALPACT_REFIMG)
+	  lyt_copy_lytpix2alpact_refimg(&lytfull.image, FUNCTION_NO_RESET);
+      }
+      else{
+	//Copy full image
+	memcpy(&(lytfull.image.data[0][0]),buffer->pvAddress,sizeof(lytfull.image.data));
+      }
+
+      //Copy event
+      memcpy(&lytfull.lytevent,&lytevent,sizeof(lytevent));
+
+      //Open circular buffer
+      lytfull_p=(lytfull_t *)open_buffer(sm_p,BUFFER_LYTFULL);
+
+      //Copy data
+      memcpy(lytfull_p,&lytfull,sizeof(lytfull_t));;
+
+      //Get final timestamp
+      clock_gettime(CLOCK_REALTIME,&end);
+      lytfull_p->hed.end_sec  = end.tv_sec;
+      lytfull_p->hed.end_nsec = end.tv_nsec;
+
+      //Close buffer
+      close_buffer(sm_p,BUFFER_LYTFULL);
+
+      //Reset time
+      memcpy(&full_last,&start,sizeof(struct timespec));
     }
-    else{
-      //Copy full image
-      memcpy(&(lytfull.image.data[0][0]),buffer->pvAddress,sizeof(lytfull.image.data));
-    }
-
-    //Copy event
-    memcpy(&lytfull.lytevent,&lytevent,sizeof(lytevent));
-
-    //Open circular buffer
-    lytfull_p=(lytfull_t *)open_buffer(sm_p,BUFFER_LYTFULL);
-
-    //Copy data
-    memcpy(lytfull_p,&lytfull,sizeof(lytfull_t));;
-
-    //Get final timestamp
-    clock_gettime(CLOCK_REALTIME,&end);
-    lytfull_p->hed.end_sec  = end.tv_sec;
-    lytfull_p->hed.end_nsec = end.tv_nsec;
-
-    //Close buffer
-    close_buffer(sm_p,BUFFER_LYTFULL);
-
-    //Reset time
-    memcpy(&full_last,&start,sizeof(struct timespec));
   }
 }
