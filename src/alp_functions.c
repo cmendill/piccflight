@@ -19,11 +19,27 @@
 #include "alpao_map.h"
 #include "rtd_functions.h"
 
+//Defaults
+#define ALP_SHK_POKE          0.05  //shk alp actuator calibration poke
+#define ALP_SHK_ZPOKE         0.02  //shk zernike microns RMS
+#define ALP_SHK_NCALIM        40    //shk number of calibration images per alp step
+#define ALP_LYT_POKE          0.01  //lyt alp actuator calibration poke
+#define ALP_LYT_ZPOKE         0.005 //lyt zernike microns RMS
+#define ALP_LYT_NCALIM        200   //lyt number of calibration images per alp step
+
 /**************************************************************/
 /* ALP_INIT_CALMODE                                           */
 /*  - Initialize ALP calmode structure                        */
 /**************************************************************/
 void alp_init_calmode(int calmode, calmode_t *alp){
+  //DEFAULTS
+  alp->shk_ncalim = ALP_SHK_NCALIM;
+  alp->shk_poke   = ALP_SHK_POKE;
+  alp->shk_zpoke  = ALP_SHK_ZPOKE;
+  alp->lyt_ncalim = ALP_LYT_NCALIM;
+  alp->lyt_poke   = ALP_LYT_POKE;
+  alp->lyt_zpoke  = ALP_LYT_ZPOKE;
+  
   //ALP_CALMODE_NONE
   if(calmode == ALP_CALMODE_NONE){
     sprintf(alp->name,"ALP_CALMODE_NONE");
@@ -59,6 +75,8 @@ void alp_init_calmode(int calmode, calmode_t *alp){
     sprintf(alp->name,"ALP_CALMODE_ZPOKE");
     sprintf(alp->cmd,"zpoke");
     alp->shk_boxsize_cmd = SHK_BOXSIZE_CMD_STD;
+    alp->shk_ncalim = 100;
+    
   }
   //ALP_CALMODE_FLIGHT
   if(calmode == ALP_CALMODE_FLIGHT){
@@ -406,7 +424,8 @@ int alp_calibrate(int calmode, alp_t *alp, uint32_t *step, int procid, int reset
   static alp_t alp_start[ALP_NCALMODES];
   static uint64 countA[ALP_NCALMODES] = {0};
   static uint64 countB[ALP_NCALMODES] = {0};
-  
+  static calmode_t alpcalmodes[ALP_NCALMODES];
+
   /* Reset */
   if(reset){
     memset(countA,0,sizeof(countA));
@@ -426,6 +445,9 @@ int alp_calibrate(int calmode, alp_t *alp, uint32_t *step, int procid, int reset
     memset(alp_start,0,sizeof(alp_start));
     memset(last_zernike,0,sizeof(last_zernike));
     clock_gettime(CLOCK_REALTIME, &start);
+    //Init ALP calmodes
+    for(i=0;i<ALP_NCALMODES;i++)
+      alp_init_calmode(i,&alpcalmodes[i]);
 
     /* Open zernike errors file */
     //--setup filename
@@ -460,15 +482,16 @@ int alp_calibrate(int calmode, alp_t *alp, uint32_t *step, int procid, int reset
 
   /* Set calibration parameters */
   if(procid == SHKID){
-    poke   = ALP_SHK_POKE;
-    zpoke  = ALP_SHK_ZPOKE;
-    ncalim = ALP_SHK_NCALIM;
+    poke   = alpcalmodes[calmode].shk_poke;
+    zpoke  = alpcalmodes[calmode].shk_zpoke;
+    ncalim = alpcalmodes[calmode].shk_ncalim;
   }
   if(procid == LYTID){
-    poke   = ALP_LYT_POKE;
-    zpoke  = ALP_LYT_ZPOKE;
-    ncalim = ALP_LYT_NCALIM;
+    poke   = alpcalmodes[calmode].lyt_poke;
+    zpoke  = alpcalmodes[calmode].lyt_zpoke;
+    ncalim = alpcalmodes[calmode].lyt_ncalim;
   }
+  
 
   /* Calculate times */
   clock_gettime(CLOCK_REALTIME, &this);

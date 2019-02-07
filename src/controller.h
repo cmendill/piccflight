@@ -443,25 +443,10 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SCIFULL,
 #define ALP_END_WORD          0xF100
 #define ALP_FRAME_END         0xFEED
 #define ALP_BIAS              0.0
-#define ALP_SHK_POKE          0.05  //shk alp actuator calibration poke
-#define ALP_SHK_ZPOKE         0.02  //shk zernike microns RMS
-#define ALP_SHK_NCALIM        40    //shk number of calibration images per alp step
-#define ALP_LYT_POKE          0.01  //lyt alp actuator calibration poke
-#define ALP_LYT_ZPOKE         0.005 //lyt zernike microns RMS
-#define ALP_LYT_NCALIM        200   //lyt number of calibration images per alp step
 #define ALP_ZERNIKE_MIN      -5.0   //ALP min zernike command
 #define ALP_ZERNIKE_MAX       5.0   //ALP max zernike command
 #define ALP_DZERNIKE_MIN     -1.0   //ALP min delta zernike command
 #define ALP_DZERNIKE_MAX      1.0   //ALP max delta zernike command
-
-
-/*************************************************
- * TARGET Parameters
- *************************************************/
-#define TGT_SHK_NCALIM        100   //shk number of calibration images per tgt step
-#define TGT_LYT_NCALIM        200   //lyt number of calibration images per tgt step
-#define TGT_LYT_ZPOKE         0.005 //lyt tgt zpoke [microns rms]
-#define TGT_SHK_ZPOKE         0.02  //shk tgt zpoke [microns rms]
 
 /*************************************************
  * HEXAPOD Parameters
@@ -574,9 +559,15 @@ typedef struct procinfo_struct{
  * Calmode Structure
  *************************************************/
 typedef struct calmode_struct{
-  char name[MAX_COMMAND];
-  char cmd[MAX_COMMAND];
-  int  shk_boxsize_cmd;
+  char   name[MAX_COMMAND];
+  char   cmd[MAX_COMMAND];
+  int    shk_boxsize_cmd;
+  int    shk_ncalim;
+  int    lyt_ncalim;
+  double shk_poke;
+  double shk_zpoke;
+  double lyt_poke;
+  double lyt_zpoke;
 } calmode_t;
 
 /*************************************************
