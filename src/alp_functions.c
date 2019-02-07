@@ -7,6 +7,7 @@
 #include <fcntl.h>
 #include <ctype.h>
 #include <time.h>
+#include <math.h>
 #include <libgen.h>
 #include <sys/stat.h>
 
@@ -379,7 +380,6 @@ int alp_load_flat(sm_t *sm_p,int proc_id){
 /**************************************************************/
 int alp_calibrate(int calmode, alp_t *alp, uint32_t *step, int procid, int reset){
   uint64_t i,j,index;
-  static unit64_t last_index;
   static struct timespec start,this,last,delta;
   static double zernike_errors[LOWFS_N_ZERNIKE][ZERNIKE_ERRORS_NUMBER]={{0}};
   const double zernike_timestep = ZERNIKE_ERRORS_PERIOD;
@@ -389,7 +389,9 @@ int alp_calibrate(int calmode, alp_t *alp, uint32_t *step, int procid, int reset
   char filename[MAX_FILENAME];
   double dt=0,dt0=0;
   double step_fraction=0;
-  double dz[LOWFS_N_ZERNIKE]={0},this_zernike[LOWFS_N_ZERNIKE]={0},last_zernike[LOWFS_N_ZERNIKE]={0};
+  double dz[LOWFS_N_ZERNIKE]={0};
+  double this_zernike[LOWFS_N_ZERNIKE]={0};
+  static double last_zernike[LOWFS_N_ZERNIKE]={0};
   double act[ALP_NACT];
   double poke=0,zpoke=0;
   int    ncalim=0;
@@ -405,7 +407,7 @@ int alp_calibrate(int calmode, alp_t *alp, uint32_t *step, int procid, int reset
     memset(countB,0,sizeof(countB));
     memset(mode_init,0,sizeof(mode_init));
     memset(alp_start,0,sizeof(alp_start));
-    last_index=0;
+    memset(last_zernike,0,sizeof(last_zernike));
     init=0;
     return calmode;
   }
@@ -416,7 +418,7 @@ int alp_calibrate(int calmode, alp_t *alp, uint32_t *step, int procid, int reset
     memset(countB,0,sizeof(countB));
     memset(mode_init,0,sizeof(mode_init));
     memset(alp_start,0,sizeof(alp_start));
-    last_index=0;
+    memset(last_zernike,0,sizeof(last_zernike));
     clock_gettime(CLOCK_REALTIME, &start);
 
     /* Open zernike errors file */
