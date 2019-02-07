@@ -465,7 +465,7 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SCIFULL,
 /*************************************************
  * HEXAPOD Parameters
  *************************************************/
-#define HEX_DEVICE       "/dev/ttyS0"
+#define HEX_DEVICE       "/dev/ttyS3"
 #define HEX_BAUD         115200
 #define HEX_NAXES        6
 #define HEX_AXES_ALL     "X Y Z U V W"
