@@ -4,6 +4,7 @@
 #include <termios.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <math.h>
 #include <errno.h>
 #include <string.h>
 #include <signal.h>
@@ -11,7 +12,6 @@
 #include <ctype.h>
 #include <libfli.h>
 #include <libgen.h>
-#include <math.h>
 #include <sys/stat.h>
 
 /* piccflight headers */
