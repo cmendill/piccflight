@@ -378,7 +378,8 @@ int alp_load_flat(sm_t *sm_p,int proc_id){
 /* - Run calibration routines for ALPAO DM                    */
 /**************************************************************/
 int alp_calibrate(int calmode, alp_t *alp, uint32_t *step, int procid, int reset){
-  int i,j,index;
+  uint64_t i,j,index;
+  static unit64_t last_index;
   static struct timespec start,this,last,delta;
   static double zernike_errors[LOWFS_N_ZERNIKE][ZERNIKE_ERRORS_NUMBER]={{0}};
   const double zernike_timestep = ZERNIKE_ERRORS_PERIOD;
@@ -386,8 +387,9 @@ int alp_calibrate(int calmode, alp_t *alp, uint32_t *step, int procid, int reset
   time_t t;
   FILE *fileptr=NULL;
   char filename[MAX_FILENAME];
-  double dt=0,dt0=0,period=0;
-  double zernikes[LOWFS_N_ZERNIKE]={0};
+  double dt=0,dt0=0;
+  double step_fraction=0;
+  double dz[LOWFS_N_ZERNIKE]={0},this_zernike[LOWFS_N_ZERNIKE]={0},last_zernike[LOWFS_N_ZERNIKE]={0};
   double act[ALP_NACT];
   double poke=0,zpoke=0;
   int    ncalim=0;
@@ -403,6 +405,7 @@ int alp_calibrate(int calmode, alp_t *alp, uint32_t *step, int procid, int reset
     memset(countB,0,sizeof(countB));
     memset(mode_init,0,sizeof(mode_init));
     memset(alp_start,0,sizeof(alp_start));
+    last_index=0;
     init=0;
     return calmode;
   }
@@ -413,6 +416,7 @@ int alp_calibrate(int calmode, alp_t *alp, uint32_t *step, int procid, int reset
     memset(countB,0,sizeof(countB));
     memset(mode_init,0,sizeof(mode_init));
     memset(alp_start,0,sizeof(alp_start));
+    last_index=0;
     clock_gettime(CLOCK_REALTIME, &start);
 
     /* Open zernike errors file */
@@ -441,6 +445,8 @@ int alp_calibrate(int calmode, alp_t *alp, uint32_t *step, int procid, int reset
       printf("ALP: Read: %s\n",filename);
       fclose(fileptr);
     }
+
+    //Set init flag
     init=1;
   }
 
@@ -659,21 +665,26 @@ int alp_calibrate(int calmode, alp_t *alp, uint32_t *step, int procid, int reset
     //Setup counters
     if(countA[calmode] == 0)
       dt0 = dt;
-    if(countA[calmode] == 1)
-      period = dt-dt0;
     //Set step counter
     *step = countA[calmode];
-    //Set index
-    index = (int)((dt-dt0)/zernike_timestep);
-    if(index < ZERNIKE_ERRORS_NUMBER){
-      //Get zernikes for this timestep, convert from wavefront to surface
-      for(i=0;i<LOWFS_N_ZERNIKE;i++)
-	zernikes[i] = 0.5*zernike_errors[i][index];
-      //Convert zernikes to actuators
-      alp_zern2alp(zernikes,act,FUNCTION_NO_RESET);
+    //Set data index
+    index = (uint64_t)((dt-dt0)/zernike_timestep);
+    if(index < ZERNIKE_ERRORS_NUMBER-1){
+      //Interpolate between steps, calc zernike deltas
+      step_fraction = fmod(dt-dt0,zernike_timestep)/zernike_timestep;
+      for(i=0;i<LOWFS_N_ZERNIKE;i++){
+	this_zernike[i] = (1-step_fraction)*zernike_errors[i][index] + step_fraction*zernike_errors[i][index+1];
+	//Convert from [Microns RMS Wavefront] to [Microns RMS Surface]
+	dz[i] = 0.5*(this_zernike[i] - last_zernike[i]);
+      }
+      //Convert zernike deltas to actuator deltas
+      alp_zern2alp(dz,act,FUNCTION_NO_RESET);
       //Add offsets to ALP position
       for(i=0;i<ALP_NACT;i++)
 	alp->acmd[i] += act[i];
+      //Save zernikes
+      memcpy(last_zernike,this_zernike,sizeof(last_zernike));
+      //Increment counter
       countA[calmode]++;
     }else{
       //Set alp back to starting position
