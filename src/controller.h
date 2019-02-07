@@ -97,6 +97,7 @@ enum states { STATE_STANDBY,
  * Calibration Modes
  *************************************************/
 enum alpcalmodes {ALP_CALMODE_NONE,
+		  ALP_CALMODE_TIMER,
 		  ALP_CALMODE_ZERO,
 		  ALP_CALMODE_FLAT,
 		  ALP_CALMODE_POKE,
@@ -542,6 +543,11 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SCIFULL,
 #define UPLINK_BAUD     1200
 
 /*************************************************
+ * Other Parameters
+ *************************************************/
+#define CALMODE_TIMER_SEC   30 //length of calmode_timer
+
+/*************************************************
  * Config Structure
  *************************************************/
 typedef struct procinfo_struct{
@@ -680,7 +686,7 @@ typedef struct htr_struct{
 /*************************************************
  * Packet Header
  *************************************************/
-#define PICC_PKT_VERSION     4  //packet version number
+#define PICC_PKT_VERSION     5  //packet version number
 typedef struct pkthed_struct{
   uint16  version;      //packet version number
   uint16  type;         //packet ID word

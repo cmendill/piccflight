@@ -30,6 +30,12 @@ void alp_init_calmode(int calmode, calmode_t *alp){
     sprintf(alp->cmd,"none");
     alp->shk_boxsize_cmd = SHK_BOXSIZE_CMD_STD;
   }
+  //ALP_CALMODE_TIMER
+  if(calmode == ALP_CALMODE_TIMER){
+    sprintf(alp->name,"ALP_CALMODE_TIMER");
+    sprintf(alp->cmd,"timer");
+    alp->shk_boxsize_cmd = SHK_BOXSIZE_CMD_STD;
+  }
   //ALP_CALMODE_ZERO
   if(calmode == ALP_CALMODE_ZERO){
     sprintf(alp->name,"ALP_CALMODE_ZERO");
@@ -474,6 +480,28 @@ int alp_calibrate(int calmode, alp_t *alp, uint32_t *step, int procid, int reset
   if(calmode==ALP_CALMODE_NONE){
     memset(countA,0,sizeof(countA));
     memset(countB,0,sizeof(countB));
+    return calmode;
+  }
+
+  /* ALP_CALMODE_TIMER: Do nothing. End after a defined amount of time     */
+  if(calmode==ALP_CALMODE_TIMER){
+    //set start time
+    if(countA[calmode] == 0)
+      dt0 = dt;
+    
+    //set step counter
+    *step = countA[calmode];
+
+    if(dt-dt0 > CALMODE_TIMER_SEC){
+      //Turn off calibration
+      printf("ALP: Stopping ALP calmode ALP_CALMODE_TIMER\n");
+      calmode = ALP_CALMODE_NONE;
+      init = 0;
+    }
+
+    //Increment counter
+    countA[calmode]++;
+    
     return calmode;
   }
 
