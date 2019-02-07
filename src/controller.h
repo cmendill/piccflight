@@ -535,6 +535,11 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SCIFULL,
  *************************************************/
 #define MTR_NDOORS         4
 
+/*************************************************
+ * Command Uplink Parameters
+ *************************************************/
+#define UPLINK_DEVICE   "/dev/ttyS1"
+#define UPLINK_BAUD     1200
 
 /*************************************************
  * Config Structure
