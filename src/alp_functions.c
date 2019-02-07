@@ -679,6 +679,9 @@ int alp_calibrate(int calmode, alp_t *alp, uint32_t *step, int procid, int reset
 	//Convert from [Microns RMS Wavefront] to [Microns RMS Surface]
 	dz[i] = 0.5*(this_zernike[i] - last_zernike[i]);
       }
+      //Add zernike deltas to ALP command
+      for(i=0;i<LOWFS_N_ZERNIKE;i++)
+	alp->zcmd[i] += dz[i];
       //Convert zernike deltas to actuator deltas
       alp_zern2alp(dz,act,FUNCTION_NO_RESET);
       //Add offsets to ALP position
