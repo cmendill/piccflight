@@ -669,6 +669,13 @@ typedef struct wsp_struct{
   double ycmd;
 } wsp_t;
 
+typedef struct htr_struct{
+  uint8  adc;      //ADC number {1,2,3}
+  uint8  ch;       //ADC channel index
+  uint8  override; //Heater command override switch
+  uint8  power;    //Heater power [0-100%]
+  float  temp;     //Sensor temperature
+} htr_t;
 
 /*************************************************
  * Packet Header
@@ -814,11 +821,10 @@ typedef struct acqevent_struct{
 
 typedef struct thmevent_struct{
   pkthed_t  hed;
-  float     adc1_temp[ADC1_NCHAN];   //adc1 temperatures [C]
-  float     adc2_temp[ADC2_NCHAN];   //adc2 temperatures [C]
-  float     adc3_temp[ADC3_NCHAN];   //adc3 temperatures [C]
-  uint8_t   htr_power[SSR_NCHAN];    //heater power [0-100%]
-  uint8_t   htr_override[SSR_NCHAN]; //heater override flags
+  float     adc1_temp[ADC1_NCHAN];
+  float     adc2_temp[ADC2_NCHAN];
+  float     adc3_temp[ADC3_NCHAN];
+  htr_t     htr[SSR_NCHAN];       
 } thmevent_t;
 
 typedef struct mtrevent_struct{

@@ -74,12 +74,44 @@ void thm_proc(void){
   DSCSAMPLE samples3[ADC3_NCHAN]; // digital readings
   DFLOAT voltage;                 // voltage value
 
-
-    
   /* Initialize */
   if(!init){
     memset(&thmevent,0,sizeof(thmevent));
     count=0;
+    //Setup heater & sensor pairs
+    thmevent.htr[0].adc  = 0;
+    thmevent.htr[0].ch   = 0;
+    thmevent.htr[1].adc  = 0;
+    thmevent.htr[1].ch   = 0;
+    thmevent.htr[2].adc  = 0;
+    thmevent.htr[2].ch   = 0;
+    thmevent.htr[3].adc  = 0;
+    thmevent.htr[3].ch   = 0;
+    thmevent.htr[4].adc  = 0;
+    thmevent.htr[4].ch   = 0;
+    thmevent.htr[5].adc  = 0;
+    thmevent.htr[5].ch   = 0;
+    thmevent.htr[6].adc  = 0;
+    thmevent.htr[6].ch   = 0;
+    thmevent.htr[7].adc  = 0;
+    thmevent.htr[7].ch   = 0;
+    thmevent.htr[8].adc  = 0;
+    thmevent.htr[8].ch   = 0;
+    thmevent.htr[9].adc  = 0;
+    thmevent.htr[9].ch   = 0;
+    thmevent.htr[10].adc = 0;
+    thmevent.htr[10].ch  = 0;
+    thmevent.htr[11].adc = 0;
+    thmevent.htr[11].ch  = 0;
+    thmevent.htr[12].adc = 0;
+    thmevent.htr[12].ch  = 0;
+    thmevent.htr[13].adc = 0;
+    thmevent.htr[13].ch  = 0;
+    thmevent.htr[14].adc = 0;
+    thmevent.htr[14].ch  = 0;
+    thmevent.htr[15].adc = 0;
+    thmevent.htr[15].ch  = 0;
+    //Set init flag
     init=1;
     if(THM_DEBUG) printf("THM: Initialized\n");
   }
@@ -364,12 +396,12 @@ void thm_proc(void){
       resistance = (voltage * ADC3_R1) / (ADC3_VREF - voltage);
       thmevent.adc3_temp[i] = (resistance - RTD_OHMS)/(RTD_ALPHA * RTD_OHMS);
     }
-
+    
     /* Heaters Override Commands */
     for(i=0;i<SSR_NCHAN;i++){
-      thmevent.htr_override[i] = sm_p->htr_override[i];
-      if(sm_p->htr_override[i])
-	thmevent.htr_power[i] = sm_p->htr_power[i];
+      thmevent.htr[i].override = sm_p->htr_override[i];
+      if(thmevent.htr[i].override)
+	thmevent.htr[i].power = sm_p->htr_power[i];
     }
     
     /* Command Heaters */
@@ -377,7 +409,7 @@ void thm_proc(void){
       for(i=0;i<HTR_NSTEPS;i++){
 	htr_output = 0;
 	for(j=0;j<SSR_NCHAN;j++)
-	  htr_output |= (i < thmevent.htr_power[j]) << j;
+	  htr_output |= (i < thmevent.htr[j].power) << j;
 	htr_lsb = ~htr_output & 0x00FF;
 	htr_msb = (~htr_output & 0xFF00) >> 8;
 	outb(htr_lsb,SSR_BASE+0);
