@@ -59,7 +59,7 @@ void shk_init_cells(shkevent_t *shkevent){
 /***************************************************************/
 int shk_setorigin(shkevent_t *shkevent){
   int i;
-  static double cx[SHK_NCELLS]={0}, cy[SHK_NCELLS]={0};
+  static double cx[SHK_BEAM_NCELLS]={0}, cy[SHK_BEAM_NCELLS]={0};
   static int count = 0;
   const double navg = SHK_ORIGIN_NAVG;
   
@@ -417,6 +417,7 @@ void shk_zernike_matrix(shkcell_t *cells, double *matrix_fwd, double *matrix_inv
   double max_x = 0, max_y = 0, min_x = SHKXS, min_y = SHKYS;
   double beam_xcenter,beam_ycenter,beam_radius,beam_radius_m,unit_conversion;
   double dz_dxdy[2*SHK_BEAM_NCELLS*LOWFS_N_ZERNIKE] = {0};
+  double dxdy_dz[2*SHK_BEAM_NCELLS*LOWFS_N_ZERNIKE] = {0};
   double x_1 = 0, x_2 = 0, x_3 = 0, x_4 = 0, x_5=0;
   double y_1 = 0, y_2 = 0, y_3 = 0, y_4 = 0, y_5=0;
   struct stat st = {0};
@@ -535,7 +536,7 @@ void shk_zernike_matrix(shkcell_t *cells, double *matrix_fwd, double *matrix_inv
   }
   else{
     //Write matrix
-    if(fwrite(dz_dxdy,2*SHK_BEAM_NCELLS*LOWFS_N_ZERNIKE*sizeof(double),1,fd) !=1){
+    if(fwrite(dz_dxdy,sizeof(dz_dxdy),1,fd) !=1){
       perror("SHK: zern2shk fwrite");
       fclose(fd);
     }else{
@@ -550,8 +551,11 @@ void shk_zernike_matrix(shkcell_t *cells, double *matrix_fwd, double *matrix_inv
   
   //Invert Matrix NOTE: This changes the forward matrix
   if(SHK_DEBUG) printf("SHK: Inverting the Zernike matrix\n");
-  num_dgesvdi(dz_dxdy, matrix_inv, 2*SHK_BEAM_NCELLS, LOWFS_N_ZERNIKE);
+  num_dgesvdi(dz_dxdy, dxdy_dz, 2*SHK_BEAM_NCELLS, LOWFS_N_ZERNIKE);
     
+  //Copy inverse matrix to calling routine
+  memcpy(matrix_inv,dxdy_dz,sizeof(dxdy_dz));
+
   /* Write inverse matrix to file */
   //Set up file name
   sprintf(outfile, SHKCEL2SHKZER_OUTFILE);
@@ -568,7 +572,7 @@ void shk_zernike_matrix(shkcell_t *cells, double *matrix_fwd, double *matrix_inv
   }
   else{
     //Write matrix
-    if(fwrite(matrix_inv,2*SHK_BEAM_NCELLS*LOWFS_N_ZERNIKE*sizeof(double),1,fd) !=1){
+    if(fwrite(dxdy_dz,sizeof(dxdy_dz),1,fd) !=1){
       perror("SHK: shk2zern fwrite");
       fclose(fd);
     }
@@ -656,14 +660,14 @@ void shk_cells2alp(shkcell_t *cells, double *actuators, int reset){
     fseek(matrix, 0L, SEEK_END);
     fsize = ftell(matrix);
     rewind(matrix);
-    rsize = 2*SHK_BEAM_NCELLS*ALP_NACT*sizeof(double);
+    rsize = sizeof(cells2alp_matrix);
     if(fsize != rsize){
       printf("SHK: incorrect cells2alp matrix file size %lu != %lu\n",fsize,rsize);
       fclose(matrix);
       goto end_of_init;
     }
     //--read matrix
-    if(fread(cells2alp_matrix,2*SHK_BEAM_NCELLS*ALP_NACT*sizeof(double),1,matrix) != 1){
+    if(fread(cells2alp_matrix,sizeof(cells2alp_matrix),1,matrix) != 1){
       perror("SHK: cells2alp fread");
       fclose(matrix);
       goto end_of_init;
@@ -1235,11 +1239,11 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
       }
       else{
 	//Copy full image
-	memcpy(&(shkfull.image.data[0][0]),buffer->pvAddress,sizeof(shkfull.image.data));
+	memcpy(&(shkfull.image.data[0][0]),buffer->pvAddress,sizeof(shk_t));
       }
     
       //Copy shkevent
-      memcpy(&shkfull.shkevent,&shkevent,sizeof(shkevent));
+      memcpy(&shkfull.shkevent,&shkevent,sizeof(shkevent_t));
     
       //Open SHKFULL circular buffer
       shkfull_p=(shkfull_t *)open_buffer(sm_p,BUFFER_SHKFULL);
