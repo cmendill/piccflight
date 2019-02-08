@@ -4,7 +4,8 @@
 #*****************************************************************#
 
 PC104 STACK
- - CPU: Versalogic Baycat VL-EPM-31EBP (Dual Core)
+ - CPU: Versalogic Baycat VL-EPM-31EBP-----------> Alternate CPU
+ - CPU: Advantech PCM-3365EW-S3A1E---------------> Flight CPU
  - DIO: RTD DM7820HR ----------------------------> Telemetry & ALPAO DM
  - CL1: Active Silicon AS-PHX-D24CL-PC104P32-B --> SH LOWFS
  - CL2: Active Silicon AS-PHX-D24CL-PC104P32-B --> Lyot LOWFS
@@ -17,7 +18,7 @@ PC104 STACK
  - REL: RTD DM6956HR-H --------------------------> Motor control
  - ALP: Winford BRKAVH68FV1-R-FT ----------------> VHDCI breakout board for ALPAO DM 
 
-Versalogic Baycat BIOS Setup
+VERSALOGIC BAYCAT CPU BIOS SETUP
  - Boot-->Boot Priority Order
      - 1. USB HDD
      - 2. ATA HDD1
@@ -48,6 +49,35 @@ Versalogic Baycat BIOS Setup
      - SoC Debug UART = Disable
      - SMM Lock = Disable
      - PCI MMIO Size = 2GB
+
+ADVANTECH CPU BIOS SETUP
+ - Advanced
+     - ACPI Settings
+        - Enable Hibrenation.....................[Enabled -> Disabled]
+        - ACPI Sleep State.......................[S3 (Suspend to ram) -> Suspend Disabled]
+     - Serial Port Console Redirection
+        - COM1
+           - Console Redirection.................[Disabled -> Enabled]
+     - CPU Configuration
+        - Intel Virtualization Technology........[Enabled -> Disabled]
+        - Power Technology.......................[Energy Efficient -> Disable]
+     - PPM Configuration
+        - CPU C state Report.....................[Enabled -> Disabled]
+     - LPSS & SCC Configuration
+        - LPSS & SCC Devices Mode................[ACPI mode -> PCI Mode]
+        - LPSS Configuration
+           - LPSS I2C Support....................[Disabled -> Enabled]
+- Chipset
+     - North Bridge
+        - Intel IGD Configuration
+           - IGD Turbo Enable....................[Enable -> Disable]
+           - PAVC................................[LITE Mode -> Disabled]
+           - DVMT Totla Gfx Mem..................[256MB -> 128MB]
+           - Aperture Size.......................[256MB -> 128MB]
+           - GTT Size............................[2MB -> 1MB]
+     - South Bridge
+        - Azalia HD Audio
+           - Audio Controller....................[Enabled -> Disabled]
 
 LINUX INSTALLATION
  - The flight computer runs Ubuntu Server 12.04.5 64bit
