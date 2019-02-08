@@ -139,19 +139,9 @@ DM7820_Error rtd_stop_alp_clock(DM7820_Board_Descriptor* p_rtd_board) {
 /**************************************************************/
 static void rtd_alp_limit_command(double *cmd){
   int i;
-  double avg=0;
   
-  //limit and calculate average
+  //limit commands
   for(i=0;i<ALP_NACT;i++){
-    cmd[i] = (cmd[i] > ALP_AMAX)?ALP_AMAX:cmd[i];
-    cmd[i] = (cmd[i] < ALP_AMIN)?ALP_AMIN:cmd[i];
-    avg += cmd[i];
-  }
-  avg /= ALP_NACT;
-  
-  //subtract average and limit again
-  for(i=0;i<ALP_NACT;i++){
-    cmd[i] -= avg;
     cmd[i] = (cmd[i] > ALP_AMAX)?ALP_AMAX:cmd[i];
     cmd[i] = (cmd[i] < ALP_AMIN)?ALP_AMIN:cmd[i];
   }
