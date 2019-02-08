@@ -206,28 +206,14 @@ void shk_loadorigin(shkevent_t*shkevent){
 /*  - Measure the centroid of a single SHK cell               */
 /**************************************************************/
 void shk_centroid_cell(uint16 *image, shkcell_t *cell, int cmd_boxsize){
-  double xnum,ynum,total,intensity,background,val;
-  uint16 maxval,npix;
+  double xnum,ynum,total,intensity;
+  uint16 maxval;
   double xhist[SHKXS]={0};
   double yhist[SHKYS]={0};
-  uint16 x,y,blx,bly,trx,try;
-  uint64 px;
+  int    x,y,px,blx,bly,trx,try,npix,boxsize;
   double wave2surf = 1;
   double xcentroid=0,ycentroid=0,xdeviation=0,ydeviation=0;
-  int    boxsize;
   
-  //Calculate detector background (could be a seperate function)
-  background=0;
-  npix=0;
-  for(x=20;x<50;x++){
-    for(y=20;y<50;y++){
-      px = x + y*SHKYS;
-      background += image[px];
-      npix++;
-    }
-  }
-  background /= npix;
-
   /********************************************************************/
   //NOTES: The technique here is to first search the maximum boxsize 
   //for the brightest pixel, then calculate the true centroid either 
@@ -328,12 +314,13 @@ void shk_centroid_cell(uint16 *image, shkcell_t *cell, int cmd_boxsize){
     try = try < SHK_YMIN ? SHK_YMIN : try;
 
     //Build x,y histograms
+    intensity=0;
     for(x=blx;x<=trx;x++){
       for(y=bly;y<=try;y++){
 	px = x + y*SHKYS;
-	val = (double)image[px] - background;
-	xhist[x] += val;
-	yhist[y] += val;
+	xhist[x]  += image[px];
+	yhist[y]  += image[px];
+	intensity += image[px];
       }
     }
     
@@ -360,10 +347,9 @@ void shk_centroid_cell(uint16 *image, shkcell_t *cell, int cmd_boxsize){
   //Save max pixel
   cell->maxval = maxval;
   
-  //Save total intensity and background
+  //Save total intensity (of final centroid box)
   cell->intensity  = intensity;
-  cell->background = background;
-
+  
   //Save centroids
   cell->xcentroid = xcentroid;
   cell->ycentroid = ycentroid;
@@ -401,11 +387,25 @@ void shk_centroid_cell(uint16 *image, shkcell_t *cell, int cmd_boxsize){
 /*  - Measure centroids of all SHK cells                      */
 /**************************************************************/
 void shk_centroid(uint16 *image, shkevent_t *shkevent){
-  int i;
-
+  int i,j,px;
+  int npix=0;
+  double background=0;
+  
+  //Calculate detector background
+  for(i=20;i<50;i++){
+    for(j=20;j<50;j++){
+      px = i + j*SHKYS;
+      background += image[px];
+      npix++;
+    }
+  }
+  background /= npix;
+  
   //Centroid cells
-  for(i=0;i<SHK_BEAM_NCELLS;i++)
+  for(i=0;i<SHK_BEAM_NCELLS;i++){
+    shkevent->cells[i].background = background;
     shk_centroid_cell(image,&shkevent->cells[i],shkevent->boxsize);
+  }
 }
 
 /**************************************************************/
