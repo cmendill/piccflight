@@ -1124,17 +1124,35 @@ int handle_command(char *line, sm_t *sm_p){
   }
   sprintf(cmd,"zernike disable");
   if(!strncasecmp(line,cmd,strlen(cmd)) && strlen(line) > strlen(cmd)){
-    itemp = atoi(line+strlen(cmd));
-    sm_p->zernike_control[itemp]=0;
-    printf("CMD: Disabling control of Zernike %d\n\n",itemp);
+    pch = strtok(line+strlen(cmd)," ");
+    while(pch != NULL){
+      itemp  = atoi(pch);
+      if(itemp >= 0 && itemp < LOWFS_N_ZERNIKE){
+	sm_p->zernike_control[itemp]=0;
+	printf("CMD: Disabling control of Zernike %d\n",itemp);
+      }
+      else{
+	printf("CMD: Invalid Zernike %d\n",itemp);
+      }
+      pch = strtok(NULL," ");
+    }
     print_zernikes(sm_p);
     return CMD_NORMAL;
   }
   sprintf(cmd,"zernike enable");
   if(!strncasecmp(line,cmd,strlen(cmd)) && strlen(line) > strlen(cmd)){
-    itemp = atoi(line+strlen(cmd));
-    sm_p->zernike_control[itemp]=1;
-    printf("CMD: Enabling control of Zernike %d\n\n",itemp);
+    pch = strtok(line+strlen(cmd)," ");
+    while(pch != NULL){
+      itemp  = atoi(pch);
+      if(itemp >= 0 && itemp < LOWFS_N_ZERNIKE){
+	sm_p->zernike_control[itemp]=1;
+	printf("CMD: Enabling control of Zernike %d\n",itemp);
+      }
+      else{
+	printf("CMD: Invalid Zernike %d\n",itemp);
+      }
+      pch = strtok(NULL," ");
+    }
     print_zernikes(sm_p);
     return CMD_NORMAL;
   }
