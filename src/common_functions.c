@@ -450,3 +450,70 @@ void zernike_random(double *array, long num, double amplitude){
   for(i=0;i<num;i++)
     array[i] = (2*(rand() / (double) RAND_MAX) - 1) * amplitude;
 }
+
+/**************************************************************/
+/* GETIRQ                                                     */
+/* - Parse /proc/interrupts and return the irq of a driver    */
+/**************************************************************/
+int getirq(char *driver){
+  FILE *fd=NULL;
+  char filename[256];
+  char line[256];
+  char *irq;
+  
+  //Open file
+  sprintf(filename,"/proc/interrupts");
+  if((fd = fopen(filename,"r")) == NULL){
+    perror("COM: getirq fopen");
+    fclose(fd);
+    return(-1);
+  }
+  //Read file line by line
+  while(fgets(line, sizeof(line), fd)) {
+    if(strstr(line,driver) != NULL){
+      irq = strtok(line,":");
+      fclose(fd);
+      return(atoi(irq));
+    }
+  }
+
+  printf("COM: getirq could not find driver %s\n",driver);
+  
+  //Close file
+  fclose(fd);
+
+  //Return error
+  return(-1);
+  
+}
+
+/**************************************************************/
+/* SETIRQ_AFFINITY                                            */
+/* - Set the processor affinity for a given irq               */
+/**************************************************************/
+int setirq_affinity(int irq, int proc){
+  FILE *fd=NULL;
+  char filename[256];
+  
+  //Open file
+  sprintf(filename,"/proc/irq/%d/smp_affinity",irq);
+  if((fd = fopen(filename,"w")) == NULL){
+    perror("COM: setirq_affinity fopen");
+    fclose(fd);
+    return(-1);
+  }
+
+  //Write affinity
+  if(fprintf(fd,"%d",proc)<0){
+    perror("COM: setirq_affinity fprintf");
+    fclose(fd);
+    return(-1);
+  }
+  
+  //Close file
+  fclose(fd);
+
+  //Return success
+  return(0);
+  
+}

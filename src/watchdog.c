@@ -32,6 +32,8 @@
 /* Prototypes */
 int handle_command(char *line, sm_t *sm_p);
 void init_state(int state_number, state_t *state);
+int getirq(char *driver);
+int setirq_affinity(int irq, int proc);
 
 //Flight Processes
 extern void sci_proc(void); //science camera
@@ -248,7 +250,8 @@ int main(int argc,char **argv){
   DM7820_Error dm7820_status;
   DM7820_Board_Descriptor* p_rtd_board;
   int hexfd;
-
+  int irq;
+  
   /* Open Shared Memory */
   sm_t *sm_p;
   int shmfd;
@@ -423,6 +426,25 @@ int main(int argc,char **argv){
     perror("WAT: ADC3 ioperm()");
   }
 
+  /* Set IRQ affinity for drivers */
+  if((irq = getirq("phx0")) >= 0){
+    if(setirq_affinity(irq,CPU_AFFINITY_PHX0))
+      printf("WAT: setirq_affinity(%d,%d) failed\n",irq,CPU_AFFINITY_PHX0);
+    else
+      printf("WAT: phx0 on IRQ: %d CPU: %d\n",irq,CPU_AFFINITY_PHX0);
+  }
+  if((irq = getirq("phx1")) >= 0){
+    if(setirq_affinity(irq,CPU_AFFINITY_PHX1))
+      printf("WAT: setirq_affinity(%d,%d) failed\n",irq,CPU_AFFINITY_PHX1);
+    else
+      printf("WAT: phx1 on IRQ: %d CPU: %d\n",irq,CPU_AFFINITY_PHX1);
+  }
+  if((irq = getirq("xhci_hcd")) >= 0){
+    if(setirq_affinity(irq,CPU_AFFINITY_XHCI_HCD))
+      printf("WAT: setirq_affinity(%d,%d) failed\n",irq,CPU_AFFINITY_XHCI_HCD);
+    else
+      printf("WAT: xhci_hcd on IRQ: %d CPU: %d\n",irq,CPU_AFFINITY_XHCI_HCD);
+  }
   
   /* Setup Debugging DIO Pulses */
   if(DIO_ENABLE){

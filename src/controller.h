@@ -530,7 +530,10 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SCIFULL,
 /*************************************************
  * Other Parameters
  *************************************************/
-#define CALMODE_TIMER_SEC   30 //length of calmode_timer
+#define CALMODE_TIMER_SEC       30 //length of calmode_timer
+#define CPU_AFFINITY_PHX0        1 //cpu bit mask
+#define CPU_AFFINITY_PHX1        2 //cpu bit mask
+#define CPU_AFFINITY_XHCI_HCD    1 //cpu bit mask
 
 /*************************************************
  * Config Structure
