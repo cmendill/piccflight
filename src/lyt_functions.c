@@ -28,8 +28,6 @@ void lyt_alp_zernpid(lytevent_t *lytevent, double *zernike_delta, int *zernike_s
   static double zint[LOWFS_N_ZERNIKE] = {0};
   double error;
   int i;
-  #define LYT_ALP_ZERN_INT_MAX  0.1
-  #define LYT_ALP_ZERN_INT_MIN -0.1
 
   //Initialize
   if(!init || reset){
@@ -64,8 +62,6 @@ void lyt_alp_actpid(lytevent_t *lytevent, double *act_delta, int reset){
   static double aint[ALP_NACT] = {0};
   double error;
   int i;
-  #define LYT_ALP_ACT_INT_MAX  0.01
-  #define LYT_ALP_ACT_INT_MIN -0.01
 
   //Initialize
   if(!init || reset){

@@ -22,12 +22,6 @@
 #include "rtd_functions.h"
 #include "fakemodes.h"
 
-/* extra #defines */
-#define SHK_ALP_CELL_INT_MAX  1
-#define SHK_ALP_CELL_INT_MIN -1
-#define SHK_ALP_ZERN_INT_MAX  0.1
-#define SHK_ALP_ZERN_INT_MIN -0.1
-
 /**************************************************************/
 /* SHK_INIT_CELLS                                             */
 /*  - Set cell origins and beam select flags                  */

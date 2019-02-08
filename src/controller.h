@@ -369,6 +369,10 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SCIFULL,
 #define SHK_YMAX              (SHKYS-1)
 #define SHK_BOXSIZE_CMD_STD   0  //use the current runtime boxsize
 #define SHK_BOXSIZE_CMD_MAX   1  //use the maximum boxsize
+#define SHK_ALP_CELL_INT_MAX  1
+#define SHK_ALP_CELL_INT_MIN -1
+#define SHK_ALP_ZERN_INT_MAX  0.1
+#define SHK_ALP_ZERN_INT_MIN -0.1
 #define SHK_NSAMPLES          20 //number of samples per shkevent
 #define SHK_BEAM_SELECT	{			\
       0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,		\
@@ -394,6 +398,10 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SCIFULL,
  *************************************************/
 #define LYT_CONTROL_NPIX      709 //number of controlled pixels on LLOWFS
 #define LYT_NSAMPLES          200 //number of samples per lytevent
+#define LYT_ALP_ZERN_INT_MAX  0.1
+#define LYT_ALP_ZERN_INT_MIN -0.1
+#define LYT_ALP_ACT_INT_MAX   0.01
+#define LYT_ALP_ACT_INT_MIN  -0.01
 
 /*************************************************
  * SCI Camera Parameters
@@ -447,6 +455,12 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SCIFULL,
 #define ALP_ZERNIKE_MAX       5.0   //ALP max zernike command
 #define ALP_DZERNIKE_MIN     -1.0   //ALP min delta zernike command
 #define ALP_DZERNIKE_MAX      1.0   //ALP max delta zernike command
+#define ALP_SHK_POKE          0.05  //shk alp actuator calibration poke
+#define ALP_SHK_ZPOKE         0.02  //shk zernike microns RMS
+#define ALP_SHK_NCALIM        40    //shk number of calibration images per alp step
+#define ALP_LYT_POKE          0.01  //lyt alp actuator calibration poke
+#define ALP_LYT_ZPOKE         0.01  //lyt zernike microns RMS
+#define ALP_LYT_NCALIM        400   //lyt number of calibration images per alp step
 
 /*************************************************
  * HEXAPOD Parameters
@@ -498,6 +512,14 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SCIFULL,
 #define SIN_Z             sin(THETA_Z)
 #define HEX_REF_TIMEOUT   20  //seconds
 #define HEX_PERIOD        0.5 //seconds, time between commands
+
+/*************************************************
+ * Target Parameters
+ *************************************************/
+#define TGT_SHK_NCALIM        100   //shk number of calibration images per tgt step
+#define TGT_LYT_NCALIM        200   //lyt number of calibration images per tgt step
+#define TGT_LYT_ZPOKE         0.005 //lyt tgt zpoke [microns rms]
+#define TGT_SHK_ZPOKE         0.02  //shk tgt zpoke [microns rms]
 
 /*************************************************
  * RTD Parameters

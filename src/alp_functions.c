@@ -19,14 +19,6 @@
 #include "alpao_map.h"
 #include "rtd_functions.h"
 
-//Defaults
-#define ALP_SHK_POKE          0.05  //shk alp actuator calibration poke
-#define ALP_SHK_ZPOKE         0.02  //shk zernike microns RMS
-#define ALP_SHK_NCALIM        40    //shk number of calibration images per alp step
-#define ALP_LYT_POKE          0.01  //lyt alp actuator calibration poke
-#define ALP_LYT_ZPOKE         0.005 //lyt zernike microns RMS
-#define ALP_LYT_NCALIM        200   //lyt number of calibration images per alp step
-
 /**************************************************************/
 /* ALP_INIT_CALMODE                                           */
 /*  - Initialize ALP calmode structure                        */

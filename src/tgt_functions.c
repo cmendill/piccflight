@@ -15,12 +15,6 @@
 #include "common_functions.h"
 #include "tgt_functions.h"
 
-//Defaults
-#define TGT_SHK_NCALIM        100   //shk number of calibration images per tgt step
-#define TGT_LYT_NCALIM        200   //lyt number of calibration images per tgt step
-#define TGT_LYT_ZPOKE         0.005 //lyt tgt zpoke [microns rms]
-#define TGT_SHK_ZPOKE         0.02  //shk tgt zpoke [microns rms]
-
 /**************************************************************/
 /* TGT_INIT_CALMODE                                           */
 /*  - Initialize TGT calmode structure                        */
