@@ -359,6 +359,19 @@ int handle_command(char *line, sm_t *sm_p){
     return(CMD_NORMAL);
   }
 
+  //Sleep
+  sprintf(cmd,"sleep");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    itemp = atoi(line+strlen(cmd));
+    if(itemp > 0 && itemp < 6){
+      printf("CMD: Input console sleeping for %d seconds\n",itemp);
+      sleep(itemp);
+    }
+    else
+      printf("CMD: sleep range = [1,5] seconds\n");
+    return(CMD_NORMAL);
+  }
+  
 
   //Start Manual SHK Data Recording
   if(!strncasecmp(line, "shk start rec", 13)){
