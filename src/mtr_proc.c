@@ -49,10 +49,10 @@ int mtr_shmfd;
 /* CTRL-C Function */
 void mtrctrlC(int sig)
 {
-#if MSG_CTRLC
-  printf("MTR: ctrlC! exiting.\n");
-#endif
   close(mtr_shmfd);
+#if MSG_CTRLC
+  printf("MTR: exiting\n");
+#endif
   exit(sig);
 }
 

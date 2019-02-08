@@ -72,11 +72,11 @@ int checkacq(sm_t *sm_p){
 
 
 void tlmctrlC(int sig){
-#if MSG_CTRLC
-  printf("TLM: ctrlC! exiting.\n");
-#endif
   close(tlm_shmfd);
   close(ethfd);
+#if MSG_CTRLC
+  printf("TLM: exiting\n");
+#endif
   exit(sig);
 }
 

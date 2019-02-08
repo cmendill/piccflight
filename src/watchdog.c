@@ -554,10 +554,8 @@ int main(int argc,char **argv){
 
   //Wait for watchdog to exit
   if(procwait(sm_p->w[WATID].pid,EXIT_TIMEOUT))
-    printf("WAT: cleanup timeout!\n");
-  else
-    printf("WAT: cleanup done.\n");
-
+    printf("WAT: process cleanup timeout!\n");
+  
   //Clean up IOPERM
   if(ioperm(REL_BASE,REL_IOPORT_LENGTH,0)){
     perror("WAT: REL ioperm()");
@@ -599,7 +597,9 @@ int main(int argc,char **argv){
   //Close shared memory
   close(shmfd);
 
-
+  //Print
+  printf("WAT: cleanup done\n");
+  
   //Shutdown CPU
   if(shutdown){
     printf("WAT: Shutting down CPU NOW!\n");

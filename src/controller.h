@@ -331,7 +331,7 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SCIFULL,
  * Other Messaging
  *************************************************/
 #define MSG_SAVEDATA    0 // print data saving messages
-#define MSG_CTRLC       0 // print SIGINT messages
+#define MSG_CTRLC       1 // print SIGINT messages
 
 /*************************************************
  * Limits

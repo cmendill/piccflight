@@ -33,18 +33,18 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p,uint32 frame_number);
 /* CTRL-C Function */
 void shkctrlC(int sig)
 {
-#if MSG_CTRLC
-  printf("SHK: ctrlC! exiting.\n");
-  printf("SHK: Got %d frames.\n",shk_frame_count);
-#endif
   close(shk_shmfd);
-  if ( shkCamera ) PHX_StreamRead( shkCamera, PHX_ABORT, NULL ); /* Now cease all captures */
+  if(shkCamera)
+    PHX_StreamRead( shkCamera, PHX_ABORT, NULL ); /* Now cease all captures */
 
-  if ( shkCamera ) { /* Release the Phoenix board */
-    PHX_Close( &shkCamera ); /* Close the Phoenix board */
-    PHX_Destroy( &shkCamera ); /* Destroy the Phoenix handle */
+  if(shkCamera) {            /* Release the Phoenix board */
+    PHX_Close(&shkCamera);   /* Close the Phoenix board */
+    PHX_Destroy(&shkCamera); /* Destroy the Phoenix handle */
   }
 
+#if MSG_CTRLC
+  printf("SHK: exiting\n");
+#endif
 
   exit(sig);
 }
@@ -163,6 +163,7 @@ int shk_proc(void){
     }
     camera_running = 0;
     printf("SHK: Camera stopped\n");
+    
     /* Setup exposure */
     usleep(500000);
     bParamValue = lround(sm_p->shk_exptime*1000000);
@@ -185,7 +186,7 @@ int shk_proc(void){
       /* Check if we've been asked to exit */
       if(sm_p->w[SHKID].die)
 	shkctrlC(0);
-
+      
       /* Check if we've been asked to reset the exposure */
       if(sm_p->shk_reset_camera){
 	sm_p->shk_reset_camera = 0;

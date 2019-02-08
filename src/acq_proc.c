@@ -27,7 +27,6 @@ int acq_shmfd;
 /* CTRL-C Function */
 void acqctrlC(int sig)
 {
-  if(MSG_CTRLC) printf("ACQ: ctrlC! exiting.\n");
   
   /* End the stream. Blocks until last callback is serviced */
   uvc_stop_streaming(devh);
@@ -47,6 +46,8 @@ void acqctrlC(int sig)
 
   /* Close shared memory */
   close(acq_shmfd);
+  
+  if(MSG_CTRLC) printf("ACQ: exiting\n");
 
   /* Exit */
   exit(sig);

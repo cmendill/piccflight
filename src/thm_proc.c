@@ -40,13 +40,13 @@ int thm_shmfd;
 /* CTRL-C Function */
 void thmctrlC(int sig)
 {
-#if MSG_CTRLC
-  printf("THM: ctrlC! exiting.\n");
-#endif
   //turn off all heaters
   outb(0xFF,SSR_BASE+0);
   outb(0xFF,SSR_BASE+4);
   close(thm_shmfd);
+#if MSG_CTRLC
+  printf("THM: exiting\n");
+#endif
   exit(sig);
 }
 

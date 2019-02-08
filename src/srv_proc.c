@@ -29,13 +29,12 @@ void *srv_listen(void *t);
 
 void srvctrlC(int sig)
 {
-#if MSG_CTRLC
-  printf("SRV: ctrlC! exiting.\n");
-  printf("SRV: sent %d packets.\n",srv_packet_count);
-#endif
   close(srv_shmfd);
   close(clientfd);
   memset((void *)srv_send,0,sizeof srv_send);
+#if MSG_CTRLC
+  printf("SRV: exiting\n");
+#endif
   exit(sig);
 }
 

@@ -124,8 +124,9 @@ int sort(const void *x, const void *y) {
         WAIT FOR A PROCESS TO DIE
 ******************************************************************************/
 int procwait(int pid,int timeout){
-  int wpid,status,i;
-  for(i=0;i<timeout;i++){
+  int wpid,status,i,imax;
+  imax = timeout*100;
+  for(i=0;i<imax;i++){
     wpid = waitpid(pid,&status,WNOHANG);
     if (wpid == -1) {
       perror("waitpid");
@@ -133,7 +134,7 @@ int procwait(int pid,int timeout){
     }
     if(wpid==pid)
       return(0);
-    sleep(1);
+    usleep(10000);
   }
   return(1);
 }

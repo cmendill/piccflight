@@ -34,10 +34,6 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p,uint32 frame_number);
 /* CTRL-C Function */
 void lytctrlC(int sig)
 {
-#if MSG_CTRLC
-  printf("LYT: ctrlC! exiting.\n");
-  printf("LYT: Got %d frames.\n",lyt_frame_count);
-#endif
   close(lyt_shmfd);
   if ( lytCamera ) PHX_StreamRead( lytCamera, PHX_ABORT, NULL ); /* Now cease all captures */
 
@@ -46,7 +42,10 @@ void lytctrlC(int sig)
     PHX_Destroy( &lytCamera ); /* Destroy the Phoenix handle */
   }
 
-
+#if MSG_CTRLC
+  printf("LYT: exiting\n");
+#endif
+  
   exit(sig);
 }
 

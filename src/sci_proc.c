@@ -44,7 +44,6 @@ flidev_t dev;
 /**************************************************************/
 void scictrlC(int sig){
   uint32 err = 0;
-  if (MSG_CTRLC) printf("SCI: ctrlC! exiting.\n");
   /* Cancel Exposure */
   if((err = FLICancelExposure(dev))){
     fprintf(stderr, "SCI: Error FLICancelExposure: %s\n", strerror((int)-err));
@@ -59,6 +58,8 @@ void scictrlC(int sig){
   }
   /* Close shared memory */
   close(sci_shmfd);
+
+  if (MSG_CTRLC) printf("SCI: exiting\n");
 
   /* Exit */
   exit(sig);
