@@ -27,6 +27,7 @@
 /**************************************************************/
 void alp_init_calmode(int calmode, calmode_t *alp){
   int i;
+  const double shk_zramp[LOWFS_N_ZERNIKE]={4.0,4.0,1.25,1.5,1.5,0.5,0.5,1.0,1.0,0.3,0.3,0.3,0.7,0.7,0.2,0.2,0.2,0.2,0.6,0.6,0.2,0.2,0.2};
   
   //DEFAULTS
   alp->shk_ncalim = ALP_SHK_NCALIM;
@@ -66,7 +67,7 @@ void alp_init_calmode(int calmode, calmode_t *alp){
   if(calmode == ALP_CALMODE_POKE){
     sprintf(alp->name,"ALP_CALMODE_POKE");
     sprintf(alp->cmd,"poke");
-    alp->shk_boxsize_cmd = SHK_BOXSIZE_CMD_MAX;
+    alp->shk_boxsize_cmd = SHK_BOXSIZE_CMD_STD;
   }
   //ALP_CALMODE_ZPOKE
   if(calmode == ALP_CALMODE_ZPOKE){
@@ -93,6 +94,10 @@ void alp_init_calmode(int calmode, calmode_t *alp){
     sprintf(alp->name,"ALP_CALMODE_ZRAMP");
     sprintf(alp->cmd,"zramp");
     alp->shk_boxsize_cmd = SHK_BOXSIZE_CMD_MAX;
+    for(i=0;i<LOWFS_N_ZERNIKE;i++){
+      alp->shk_zpoke[i]  = shk_zramp[i];
+      alp->lyt_zpoke[i]  = 0.01*shk_zramp[i];
+    }
   }
 
 }
@@ -480,7 +485,6 @@ int alp_calibrate(int calmode, alp_t *alp, uint32_t *step, int procid, int reset
   endofinit:
     //--close file
     if(fileptr != NULL){
-      printf("ALP: Read: %s\n",filename);
       fclose(fileptr);
     }
 
@@ -699,7 +703,7 @@ int alp_calibrate(int calmode, alp_t *alp, uint32_t *step, int procid, int reset
       //ramp one zernike by adding it on top of the flat
       if((countA[calmode]/ncalim) % 2 == 1){
 	z = (countB[calmode]/ncalim) % LOWFS_N_ZERNIKE;
-	alp->zcmd[z] += 5*zpoke[z]/ncalim;
+	alp->zcmd[z] += zpoke[z]/ncalim;
 	alp_zern2alp(alp->zcmd,act,FUNCTION_NO_RESET);
 	for(i=0; i<ALP_NACT; i++)
 	  alp->acmd[i] += act[i];
