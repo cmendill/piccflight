@@ -17,6 +17,7 @@
 #include "controller.h"
 #include "common_functions.h"
 #include "phx_config.h"
+#include "../drivers/phxdrv/picc_dio.h"
 
 /* LYT board number */
 #define LYT_BOARD_NUMBER PHX_BOARD_NUMBER_2
@@ -59,22 +60,26 @@ static void lyt_callback( tHandle lytCamera, ui32 dwInterruptMask, void *pvParam
   if ( dwInterruptMask & PHX_INTRPT_BUFFER_READY ) {
     stImageBuff stBuffer;
     tContext *aContext = (tContext *)pvParams;
-    //Set debugging DIO bit high
-    if(aContext->sm_p->dio_ready) outb(0x80,ADC2_BASE+ADC_PORTA_OFFSET);
 
+    //Set DIO bit B1
+    #if PICC_DIO_ENABLE
+    outb(0x02,PICC_DIO_BASE+PICC_DIO_PORTB);
+    #endif
+    
     etStat eStat = PHX_StreamRead( lytCamera, PHX_BUFFER_GET, &stBuffer );
     if ( PHX_OK == eStat ) {
       //Process image
       lyt_process_image(&stBuffer,aContext->sm_p,lyt_frame_count);
+      //Unset DIO bit B1
+      #if PICC_DIO_ENABLE
+      outb(0x00,PICC_DIO_BASE+PICC_DIO_PORTB);
+      #endif
       //Check in with watchdog
       checkin(aContext->sm_p,LYTID);
       //Increment frame counter
       lyt_frame_count++;
     }
     PHX_StreamRead( lytCamera, PHX_BUFFER_RELEASE, NULL );
-
-    //Set debugging DIO bit low
-    if(aContext->sm_p->dio_ready) outb(0x00,ADC2_BASE+ADC_PORTA_OFFSET);
   }
 }
 

@@ -15,6 +15,7 @@
 #include "controller.h"
 #include "common_functions.h"
 #include "dscud.h"
+#include "../drivers/phxdrv/picc_dio.h"
 
 /* settings */
 #define MAX_AD_OFFSET  2
@@ -213,6 +214,7 @@ void thm_proc(void){
   //=========================================================================
   // BOARD 1 CONFIGURATION
   //=========================================================================
+  #if PICC_DIO_ENABLE == 0
   //-- Init Board
   if(dscInitBoard(DSC_DMM32X, &dsccb1, &board1) != DE_NONE) {
     dscGetLastError(&errorParams);
@@ -244,6 +246,9 @@ void thm_proc(void){
   }
   //-- Check in with watchdog
   checkin(sm_p,THMID);
+  #else
+  printf("THM: Board 1 auto calibration disabled for PICC_DIO\n");
+  #endif
 
   //=========================================================================
   // BOARD 2 CONFIGURATION
@@ -347,6 +352,7 @@ void thm_proc(void){
     //=========================================================================
 
     //Board 1 ADC
+    #if PICC_DIO_ENABLE == 0
     if((result = dscADScan(board1, &dscadscan1, samples1 )) != DE_NONE){
       dscGetLastError(&errorParams);
       fprintf(stderr, "THM: Board 1 dscADScan error: %s %s\n", dscGetErrorString(errorParams.ErrCode), errorParams.errstring);
@@ -362,7 +368,8 @@ void thm_proc(void){
       resistance = (voltage * ADC1_R1) / (ADC1_VREF - voltage);
       thmevent.adc1_temp[i] = (resistance - RTD_OHMS)/(RTD_ALPHA * RTD_OHMS);
     }
-
+    #endif
+    
     //Board 2 ADC
     if((result = dscADScan(board2, &dscadscan2, samples2 )) != DE_NONE){
       dscGetLastError(&errorParams);

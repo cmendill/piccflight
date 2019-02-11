@@ -67,7 +67,7 @@
 #include "cdapci.h"
 #include <cda_buf.h>
 #include <cda_lib.h>
-#include "xt.h"
+#include "picc_dio.h"
 
 #if ( LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 0) )
 MODULE_LICENSE("GPL");
@@ -152,7 +152,7 @@ struct CDA_SInstance
   enum EMagic eMagic;           /* For assert checks */
 #endif
   char szDeviceName[ 32];
-
+  int devicenum;                /* Device instance number */
   EState eState;                /* Device operational state */
   atomic_t openCount;
   struct file * pFile;          /* Device owner, NULL if unclaimed */
@@ -302,19 +302,22 @@ int init_module( void)
   // printk( "Active Silicon %s driver version %lu.%02lu" BUILD " built at " __TIME__ " on " __DATE__ "\n", name, CDA_DRV_VERSION / 0x10000, CDA_DRV_VERSION % 0x10000 );
 
   TRACE( 2, ( "CDA: trace level %d\n", DEBUG_TRACE_LEVEL));
-
-	//get the XT region of memeory 
-	if(request_region(DIO_BASE, DIO_LENGTH, tempName) == NULL) {
-		printk("%s: request_region failed, base: 0x%03X\n", tempName, DIO_BASE);
+  
+  //PICC_DIO Code
+  #if PICC_DIO_ENABLE
+        //get the DIO region of memeory 
+	if(request_region(PICC_DIO_BASE, PICC_DIO_LENGTH, tempName) == NULL) {
+		printk("%s: request_region failed, base: 0x%03X\n", tempName, PICC_DIO_BASE);
 		return 1;
 	}
-	printk("%s: IO ports allocated, base: 0x%03X\n", tempName, DIO_BASE);
+	printk("%s: PICC_DIO ports allocated, base: 0x%03X\n", tempName, PICC_DIO_BASE);
 
         //Set page to 1
-        outb_p(0x01,DIO_BASE+DIO_PAGE);
-        //Configure port A as output
-        outb_p(0x80,DIO_BASE+DIO_CTRL);
+        outb_p(0x01,PICC_DIO_BASE+PICC_DIO_PAGE);
+        //Configure ports A,B,C as output
+        outb_p(0x80,PICC_DIO_BASE+PICC_DIO_CTRL);
         
+  #endif
 
   /* Probe & register all card types */
   return CDA_Initialise();
@@ -329,9 +332,12 @@ void cleanup_module( void)
   {
   TRACE( 3, ("CDA: %s()\n", __FUNCTION__));
 
-  //release the XT region of memeory 
-  release_region(DIO_BASE, DIO_LENGTH);
-
+  //PICC_DIO Code
+  #if PICC_DIO_ENABLE
+    //release the DIO region of memeory 
+    release_region(PICC_DIO_BASE, PICC_DIO_LENGTH);
+  #endif
+    
   CDA_Terminate();
   }
 #endif
@@ -574,6 +580,10 @@ int CDA_RegisterDevice(
   pInst->eMagic = kMagic;
 #endif
   sprintf( pInst->szDeviceName, "%s%u", name, s_uDevices - 1);
+
+  //PICTURE-C save device number
+  pInst->devicenum = s_uDevices-1;
+  
   atomic_set( &pInst->openCount, 0);
   pInst->pFile = NULL;
   pInst->pVtable = pVtable;
@@ -2154,6 +2164,12 @@ static int CDA_UnlockBuffer(SLock *pLock)
 }
 #endif
 
+/*
+ * Get Device Number
+ */
+  int CDA_GetDeviceNum(CDA_SInstance* pInst){
+    return pInst->devicenum;
+  }
 
 /*
  * Overrides for Emacs so that we follow the author's tabbing style.

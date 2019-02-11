@@ -446,15 +446,6 @@ int main(int argc,char **argv){
       printf("WAT: xhci_hcd on IRQ: %d CPU: %d\n",irq,CPU_AFFINITY_XHCI_HCD);
   }
   
-  /* Setup Debugging DIO Pulses */
-  if(DIO_ENABLE){
-    //configure ADC DIO output
-    outb(ADC_PORTA_PAGE,ADC2_BASE+ADC_PAGE_OFFSET);
-    outb(ADC_PORTA_CONFIG,ADC2_BASE+ADC_PORTA_CONFIG_OFFSET);
-    //set DIO ready
-    sm_p->dio_ready=1;
-  }
-
   /* Init RTD Driver */
   if(ALP_ENABLE || TLM_ENABLE){
     printf("WAT: Opening RTD driver\n");

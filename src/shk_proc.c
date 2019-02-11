@@ -11,11 +11,13 @@
 #include <ctype.h>
 #include <phx_api.h>
 #include <pbl_api.h>
+#include <sys/io.h>
 
 /* piccflight headers */
 #include "controller.h"
 #include "common_functions.h"
 #include "phx_config.h"
+#include "../drivers/phxdrv/picc_dio.h"
 
 /* SHK board number */
 #define SHK_BOARD_NUMBER PHX_BOARD_NUMBER_1
@@ -59,11 +61,19 @@ static void shk_callback( tHandle shkCamera, ui32 dwInterruptMask, void *pvParam
   if ( dwInterruptMask & PHX_INTRPT_BUFFER_READY ) {
     stImageBuff stBuffer;
     tContext *aContext = (tContext *)pvParams;
-
+    //Set DIO bit C1
+    #if PICC_DIO_ENABLE
+    outb(0x02,PICC_DIO_BASE+PICC_DIO_PORTC);
+    #endif
+    
     etStat eStat = PHX_StreamRead( shkCamera, PHX_BUFFER_GET, &stBuffer );
     if ( PHX_OK == eStat ) {
       //Process image
       shk_process_image(&stBuffer,aContext->sm_p,shk_frame_count);
+      //Unset DIO bit C1
+      #if PICC_DIO_ENABLE
+      outb(0x00,PICC_DIO_BASE+PICC_DIO_PORTC);
+      #endif
       //Check in with watchdog
       checkin(aContext->sm_p,SHKID);
       //Increment frame counter

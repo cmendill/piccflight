@@ -53,7 +53,7 @@
 
 #include "cdapci.h"
 #include "debug.h"
-#include "xt.h"
+#include "picc_dio.h"
 
 
 /*
@@ -64,7 +64,7 @@
 #endif
 
 extern int CDA_DeviceIdle( CDA_SInstance* pInst);
-
+extern int CDA_GetDeviceNum(CDA_SInstance* pInst);
 
 /*
  * Local data types
@@ -689,7 +689,10 @@ static void PCI_IrqHandler( int const             irq,
   (void)regs;
 #endif
 
-  outb_p(0x80,DIO_ADDR); //SET DIO board PORTA bit A7
+  #if PICC_DIO_ENABLE
+  if(CDA_GetDeviceNum(pPci->pInst) == PICC_SHK_DEVNUM) outb_p(0x01,PICC_DIO_BASE+PICC_DIO_PORTC); //SET DIO board PORTC bit C0
+  if(CDA_GetDeviceNum(pPci->pInst) == PICC_LYT_DEVNUM) outb_p(0x01,PICC_DIO_BASE+PICC_DIO_PORTB); //SET DIO board PORTB bit B0 
+  #endif
   
   TRACE( 10, ( "%s(%d,%p)\n", __FUNCTION__, irq, pv));
   ASSERT( NULL != pPci);
@@ -722,8 +725,11 @@ static void PCI_IrqHandler( int const             irq,
       }
     }
 
-  outb_p(0x00,DIO_ADDR); //CLEAR DIO board PORT bit A7
+  #if PICC_DIO_ENABLE
+  if(CDA_GetDeviceNum(pPci->pInst) == PICC_SHK_DEVNUM) outb_p(0x00,PICC_DIO_BASE+PICC_DIO_PORTC); //UNSET DIO board PORTC bit C0
+  if(CDA_GetDeviceNum(pPci->pInst) == PICC_LYT_DEVNUM) outb_p(0x00,PICC_DIO_BASE+PICC_DIO_PORTB); //UNSET DIO board PORTB bit B0 
   // from line 694 takes about 7.5 us
+  #endif
   
 #if ( LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 0) )
   return (IRQ_RETVAL(isInterrupt));

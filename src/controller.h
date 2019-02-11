@@ -144,7 +144,6 @@ enum bmccalmodes {BMC_CALMODE_NONE,
 #define HTR_ENABLE      0 // Heaters
 #define MTR_ENABLE      0 // Motors
 #define TLM_ENABLE      1 // Telemetry
-#define DIO_ENABLE      1 // DIO ports
 
 /*************************************************
  * Actuator IDs
@@ -222,15 +221,10 @@ enum bmccalmodes {BMC_CALMODE_NONE,
 #define COM4_BASE 0x230 //EMM COM port 4
 #define SSR_BASE  0x310 //ACCES IO SSR board
 #define REL_BASE  0x320 //RTD relay board
-#define ADC_PAGE_OFFSET           8
-#define ADC_PORTA_OFFSET         12
-#define ADC_PORTA_CONFIG_OFFSET  15
-#define ADC_IOPORT_LENGTH        16
-#define ADC_PORTA_PAGE           0x01
-#define ADC_PORTA_CONFIG         0x80
 #define ADC1_NCHAN               16
 #define ADC2_NCHAN               32
 #define ADC3_NCHAN               32
+#define ADC_IOPORT_LENGTH        16
 #define REL_IOPORT_LENGTH        4
 #define SSR_IOPORT_LENGTH        8
 #define SSR_NCHAN                16
@@ -923,8 +917,7 @@ typedef volatile struct {
   int bmc_ready;
   int hex_ready;
   int tlm_ready;
-  int dio_ready;
-
+  
   //RTD board descriptor
   DM7820_Board_Descriptor* p_rtd_board;
 

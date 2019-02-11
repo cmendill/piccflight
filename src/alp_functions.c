@@ -10,6 +10,7 @@
 #include <math.h>
 #include <libgen.h>
 #include <sys/stat.h>
+#include <sys/io.h>
 
 /* piccflight headers */
 #include "controller.h"
@@ -18,6 +19,7 @@
 #include "alp_functions.h"
 #include "alpao_map.h"
 #include "rtd_functions.h"
+#include "../drivers/phxdrv/picc_dio.h"
 
 /**************************************************************/
 /* ALP_INIT_CALMODE                                           */
@@ -182,6 +184,11 @@ int alp_send_command(sm_t *sm_p, alp_t *cmd, int proc_id, int n_dither){
     //Check if the commanding process is the ALP commander
     if(proc_id == sm_p->state_array[sm_p->state].alp_commander){
 
+      //Set DIO bit A0
+      #if PICC_DIO_ENABLE
+      outb(0x01,PICC_DIO_BASE+PICC_DIO_PORTA);
+      #endif
+
       //Check if we need to re-initalize the RTD board
       if((proc_id != sm_p->alp_proc_id) || (n_dither != sm_p->alp_n_dither)){
 	//Init ALPAO RTD interface
@@ -202,6 +209,11 @@ int alp_send_command(sm_t *sm_p, alp_t *cmd, int proc_id, int n_dither){
 	retval=1;
       }
 
+      //Unset DIO bit A0
+      #if PICC_DIO_ENABLE
+      outb(0x00,PICC_DIO_BASE+PICC_DIO_PORTA);
+      #endif
+      
     }
     //Release lock
     __sync_lock_release(&sm_p->alp_command_lock);
