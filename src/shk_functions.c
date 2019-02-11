@@ -880,12 +880,9 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   //Fill out event header
   shkevent.hed.version      = PICC_PKT_VERSION;
   shkevent.hed.type         = BUFFER_SHKEVENT;
-  shkevent.hed.imxsize      = SHKXS;
-  shkevent.hed.imysize      = SHKYS;
   shkevent.hed.frame_number = frame_number;
   shkevent.hed.exptime      = sm_p->shk_exptime;
   shkevent.hed.ontime       = dt;
-  shkevent.hed.temp         = 0;
   shkevent.hed.state        = state;
   shkevent.hed.start_sec    = start.tv_sec;
   shkevent.hed.start_nsec   = start.tv_nsec;

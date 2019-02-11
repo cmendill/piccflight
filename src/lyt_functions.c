@@ -586,10 +586,7 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   lytevent.hed.frame_number = frame_number;
   lytevent.hed.exptime      = sm_p->lyt_exptime;
   lytevent.hed.ontime       = dt;
-  lytevent.hed.temp         = 0;
   lytevent.hed.state        = state;
-  lytevent.hed.imxsize      = LYTXS;
-  lytevent.hed.imysize      = LYTYS;
   lytevent.hed.start_sec    = start.tv_sec;
   lytevent.hed.start_nsec   = start.tv_nsec;
   lytevent.hed.hex_calmode  = sm_p->hex_calmode;

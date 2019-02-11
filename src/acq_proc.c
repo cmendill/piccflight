@@ -110,9 +110,6 @@ void acq_process_image(uvc_frame_t *frame, void *ptr) {
   acqevent.hed.frame_number = frame->sequence;
   acqevent.hed.exptime      = 0;
   acqevent.hed.ontime       = dt;
-  acqevent.hed.temp         = 0;
-  acqevent.hed.imxsize      = ACQXS;
-  acqevent.hed.imysize      = ACQYS;
   acqevent.hed.start_sec    = start.tv_sec;
   acqevent.hed.start_nsec   = start.tv_nsec;
 

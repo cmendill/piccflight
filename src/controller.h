@@ -715,20 +715,16 @@ typedef struct hum_struct{
 /*************************************************
  * Packet Header
  *************************************************/
-#define PICC_PKT_VERSION     5  //packet version number
+#define PICC_PKT_VERSION     6  //packet version number
 typedef struct pkthed_struct{
   uint16  version;      //packet version number
   uint16  type;         //packet ID word
-  uint16  imxsize;      //image x size [px]
-  uint16  imysize;      //image y size [px]
-
   uint32  frame_number; //image counter
-  uint32  state;        //system state
 
+  uint32  state;        //system state
   float   exptime;      //commanded exposure time
   float   frametime;    //commanded frame time
   float   ontime;       //measured frame time
-  float   temp;         //sensor temperature, if available
   
   uint16  hex_calmode;  //hex calmode
   uint16  alp_calmode;  //alp calmode
@@ -843,6 +839,8 @@ typedef struct lytpkt_struct{
 
 typedef struct scievent_struct{
   pkthed_t hed;
+  float    ccd_temp;
+  float    backplane_temp;
   uint32   xorigin[SCI_NBANDS];
   uint32   yorigin[SCI_NBANDS];
   sci_t    image[SCI_NBANDS];

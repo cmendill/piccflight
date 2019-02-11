@@ -368,12 +368,13 @@ void sci_process_image(sm_t *sm_p,uint16 *img_buffer,double ccdtemp){
   scievent.hed.frame_number = frame_number++;
   scievent.hed.exptime      = sm_p->sci_exptime;
   scievent.hed.ontime       = dt;
-  scievent.hed.temp         = ccdtemp;
-  scievent.hed.imxsize      = SCIXS;
-  scievent.hed.imysize      = SCIYS;
   scievent.hed.start_sec    = start.tv_sec;
   scievent.hed.start_nsec   = start.tv_nsec;
 
+  //Save CCD temp
+  scievent.ccd_temp         = ccdtemp;
+
+  
   //Fake data
   if(sm_p->w[SCIID].fakemode != FAKEMODE_NONE){
     if(sm_p->w[SCIID].fakemode == FAKEMODE_TEST_PATTERN)
