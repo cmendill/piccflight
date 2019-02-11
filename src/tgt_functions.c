@@ -20,12 +20,18 @@
 /*  - Initialize TGT calmode structure                        */
 /**************************************************************/
 void tgt_init_calmode(int calmode, calmode_t *tgt){
+  int i;
+  const double shk_zpoke[LOWFS_N_ZERNIKE]={0.2,0.2,0.05,0.05,0.05,0.05,0.05,0.03,0.03,0.03,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02};
+  const double lyt_zpoke[LOWFS_N_ZERNIKE]={0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005};
+  
   //DEFAULTS
   tgt->shk_ncalim = TGT_SHK_NCALIM;
-  tgt->shk_zpoke  = TGT_SHK_ZPOKE;
   tgt->lyt_ncalim = TGT_LYT_NCALIM;
-  tgt->lyt_zpoke  = TGT_LYT_ZPOKE;
-
+  for(i=0;i<LOWFS_N_ZERNIKE;i++){
+    tgt->shk_zpoke[i]  = TGT_SHK_ZPOKE;
+    tgt->lyt_zpoke[i]  = TGT_LYT_ZPOKE;
+  }
+  
   //TGT_CALMODE_NONE
   if(calmode == TGT_CALMODE_NONE){
     sprintf(tgt->name,"TGT_CALMODE_NONE");
@@ -40,6 +46,10 @@ void tgt_init_calmode(int calmode, calmode_t *tgt){
   if(calmode == TGT_CALMODE_ZPOKE){
     sprintf(tgt->name,"TGT_CALMODE_ZPOKE");
     sprintf(tgt->cmd,"zpoke");
+  for(i=0;i<LOWFS_N_ZERNIKE;i++){
+    tgt->shk_zpoke[i]  = shk_zpoke[i];
+    tgt->lyt_zpoke[i]  = lyt_zpoke[i];
+  }
   }
 }
 
@@ -52,8 +62,6 @@ int tgt_calibrate(int calmode, double *zernikes, uint32_t *step, int procid, int
   time_t t;
   static int init=0;
   static long countA=0,countB=0,ncalim=0;
-  const double shk_zpoke[LOWFS_N_ZERNIKE]={0.2,0.2,0.05,0.05,0.05,0.05,0.05,0.03,0.03,0.03,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02};
-  const double lyt_zpoke[LOWFS_N_ZERNIKE]={0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005};
   double zpoke[LOWFS_N_ZERNIKE]={0};
   static calmode_t tgtcalmodes[TGT_NCALMODES];
 
@@ -71,11 +79,11 @@ int tgt_calibrate(int calmode, double *zernikes, uint32_t *step, int procid, int
 
   /* Set calibration parameters */
   if(procid == SHKID){
-    memcpy(zpoke,shk_zpoke,sizeof(zpoke));
+    memcpy(zpoke,tgtcalmodes[calmode].shk_zpoke,sizeof(zpoke));
     ncalim = tgtcalmodes[calmode].shk_ncalim;
   }
   if(procid == LYTID){
-    memcpy(zpoke,lyt_zpoke,sizeof(zpoke));
+    memcpy(zpoke,tgtcalmodes[calmode].lyt_zpoke,sizeof(zpoke));
     ncalim = tgtcalmodes[calmode].lyt_ncalim;
   }
 

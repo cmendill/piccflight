@@ -24,13 +24,17 @@
 /*  - Initialize ALP calmode structure                        */
 /**************************************************************/
 void alp_init_calmode(int calmode, calmode_t *alp){
+  int i;
+  
   //DEFAULTS
   alp->shk_ncalim = ALP_SHK_NCALIM;
   alp->shk_poke   = ALP_SHK_POKE;
-  alp->shk_zpoke  = ALP_SHK_ZPOKE;
   alp->lyt_ncalim = ALP_LYT_NCALIM;
   alp->lyt_poke   = ALP_LYT_POKE;
-  alp->lyt_zpoke  = ALP_LYT_ZPOKE;
+  for(i=0;i<LOWFS_N_ZERNIKE;i++){
+    alp->shk_zpoke[i]  = ALP_SHK_ZPOKE;
+    alp->lyt_zpoke[i]  = ALP_LYT_ZPOKE;
+  }
   
   //ALP_CALMODE_NONE
   if(calmode == ALP_CALMODE_NONE){
@@ -395,7 +399,7 @@ int alp_load_flat(sm_t *sm_p,int proc_id){
 /* - Run calibration routines for ALPAO DM                    */
 /**************************************************************/
 int alp_calibrate(int calmode, alp_t *alp, uint32_t *step, int procid, int reset){
-  uint64_t i,j,index;
+  uint64_t i,j,z,index;
   static struct timespec start,this,last,delta;
   static double zernike_errors[LOWFS_N_ZERNIKE][ZERNIKE_ERRORS_NUMBER]={{0}};
   const double zernike_timestep = ZERNIKE_ERRORS_PERIOD;
@@ -409,7 +413,7 @@ int alp_calibrate(int calmode, alp_t *alp, uint32_t *step, int procid, int reset
   double this_zernike[LOWFS_N_ZERNIKE]={0};
   static double last_zernike[LOWFS_N_ZERNIKE]={0};
   double act[ALP_NACT];
-  double poke=0,zpoke=0;
+  double poke=0,zpoke[LOWFS_N_ZERNIKE]={0};
   int    ncalim=0;
   const double flat[ALP_NACT] = ALP_OFFSET;
   static int mode_init[ALP_NCALMODES] = {0};
@@ -475,12 +479,12 @@ int alp_calibrate(int calmode, alp_t *alp, uint32_t *step, int procid, int reset
   /* Set calibration parameters */
   if(procid == SHKID){
     poke   = alpcalmodes[calmode].shk_poke;
-    zpoke  = alpcalmodes[calmode].shk_zpoke;
+    memcpy(zpoke,alpcalmodes[calmode].shk_zpoke,sizeof(zpoke));
     ncalim = alpcalmodes[calmode].shk_ncalim;
   }
   if(procid == LYTID){
     poke   = alpcalmodes[calmode].lyt_poke;
-    zpoke  = alpcalmodes[calmode].lyt_zpoke;
+    memcpy(zpoke,alpcalmodes[calmode].lyt_zpoke,sizeof(zpoke));
     ncalim = alpcalmodes[calmode].lyt_ncalim;
   }
   
@@ -601,7 +605,8 @@ int alp_calibrate(int calmode, alp_t *alp, uint32_t *step, int procid, int reset
 
       //poke one zernike by adding it on top of the flat
       if((countA[calmode]/ncalim) % 2 == 1){
-	alp->zcmd[(countB[calmode]/ncalim) % LOWFS_N_ZERNIKE] = zpoke;
+	z = (countB[calmode]/ncalim) % LOWFS_N_ZERNIKE;
+	alp->zcmd[z] = zpoke[z];
 	alp_zern2alp(alp->zcmd,act,FUNCTION_NO_RESET);
 	for(i=0; i<ALP_NACT; i++)
 	  alp->acmd[i] += act[i];
@@ -681,7 +686,8 @@ int alp_calibrate(int calmode, alp_t *alp, uint32_t *step, int procid, int reset
 
       //ramp one zernike by adding it on top of the flat
       if((countA[calmode]/ncalim) % 2 == 1){
-	alp->zcmd[(countB[calmode]/ncalim) % LOWFS_N_ZERNIKE] += 5*zpoke/ncalim;
+	z = (countB[calmode]/ncalim) % LOWFS_N_ZERNIKE;
+	alp->zcmd[z] += 5*zpoke[z]/ncalim;
 	alp_zern2alp(alp->zcmd,act,FUNCTION_NO_RESET);
 	for(i=0; i<ALP_NACT; i++)
 	  alp->acmd[i] += act[i];

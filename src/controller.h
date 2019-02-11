@@ -598,9 +598,9 @@ typedef struct calmode_struct{
   int    shk_ncalim;
   int    lyt_ncalim;
   double shk_poke;
-  double shk_zpoke;
+  double shk_zpoke[LOWFS_N_ZERNIKE];
   double lyt_poke;
-  double lyt_zpoke;
+  double lyt_zpoke[LOWFS_N_ZERNIKE];
 } calmode_t;
 
 /*************************************************
