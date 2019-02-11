@@ -550,6 +550,14 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SCIFULL,
 #define UPLINK_BAUD     1200
 
 /*************************************************
+ * Humidity Sensors
+ *************************************************/
+#define HUM_NSENSORS     3
+#define HUM1_ADDR        0x40
+#define HUM2_ADDR        0x41
+#define HUM3_ADDR        0x42
+
+/*************************************************
  * Other Parameters
  *************************************************/
 #define CALMODE_TIMER_SEC       30 //length of calmode_timer
@@ -699,6 +707,11 @@ typedef struct htr_struct{
   float  temp;     //Sensor temperature
 } htr_t;
 
+typedef struct hum_struct{
+  float humidity;
+  float temp;
+} hum_t; 
+
 /*************************************************
  * Packet Header
  *************************************************/
@@ -843,10 +856,13 @@ typedef struct acqevent_struct{
 
 typedef struct thmevent_struct{
   pkthed_t  hed;
+  float     cpu_temp;
+  float     padding;
   float     adc1_temp[ADC1_NCHAN];
   float     adc2_temp[ADC2_NCHAN];
   float     adc3_temp[ADC3_NCHAN];
-  htr_t     htr[SSR_NCHAN];       
+  htr_t     htr[SSR_NCHAN];
+  hum_t     hum[HUM_NSENSORS];
 } thmevent_t;
 
 typedef struct mtrevent_struct{
