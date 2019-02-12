@@ -247,7 +247,7 @@ void thm_proc(void){
   //-- Check in with watchdog
   checkin(sm_p,THMID);
   #else
-  printf("THM: Board 1 auto calibration disabled for PICC_DIO\n");
+  printf("THM: ADC Board 1 disabled for PICC_DIO\n");
   #endif
 
   //=========================================================================
