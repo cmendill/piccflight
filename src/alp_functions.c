@@ -34,6 +34,7 @@ void alp_init_calmode(int calmode, calmode_t *alp){
   alp->shk_poke   = ALP_SHK_POKE;
   alp->lyt_ncalim = ALP_LYT_NCALIM;
   alp->lyt_poke   = ALP_LYT_POKE;
+  alp->shk_boxsize_cmd = SHK_BOXSIZE_CMD_STD;
   for(i=0;i<LOWFS_N_ZERNIKE;i++){
     alp->shk_zpoke[i]  = ALP_SHK_ZPOKE;
     alp->lyt_zpoke[i]  = ALP_LYT_ZPOKE;

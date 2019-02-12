@@ -26,6 +26,9 @@
 /*  - Initialize HEX calmode structure                        */
 /**************************************************************/
 void hex_init_calmode(int calmode, calmode_t *hex){
+  //DEFAULTS
+  hex->shk_boxsize_cmd = SHK_BOXSIZE_CMD_STD;
+
   //HEX_CALMODE_NONE
   if(calmode == HEX_CALMODE_NONE){
     sprintf(hex->name,"HEX_CALMODE_NONE");

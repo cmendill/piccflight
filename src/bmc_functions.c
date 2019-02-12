@@ -21,6 +21,8 @@
 /*  - Initialize BMC calmode structure                        */
 /**************************************************************/
 void bmc_init_calmode(int calmode, calmode_t *bmc){
+  //DEFAULTS
+  bmc->shk_boxsize_cmd = SHK_BOXSIZE_CMD_STD;
   //BMC_CALMODE_NONE
   if(calmode == BMC_CALMODE_NONE){
     sprintf(bmc->name,"BMC_CALMODE_NONE");

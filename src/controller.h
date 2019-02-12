@@ -116,6 +116,7 @@ enum hexcalmodes {HEX_CALMODE_NONE,
 enum tgtcalmodes {TGT_CALMODE_NONE,
 		  TGT_CALMODE_ZERO,
 		  TGT_CALMODE_ZPOKE,
+		  TGT_CALMODE_ZRAMP,
 		  TGT_NCALMODES};
 
 enum bmccalmodes {BMC_CALMODE_NONE,
@@ -709,7 +710,7 @@ typedef struct hum_struct{
 /*************************************************
  * Packet Header
  *************************************************/
-#define PICC_PKT_VERSION     6  //packet version number
+#define PICC_PKT_VERSION     7  //packet version number
 typedef struct pkthed_struct{
   uint16  version;      //packet version number
   uint16  type;         //packet ID word

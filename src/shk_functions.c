@@ -912,7 +912,9 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   //Set centroid boxsize based on calmode
   shkevent.boxsize = sm_p->shk_boxsize;
   if((alpcalmodes[shkevent.hed.alp_calmode].shk_boxsize_cmd == SHK_BOXSIZE_CMD_MAX) ||
-     (hexcalmodes[shkevent.hed.hex_calmode].shk_boxsize_cmd == SHK_BOXSIZE_CMD_MAX)){
+     (hexcalmodes[shkevent.hed.hex_calmode].shk_boxsize_cmd == SHK_BOXSIZE_CMD_MAX) ||
+     (bmccalmodes[shkevent.hed.bmc_calmode].shk_boxsize_cmd == SHK_BOXSIZE_CMD_MAX) ||
+     (tgtcalmodes[shkevent.hed.tgt_calmode].shk_boxsize_cmd == SHK_BOXSIZE_CMD_MAX)){
     shkevent.boxsize = SHK_MAX_BOXSIZE;
   }
   

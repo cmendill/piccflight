@@ -23,10 +23,12 @@ void tgt_init_calmode(int calmode, calmode_t *tgt){
   int i;
   const double shk_zpoke[LOWFS_N_ZERNIKE]={0.2,0.2,0.05,0.05,0.05,0.05,0.05,0.03,0.03,0.03,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02};
   const double lyt_zpoke[LOWFS_N_ZERNIKE]={0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005};
-  
+  const double shk_zramp[LOWFS_N_ZERNIKE]={4.0,4.0,1.25,1.5,1.5,0.5,0.5,1.0,1.0,0.3,0.3,0.3,0.7,0.7,0.2,0.2,0.2,0.2,0.6,0.6,0.2,0.2,0.2};
+
   //DEFAULTS
   tgt->shk_ncalim = TGT_SHK_NCALIM;
   tgt->lyt_ncalim = TGT_LYT_NCALIM;
+  tgt->shk_boxsize_cmd = SHK_BOXSIZE_CMD_STD;
   for(i=0;i<LOWFS_N_ZERNIKE;i++){
     tgt->shk_zpoke[i]  = TGT_SHK_ZPOKE;
     tgt->lyt_zpoke[i]  = TGT_LYT_ZPOKE;
@@ -46,10 +48,20 @@ void tgt_init_calmode(int calmode, calmode_t *tgt){
   if(calmode == TGT_CALMODE_ZPOKE){
     sprintf(tgt->name,"TGT_CALMODE_ZPOKE");
     sprintf(tgt->cmd,"zpoke");
-  for(i=0;i<LOWFS_N_ZERNIKE;i++){
-    tgt->shk_zpoke[i]  = shk_zpoke[i];
-    tgt->lyt_zpoke[i]  = lyt_zpoke[i];
+    for(i=0;i<LOWFS_N_ZERNIKE;i++){
+      tgt->shk_zpoke[i]  = shk_zpoke[i];
+      tgt->lyt_zpoke[i]  = lyt_zpoke[i];
+    }
   }
+  //TGT_CALMODE_ZRAMP
+  if(calmode == TGT_CALMODE_ZRAMP){
+    sprintf(tgt->name,"TGT_CALMODE_ZRAMP");
+    sprintf(tgt->cmd,"zramp");
+    tgt->shk_ncalim = 40;
+    for(i=0;i<LOWFS_N_ZERNIKE;i++){
+      tgt->shk_zpoke[i]  = shk_zramp[i];
+      tgt->lyt_zpoke[i]  = 0.01*shk_zramp[i];
+    }
   }
 }
 
@@ -134,6 +146,34 @@ int tgt_calibrate(int calmode, double *zernikes, uint32_t *step, int procid, int
       calmode = TGT_CALMODE_NONE;
     }
     
+    return calmode;
+  }
+
+  /* TGT_CALMODE_ZRAMP: Ramp Zernikes one at a time                    */
+  /*                    Set to starting position in between each ramp. */
+  if(calmode == TGT_CALMODE_ZRAMP){
+    //Set all Zernikes to zero
+    for(i=0;i<LOWFS_N_ZERNIKE;i++)
+      zernikes[i] = 0.0;
+    //Check counters
+    if(countA >= 0 && countA < (2*LOWFS_N_ZERNIKE*ncalim)){
+      
+      //set step counter
+      *step = (countA/ncalim);
+      
+      //ramp one zernike at a time
+      if((countA/ncalim) % 2 == 1){
+	z = (countB/ncalim) % LOWFS_N_ZERNIKE;
+	zernikes[z] = (countB % ncalim) * (zpoke[z]/ncalim);
+	countB++;
+      }
+      countA++;
+    }else{
+      //Turn off calibration
+      printf("TGT: Stopping calmode TGT_CALMODE_ZRAMP\n");
+      calmode = TGT_CALMODE_NONE;
+      init = 0;
+    }
     return calmode;
   }
   
