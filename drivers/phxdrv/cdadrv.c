@@ -1358,12 +1358,12 @@ static long CDA_ioctl(
       iRet = CDA_WaitEvent( pInst, &ev);
       if ( 0 <= iRet)
         {
-         copy_to_user_ret( (void*)ulParam, &ev, sizeof( ev), -EFAULT );
          //Unset the bit that was set before wake_process_interruptible
          #if PICC_DIO_ENABLE
          if(pInst->devicenum == PICC_SHK_DEVNUM) outb_p(0x00,PICC_DIO_BASE+PICC_DIO_PORTC); //UNSET DIO board PORTC bit C0
          if(pInst->devicenum == PICC_LYT_DEVNUM) outb_p(0x00,PICC_DIO_BASE+PICC_DIO_PORTB); //UNSET DIO board PORTB bit B0 
          #endif
+         copy_to_user_ret( (void*)ulParam, &ev, sizeof( ev), -EFAULT );
         }
       }
     else
