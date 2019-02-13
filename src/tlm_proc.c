@@ -41,8 +41,8 @@ int checkdata(sm_t *sm_p){
   /*Check in with watchdog*/
   checkin(sm_p,TLMID);
   s = check_buffer(sm_p, BUFFER_SCIEVENT, TLMID);
-  k = check_buffer(sm_p, BUFFER_SHKEVENT, TLMID);
-  l = check_buffer(sm_p, BUFFER_LYTEVENT, TLMID);
+  k = check_buffer(sm_p, BUFFER_SHKPKT, TLMID);
+  l = check_buffer(sm_p, BUFFER_LYTPKT, TLMID);
   a = check_buffer(sm_p, BUFFER_ACQEVENT, TLMID);
   
   return(s || k || l || a);
@@ -56,12 +56,12 @@ int checksci(sm_t *sm_p){
 int checkshk(sm_t *sm_p){
   /*Check in with watchdog*/
   checkin(sm_p,TLMID);
-  return(check_buffer(sm_p, BUFFER_SHKEVENT, TLMID));
+  return(check_buffer(sm_p, BUFFER_SHKPKT, TLMID));
 }
 int checklyt(sm_t *sm_p){
   /*Check in with watchdog*/
   checkin(sm_p,TLMID);
-  return(check_buffer(sm_p, BUFFER_LYTEVENT, TLMID));
+  return(check_buffer(sm_p, BUFFER_LYTPKT, TLMID));
 }
 int checkacq(sm_t *sm_p){
   /*Check in with watchdog*/
@@ -117,25 +117,25 @@ void write_block(DM7820_Board_Descriptor* p_rtd_board, char *buf, uint32 num){
 
 /* Save data to disk*/
 void save_data(void *buf, uint32 num, char *tag, uint32 framenumber, uint32 folderindex){
-  int fd;
-  char filename[100];
+  FILE *fd=NULL;
+  char filename[MAX_FILENAME];
   
   /*Create filename*/
   sprintf(filename,DATANAME,folderindex,tag,framenumber);
+
   /*Open file*/
-  fd = open(filename,O_RDWR | O_CREAT, 0666);
-  if(fd<0){
-    printf("TLM: error opening %s\n",filename);
-    perror("TLM: open");
-    close(fd);
+  if((fd = fopen(filename, "w")) == NULL){
+    perror("TLM: save_data fopen()\n");
     return;
   }
+  
   /*Write buffer to file */
-  if(write(fd,buf,num))
-    printf("TLM: save_data failed to write data!\n");
+  if(fwrite(buf,num,1,fd) != 1)
+    printf("TLM: save_data failed to write %s\n",filename);
   
   /*Close file*/
-  close(fd);
+  fclose(fd);
+
 #if MSG_SAVEDATA
   printf("TLM: wrote: %s\n",filename);
 #endif 
@@ -144,7 +144,7 @@ void save_data(void *buf, uint32 num, char *tag, uint32 framenumber, uint32 fold
 void tlm_proc(void){
   uint32 i,j;
   unsigned long count=0;
-  char tag[3];
+  char tag[30];
   uint32 folderindex=0;
   char datpath[200];
   char pathcmd[200];
@@ -152,10 +152,10 @@ void tlm_proc(void){
   uint16_t emptybuf[TLM_BUFFER_LENGTH];
   static uint32 ilast=0;
   struct stat st;
-  static scievent_t sci;
-  static shkevent_t shk;
-  static lytevent_t lyt;
-  static acqevent_t acq;
+  static scievent_t scievent;
+  static shkpkt_t   shkpkt;
+  static lytpkt_t   lytpkt;
+  static acqevent_t acqevent;
   
   
   /* Open Shared Memory */
@@ -182,7 +182,7 @@ void tlm_proc(void){
   
   
   /* Create folder for saved data */
-  if(SAVE_SCI || SAVE_SHK || SAVE_LYT || SAVE_ACQ){
+  if(SAVE_SCIEVENT || SAVE_SHKPKT || SAVE_LYTPKT || SAVE_ACQEVENT){
     while(1){
       sprintf(datpath,DATAPATH,folderindex);
       if(stat(datpath,&st))
@@ -190,9 +190,9 @@ void tlm_proc(void){
       folderindex++;
     }
     recursive_mkdir(datpath, 0777);
-    if(MSG_SAVEDATA)
-      printf("TLM: Saving data in: %s\n",datpath);
+    printf("TLM: Saving data in: %s\n",datpath);
   }
+  
   while(1){
     
     //check if we want to fake the TM data
@@ -236,86 +236,86 @@ void tlm_proc(void){
 	usleep(100000);
       }
       else{
-	
-	/*Get SCI data*/
-	if(read_from_buffer(sm_p, &sci, BUFFER_SCIEVENT, TLMID)){
-	  /*Check in with watchdog*/
-	  checkin(sm_p,TLMID);
-	  //save science data 
-	  if(SAVE_SCI){
-	    sprintf(tag,"sci");
-	      save_data(&sci, sizeof(sci),tag,sci.hed.frame_number,folderindex);
-	  }
-	  if(SEND_SCI){
-	    //write data
-	    if(sm_p->tlm_ready){
-	      write_block(sm_p->p_rtd_board,(char *)&sci, sizeof(sci));
-	      if(TLM_DEBUG)
-		printf("TLM: Frame %d - SCI\n",sci.hed.frame_number);
-	    }
-	  }
-	}
 
-	/*Get SHK data*/
-	if(read_from_buffer(sm_p, &shk, BUFFER_SHKEVENT, TLMID)){
+	/*Get SCIEVENT data*/
+	if(read_from_buffer(sm_p, &scievent, BUFFER_SCIEVENT, TLMID)){
 	  //check in with watchdog
 	  checkin(sm_p,TLMID);
-	  //save shk data 
-	  if(SAVE_SHK){
-	    sprintf(tag,"shk");
-	      save_data(&shk, sizeof(shk),tag,shk.hed.frame_number,folderindex);
+	  //save scievent data 
+	  if(SAVE_SCIEVENT){
+	    sprintf(tag,"scievent");
+	    save_data(&scievent, sizeof(scievent),tag,scievent.hed.frame_number,folderindex);
 	  }
-	  //send shk data
-	  if(SEND_SHK){
+	  //send scievent data
+	  if(SEND_SCIEVENT){
 	    if(sm_p->tlm_ready){
-	      write_block(sm_p->p_rtd_board,(char *)&shk, sizeof(shk));
+	      write_block(sm_p->p_rtd_board,(char *)&scievent, sizeof(scievent));
 	      if(TLM_DEBUG)
-		printf("TLM: Frame %d - SHK\n",shk.hed.frame_number);
+		printf("TLM: Frame %d - SCIEVENT\n",scievent.hed.frame_number);
 	    }
 	  }
 	}
 	
-	/*Get LYT data*/
-	if(read_from_buffer(sm_p, &lyt, BUFFER_LYTEVENT, TLMID)){
+	/*Get SHKPKT data*/
+	if(read_from_buffer(sm_p, &shkpkt, BUFFER_SHKPKT, TLMID)){
 	  //check in with watchdog
 	  checkin(sm_p,TLMID);
-	  //save lyt data 
-	  if(SAVE_LYT){
-	    sprintf(tag,"lyt");
-	      save_data(&lyt, sizeof(lyt),tag,lyt.hed.frame_number,folderindex);
+	  //save shkpkt data 
+	  if(SAVE_SHKPKT){
+	    sprintf(tag,"shkpkt");
+	    save_data(&shkpkt, sizeof(shkpkt),tag,shkpkt.hed.frame_number,folderindex);
 	  }
-	  //send lyt data
-	  if(SEND_LYT){
+	  //send shkpkt data
+	  if(SEND_SHKPKT){
 	    if(sm_p->tlm_ready){
-	      write_block(sm_p->p_rtd_board,(char *)&lyt, sizeof(lyt));
+	      write_block(sm_p->p_rtd_board,(char *)&shkpkt, sizeof(shkpkt));
 	      if(TLM_DEBUG)
-		printf("TLM: Frame %d - LYT\n",lyt.hed.frame_number);
+		printf("TLM: Frame %d - SHKPKT\n",shkpkt.hed.frame_number);
 	    }
 	  }
 	}
 	
-	/*Get ACQ data*/
-	if(read_from_buffer(sm_p, &acq, BUFFER_ACQEVENT, TLMID)){
+	/*Get LYTPKT data*/
+	if(read_from_buffer(sm_p, &lytpkt, BUFFER_LYTPKT, TLMID)){
 	  //check in with watchdog
 	  checkin(sm_p,TLMID);
-	  //save acq data 
-	  if(SAVE_ACQ){
-	    sprintf(tag,"acq");
-	      save_data(&acq, sizeof(acq),tag,acq.hed.frame_number,folderindex);
+	  //save lytpkt data 
+	  if(SAVE_LYTPKT){
+	    sprintf(tag,"lytpkt");
+	    save_data(&lytpkt, sizeof(lytpkt),tag,lytpkt.hed.frame_number,folderindex);
 	  }
-	  //send acq data
-	  if(SEND_ACQ){
+	  //send lytpkt data
+	  if(SEND_LYTPKT){
 	    if(sm_p->tlm_ready){
-	      write_block(sm_p->p_rtd_board,(char *)&acq, sizeof(acq));
+	      write_block(sm_p->p_rtd_board,(char *)&lytpkt, sizeof(lytpkt));
 	      if(TLM_DEBUG)
-		printf("TLM: Frame %d - ACQ\n",acq.hed.frame_number);
+		printf("TLM: Frame %d - LYTPKT\n",lytpkt.hed.frame_number);
+	    }
+	  }
+	}
+	
+	/*Get ACQEVENT data*/
+	if(read_from_buffer(sm_p, &acqevent, BUFFER_ACQEVENT, TLMID)){
+	  //check in with watchdog
+	  checkin(sm_p,TLMID);
+	  //save acqevent data 
+	  if(SAVE_ACQEVENT){
+	    sprintf(tag,"acqevent");
+	    save_data(&acqevent, sizeof(acqevent),tag,acqevent.hed.frame_number,folderindex);
+	  }
+	  //send acqevent data
+	  if(SEND_ACQEVENT){
+	    if(sm_p->tlm_ready){
+	      write_block(sm_p->p_rtd_board,(char *)&acqevent, sizeof(acqevent));
+	      if(TLM_DEBUG)
+		printf("TLM: Frame %d - ACQEVENT\n",acqevent.hed.frame_number);
 	    }
 	  }
 	}
       }
     }
   }
-      
+  
   tlmctrlC(0);
   return;
 }
