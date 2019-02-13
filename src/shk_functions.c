@@ -380,7 +380,7 @@ void shk_centroid_cell(uint8 *image, shkcell_t *cell, int cmd_boxsize){
 /* SHK_CENTROID                                               */
 /*  - Measure centroids of all SHK cells                      */
 /**************************************************************/
-void shk_centroid(uint16 *image, shkevent_t *shkevent){
+void shk_centroid(uint8 *image, shkevent_t *shkevent){
   int i,j,px;
   int npix=0;
   double background=0;
