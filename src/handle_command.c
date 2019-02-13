@@ -282,7 +282,7 @@ int handle_command(char *line, sm_t *sm_p){
   
   //ALP Calmodes
   sprintf(cmd,"alp calmode");
-  if(!strncasecmp(line,cmd,strlne(cmd))){
+  if(!strncasecmp(line,cmd,strlen(cmd))){
     cmdfound = 0;
     for(i=0;i<ALP_NCALMODES;i++){
       if(!strncasecmp(line+strlen(cmd)+1,alpcalmodes[i].cmd,strlen(alpcalmodes[i].cmd))){
@@ -640,7 +640,7 @@ int handle_command(char *line, sm_t *sm_p){
   }
 
   sprintf(cmd,"alp random");
-  if(!strncasecmp(line,cmd,strlen(cd))){
+  if(!strncasecmp(line,cmd,strlen(cmd))){
     if(sm_p->state_array[sm_p->state].alp_commander == WATID){
       printf("CMD: Sending random actuator pattern to ALP DM\n");
       if(sm_p->alp_ready)
@@ -1090,7 +1090,7 @@ int handle_command(char *line, sm_t *sm_p){
   
   //SHK ALP Gain
   sprintf(cmd,"shk alp gain");
-  if(!strncasecmp(line,cmd,strlen) && strlen(line) > strlen(cmd)){
+  if(!strncasecmp(line,cmd,strlen(cmd)) && strlen(line) > strlen(cmd)){
     ftemp = atof(line+strlen(cmd)+1);
     if(ftemp >= 0){
       double shk_gain_alp_zern[LOWFS_N_ZERNIKE][LOWFS_N_PID] = SHK_GAIN_ALP_ZERN_DEFAULT;
