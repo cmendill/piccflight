@@ -199,7 +199,7 @@ void shk_loadorigin(shkevent_t*shkevent){
 /* SHK_CENTROID_CELL                                          */
 /*  - Measure the centroid of a single SHK cell               */
 /**************************************************************/
-void shk_centroid_cell(uint16 *image, shkcell_t *cell, int cmd_boxsize){
+void shk_centroid_cell(uint8 *image, shkcell_t *cell, int cmd_boxsize){
   double xnum,ynum,total,intensity;
   uint16 maxval;
   double xhist[SHKXS]={0};
@@ -207,7 +207,7 @@ void shk_centroid_cell(uint16 *image, shkcell_t *cell, int cmd_boxsize){
   int    x,y,px,blx,bly,trx,try,npix,boxsize;
   double wave2surf = 1;
   double xcentroid=0,ycentroid=0,xdeviation=0,ydeviation=0;
-  
+
   /********************************************************************/
   //NOTES: The technique here is to first search the maximum boxsize 
   //for the brightest pixel, then calculate the true centroid either 

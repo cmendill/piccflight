@@ -31,6 +31,7 @@ uint32 shk_frame_count=0;
 
 /* Prototypes */
 void shk_process_image(stImageBuff *buffer,sm_t *sm_p,uint32 frame_number);
+float BOBCAT_GetTemp(tHandle hCamera);
 
 /* CTRL-C Function */
 void shkctrlC(int sig)
@@ -175,6 +176,20 @@ int shk_proc(void){
     printf("SHK: Camera stopped\n");
     
     /* Setup exposure */
+    usleep(500000);
+    printf("SHK: CCD Temp: %f\n",BOBCAT_GetTemp(shkCamera));
+    bParamValue = 10;
+    eStat = BOBCAT_ParameterSet( shkCamera, BOBCAT_EXP_TIME, &bParamValue );
+    eStat = BOBCAT_ParameterGet( shkCamera, BOBCAT_INFO_FRM_TIME, &bParamValue );
+    printf("SHK: Frame Time: %d\n",bParamValue);
+    eStat = BOBCAT_ParameterGet( shkCamera, BOBCAT_INFO_EXP_TIME, &bParamValue );
+    printf("SHK: Exp Time: %d\n",bParamValue);
+    eStat = BOBCAT_ParameterGet( shkCamera, BOBCAT_INFO_MIN_FRM_TIME, &bParamValue );
+    printf("SHK: Min Frame Time: %d\n",bParamValue);
+    eStat = BOBCAT_ParameterGet( shkCamera, BOBCAT_INFO_MIN_EXP_TIME, &bParamValue );
+    printf("SHK: Min Exp Time: %d\n",bParamValue);
+    eStat = BOBCAT_ParameterGet( shkCamera, BOBCAT_INFO_MAX_EXP_TIME, &bParamValue );
+    printf("SHK: Max Exp Time: %d\n",bParamValue);
     usleep(500000);
     bParamValue = lround(sm_p->shk_exptime*1000000);
     eStat = BOBCAT_ParameterSet( shkCamera, BOBCAT_FRM_TIME, &bParamValue );

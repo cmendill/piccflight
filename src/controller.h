@@ -661,7 +661,7 @@ typedef struct sci_struct{
 } sci_t;
 
 typedef struct shk_struct{
-  uint16 data[SHKXS][SHKYS];
+  uint8 data[SHKXS][SHKYS];
 } shk_t;
 
 typedef struct lyt_struct{

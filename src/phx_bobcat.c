@@ -889,3 +889,22 @@ int BOBCAT_str_to_bobcatParamValues(char* str, bobcatParamValue* pbParamValue) {
 #endif
   return 1;
 }
+
+
+float BOBCAT_GetTemp(tHandle hCamera) {
+  bobcatParamValue bParamValue;
+  int temp_value,temp_sign;
+  float temp;
+  etStat eStat = PHX_OK;
+  eStat = BOBCAT_ParameterGet( hCamera, BOBCAT_INFO_CCD_TEMP, &bParamValue );
+  if ( PHX_OK != eStat ){
+    printf("PHX: Error BOBCAT_GetTemp\n");
+  }else{
+    temp_value = bParamValue & 0x1FF;
+    temp_sign  = bParamValue & 0x200;
+    temp = (float)temp_value * 0.25;
+    if(temp_sign) temp*=-1;
+    return temp;
+  }
+  return 0;
+}

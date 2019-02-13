@@ -133,7 +133,7 @@ etStat PHX_BOBCAT_Configure(tHandle hpb, phxbobcatParam parameter, void* value) 
           bParamValue = BOBCAT_DOUBLE_TAP;
           eStat = BOBCAT_ParameterSet( hpb, BOBCAT_TAP_MODE_SELECT, (bobcatParamValue*) &bParamValue );
           if ( eStat != PHX_OK ) goto Error;
-          bParamValue = BOBCAT_DOUBLE_TAP_SEQUENTIAL;
+          bParamValue = BOBCAT_DOUBLE_TAP_INTERLEAVED;
           eStat = BOBCAT_ParameterSet( hpb, BOBCAT_DATA_FORMAT_SELECT, (bobcatParamValue*) &bParamValue );
           if ( eStat != PHX_OK ) goto Error;
           break;
