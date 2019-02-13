@@ -298,8 +298,7 @@ int init_module( void)
   #define BUILD ""
 #endif
   const char* tempName = "phddrv";
-  printk( "Active Silicon %s driver version %lu.%02lu" BUILD " built at " __TIME__ " on " __DATE__ " --%s irq hack--\n", name, CDA_DRV_VERSION / 0x10000, CDA_DRV_VERSION % 0x10000, tempName );
-  // printk( "Active Silicon %s driver version %lu.%02lu" BUILD " built at " __TIME__ " on " __DATE__ "\n", name, CDA_DRV_VERSION / 0x10000, CDA_DRV_VERSION % 0x10000 );
+  printk( "%s: LOADED Active Silicon %s driver version %lu.%02lu" BUILD " built at " __TIME__ " on " __DATE__ " --PICC irq hack--\n", tempName, name, CDA_DRV_VERSION / 0x10000, CDA_DRV_VERSION % 0x10000);
 
   TRACE( 2, ( "CDA: trace level %d\n", DEBUG_TRACE_LEVEL));
   
@@ -330,13 +329,16 @@ int init_module( void)
  */
 void cleanup_module( void)
   {
+  const char* tempName = "phddrv";
   TRACE( 3, ("CDA: %s()\n", __FUNCTION__));
 
   //PICC_DIO Code
   #if PICC_DIO_ENABLE
     //release the DIO region of memeory 
     release_region(PICC_DIO_BASE, PICC_DIO_LENGTH);
+    printk("%s: PICC_DIO ports released, base: 0x%03X\n", tempName, PICC_DIO_BASE);
   #endif
+    printk( "%s: UNLOADED Active Silicon %s driver version %lu.%02lu" BUILD " built at " __TIME__ " on " __DATE__ " --PICC irq hack--\n", tempName, name, CDA_DRV_VERSION / 0x10000, CDA_DRV_VERSION % 0x10000);
     
   CDA_Terminate();
   }
@@ -1358,7 +1360,7 @@ static long CDA_ioctl(
       iRet = CDA_WaitEvent( pInst, &ev);
       if ( 0 <= iRet)
         {
-         //Unset the bit that was set before wake_process_interruptible
+         //Unset the bit that was set in the IRQ top half (cdapci.c)
          #if PICC_DIO_ENABLE
          if(pInst->devicenum == PICC_SHK_DEVNUM) outb_p(0x00,PICC_DIO_BASE+PICC_DIO_PORTC); //UNSET DIO board PORTC bit C0
          if(pInst->devicenum == PICC_LYT_DEVNUM) outb_p(0x00,PICC_DIO_BASE+PICC_DIO_PORTB); //UNSET DIO board PORTB bit B0 
@@ -1656,7 +1658,8 @@ void CDA_DeviceEvent(
 
   /* Schedule bottom half task to run */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
-  schedule_work(&pInst->work);
+  wake_up_interruptible( &pInst->WaitQ); 
+  //schedule_work(&pInst->work);
 #elif LINUX_VERSION_CODE > 0x20200
   queue_task( &pInst->task, &tq_immediate);
   mark_bh( IMMEDIATE_BH);
@@ -1688,11 +1691,6 @@ static void CDA_IrqTask( void * pv)
 #ifndef NDEBUG
   ASSERT( kMagic == pInst->eMagic);
 #endif
-  //Set DIO bits before waking up waiting processes
-  #if PICC_DIO_ENABLE
-  if(pInst->devicenum == PICC_SHK_DEVNUM) outb_p(0x01,PICC_DIO_BASE+PICC_DIO_PORTC); //SET DIO board PORTC bit C0
-  if(pInst->devicenum == PICC_LYT_DEVNUM) outb_p(0x01,PICC_DIO_BASE+PICC_DIO_PORTB); //SET DIO board PORTB bit B0 
-  #endif
   /* Wakeup all processes waiting for an event */
   wake_up_interruptible( &pInst->WaitQ);
   }

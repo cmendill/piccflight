@@ -724,12 +724,6 @@ static void PCI_IrqHandler( int const             irq,
       TRACE( 1, ("*** %s: PCI status IRQ 0x%02x\n", __FUNCTION__, pci_status));
       }
     }
-
-  #if PICC_DIO_ENABLE
-  if(CDA_GetDeviceNum(pPci->pInst) == PICC_SHK_DEVNUM) outb_p(0x00,PICC_DIO_BASE+PICC_DIO_PORTC); //UNSET DIO board PORTC bit C0
-  if(CDA_GetDeviceNum(pPci->pInst) == PICC_LYT_DEVNUM) outb_p(0x00,PICC_DIO_BASE+PICC_DIO_PORTB); //UNSET DIO board PORTB bit B0 
-  // from line 694 takes about 7.5 us
-  #endif
   
 #if ( LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 0) )
   return (IRQ_RETVAL(isInterrupt));
