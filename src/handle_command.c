@@ -281,10 +281,11 @@ int handle_command(char *line, sm_t *sm_p){
   
   
   //ALP Calmodes
-  if(!strncasecmp(line,"alp calmode",11)){
+  sprintf(cmd,"alp calmode");
+  if(!strncasecmp(line,cmd,strlne(cmd))){
     cmdfound = 0;
     for(i=0;i<ALP_NCALMODES;i++){
-      if(!strncasecmp(line+12,alpcalmodes[i].cmd,strlen(alpcalmodes[i].cmd))){
+      if(!strncasecmp(line+strlen(cmd)+1,alpcalmodes[i].cmd,strlen(alpcalmodes[i].cmd))){
 	sm_p->alp_calmode=i;
 	printf("CMD: Changed ALP calibration mode to %s\n",alpcalmodes[i].name);
 	cmdfound = 1;
@@ -292,15 +293,16 @@ int handle_command(char *line, sm_t *sm_p){
     }
     if(!cmdfound)
       print_alp_calmodes(alpcalmodes);
-
+    
     return(CMD_NORMAL);
   }
-
+  
   //HEX Calmodes
-  if(!strncasecmp(line,"hex calmode",11)){
+  sprintf(cmd,"hex calmode");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
     cmdfound = 0;
     for(i=0;i<HEX_NCALMODES;i++){
-      if(!strncasecmp(line+12,hexcalmodes[i].cmd,strlen(hexcalmodes[i].cmd))){
+      if(!strncasecmp(line+strlen(cmd)+1,hexcalmodes[i].cmd,strlen(hexcalmodes[i].cmd))){
 	sm_p->hex_calmode=i;
 	printf("CMD: Changed HEX calibration mode to %s\n",hexcalmodes[i].name);
 	cmdfound = 1;
@@ -313,10 +315,11 @@ int handle_command(char *line, sm_t *sm_p){
   }
 
   //BMC Calmodes
-  if(!strncasecmp(line,"bmc calmode",11)){
+  sprintf(cmd,"bmc calmode");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
     cmdfound = 0;
     for(i=0;i<BMC_NCALMODES;i++){
-      if(!strncasecmp(line+12,bmccalmodes[i].cmd,strlen(bmccalmodes[i].cmd))){
+      if(!strncasecmp(line+strlen(cmd)+1,bmccalmodes[i].cmd,strlen(bmccalmodes[i].cmd))){
 	sm_p->bmc_calmode=i;
 	printf("CMD: Changed BMC calibration mode to %s\n",bmccalmodes[i].name);
 	cmdfound = 1;
@@ -329,10 +332,11 @@ int handle_command(char *line, sm_t *sm_p){
   }
 
   //TGT Calmodes
-  if(!strncasecmp(line,"tgt calmode",11)){
+  sprintf(cmd,"tgt calmode");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
     cmdfound = 0;
     for(i=0;i<TGT_NCALMODES;i++){
-      if(!strncasecmp(line+12,tgtcalmodes[i].cmd,strlen(tgtcalmodes[i].cmd))){
+      if(!strncasecmp(line+strlen(cmd)+1,tgtcalmodes[i].cmd,strlen(tgtcalmodes[i].cmd))){
 	sm_p->tgt_calmode=i;
 	printf("CMD: Changed TGT calibration mode to %s\n",tgtcalmodes[i].name);
 	cmdfound = 1;
@@ -346,10 +350,11 @@ int handle_command(char *line, sm_t *sm_p){
 
 
   //States
-  if(!strncasecmp(line,"state",5)){
+  sprintf(cmd,"state");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
     cmdfound=0;
     for(i=0;i<NSTATES;i++){
-      if(!strncasecmp(line+6,(char *)sm_p->state_array[i].cmd,strlen((char *)sm_p->state_array[i].cmd))){
+      if(!strncasecmp(line+strlen(cmd)+1,(char *)sm_p->state_array[i].cmd,strlen((char *)sm_p->state_array[i].cmd))){
 	sm_p->state = i;
 	printf("CMD: Changing state to %s\n",sm_p->state_array[i].name);
 	cmdfound = 1;
@@ -362,7 +367,7 @@ int handle_command(char *line, sm_t *sm_p){
   //Sleep
   sprintf(cmd,"sleep");
   if(!strncasecmp(line,cmd,strlen(cmd))){
-    itemp = atoi(line+strlen(cmd));
+    itemp = atoi(line+strlen(cmd)+1);
     if(itemp > 0 && itemp < 6){
       printf("CMD: Input console sleeping for %d seconds\n",itemp);
       sleep(itemp);
@@ -374,7 +379,8 @@ int handle_command(char *line, sm_t *sm_p){
   
 
   //Start Manual SHK Data Recording
-  if(!strncasecmp(line, "shk start rec", 13)){
+  sprintf(cmd,"shk start rec");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
     printf("CMD: Starting SHK data recording\n");
     //Setup filename
     sprintf((char *)sm_p->calfile,SHK_OUTFILE);
@@ -386,7 +392,8 @@ int handle_command(char *line, sm_t *sm_p){
   }
 
   //Stop Manual SHK Data Recording
-  if(!strncasecmp(line, "shk stop rec", 12)){
+  sprintf(cmd,"shk stop rec");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
     printf("CMD: Stopping SHK data recording\n");
     //Stop data recording
     sm_p->w[DIAID].run    = 0;
@@ -395,7 +402,8 @@ int handle_command(char *line, sm_t *sm_p){
   }
 
   //Start Manual LYT Data Recording
-  if(!strncasecmp(line, "lyt start rec", 13)){
+  sprintf(cmd,"lyt start rec");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
     printf("CMD: Starting LYT data recording\n");
     //Setup filename
     sprintf((char *)sm_p->calfile,LYT_OUTFILE);
@@ -407,7 +415,8 @@ int handle_command(char *line, sm_t *sm_p){
   }
 
   //Stop Manual LYT Data Recording
-  if(!strncasecmp(line, "lyt stop rec", 12)){
+  sprintf(cmd,"lyt stop rec");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
     printf("CMD: Stopping data recording\n");
     //Stop data recording
     sm_p->w[DIAID].run    = 0;
@@ -416,117 +425,127 @@ int handle_command(char *line, sm_t *sm_p){
   }
 
   //User Hexapod Control
-  if(!strncasecmp(line,"hex",3)){
+  sprintf(cmd,"hex");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
     if(sm_p->state_array[sm_p->state].hex_commander == WATID){
       //Turn ON tilt correction
-      if(!strncasecmp(line,"hex tcor on",11)){
+      sprintf(cmd,"hex tcor on");
+      if(!strncasecmp(line,cmd,strlen(cmd))){
 	printf("CMD: Turning HEX tilt correction ON\n");
 	sm_p->hex_tilt_correct = 1;
       }
       //Turn OFF tilt correction
-      if(!strncasecmp(line,"hex tcor off",11)){
+      sprintf(cmd,"hex tcor off");
+      if(!strncasecmp(line,cmd,strlen(cmd))){
 	printf("CMD: Turning HEX tilt correction OFF\n");
 	sm_p->hex_tilt_correct = 0;
       }
       //Reset step size
-      if(!strncasecmp(line,"hex rst step",12)){
+      sprintf(cmd,"hex rst step");
+      if(!strncasecmp(line,cmd,strlen(cmd))){
 	rot_poke = HEX_ROT_POKE;
 	trl_poke = HEX_TRL_POKE;
 	printf("CMD: Resetting HEX movement to %f mm and %f deg\n", trl_poke, rot_poke);
 	return(CMD_NORMAL);
       }
       //Increase step size
-      if(!strncasecmp(line,"hex inc step",12)){
+      sprintf(cmd,"hex inc step");
+      if(!strncasecmp(line,cmd,strlen(cmd))){
 	rot_poke *= 2.0;
 	trl_poke *= 2.0;
 	printf("CMD: Increasing HEX movement to %f mm and %f deg\n", trl_poke, rot_poke);
 	return(CMD_NORMAL);
       }
       //Decrease step size
-      if(!strncasecmp(line,"hex dec step",12)){
+      sprintf(cmd,"hex dec step");
+      if(!strncasecmp(line,cmd,strlen(cmd))){
 	rot_poke /= 2.0;
 	trl_poke /= 2.0;
 	printf("CMD: Decreasing HEX movement to %f mm and %f deg\n", trl_poke, rot_poke);
 	return(CMD_NORMAL);
       }
       //Query current position
-      if(!strncasecmp(line,"hex getpos",10)){
+      sprintf(cmd,"hex getpos");
+      if(!strncasecmp(line,cmd,strlen(cmd))){
 	printf("CMD: Getting hexapod position\n");
 	hex_printpos(sm_p->hexfd);
 	return(CMD_NORMAL);
       }
       //Commands to Move Hexapod
-      if(!strncasecmp(line,"hex gohome",10)){
+      sprintf(cmd,"hex gohome");
+      if(!strncasecmp(line,cmd,strlen(cmd))){
 	printf("CMD: Moving hexapod to home positon\n");
 	memcpy(hexcmd.acmd,hexhome,sizeof(hexhome));
 	if(!hex_send_command(sm_p,&hexcmd,WATID))
 	  printf("CMD: Hexapod command failed\n");
 	return(CMD_NORMAL);
       }
-      if(!strncasecmp(line,"hex godef",9)){
+      sprintf(cmd,"hex godef");
+      if(!strncasecmp(line,cmd,strlen(cmd))){
 	printf("CMD: Moving hexapod to default positon\n");
 	memcpy(hexcmd.acmd,hexdef,sizeof(hexdef));
 	if(!hex_send_command(sm_p,&hexcmd,WATID))
 	  printf("CMD: Hexapod command failed\n");
 	return(CMD_NORMAL);
       }
-      if(!strncasecmp(line,"hex move",8)){
-	if(!strncasecmp(line+9,"+x",2)){
+      sprintf(cmd,"hex move");
+      if(!strncasecmp(line,cmd,strlen(cmd))){
+	if(!strncasecmp(line+strlen(cmd)+1,"+x",2)){
 	  hex_poke = trl_poke;
 	  hex_axis = HEX_AXIS_X;
 	  goto move_hex;
 	}
-	if(!strncasecmp(line+9,"-x",2)){
+	if(!strncasecmp(line+strlen(cmd)+1,"-x",2)){
 	  hex_poke = -trl_poke;
 	  hex_axis = HEX_AXIS_X;
 	  goto move_hex;
 	}
-	if(!strncasecmp(line+9,"+y",2)){
+	if(!strncasecmp(line+strlen(cmd)+1,"+y",2)){
 	  hex_poke = trl_poke;
 	  hex_axis = HEX_AXIS_Y;
 	  goto move_hex;
 	}
-	if(!strncasecmp(line+9,"-y",2)){
+	if(!strncasecmp(line+strlen(cmd)+1,"-y",2)){
 	  hex_poke = -trl_poke;
 	  hex_axis = HEX_AXIS_Y;
 	  goto move_hex;
 	}
-	if(!strncasecmp(line+9,"+z",2)){
+	if(!strncasecmp(line+strlen(cmd)+1,"+z",2)){
 	  hex_poke = trl_poke;
 	  hex_axis = HEX_AXIS_Z;
 	  goto move_hex;
 	}
-	if(!strncasecmp(line+9,"-z",2)){
+	if(!strncasecmp(line+strlen(cmd)+1,"-z",2)){
 	  hex_poke = -trl_poke;
 	  hex_axis = HEX_AXIS_Z;
 	  goto move_hex;
 	}
-	if(!strncasecmp(line+9,"+u",2)){
+	if(!strncasecmp(line+strlen(cmd)+1,"+u",2)){
 	  hex_poke = rot_poke;
 	  hex_axis = HEX_AXIS_U;
 	  goto move_hex;
 	}
-	if(!strncasecmp(line+9,"-u",2)){
+	if(!strncasecmp(line+strlen(cmd)+1,"-u",2)){
 	  hex_poke = -rot_poke;
 	  hex_axis = HEX_AXIS_U;
 	  goto move_hex;
 	}
-	if(!strncasecmp(line+9,"+v",2)){
+	if(!strncasecmp(line+strlen(cmd)+1,"+v",2)){
 	  hex_poke = rot_poke;
 	  hex_axis = HEX_AXIS_V;
 	  goto move_hex;
 	}
-	if(!strncasecmp(line+9,"-v",2)){
+	if(!strncasecmp(line+strlen(cmd)+1,"-v",2)){
 	  hex_poke = -rot_poke;
 	  hex_axis = HEX_AXIS_V;
 	  goto move_hex;
 	}
-	if(!strncasecmp(line+9,"+w",2)){
+	if(!strncasecmp(line+strlen(cmd)+1,"+w",2)){
 	  hex_poke = rot_poke;
 	  hex_axis = HEX_AXIS_W;
 	  goto move_hex;
 	}
-	if(!strncasecmp(line+9,"-w",2)){
+	if(!strncasecmp(line+strlen(cmd)+1,"-w",2)){
 	  hex_poke = -rot_poke;
 	  hex_axis = HEX_AXIS_W;
 	  goto move_hex;
@@ -550,7 +569,8 @@ int handle_command(char *line, sm_t *sm_p){
   }
 
   //User ALP control
-  if(!strncasecmp(line,"alp zero flat",13)){
+  sprintf(cmd,"alp zero flat");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
     if(sm_p->state_array[sm_p->state].alp_commander == WATID){
       printf("CMD: Setting ALP to all zeros\n");
       if(sm_p->alp_ready)
@@ -562,7 +582,8 @@ int handle_command(char *line, sm_t *sm_p){
     return(CMD_NORMAL);
   }
   
-  if(!strncasecmp(line,"alp revert flat",15)){
+  sprintf(cmd,"alp revert flat");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
     if(sm_p->state_array[sm_p->state].alp_commander == WATID){
       printf("CMD: Reverting ALP flat to default\n");
       if(sm_p->alp_ready)
@@ -574,7 +595,8 @@ int handle_command(char *line, sm_t *sm_p){
     return(CMD_NORMAL);
   }
   
-  if(!strncasecmp(line,"alp save flat",13)){
+  sprintf(cmd,"alp save flat");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
     if(sm_p->state_array[sm_p->state].alp_commander == WATID){
       printf("CMD: Saving current ALP command as flat\n");
       if(sm_p->alp_ready)
@@ -586,7 +608,8 @@ int handle_command(char *line, sm_t *sm_p){
     return(CMD_NORMAL);
   }
   
-  if(!strncasecmp(line,"alp load flat",13)){
+  sprintf(cmd,"alp load flat");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
     if(sm_p->state_array[sm_p->state].alp_commander == WATID){
       printf("CMD: Loading ALP flat from file\n");
       if(sm_p->alp_ready)
@@ -597,10 +620,11 @@ int handle_command(char *line, sm_t *sm_p){
       printf("CMD: Manual ALPAO DM control disabled in this state.\n");
     return(CMD_NORMAL);
   }
-
-  if(!strncasecmp(line,"alp bias",8)){
+  
+  sprintf(cmd,"alp bias");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
     if(sm_p->state_array[sm_p->state].alp_commander == WATID){
-      ftemp = atof(line+8);
+      ftemp = atof(line+strlen(cmd)+1);
       if((ftemp >= ALP_MIN_BIAS) && (ftemp <= ALP_MAX_BIAS)){
 	printf("CMD: Setting ALP bias = %f\n",ftemp);
 	if(sm_p->alp_ready)
@@ -615,7 +639,8 @@ int handle_command(char *line, sm_t *sm_p){
     return(CMD_NORMAL);
   }
 
-  if(!strncasecmp(line,"alp random",10)){
+  sprintf(cmd,"alp random");
+  if(!strncasecmp(line,cmd,strlen(cd))){
     if(sm_p->state_array[sm_p->state].alp_commander == WATID){
       printf("CMD: Sending random actuator pattern to ALP DM\n");
       if(sm_p->alp_ready)
@@ -627,7 +652,8 @@ int handle_command(char *line, sm_t *sm_p){
     return(CMD_NORMAL);
   }
 
-  if(!strncasecmp(line,"alp zrandom",11)){
+  sprintf(cmd,"alp zrandom");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
     if(sm_p->state_array[sm_p->state].alp_commander == WATID){
       printf("CMD: Sending random Zernike pattern to ALP DM\n");
       if(sm_p->alp_ready)
@@ -743,12 +769,13 @@ int handle_command(char *line, sm_t *sm_p){
   
   
   //SHK HEX Calibration
-  if(!strncasecmp(line,"shk calibrate hex",17)){
+  sprintf(cmd,"shk calibrate hex");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
     if(sm_p->state_array[sm_p->state].hex_commander == SHKID){
       //Get calmode
       cmdfound = 0;
       for(i=0;i<HEX_NCALMODES;i++){
-	if(!strncasecmp(line+18,hexcalmodes[i].cmd,strlen(hexcalmodes[i].cmd))){
+	if(!strncasecmp(line+strlen(cmd)+1,hexcalmodes[i].cmd,strlen(hexcalmodes[i].cmd))){
 	  calmode  = i;
 	  cmdfound = 1;
 	}
@@ -784,12 +811,13 @@ int handle_command(char *line, sm_t *sm_p){
   }
 
   //SHK ALP Calibration
-  if(!strncasecmp(line,"shk calibrate alp",17)){
+  sprintf(cmd,"shk calibrate alp");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
     if(sm_p->state_array[sm_p->state].alp_commander == SHKID){
       //Get calmode
       cmdfound = 0;
       for(i=0;i<ALP_NCALMODES;i++){
-	if(!strncasecmp(line+18,alpcalmodes[i].cmd,strlen(alpcalmodes[i].cmd))){
+	if(!strncasecmp(line+strlen(cmd)+1,alpcalmodes[i].cmd,strlen(alpcalmodes[i].cmd))){
 	  calmode  = i;
 	  cmdfound = 1;
 	}
@@ -825,12 +853,13 @@ int handle_command(char *line, sm_t *sm_p){
   }
 
   //SHK TGT Calibration
-  if(!strncasecmp(line,"shk calibrate tgt",17)){
+  sprintf(cmd,"shk calibrate tgt");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
     if(sm_p->state_array[sm_p->state].alp_commander == SHKID){
       //Get calmode
       cmdfound = 0;
       for(i=0;i<TGT_NCALMODES;i++){
-	if(!strncasecmp(line+18,tgtcalmodes[i].cmd,strlen(tgtcalmodes[i].cmd))){
+	if(!strncasecmp(line+strlen(cmd)+1,tgtcalmodes[i].cmd,strlen(tgtcalmodes[i].cmd))){
 	  calmode  = i;
 	  cmdfound = 1;
 	}
@@ -866,12 +895,13 @@ int handle_command(char *line, sm_t *sm_p){
   }
 
   //LYT ALP Calibration
-  if(!strncasecmp(line,"lyt calibrate alp",17)){
+  sprintf(cmd,"lyt calibrate alp");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
     if(sm_p->state_array[sm_p->state].alp_commander == LYTID){
       //Get calmode
       cmdfound = 0;
       for(i=0;i<ALP_NCALMODES;i++){
-	if(!strncasecmp(line+18,alpcalmodes[i].cmd,strlen(alpcalmodes[i].cmd))){
+	if(!strncasecmp(line+strlen(cmd)+1,alpcalmodes[i].cmd,strlen(alpcalmodes[i].cmd))){
 	  calmode  = i;
 	  cmdfound = 1;
 	}
@@ -907,12 +937,13 @@ int handle_command(char *line, sm_t *sm_p){
   }
 
   //SCI BMC Calibration
-  if(!strncasecmp(line,"sci calibrate bmc",17)){
+  sprintf(cmd,"sci calibrate bmc");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
     if(sm_p->state_array[sm_p->state].bmc_commander == SCIID){
       //Get calmode
       cmdfound = 0;
       for(i=0;i<BMC_NCALMODES;i++){
-	if(!strncasecmp(line+18,bmccalmodes[i].cmd,strlen(bmccalmodes[i].cmd))){
+	if(!strncasecmp(line+strlen(cmd)+1,bmccalmodes[i].cmd,strlen(bmccalmodes[i].cmd))){
 	  calmode  = i;
 	  cmdfound = 1;
 	}
@@ -950,7 +981,7 @@ int handle_command(char *line, sm_t *sm_p){
   //Exposure Time Commands
   sprintf(cmd,"sci exptime");
   if(!strncasecmp(line,cmd,strlen(cmd))){
-    ftemp = atof(line+strlen(cmd));
+    ftemp = atof(line+strlen(cmd)+1);
     if(ftemp >= SCI_EXPTIME_MIN && ftemp <= SCI_EXPTIME_MAX){
       sm_p->sci_exptime = ftemp;
       sm_p->sci_reset_camera = 1;
@@ -963,7 +994,7 @@ int handle_command(char *line, sm_t *sm_p){
   
   sprintf(cmd,"shk exptime");
   if(!strncasecmp(line,cmd,strlen(cmd))){
-    ftemp = atof(line+strlen(cmd));
+    ftemp = atof(line+strlen(cmd)+1);
     if(ftemp >= SHK_EXPTIME_MIN && ftemp <= SHK_EXPTIME_MAX){
       sm_p->shk_exptime = ftemp;
       sm_p->shk_reset_camera = 1;
@@ -976,7 +1007,7 @@ int handle_command(char *line, sm_t *sm_p){
 
   sprintf(cmd,"lyt exptime");
   if(!strncasecmp(line,cmd,strlen(cmd))){
-    ftemp = atof(line+strlen(cmd));
+    ftemp = atof(line+strlen(cmd)+1);
     if(ftemp >= LYT_EXPTIME_MIN && ftemp <= LYT_EXPTIME_MAX){
       sm_p->lyt_exptime = ftemp;
       sm_p->lyt_reset_camera = 1;
@@ -989,7 +1020,7 @@ int handle_command(char *line, sm_t *sm_p){
 
   sprintf(cmd,"acq exptime");
   if(!strncasecmp(line,cmd,strlen(cmd))){
-    ftemp = atof(line+strlen(cmd));
+    ftemp = atof(line+strlen(cmd)+1);
     if(ftemp >= ACQ_EXPTIME_MIN && ftemp <= ACQ_EXPTIME_MAX){
       sm_p->acq_exptime = ftemp;
       sm_p->acq_reset_camera = 1;
@@ -1001,25 +1032,29 @@ int handle_command(char *line, sm_t *sm_p){
   }
 
   //SHK Commands
-  if(!strncasecmp(line,"shk set origin",14)){
+  sprintf(cmd,"shk set origin");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
     printf("CMD: Setting SHK origin\n");
     sm_p->shk_setorigin=1;
     return(CMD_NORMAL);
   }
 
-  if(!strncasecmp(line,"shk revert origin",17)){
+  sprintf(cmd,"shk revert origin");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
     printf("CMD: Reverting SHK origin\n");
     sm_p->shk_revertorigin=1;
     return(CMD_NORMAL);
   }
 
-  if(!strncasecmp(line,"shk save origin",15)){
+  sprintf(cmd,"shk save origin");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
     printf("CMD: Saving SHK origin\n");
     sm_p->shk_saveorigin=1;
     return(CMD_NORMAL);
   }
 
-  if(!strncasecmp(line,"shk load origin",15)){
+  sprintf(cmd,"shk load origin");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
     printf("CMD: Loading SHK origin\n");
     sm_p->shk_loadorigin=1;
     return(CMD_NORMAL);
@@ -1054,9 +1089,10 @@ int handle_command(char *line, sm_t *sm_p){
   }
   
   //SHK ALP Gain
-  if(!strncasecmp(line,"shk alp gain ",13) && strlen(line)>14){
-    ftemp = atof(line+13);
-    if(ftemp > 0){
+  sprintf(cmd,"shk alp gain");
+  if(!strncasecmp(line,cmd,strlen) && strlen(line) > strlen(cmd)){
+    ftemp = atof(line+strlen(cmd)+1);
+    if(ftemp >= 0){
       double shk_gain_alp_zern[LOWFS_N_ZERNIKE][LOWFS_N_PID] = SHK_GAIN_ALP_ZERN_DEFAULT;
       double shk_gain_alp_cell[LOWFS_N_PID] = SHK_GAIN_ALP_CELL_DEFAULT;
       for(i=0;i<LOWFS_N_PID;i++)
@@ -1065,26 +1101,28 @@ int handle_command(char *line, sm_t *sm_p){
 	for(j=0;j<LOWFS_N_PID;j++)
 	  sm_p->shk_gain_alp_zern[i][j];
       printf("CMD: SHK changing ALP gain multiplier to %f\n",ftemp);
-    }else printf("CMD: Gain multiplier must be > 0\n");
+    }else printf("CMD: Gain multiplier must be >= 0\n");
     return CMD_NORMAL;
   }
 
   //SHK HEX Gain
-  if(!strncasecmp(line,"shk hex gain ",13) && strlen(line)>14){
-    ftemp = atof(line+13);
-    if(ftemp > 0){
+  sprintf(cmd,"shk hex gain");
+  if(!strncasecmp(line,cmd,strlen(cmd)) && strlen(line) > strlen(cmd)){
+    ftemp = atof(line+strlen(cmd)+1);
+    if(ftemp >= 0){
       double shk_gain_hex_zern[LOWFS_N_PID] = SHK_GAIN_HEX_ZERN_DEFAULT;
       for(i=0;i<LOWFS_N_PID;i++)
 	sm_p->shk_gain_hex_zern[i] = shk_gain_hex_zern[i]*ftemp;
       printf("CMD: SHK changing HEX gain multiplier to %f\n",ftemp);
-    }else printf("CMD: Gain multiplier must be > 0\n");
+    }else printf("CMD: Gain multiplier must be >= 0\n");
     return CMD_NORMAL;
   }
 
   //LYT ALP Gain
-  if(!strncasecmp(line,"lyt alp gain ",13) && strlen(line)>14){
-    ftemp = atof(line+13);
-    if(ftemp > 0){
+  sprintf(cmd,"lyt alp gain");
+  if(!strncasecmp(line,cmd,strlen(cmd)) && strlen(line) > strlen(cmd)){
+    ftemp = atof(line+strlen(cmd)+1);
+    if(ftemp >= 0){
       double lyt_gain_alp_zern[LOWFS_N_ZERNIKE][LOWFS_N_PID] = LYT_GAIN_ALP_ZERN_DEFAULT;
       double lyt_gain_alp_act[LOWFS_N_PID] = LYT_GAIN_ALP_ACT_DEFAULT;
       // -- zernike gain
@@ -1096,7 +1134,7 @@ int handle_command(char *line, sm_t *sm_p){
 	sm_p->lyt_gain_alp_act[j] = ftemp * lyt_gain_alp_act[j];
 
       printf("SHK: LYT changing ALP gain multiplier to %f\n",ftemp);
-    }else printf("CMD: Gain multiplier must be > 0\n");
+    }else printf("CMD: Gain multiplier must be >= 0\n");
     return CMD_NORMAL;
   }
 
@@ -1191,7 +1229,7 @@ int handle_command(char *line, sm_t *sm_p){
   }
   
   //LYT Zernike Targets
-  sprintf(cmd,"lyt zernike zero");
+  sprintf(cmd,"lyt zernike reset");
   if(!strncasecmp(line,cmd,strlen(cmd))){
     printf("CMD: Setting LYT Zernike targets to zero\n");
     for(i=0;i<LOWFS_N_ZERNIKE;i++) sm_p->lyt_zernike_target[i]=0;
@@ -1224,25 +1262,29 @@ int handle_command(char *line, sm_t *sm_p){
   }
 
   //SCI Commands
-  if(!strncasecmp(line,"sci set origin",14)){
+  sprintf(cmd,"sci set origin");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
     printf("CMD: Setting SCI origin\n");
     sm_p->sci_setorigin=1;
     return(CMD_NORMAL);
   }
 
-  if(!strncasecmp(line,"sci revert origin",17)){
+  sprintf(cmd,"sci revert origin");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
     printf("CMD: Reverting SCI origin\n");
     sm_p->sci_revertorigin=1;
     return(CMD_NORMAL);
   }
 
-  if(!strncasecmp(line,"sci save origin",15)){
+  sprintf(cmd,"sci save origin");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
     printf("CMD: Saving SCI origin\n");
     sm_p->sci_saveorigin=1;
     return(CMD_NORMAL);
   }
 
-  if(!strncasecmp(line,"sci load origin",15)){
+  sprintf(cmd,"sci load origin");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
     printf("CMD: Loading SCI origin\n");
     sm_p->sci_loadorigin=1;
     return(CMD_NORMAL);
@@ -1251,7 +1293,7 @@ int handle_command(char *line, sm_t *sm_p){
   //Door commands
   sprintf(cmd,"open door");
   if(!strncasecmp(line,cmd,strlen(cmd))){
-    itemp = atoi(line+strlen(cmd));
+    itemp = atoi(line+strlen(cmd)+1);
     if(itemp >= 1 && itemp <= MTR_NDOORS){
       printf("CMD: Opening door %d\n",itemp);
       sm_p->open_door[itemp-1] = 1;
@@ -1263,7 +1305,7 @@ int handle_command(char *line, sm_t *sm_p){
   }
   sprintf(cmd,"close door");
   if(!strncasecmp(line,cmd,strlen(cmd))){
-    itemp = atoi(line+strlen(cmd));
+    itemp = atoi(line+strlen(cmd)+1);
     if(itemp >= 1 && itemp <= MTR_NDOORS){
       printf("CMD: Closing door %d\n",itemp);
       sm_p->close_door[itemp-1] = 1;
@@ -1275,7 +1317,7 @@ int handle_command(char *line, sm_t *sm_p){
   }
   sprintf(cmd,"stop door");
   if(!strncasecmp(line,cmd,strlen(cmd))){
-    itemp = atoi(line+strlen(cmd));
+    itemp = atoi(line+strlen(cmd)+1);
     if(itemp >= 1 && itemp <= MTR_NDOORS){
       printf("CMD: Stopping door %d\n",itemp);
       sm_p->stop_door[itemp-1] = 1;
@@ -1319,7 +1361,7 @@ int handle_command(char *line, sm_t *sm_p){
       sprintf(cmd,"htr %d power",i);
       if(!strncasecmp(line,cmd,strlen(cmd))){
 	if(sm_p->htr_override[i]){
-	  itemp = atoi(line+strlen(cmd));
+	  itemp = atoi(line+strlen(cmd)+1);
 	  if(itemp >= 0 && itemp <= 100){
 	    sm_p->htr_power[i] = itemp;
 	    printf("CMD: Setting heater %d power to %d percent\n",i,sm_p->htr_power[i]);
@@ -1343,7 +1385,7 @@ int handle_command(char *line, sm_t *sm_p){
   //LED commands
   sprintf(cmd,"led on");
   if(!strncasecmp(line,cmd,strlen(cmd))){
-    ftemp = atof(line+strlen(cmd));
+    ftemp = atof(line+strlen(cmd)+1);
     if(ftemp >= 0 && ftemp <= 5){
       printf("CMD: Turning LED ON %f volts \n",ftemp);
       led = (ftemp/5.0) * 0x0FFF;
