@@ -29,11 +29,11 @@ void getshkctrlC(int sig)
 }
 
 void getshk_proc(void){
-  shkevent_t shkevent;
+  shkevent_t shkevent[SHK_NSAMPLES];
   struct stat st = {0};
   int shmfd;
   FILE *out=NULL;
-  unsigned long int count=0;
+  unsigned long int count=0,clearcount=0;
   char outfile[MAX_FILENAME];
   char temp[MAX_FILENAME];
   char path[MAX_FILENAME];
@@ -69,16 +69,26 @@ void getshk_proc(void){
   sm_p->write_circbuf[BUFFER_SHKEVENT] = 1;
   
   /* Enter loop to read SHK events */
-  while(!sm_p->w[DIAID].die){
-    if(read_from_buffer(sm_p, &shkevent, BUFFER_SHKEVENT, DIAID)){
-      //Save shkevent
-      fwrite(&shkevent,sizeof(shkevent),1,out);
-      
-      //Check in with the watchdog
-      if(count++ % 10 == 0) checkin(sm_p,DIAID);
+  while(1){
+    if(clearcount < SHKEVENTSIZE){
+      //Clear the circular buffer to prevent stale data
+      if(read_from_buffer(sm_p, &shkevent[0], BUFFER_SHKEVENT, DIAID))
+	clearcount++;
+    }
+    else if(read_from_buffer(sm_p, &shkevent[count % SHK_NSAMPLES], BUFFER_SHKEVENT, DIAID)){
+      if(++count % SHK_NSAMPLES == 0){
+	//Save shkevent
+	fwrite(&shkevent,sizeof(shkevent),1,out);
+	
+	//Check in with the watchdog
+	checkin(sm_p,DIAID);
+
+	//Check if we've been asked to exit
+	if(sm_p->w[DIAID].die) break;
+      }
     }
   }
-
+  
   /* Set circular buffer back to default */
   sm_p->write_circbuf[BUFFER_SHKEVENT] = WRITE_SHKEVENT_DEFAULT;
 

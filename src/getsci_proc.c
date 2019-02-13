@@ -29,11 +29,11 @@ void getscictrlC(int sig)
 }
 
 void getsci_proc(void){
-  scievent_t scievent;
+  scievent_t scievent[SCI_NSAMPLES];
   struct stat st = {0};
   int shmfd;
   FILE *out=NULL;
-  unsigned long int count=0;
+  unsigned long int count=0,clearcount=0;
   char outfile[MAX_FILENAME];
   char temp[MAX_FILENAME];
   char path[MAX_FILENAME];
@@ -67,18 +67,28 @@ void getsci_proc(void){
 
   /* Start circular buffer */
   sm_p->write_circbuf[BUFFER_SCIEVENT] = 1;
-
+  
   /* Enter loop to read SCI events */
-  while(!sm_p->w[DIAID].die){
-    if(read_from_buffer(sm_p, &scievent, BUFFER_SCIEVENT, DIAID)){
-      //Save scievent
-      fwrite(&scievent,sizeof(scievent),1,out);
-      
-      //Check in with the watchdog
-      if(count++ % 10 == 0) checkin(sm_p,DIAID);
+  while(1){
+    if(clearcount < SCIEVENTSIZE){
+      //Clear the circular buffer to prevent stale data
+      if(read_from_buffer(sm_p, &scievent[0], BUFFER_SCIEVENT, DIAID))
+	clearcount++;
+    }
+    else if(read_from_buffer(sm_p, &scievent[count % SCI_NSAMPLES], BUFFER_SCIEVENT, DIAID)){
+      if(++count % SCI_NSAMPLES == 0){
+	//Save scievent
+	fwrite(&scievent,sizeof(scievent),1,out);
+	
+	//Check in with the watchdog
+	checkin(sm_p,DIAID);
+
+	//Check if we've been asked to exit
+	if(sm_p->w[DIAID].die) break;
+      }
     }
   }
-
+  
   /* Set circular buffer back to default */
   sm_p->write_circbuf[BUFFER_SCIEVENT] = WRITE_SCIEVENT_DEFAULT;
 

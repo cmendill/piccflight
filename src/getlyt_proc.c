@@ -29,11 +29,11 @@ void getlytctrlC(int sig)
 }
 
 void getlyt_proc(void){
-  lytevent_t lytevent;
+  lytevent_t lytevent[LYT_NSAMPLES];
   struct stat st = {0};
   int shmfd;
   FILE *out=NULL;
-  unsigned long int count=0;
+  unsigned long int count=0,clearcount=0;
   char outfile[MAX_FILENAME];
   char temp[MAX_FILENAME];
   char path[MAX_FILENAME];
@@ -67,18 +67,28 @@ void getlyt_proc(void){
 
   /* Start circular buffer */
   sm_p->write_circbuf[BUFFER_LYTEVENT] = 1;
-
+  
   /* Enter loop to read LYT events */
-  while(!sm_p->w[DIAID].die){
-    if(read_from_buffer(sm_p, &lytevent, BUFFER_LYTEVENT, DIAID)){
-      //Save lytevent
-      fwrite(&lytevent,sizeof(lytevent),1,out);
-      
-      //Check in with the watchdog
-      if(count++ % 10 == 0) checkin(sm_p,DIAID);
+  while(1){
+    if(clearcount < LYTEVENTSIZE){
+      //Clear the circular buffer to prevent stale data
+      if(read_from_buffer(sm_p, &lytevent[0], BUFFER_LYTEVENT, DIAID))
+	clearcount++;
+    }
+    else if(read_from_buffer(sm_p, &lytevent[count % LYT_NSAMPLES], BUFFER_LYTEVENT, DIAID)){
+      if(++count % LYT_NSAMPLES == 0){
+	//Save lytevent
+	fwrite(&lytevent,sizeof(lytevent),1,out);
+	
+	//Check in with the watchdog
+	checkin(sm_p,DIAID);
+
+	//Check if we've been asked to exit
+	if(sm_p->w[DIAID].die) break;
+      }
     }
   }
-
+  
   /* Set circular buffer back to default */
   sm_p->write_circbuf[BUFFER_LYTEVENT] = WRITE_LYTEVENT_DEFAULT;
 

@@ -402,6 +402,7 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SCIFULL,
  * SCI Camera Parameters
  *************************************************/
 #define SCI_NBANDS              5 //number of bands on a single SCI camera image
+#define SCI_NSAMPLES            1 //number of scievents to save in a single packet
 
 /*************************************************
  * BMC DM Parameters
