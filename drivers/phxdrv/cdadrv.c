@@ -1358,7 +1358,12 @@ static long CDA_ioctl(
       iRet = CDA_WaitEvent( pInst, &ev);
       if ( 0 <= iRet)
         {
-        copy_to_user_ret( (void*)ulParam, &ev, sizeof( ev), -EFAULT );
+         copy_to_user_ret( (void*)ulParam, &ev, sizeof( ev), -EFAULT );
+         //Unset the bit that was set before wake_process_interruptible
+         #if PICC_DIO_ENABLE
+         if(pInst->devicenum == PICC_SHK_DEVNUM) outb_p(0x00,PICC_DIO_BASE+PICC_DIO_PORTC); //UNSET DIO board PORTC bit C0
+         if(pInst->devicenum == PICC_LYT_DEVNUM) outb_p(0x00,PICC_DIO_BASE+PICC_DIO_PORTB); //UNSET DIO board PORTB bit B0 
+         #endif
         }
       }
     else
@@ -1678,13 +1683,16 @@ static void CDA_IrqTask( void * pv)
 #else
   CDA_SInstance* pInst = (CDA_SInstance*)pv;
 #endif
-  
   TRACE( 9, ( "%s(%p)\n", __FUNCTION__, pInst));
   ASSERT( NULL != pInst);
 #ifndef NDEBUG
   ASSERT( kMagic == pInst->eMagic);
 #endif
-
+  //Set DIO bits before waking up waiting processes
+  #if PICC_DIO_ENABLE
+  if(pInst->devicenum == PICC_SHK_DEVNUM) outb_p(0x01,PICC_DIO_BASE+PICC_DIO_PORTC); //SET DIO board PORTC bit C0
+  if(pInst->devicenum == PICC_LYT_DEVNUM) outb_p(0x01,PICC_DIO_BASE+PICC_DIO_PORTB); //SET DIO board PORTB bit B0 
+  #endif
   /* Wakeup all processes waiting for an event */
   wake_up_interruptible( &pInst->WaitQ);
   }
