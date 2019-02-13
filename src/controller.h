@@ -711,7 +711,7 @@ typedef struct hum_struct{
 /*************************************************
  * Packet Header
  *************************************************/
-#define PICC_PKT_VERSION     7  //packet version number
+#define PICC_PKT_VERSION     8  //packet version number
 typedef struct pkthed_struct{
   uint16  version;      //packet version number
   uint16  type;         //packet ID word
