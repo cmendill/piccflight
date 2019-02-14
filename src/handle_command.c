@@ -992,6 +992,20 @@ int handle_command(char *line, sm_t *sm_p){
     return(CMD_NORMAL);
   }
   
+  sprintf(cmd,"sci frmtime");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    ftemp = atof(line+strlen(cmd)+1);
+    if(ftemp >= SCI_FRMTIME_MIN && ftemp <= SCI_FRMTIME_MAX){
+      sm_p->sci_frmtime = ftemp;
+      sm_p->sci_exptime = ftemp;
+      sm_p->sci_reset_camera = 1;
+      printf("CMD: Setting SCI frmtime and exptime to %f seconds\n",sm_p->sci_frmtime);
+    }
+    else
+      printf("CMD: SCI frmtime must be between %f and %f seconds\n",SCI_FRMTIME_MIN,SCI_FRMTIME_MAX);
+    return(CMD_NORMAL);
+  }
+  
   sprintf(cmd,"shk exptime");
   if(!strncasecmp(line,cmd,strlen(cmd))){
     ftemp = atof(line+strlen(cmd)+1);
@@ -1002,6 +1016,20 @@ int handle_command(char *line, sm_t *sm_p){
     }
     else
       printf("CMD: SHK exptime must be between %f and %f seconds\n",SHK_EXPTIME_MIN,SHK_EXPTIME_MAX);
+    return(CMD_NORMAL);
+  }
+
+  sprintf(cmd,"shk frmtime");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    ftemp = atof(line+strlen(cmd)+1);
+    if(ftemp >= SHK_FRMTIME_MIN && ftemp <= SHK_FRMTIME_MAX){
+      sm_p->shk_frmtime = ftemp;
+      sm_p->shk_exptime = ftemp;
+      sm_p->shk_reset_camera = 1;
+      printf("CMD: Setting SHK frmtime and exptime to %f seconds\n",sm_p->shk_frmtime);
+    }
+    else
+      printf("CMD: SHK frmtime must be between %f and %f seconds\n",SHK_FRMTIME_MIN,SHK_FRMTIME_MAX);
     return(CMD_NORMAL);
   }
 
@@ -1018,6 +1046,20 @@ int handle_command(char *line, sm_t *sm_p){
     return(CMD_NORMAL);
   }
 
+  sprintf(cmd,"lyt frmtime");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    ftemp = atof(line+strlen(cmd)+1);
+    if(ftemp >= LYT_FRMTIME_MIN && ftemp <= LYT_FRMTIME_MAX){
+      sm_p->lyt_frmtime = ftemp;
+      sm_p->lyt_exptime = ftemp;
+      sm_p->lyt_reset_camera = 1;
+      printf("CMD: Setting LYT frmtime and exptime to %f seconds\n",sm_p->lyt_frmtime);
+    }
+    else
+      printf("CMD: LYT frmtime must be between %f and %f seconds\n",LYT_FRMTIME_MIN,LYT_FRMTIME_MAX);
+    return(CMD_NORMAL);
+  }
+
   sprintf(cmd,"acq exptime");
   if(!strncasecmp(line,cmd,strlen(cmd))){
     ftemp = atof(line+strlen(cmd)+1);
@@ -1028,6 +1070,20 @@ int handle_command(char *line, sm_t *sm_p){
     }
     else
       printf("CMD: ACQ exptime must be between %f and %f seconds\n",ACQ_EXPTIME_MIN,ACQ_EXPTIME_MAX);
+    return(CMD_NORMAL);
+  }
+
+  sprintf(cmd,"acq frmtime");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    ftemp = atof(line+strlen(cmd)+1);
+    if(ftemp >= ACQ_FRMTIME_MIN && ftemp <= ACQ_FRMTIME_MAX){
+      sm_p->acq_frmtime = ftemp;
+      sm_p->acq_exptime = ftemp;
+      sm_p->acq_reset_camera = 1;
+      printf("CMD: Setting ACQ frmtime and exptime to %f seconds\n",sm_p->acq_frmtime);
+    }
+    else
+      printf("CMD: ACQ frmtime must be between %f and %f seconds\n",ACQ_FRMTIME_MIN,ACQ_FRMTIME_MAX);
     return(CMD_NORMAL);
   }
 
@@ -1335,13 +1391,13 @@ int handle_command(char *line, sm_t *sm_p){
     sprintf(cmd,"htr all override on");
     if(!strncasecmp(line,cmd,strlen(cmd))){
       printf("CMD: Enabling ALL heaters manual override\n");
-      for(i=0;i<SSR_NCHAN;i++) sm_p->htr_override[i] = 1;
+      for(i=0;i<SSR_NCHAN;i++) sm_p->htr[i].override = 1;
       return CMD_NORMAL;
     }
     sprintf(cmd,"htr all override off");
     if(!strncasecmp(line,cmd,strlen(cmd))){
       printf("CMD: Disabling ALL heaters manual override\n");
-      for(i=0;i<SSR_NCHAN;i++) sm_p->htr_override[i] = 0;
+      for(i=0;i<SSR_NCHAN;i++) sm_p->htr[i].override = 0;
       return CMD_NORMAL;
     }
     //Loop through heaters
@@ -1349,22 +1405,22 @@ int handle_command(char *line, sm_t *sm_p){
       sprintf(cmd,"htr %d override on",i);
       if(!strncasecmp(line,cmd,strlen(cmd))){
         printf("CMD: Enabling heater %d manual override\n",i);
-	sm_p->htr_override[i] = 1;
+	sm_p->htr[i].override = 1;
 	return CMD_NORMAL;
       }
       sprintf(cmd,"htr %d override off",i);
       if(!strncasecmp(line,cmd,strlen(cmd))){
         printf("CMD: Disabling heater %d manual override\n",i);
-	sm_p->htr_override[i] = 0;
+	sm_p->htr[i].override = 0;
 	return CMD_NORMAL;
       }
       sprintf(cmd,"htr %d power",i);
       if(!strncasecmp(line,cmd,strlen(cmd))){
-	if(sm_p->htr_override[i]){
+	if(sm_p->htr[i].override){
 	  itemp = atoi(line+strlen(cmd)+1);
 	  if(itemp >= 0 && itemp <= 100){
-	    sm_p->htr_power[i] = itemp;
-	    printf("CMD: Setting heater %d power to %d percent\n",i,sm_p->htr_power[i]);
+	    sm_p->htr[i].power = itemp;
+	    printf("CMD: Setting heater %d power to %d percent\n",i,sm_p->htr[i].power);
 	    return CMD_NORMAL;
 	  }
 	  else{

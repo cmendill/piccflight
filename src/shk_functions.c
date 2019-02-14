@@ -256,11 +256,10 @@ void shk_centroid_cell(uint8 *image, shkcell_t *cell, int cmd_boxsize){
     }
   }
   
-  //Check if spot is above threshold
+  //Check if spot is above or below deadband threshold
   if(maxval > SHK_SPOT_UPPER_THRESH)
     cell->spot_found=1;
-  else{
-    //Reset cell
+  if(maxval < SHK_SPOT_LOWER_THRESH){
     cell->spot_found=0;
     cell->spot_captured=0;
   }

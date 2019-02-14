@@ -313,9 +313,13 @@ int main(int argc,char **argv){
   sm_p->die                = 0;
   sm_p->state              = STATE_STANDBY;
   sm_p->sci_exptime        = SCI_EXPTIME_DEFAULT;
+  sm_p->sci_frmtime        = SCI_FRMTIME_DEFAULT;
   sm_p->shk_exptime        = SHK_EXPTIME_DEFAULT;
+  sm_p->shk_frmtime        = SHK_FRMTIME_DEFAULT;
   sm_p->lyt_exptime        = LYT_EXPTIME_DEFAULT;
+  sm_p->lyt_frmtime        = LYT_FRMTIME_DEFAULT;
   sm_p->acq_exptime        = ACQ_EXPTIME_DEFAULT;
+  sm_p->acq_frmtime        = ACQ_FRMTIME_DEFAULT;
   sm_p->shk_boxsize        = SHK_BOXSIZE_DEFAULT;
   sm_p->hex_tilt_correct   = HEX_TILT_CORRECT_DEFAULT;
   sm_p->alp_n_dither       = -1;
@@ -408,6 +412,44 @@ int main(int argc,char **argv){
   sm_p->circbuf[BUFFER_ACQFULL].bufsize = ACQFULLSIZE;
   sm_p->write_circbuf[BUFFER_ACQFULL]   = WRITE_ACQFULL_DEFAULT;
   sprintf((char *)sm_p->circbuf[BUFFER_ACQFULL].name,"ACQFULL");
+
+  //Heater master enable
+  sm_p->htr_enable = 0;
+  
+  //Setup heater & sensor pairs
+  sm_p->htr[0].adc  = 0;
+  sm_p->htr[0].ch   = 0;
+  sm_p->htr[1].adc  = 0;
+  sm_p->htr[1].ch   = 0;
+  sm_p->htr[2].adc  = 0;
+  sm_p->htr[2].ch   = 0;
+  sm_p->htr[3].adc  = 0;
+  sm_p->htr[3].ch   = 0;
+  sm_p->htr[4].adc  = 0;
+  sm_p->htr[4].ch   = 0;
+  sm_p->htr[5].adc  = 0;
+  sm_p->htr[5].ch   = 0;
+  sm_p->htr[6].adc  = 0;
+  sm_p->htr[6].ch   = 0;
+  sm_p->htr[7].adc  = 0;
+  sm_p->htr[7].ch   = 0;
+  sm_p->htr[8].adc  = 0;
+  sm_p->htr[8].ch   = 0;
+  sm_p->htr[9].adc  = 0;
+  sm_p->htr[9].ch   = 0;
+  sm_p->htr[10].adc = 0;
+  sm_p->htr[10].ch  = 0;
+  sm_p->htr[11].adc = 0;
+  sm_p->htr[11].ch  = 0;
+  sm_p->htr[12].adc = 0;
+  sm_p->htr[12].ch  = 0;
+  sm_p->htr[13].adc = 0;
+  sm_p->htr[13].ch  = 0;
+  sm_p->htr[14].adc = 0;
+  sm_p->htr[14].ch  = 0;
+  sm_p->htr[15].adc = 0;
+  sm_p->htr[15].ch  = 0;
+  
 
   /* Setup IO Permissions for all ISA boards */
   if(ioperm(REL_BASE,REL_IOPORT_LENGTH,1)){

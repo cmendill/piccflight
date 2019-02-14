@@ -89,7 +89,7 @@ int shk_proc(void){
   char *configFileName = SHK_CONFIG_FILE;
   etStat eStat = PHX_OK;
   etParamValue eParamValue;
-  bobcatParamValue bParamValue;
+  bobcatParamValue bParamValue,expmin,expmax,expcmd,frmmin,frmcmd;
   int nLastEventCount = 0;
   tContext shkContext;
   ui64 dwParamValue;
@@ -177,39 +177,35 @@ int shk_proc(void){
     
     /* Setup exposure */
     usleep(500000);
-    printf("SHK: CCD Temp: %f\n",BOBCAT_GetTemp(shkCamera));
-    bParamValue = 10;
-    eStat = BOBCAT_ParameterSet( shkCamera, BOBCAT_EXP_TIME, &bParamValue );
-    eStat = BOBCAT_ParameterGet( shkCamera, BOBCAT_INFO_FRM_TIME, &bParamValue );
-    printf("SHK: Frame Time: %d\n",bParamValue);
-    eStat = BOBCAT_ParameterGet( shkCamera, BOBCAT_LN_TIME, &bParamValue );
-    printf(" - SHK: Line Time: %d\n", bParamValue&0x1FFF);
-    eStat = BOBCAT_ParameterGet( shkCamera, BOBCAT_INFO_MIN_LN_TIME, &bParamValue );
-    printf(" - SHK: min line time: %d\n", (bParamValue&0xFFFF0000)>>16);
-    eStat = BOBCAT_ParameterGet( shkCamera, BOBCAT_INFO_EXP_TIME, &bParamValue );
-    printf("SHK: Exp Time: %d\n",bParamValue);
-    eStat = BOBCAT_ParameterGet( shkCamera, BOBCAT_INFO_MIN_FRM_TIME, &bParamValue );
-    printf("SHK: Min Frame Time: %d\n",bParamValue);
-    eStat = BOBCAT_ParameterGet( shkCamera, BOBCAT_INFO_MIN_EXP_TIME, &bParamValue );
-    printf("SHK: Min Exp Time: %d\n",bParamValue);
-    eStat = BOBCAT_ParameterGet( shkCamera, BOBCAT_INFO_MAX_EXP_TIME, &bParamValue );
-    printf("SHK: Max Exp Time: %d\n",bParamValue);
-    usleep(500000);
-    bParamValue = lround(sm_p->shk_exptime*1000000);
-    eStat = BOBCAT_ParameterSet( shkCamera, BOBCAT_FRM_TIME, &bParamValue );
+    //Get minimum frame time and check against command
+    eStat = BOBCAT_ParameterGet( shkCamera, BOBCAT_INFO_MIN_FRM_TIME, &frmmin );
+    frmcmd = lround(sm_p->shk_frmtime*ONE_MILLION);
+    frmcmd = frmcmd < frmmin ? frmmin : frmcmd;
+    //Set the frame time
+    eStat = BOBCAT_ParameterSet( shkCamera, BOBCAT_FRM_TIME, &frmcmd );
     if ( PHX_OK != eStat ){
-      printf("SHK: BOBCAT_ParameterSet --> BOBCAT_FRM_TIME %d\n",bParamValue);
+      printf("SHK: BOBCAT_ParameterSet --> BOBCAT_FRM_TIME %d\n",frmcmd);
       shkctrlC(0);
     }
+    //Get minimum and maximum exposure time and check against command
     usleep(500000);
-    eStat = BOBCAT_ParameterGet( shkCamera, BOBCAT_INFO_MAX_EXP_TIME, &bParamValue );
-    printf("SHK: Setting exp = %d | frm = %ld\n",bParamValue, lround(sm_p->shk_exptime*1000000));
-    eStat = BOBCAT_ParameterSet( shkCamera, BOBCAT_EXP_TIME, &bParamValue );
+    eStat = BOBCAT_ParameterGet( shkCamera, BOBCAT_INFO_MIN_EXP_TIME, &expmin );
+    eStat = BOBCAT_ParameterGet( shkCamera, BOBCAT_INFO_MAX_EXP_TIME, &expmax );
+    expcmd = lround(sm_p->shk_exptime*ONE_MILLION);
+    expcmd = expcmd > expmax ? expmax : expcmd;
+    expcmd = expcmd < expmin ? expmin : expcmd;
+    eStat = BOBCAT_ParameterSet( shkCamera, BOBCAT_EXP_TIME, &expcmd );
     if ( PHX_OK != eStat ){
-      printf("SHK: BOBCAT_ParameterSet --> BOBCAT_EXP_TIME %d\n",bParamValue);
+      printf("SHK: BOBCAT_ParameterSet --> BOBCAT_EXP_TIME %d\n",expcmd);
       shkctrlC(0);
     }
-
+    //Get set exposure and frame times
+    eStat = BOBCAT_ParameterGet( shkCamera, BOBCAT_INFO_EXP_TIME, &expcmd );
+    eStat = BOBCAT_ParameterGet( shkCamera, BOBCAT_INFO_FRM_TIME, &frmcmd );
+    sm_p->shk_exptime = (double)expcmd / ONE_MILLION;
+    sm_p->shk_frmtime = (double)frmcmd / ONE_MILLION;
+    printf("SHK: Set frm = %d | exp = %d\n",frmcmd,expcmd);
+    
     /* ----------------------- Enter Exposure Loop ----------------------- */
     while(1){
       /* Check if we've been asked to exit */

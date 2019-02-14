@@ -300,12 +300,20 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SCIFULL,
  *************************************************/
 #define SHK_EXPTIME_MIN  0.010
 #define SHK_EXPTIME_MAX  16.00
+#define SHK_FRMTIME_MIN  0.010
+#define SHK_FRMTIME_MAX  16.00
 #define LYT_EXPTIME_MIN  0.001
 #define LYT_EXPTIME_MAX  16.00
+#define LYT_FRMTIME_MIN  0.001
+#define LYT_FRMTIME_MAX  16.00
 #define SCI_EXPTIME_MIN  0.001
 #define SCI_EXPTIME_MAX  600.0
+#define SCI_FRMTIME_MIN  0.001
+#define SCI_FRMTIME_MAX  600.0
 #define ACQ_EXPTIME_MIN  0.001
 #define ACQ_EXPTIME_MAX  1.000
+#define ACQ_FRMTIME_MIN  0.001
+#define ACQ_FRMTIME_MAX  1.000
 
 /*************************************************
  * Debug Messaging
@@ -350,8 +358,8 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SCIFULL,
 #define SHK_BOX_DEADBAND      3      //[pixels] deadband radius for switching to smaller boxsize
 #define SHK_MIN_BOXSIZE       (SHK_BOX_DEADBAND+1)
 #define SHK_MAX_BOXSIZE       27     //[pixels] gives a 5 pixel buffer around edges
-#define SHK_SPOT_UPPER_THRESH 200
-#define SHK_SPOT_LOWER_THRESH 100
+#define SHK_SPOT_UPPER_THRESH 5
+#define SHK_SPOT_LOWER_THRESH 2
 #define SHK_CELL_XOFF         78 //+1px = -0.24 microns tip/tilt
 #define SHK_CELL_YOFF         89
 #define SHK_CELL_ROTATION     0.0
@@ -703,6 +711,7 @@ typedef struct htr_struct{
   float  temp;     //Sensor temperature [C]
   float  setpoint; //Sensor setpoint [C]
   float  deadband; //Control deadband [C]
+  uint64 override; //User override flag (padded)
 } htr_t;
 
 typedef struct hum_struct{
@@ -713,7 +722,7 @@ typedef struct hum_struct{
 /*************************************************
  * Packet Header
  *************************************************/
-#define PICC_PKT_VERSION     8  //packet version number
+#define PICC_PKT_VERSION     9  //packet version number
 typedef struct pkthed_struct{
   uint16  version;      //packet version number
   uint16  type;         //packet ID word
@@ -932,11 +941,15 @@ typedef volatile struct {
   int state;                    //Current operational state
   state_t state_array[NSTATES]; //Array of states
 
-  //Camera exposure times
+  //Camera exposure & frame times
   float sci_exptime;
+  float sci_frmtime;
   float shk_exptime;
+  float shk_frmtime;
   float lyt_exptime;
+  float lyt_frmtime;
   float acq_exptime;
+  float acq_frmtime;
    
   //ALP Command
   int   alp_command_lock;
@@ -997,6 +1010,7 @@ typedef volatile struct {
   int stop_door[MTR_NDOORS];
   
   //Heater Settings
+  int   htr_enable;
   htr_t htr[SSR_NCHAN];
         
   //Zernike Targets

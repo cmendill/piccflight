@@ -25,8 +25,6 @@
 #define HTR_NSTEPS     100  //Heater resolution (0-100%)
 #define HTR_NCYCLES    10   //Number of heater output cycles
 #define ADC_NAVG       10   //Number of temperature reads to average
-#define HTR_OVER_MASK  0x80 //Bit 8
-#define HTR_POWER_MASK 0x7F //Bits 1-7
 
 /* temperature conversion */
 #define ADC1_VREF       4.71    //volts
@@ -67,12 +65,12 @@ void thm_proc(void){
   uint16_t htr_output;            // heater output word
   unsigned char htr_lsb=0,htr_msb=0;
   const long htr_sleep = ONE_MILLION / HTR_NSTEPS / HTR_NCYCLES; //us
+  int i, j, k, iavg;
 
   //DSCUD Variables
   BYTE result;                    // returned error code
   DSCB board1, board2, board3;    // handle used to refer to the board
   ERRPARAMS errorParams;          // structure for returning error code and error string
-  int i, j, k;                    // miscellaneous counters
   DSCSAMPLE samples1[ADC1_NCHAN]; // digital readings
   DSCSAMPLE samples2[ADC2_NCHAN]; // digital readings
   DSCSAMPLE samples3[ADC3_NCHAN]; // digital readings
@@ -82,39 +80,6 @@ void thm_proc(void){
   if(!init){
     memset(&thmevent,0,sizeof(thmevent));
     count=0;
-    //Setup heater & sensor pairs
-    thmevent.htr[0].adc  = 0;
-    thmevent.htr[0].ch   = 0;
-    thmevent.htr[1].adc  = 0;
-    thmevent.htr[1].ch   = 0;
-    thmevent.htr[2].adc  = 0;
-    thmevent.htr[2].ch   = 0;
-    thmevent.htr[3].adc  = 0;
-    thmevent.htr[3].ch   = 0;
-    thmevent.htr[4].adc  = 0;
-    thmevent.htr[4].ch   = 0;
-    thmevent.htr[5].adc  = 0;
-    thmevent.htr[5].ch   = 0;
-    thmevent.htr[6].adc  = 0;
-    thmevent.htr[6].ch   = 0;
-    thmevent.htr[7].adc  = 0;
-    thmevent.htr[7].ch   = 0;
-    thmevent.htr[8].adc  = 0;
-    thmevent.htr[8].ch   = 0;
-    thmevent.htr[9].adc  = 0;
-    thmevent.htr[9].ch   = 0;
-    thmevent.htr[10].adc = 0;
-    thmevent.htr[10].ch  = 0;
-    thmevent.htr[11].adc = 0;
-    thmevent.htr[11].ch  = 0;
-    thmevent.htr[12].adc = 0;
-    thmevent.htr[12].ch  = 0;
-    thmevent.htr[13].adc = 0;
-    thmevent.htr[13].ch  = 0;
-    thmevent.htr[14].adc = 0;
-    thmevent.htr[14].ch  = 0;
-    thmevent.htr[15].adc = 0;
-    thmevent.htr[15].ch  = 0;
     //Set init flag
     init=1;
     if(THM_DEBUG) printf("THM: Initialized\n");
@@ -355,9 +320,9 @@ void thm_proc(void){
     //=========================================================================
 
     //Run through averaging loop
-    for(iavg=0;i<ADC_NAVG;i++){
+    for(iavg=0;iavg<ADC_NAVG;iavg++){
       //Board 1 ADC
-#if PICC_DIO_ENABLE == 0
+      #if PICC_DIO_ENABLE == 0
       if((result = dscADScan(board1, &dscadscan1, samples1 )) != DE_NONE){
 	dscGetLastError(&errorParams);
 	fprintf(stderr, "THM: Board 1 dscADScan error: %s %s\n", dscGetErrorString(errorParams.ErrCode), errorParams.errstring);
@@ -374,7 +339,7 @@ void thm_proc(void){
 	if(iavg == 0) thmevent.adc1_temp[i] = 0; //reset temp to zero for averaging
 	thmevent.adc1_temp[i] += ((resistance - RTD_OHMS)/(RTD_ALPHA * RTD_OHMS)) / ADC_NAVG;
       }
-#endif
+      #endif
     
       //Board 2 ADC
       if((result = dscADScan(board2, &dscadscan2, samples2 )) != DE_NONE){
@@ -421,6 +386,7 @@ void thm_proc(void){
       thmevent.htr[i].maxpower = sm_p->htr[i].maxpower;
       thmevent.htr[i].setpoint = sm_p->htr[i].setpoint;
       thmevent.htr[i].deadband = sm_p->htr[i].deadband;
+      thmevent.htr[i].override = sm_p->htr[i].override;
       //Copy temperatures from adc arrays
       if(thmevent.htr[i].adc == 1) thmevent.htr[i].temp = thmevent.adc1_temp[thmevent.htr[i].ch];
       if(thmevent.htr[i].adc == 2) thmevent.htr[i].temp = thmevent.adc2_temp[thmevent.htr[i].ch];
@@ -430,24 +396,24 @@ void thm_proc(void){
     
     /* Run Temperature Control */
     for(i=0;i<SSR_NCHAN;i++){
-      //copy masked power
-      power = thmevent.htr[i].power & HTR_POWER_MASK;
       //check for power increase
-      if((thmevent.htr[i].temp < thmevent.htr[i].setpoint - thmevent.htr[i].deadband) && (power < thmevent.htr[i].maxpower))
-	power++;
+      if((thmevent.htr[i].temp < thmevent.htr[i].setpoint - thmevent.htr[i].deadband) && (thmevent.htr[i].power < thmevent.htr[i].maxpower))
+	thmevent.htr[i].power++;
       //check for power decrease
-      if((thmevent.htr[i].temp < thmevent.htr[i].setpoint - thmevent.htr[i].deadband) && (power > 0))
-	power--;
-      //return power
-      thmevent.htr[i].power = power;
+      if((thmevent.htr[i].temp > thmevent.htr[i].setpoint + thmevent.htr[i].deadband) && (thmevent.htr[i].power > 0))
+	thmevent.htr[i].power--;
     }
     
-
-    /* Heaters Override Commands */
-    for(i=0;i<SSR_NCHAN;i++)
-      if(sm_p->htr[i].override)
-	thmevent.htr[i].power = sm_p->htr[i].power | HTR_OVER_MASK;
     
+    /* User Override Commands */
+    for(i=0;i<SSR_NCHAN;i++)
+      if(thmevent.htr[i].override)
+	thmevent.htr[i].power = sm_p->htr[i].power;
+
+    /* Master Enable */
+    if(sm_p->htr_enable == 0)
+      for(i=0;i<SSR_NCHAN;i++)
+	thmevent.htr[i].power = 0;
     
     /* Command Heaters */
     for(k=0;k<HTR_NCYCLES;k++){
