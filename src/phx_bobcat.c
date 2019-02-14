@@ -82,7 +82,7 @@ etStat BOBCAT_ParameterGet(tHandle hCamera, bobcatParam parameter, void* value) 
     *(ui32*)value = (rxMsgBuffer[1]<<24)+(rxMsgBuffer[2]<<16)+(rxMsgBuffer[3]<<8)+(rxMsgBuffer[4]); /* all good */
   } else if (rxMsgBuffer[0] == 0x15) { /* camera returns an error code */
     int x;
-    printf("Camera error code returned for command \n");
+    printf("Camera error code returned for command : BOBCAT_ParameterGet\n");
     for ( x = 0; x < txMsgLength; x++ ) printf("[%02X]", txMsgBuffer[x]);
     printf("\n");
     printf("address  0x%02X%02X\n", txMsgBuffer[1], txMsgBuffer[2]);
@@ -137,11 +137,11 @@ etStat BOBCAT_ParameterSet(tHandle hCamera, bobcatParam parameter, void* value) 
   if (rxMsgBuffer[0] == 0x6){ /* all good */
   } else if (rxMsgBuffer[0] == 0x15) { /* camera returns an error code */
     int x;
-    printf("Camera error code returned for command \n");
+    printf("Camera error code returned for command : BOBCAT_ParameterSet \n");
     for ( x = 0; x < txMsgLength; x++ ) printf("[%02X]", txMsgBuffer[x]);
     printf("\n");
     printf("address  0x%02X%02X\n", txMsgBuffer[1], txMsgBuffer[2]);
-    printf("data     0x%02X%02X%02X%02X (%d)\n", rxMsgBuffer[3], rxMsgBuffer[4], rxMsgBuffer[5], rxMsgBuffer[6], *(ui32*)value);
+    printf("data     0x%02X%02X%02X%02X (%d)\n", txMsgBuffer[3], txMsgBuffer[4], txMsgBuffer[5], txMsgBuffer[6], *(ui32*)value);
     switch (rxMsgBuffer[1]) {
       case 0: printf("No error\n"); break;
       case 1: printf("Invalid command\n"); break;
