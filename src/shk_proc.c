@@ -182,6 +182,10 @@ int shk_proc(void){
     eStat = BOBCAT_ParameterSet( shkCamera, BOBCAT_EXP_TIME, &bParamValue );
     eStat = BOBCAT_ParameterGet( shkCamera, BOBCAT_INFO_FRM_TIME, &bParamValue );
     printf("SHK: Frame Time: %d\n",bParamValue);
+    eStat = BOBCAT_ParameterGet( shkCamera, BOBCAT_LN_TIME, &bParamValue );
+    printf(" - SHK: Line Time: %d\n", bParamValue&0x1FFF);
+    eStat = BOBCAT_ParameterGet( shkCamera, BOBCAT_INFO_MIN_LN_TIME, &bParamValue );
+    printf(" - SHK: min line time: %d\n", (bParamValue&0xFFFF0000)>>16);
     eStat = BOBCAT_ParameterGet( shkCamera, BOBCAT_INFO_EXP_TIME, &bParamValue );
     printf("SHK: Exp Time: %d\n",bParamValue);
     eStat = BOBCAT_ParameterGet( shkCamera, BOBCAT_INFO_MIN_FRM_TIME, &bParamValue );
