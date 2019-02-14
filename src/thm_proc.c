@@ -21,9 +21,12 @@
 #define MAX_AD_OFFSET  2
 #define MAX_AD_GAIN    2
 #define AD_CONFIG_MODE 3
-#define AD_RANGE_CODE  3
-#define HTR_NSTEPS     100
-#define HTR_NCYCLES    10
+#define AD_RANGE_CODE  3    
+#define HTR_NSTEPS     100  //Heater resolution (0-100%)
+#define HTR_NCYCLES    10   //Number of heater output cycles
+#define ADC_NAVG       10   //Number of temperature reads to average
+#define HTR_OVER_MASK  0x80 //Bit 8
+#define HTR_POWER_MASK 0x7F //Bits 1-7
 
 /* temperature conversion */
 #define ADC1_VREF       4.71    //volts
@@ -351,65 +354,100 @@ void thm_proc(void){
     // your board (under "A/D Conversion Formulas"). 
     //=========================================================================
 
-    //Board 1 ADC
-    #if PICC_DIO_ENABLE == 0
-    if((result = dscADScan(board1, &dscadscan1, samples1 )) != DE_NONE){
-      dscGetLastError(&errorParams);
-      fprintf(stderr, "THM: Board 1 dscADScan error: %s %s\n", dscGetErrorString(errorParams.ErrCode), errorParams.errstring);
-      thmctrlC(0);
-    }
-    for(i = 0; i < ADC1_NCHAN; i++){
-      if(dscADCodeToVoltage(board1, dscadsettings1, dscadscan1.sample_values[i], &voltage) != DE_NONE) {
+    //Run through averaging loop
+    for(iavg=0;i<ADC_NAVG;i++){
+      //Board 1 ADC
+#if PICC_DIO_ENABLE == 0
+      if((result = dscADScan(board1, &dscadscan1, samples1 )) != DE_NONE){
 	dscGetLastError(&errorParams);
-	fprintf(stderr, "THM: Board 1 dscADCodeToVoltage error: %s %s\n", dscGetErrorString(errorParams.ErrCode), errorParams.errstring);
-	fprintf(stderr, "THM: Gain = %d\n",dscadsettings1.gain);
+	fprintf(stderr, "THM: Board 1 dscADScan error: %s %s\n", dscGetErrorString(errorParams.ErrCode), errorParams.errstring);
 	thmctrlC(0);
       }
-      resistance = (voltage * ADC1_R1) / (ADC1_VREF - voltage);
-      thmevent.adc1_temp[i] = (resistance - RTD_OHMS)/(RTD_ALPHA * RTD_OHMS);
-    }
-    #endif
+      for(i = 0; i < ADC1_NCHAN; i++){
+	if(dscADCodeToVoltage(board1, dscadsettings1, dscadscan1.sample_values[i], &voltage) != DE_NONE) {
+	  dscGetLastError(&errorParams);
+	  fprintf(stderr, "THM: Board 1 dscADCodeToVoltage error: %s %s\n", dscGetErrorString(errorParams.ErrCode), errorParams.errstring);
+	  fprintf(stderr, "THM: Gain = %d\n",dscadsettings1.gain);
+	  thmctrlC(0);
+	}
+	resistance = (voltage * ADC1_R1) / (ADC1_VREF - voltage);
+	if(iavg == 0) thmevent.adc1_temp[i] = 0; //reset temp to zero for averaging
+	thmevent.adc1_temp[i] += ((resistance - RTD_OHMS)/(RTD_ALPHA * RTD_OHMS)) / ADC_NAVG;
+      }
+#endif
     
-    //Board 2 ADC
-    if((result = dscADScan(board2, &dscadscan2, samples2 )) != DE_NONE){
-      dscGetLastError(&errorParams);
-      fprintf(stderr, "THM: Board 2 dscADScan error: %s %s\n", dscGetErrorString(errorParams.ErrCode), errorParams.errstring);
-      thmctrlC(0);
-    }
-    for(i = 0; i < ADC2_NCHAN; i++){
-      if(dscADCodeToVoltage(board2, dscadsettings2, dscadscan2.sample_values[i], &voltage) != DE_NONE) {
+      //Board 2 ADC
+      if((result = dscADScan(board2, &dscadscan2, samples2 )) != DE_NONE){
 	dscGetLastError(&errorParams);
-	fprintf(stderr, "THM: Board 2 dscADCodeToVoltage error: %s %s\n", dscGetErrorString(errorParams.ErrCode), errorParams.errstring);
-	fprintf(stderr, "THM: Gain = %d\n",dscadsettings2.gain);
+	fprintf(stderr, "THM: Board 2 dscADScan error: %s %s\n", dscGetErrorString(errorParams.ErrCode), errorParams.errstring);
 	thmctrlC(0);
       }
-      resistance = (voltage * ADC2_R1) / (ADC2_VREF - voltage);
-      thmevent.adc2_temp[i] = (resistance - RTD_OHMS)/(RTD_ALPHA * RTD_OHMS);
-    }
+      for(i = 0; i < ADC2_NCHAN; i++){
+	if(dscADCodeToVoltage(board2, dscadsettings2, dscadscan2.sample_values[i], &voltage) != DE_NONE) {
+	  dscGetLastError(&errorParams);
+	  fprintf(stderr, "THM: Board 2 dscADCodeToVoltage error: %s %s\n", dscGetErrorString(errorParams.ErrCode), errorParams.errstring);
+	  fprintf(stderr, "THM: Gain = %d\n",dscadsettings2.gain);
+	  thmctrlC(0);
+	}
+	resistance = (voltage * ADC2_R1) / (ADC2_VREF - voltage);
+	if(iavg == 0) thmevent.adc2_temp[i] = 0; //reset temp to zero for averaging
+	thmevent.adc2_temp[i] += ((resistance - RTD_OHMS)/(RTD_ALPHA * RTD_OHMS)) / ADC_NAVG;
+      }
 
-    //Board 3 ADC
-    if((result = dscADScan(board3, &dscadscan3, samples3 )) != DE_NONE){
-      dscGetLastError(&errorParams);
-      fprintf(stderr, "THM: Board 3 dscADScan error: %s %s\n", dscGetErrorString(errorParams.ErrCode), errorParams.errstring);
-      thmctrlC(0);
-    }
-    for(i = 0; i < ADC3_NCHAN; i++){
-      if(dscADCodeToVoltage(board3, dscadsettings3, dscadscan3.sample_values[i], &voltage) != DE_NONE) {
+      //Board 3 ADC
+      if((result = dscADScan(board3, &dscadscan3, samples3 )) != DE_NONE){
 	dscGetLastError(&errorParams);
-	fprintf(stderr, "THM: Board 3 dscADCodeToVoltage error: %s %s\n", dscGetErrorString(errorParams.ErrCode), errorParams.errstring);
-	fprintf(stderr, "THM: Gain = %d\n",dscadsettings3.gain);
+	fprintf(stderr, "THM: Board 3 dscADScan error: %s %s\n", dscGetErrorString(errorParams.ErrCode), errorParams.errstring);
 	thmctrlC(0);
       }
-      resistance = (voltage * ADC3_R1) / (ADC3_VREF - voltage);
-      thmevent.adc3_temp[i] = (resistance - RTD_OHMS)/(RTD_ALPHA * RTD_OHMS);
+      for(i = 0; i < ADC3_NCHAN; i++){
+	if(dscADCodeToVoltage(board3, dscadsettings3, dscadscan3.sample_values[i], &voltage) != DE_NONE) {
+	  dscGetLastError(&errorParams);
+	  fprintf(stderr, "THM: Board 3 dscADCodeToVoltage error: %s %s\n", dscGetErrorString(errorParams.ErrCode), errorParams.errstring);
+	  fprintf(stderr, "THM: Gain = %d\n",dscadsettings3.gain);
+	  thmctrlC(0);
+	}
+	resistance = (voltage * ADC3_R1) / (ADC3_VREF - voltage);
+	if(iavg == 0) thmevent.adc3_temp[i] = 0; //reset temp to zero for averaging
+	thmevent.adc3_temp[i] += ((resistance - RTD_OHMS)/(RTD_ALPHA * RTD_OHMS)) / ADC_NAVG;
+      }
     }
     
-    /* Heaters Override Commands */
+    /* Set Control Parameters */
     for(i=0;i<SSR_NCHAN;i++){
-      thmevent.htr[i].override = sm_p->htr_override[i];
-      if(thmevent.htr[i].override)
-	thmevent.htr[i].power = sm_p->htr_power[i];
+      //Get controller settings from shared memory
+      thmevent.htr[i].adc      = sm_p->htr[i].adc;
+      thmevent.htr[i].ch       = sm_p->htr[i].ch;
+      thmevent.htr[i].maxpower = sm_p->htr[i].maxpower;
+      thmevent.htr[i].setpoint = sm_p->htr[i].setpoint;
+      thmevent.htr[i].deadband = sm_p->htr[i].deadband;
+      //Copy temperatures from adc arrays
+      if(thmevent.htr[i].adc == 1) thmevent.htr[i].temp = thmevent.adc1_temp[thmevent.htr[i].ch];
+      if(thmevent.htr[i].adc == 2) thmevent.htr[i].temp = thmevent.adc2_temp[thmevent.htr[i].ch];
+      if(thmevent.htr[i].adc == 3) thmevent.htr[i].temp = thmevent.adc3_temp[thmevent.htr[i].ch];
     }
+	  
+    
+    /* Run Temperature Control */
+    for(i=0;i<SSR_NCHAN;i++){
+      //copy masked power
+      power = thmevent.htr[i].power & HTR_POWER_MASK;
+      //check for power increase
+      if((thmevent.htr[i].temp < thmevent.htr[i].setpoint - thmevent.htr[i].deadband) && (power < thmevent.htr[i].maxpower))
+	power++;
+      //check for power decrease
+      if((thmevent.htr[i].temp < thmevent.htr[i].setpoint - thmevent.htr[i].deadband) && (power > 0))
+	power--;
+      //return power
+      thmevent.htr[i].power = power;
+    }
+    
+
+    /* Heaters Override Commands */
+    for(i=0;i<SSR_NCHAN;i++)
+      if(sm_p->htr[i].override)
+	thmevent.htr[i].power = sm_p->htr[i].power | HTR_OVER_MASK;
+    
     
     /* Command Heaters */
     for(k=0;k<HTR_NCYCLES;k++){

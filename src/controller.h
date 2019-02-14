@@ -698,9 +698,11 @@ typedef struct wsp_struct{
 typedef struct htr_struct{
   uint8  adc;      //ADC number {1,2,3}
   uint8  ch;       //ADC channel index
-  uint8  override; //Heater command override switch
   uint8  power;    //Heater power [0-100%]
-  float  temp;     //Sensor temperature
+  uint8  maxpower; //Heater max power [0-100%]
+  float  temp;     //Sensor temperature [C]
+  float  setpoint; //Sensor setpoint [C]
+  float  deadband; //Control deadband [C]
 } htr_t;
 
 typedef struct hum_struct{
@@ -994,10 +996,9 @@ typedef volatile struct {
   int close_door[MTR_NDOORS];
   int stop_door[MTR_NDOORS];
   
-  //Heater Commands
-  int htr_override[SSR_NCHAN];
-  int htr_power[SSR_NCHAN];
-      
+  //Heater Settings
+  htr_t htr[SSR_NCHAN];
+        
   //Zernike Targets
   double shk_zernike_target[LOWFS_N_ZERNIKE];
   double lyt_zernike_target[LOWFS_N_ZERNIKE];
