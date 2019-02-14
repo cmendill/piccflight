@@ -48,12 +48,16 @@ void print_procstatus(sm_t *sm_p){
 /* PRINT_STATES                                               */
 /*  - Print out available states                              */
 /**************************************************************/
-void print_states(sm_t *sm_p){
+void print_states(sm_t *sm_p, int current){
   int i;
   printf("************ Available States ************\n");
   printf("#    Command    Name\n");
-  for(i=0;i<NSTATES;i++)
-    printf("%02d   %-6s     %s\n",i,sm_p->state_array[i].cmd,sm_p->state_array[i].name);
+  for(i=0;i<NSTATES;i++){
+    if(current == i)
+      printf("%02d   %-6s    *%s\n",i,sm_p->state_array[i].cmd,sm_p->state_array[i].name);
+    else
+      printf("%02d   %-6s     %s\n",i,sm_p->state_array[i].cmd,sm_p->state_array[i].name);
+  }
   printf("******************************************\n");
 
 }
@@ -62,12 +66,16 @@ void print_states(sm_t *sm_p){
 /* PRINT_ALP_CALMODES                                         */
 /*  - Print available ALP calmodes                          */
 /**************************************************************/
-void print_alp_calmodes(calmode_t *alp){
+void print_alp_calmodes(calmode_t *alp, int current){
   int i;
   printf("************ Available ALP Calmodes  ************\n");
   printf("#    Command    Name\n");
-  for(i=0;i<ALP_NCALMODES;i++)
-    printf("%02d   %-6s     %s\n",i,alp[i].cmd,alp[i].name);
+  for(i=0;i<ALP_NCALMODES;i++){
+    if(current == i)
+      printf("%02d   %-6s    *%s\n",i,alp[i].cmd,alp[i].name);
+    else
+      printf("%02d   %-6s     %s\n",i,alp[i].cmd,alp[i].name);
+  }
   printf("*************************************************\n");
 }
 
@@ -75,12 +83,16 @@ void print_alp_calmodes(calmode_t *alp){
 /* PRINT_HEX_CALMODES                                         */
 /*  - Print available HEX calmodes                            */
 /**************************************************************/
-void print_hex_calmodes(calmode_t *hex){
+void print_hex_calmodes(calmode_t *hex, int current){
   int i;
   printf("************ Available HEX Calmodes  ************\n");
   printf("#    Command    Name\n");
-  for(i=0;i<HEX_NCALMODES;i++)
-    printf("%02d   %-6s     %s\n",i,hex[i].cmd,hex[i].name);
+  for(i=0;i<HEX_NCALMODES;i++){
+    if(current == i)
+      printf("%02d   %-6s    *%s\n",i,hex[i].cmd,hex[i].name);
+    else
+      printf("%02d   %-6s     %s\n",i,hex[i].cmd,hex[i].name);
+  }
   printf("*************************************************\n");
 }
 
@@ -88,12 +100,16 @@ void print_hex_calmodes(calmode_t *hex){
 /* PRINT_BMC_CALMODES                                         */
 /*  - Print available BMC calmodes                            */
 /**************************************************************/
-void print_bmc_calmodes(calmode_t *bmc){
+void print_bmc_calmodes(calmode_t *bmc, int current){
   int i;
   printf("************ Available BMC Calmodes  ************\n");
   printf("#    Command    Name\n");
-  for(i=0;i<BMC_NCALMODES;i++)
-    printf("%02d   %-6s     %s\n",i,bmc[i].cmd,bmc[i].name);
+  for(i=0;i<BMC_NCALMODES;i++){
+    if(current == i)
+      printf("%02d   %-6s    *%s\n",i,bmc[i].cmd,bmc[i].name);
+    else
+      printf("%02d   %-6s     %s\n",i,bmc[i].cmd,bmc[i].name);
+  }
   printf("*************************************************\n");
 }
 
@@ -101,12 +117,16 @@ void print_bmc_calmodes(calmode_t *bmc){
 /* PRINT_TGT_CALMODES                                         */
 /*  - Print available TGT calmodes                          */
 /**************************************************************/
-void print_tgt_calmodes(calmode_t *tgt){
+void print_tgt_calmodes(calmode_t *tgt, int current){
   int i;
   printf("************ Available TGT Calmodes  ************\n");
   printf("#    Command    Name\n");
-  for(i=0;i<TGT_NCALMODES;i++)
-    printf("%02d   %-6s     %s\n",i,tgt[i].cmd,tgt[i].name);
+  for(i=0;i<TGT_NCALMODES;i++){
+    if(current == i)
+      printf("%02d   %-6s    *%s\n",i,tgt[i].cmd,tgt[i].name);
+    else
+      printf("%02d   %-6s     %s\n",i,tgt[i].cmd,tgt[i].name);
+  }
   printf("*************************************************\n");
 }
 
@@ -114,12 +134,16 @@ void print_tgt_calmodes(calmode_t *tgt){
 /* PRINT_FAKEMODES                                            */
 /*  - Print available fake data modes                         */
 /**************************************************************/
-void print_fakemodes(calmode_t *fake){
+void print_fakemodes(calmode_t *fake, int current){
   int i;
   printf("******************* Available Fake Modes  *******************\n");
   printf("#    Command                Name\n");
-  for(i=0;i<NFAKEMODES;i++)
-    printf("%02d   %-18s     %s\n",i,fake[i].cmd,fake[i].name);
+  for(i=0;i<NFAKEMODES;i++){
+    if(current == i)
+      printf("%02d   %-18s    *%s\n",i,fake[i].cmd,fake[i].name);
+    else
+      printf("%02d   %-18s     %s\n",i,fake[i].cmd,fake[i].name);
+  }
   printf("*************************************************************\n");
 }
 
@@ -133,7 +157,8 @@ void print_zernikes(sm_t *sm_p){
   printf("Zernike   Controlled\n");
   for(i=0;i<LOWFS_N_ZERNIKE;i++){
     if(sm_p->zernike_control[i] == 1) printf("%02d        YES\n",i);        
-    if(sm_p->zernike_control[i] == 0) printf("%02d        NO\n",i);
+     else
+   if(sm_p->zernike_control[i] == 0) printf("%02d        NO\n",i);
   }
   printf("******************************************\n");
 
@@ -273,7 +298,7 @@ int handle_command(char *line, sm_t *sm_p){
 	  }
 	}
 	if(!cmdfound)
-	  print_fakemodes(fakemodes);
+	  print_fakemodes(fakemodes,sm_p->w[i].fakemode);
 	return(CMD_NORMAL);
       }
     }
@@ -292,7 +317,7 @@ int handle_command(char *line, sm_t *sm_p){
       }
     }
     if(!cmdfound)
-      print_alp_calmodes(alpcalmodes);
+      print_alp_calmodes(alpcalmodes,sm_p->alp_calmode);
     
     return(CMD_NORMAL);
   }
@@ -309,7 +334,7 @@ int handle_command(char *line, sm_t *sm_p){
       }
     }
     if(!cmdfound)
-      print_hex_calmodes(hexcalmodes);
+      print_hex_calmodes(hexcalmodes,sm_p->hex_calmode);
 
     return(CMD_NORMAL);
   }
@@ -326,7 +351,7 @@ int handle_command(char *line, sm_t *sm_p){
       }
     }
     if(!cmdfound)
-      print_bmc_calmodes(bmccalmodes);
+      print_bmc_calmodes(bmccalmodes,sm_p->bmc_calmode);
 
     return(CMD_NORMAL);
   }
@@ -343,7 +368,7 @@ int handle_command(char *line, sm_t *sm_p){
       }
     }
     if(!cmdfound)
-      print_tgt_calmodes(tgtcalmodes);
+      print_tgt_calmodes(tgtcalmodes,sm_p->tgt_calmode);
 
     return(CMD_NORMAL);
   }
@@ -360,7 +385,7 @@ int handle_command(char *line, sm_t *sm_p){
 	cmdfound = 1;
       }
     }
-    if(!cmdfound) print_states(sm_p);
+    if(!cmdfound) print_states(sm_p,sm_p->state);
     return(CMD_NORMAL);
   }
 
@@ -782,7 +807,7 @@ int handle_command(char *line, sm_t *sm_p){
       }
       if(!cmdfound){
 	printf("CMD: Could not find hex calmode\n");
-	print_hex_calmodes(hexcalmodes);
+	print_hex_calmodes(hexcalmodes,sm_p->hex_calmode);
 	return(CMD_NORMAL);
       }
       printf("CMD: Running SHK HEX calibration\n");
@@ -824,7 +849,7 @@ int handle_command(char *line, sm_t *sm_p){
       }
       if(!cmdfound){
 	printf("CMD: Could not find alp calmode\n");
-	print_alp_calmodes(alpcalmodes);
+	print_alp_calmodes(alpcalmodes,sm_p->alp_calmode);
 	return(CMD_NORMAL);
       }
       printf("CMD: Running SHK ALP calibration\n");
@@ -866,7 +891,7 @@ int handle_command(char *line, sm_t *sm_p){
       }
       if(!cmdfound){
 	printf("CMD: Could not find tgt calmode\n");
-	print_tgt_calmodes(tgtcalmodes);
+	print_tgt_calmodes(tgtcalmodes,sm_p->tgt_calmode);
 	return(CMD_NORMAL);
       }
       printf("CMD: Running SHK TGT calibration\n");
@@ -908,7 +933,7 @@ int handle_command(char *line, sm_t *sm_p){
       }
       if(!cmdfound){
 	printf("CMD: Could not find alp calmode\n");
-	print_alp_calmodes(alpcalmodes);
+	print_alp_calmodes(alpcalmodes,sm_p->alp_calmode);
 	return(CMD_NORMAL);
       }
       printf("CMD: Running LYT ALP calibration\n");
@@ -950,7 +975,7 @@ int handle_command(char *line, sm_t *sm_p){
       }
       if(!cmdfound){
 	printf("CMD: Could not find bmc calmode\n");
-	print_bmc_calmodes(bmccalmodes);
+	print_bmc_calmodes(bmccalmodes,sm_p->bmc_calmode);
 	return(CMD_NORMAL);
       }
       printf("CMD: Running SCI BMC calibration\n");
