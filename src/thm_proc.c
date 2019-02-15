@@ -384,6 +384,7 @@ void thm_proc(void){
       thmevent.htr[i].adc      = sm_p->htr[i].adc;
       thmevent.htr[i].ch       = sm_p->htr[i].ch;
       thmevent.htr[i].maxpower = sm_p->htr[i].maxpower;
+      thmevent.htr[i].enable   = sm_p->htr[i].enable;
       thmevent.htr[i].setpoint = sm_p->htr[i].setpoint;
       thmevent.htr[i].deadband = sm_p->htr[i].deadband;
       thmevent.htr[i].override = sm_p->htr[i].override;
@@ -409,10 +410,10 @@ void thm_proc(void){
     for(i=0;i<SSR_NCHAN;i++)
       if(thmevent.htr[i].override)
 	thmevent.htr[i].power = sm_p->htr[i].power;
-
-    /* Master Enable */
-    if(sm_p->htr_enable == 0)
-      for(i=0;i<SSR_NCHAN;i++)
+    
+    /* Heater Enable */
+    for(i=0;i<SSR_NCHAN;i++)
+      if(!thmevent.htr[i].enable)
 	thmevent.htr[i].power = 0;
     
     /* Command Heaters */
@@ -431,6 +432,12 @@ void thm_proc(void){
       }
     }
     if(THM_DEBUG) printf("THM: MSB: 0x%2.2x  LSB: 0x%2.2x\n",htr_msb,htr_lsb);
+
+    /* Copy values back to shared memory */
+    for(i=0;i<SSR_NCHAN;i++){
+      sm_p->htr[i].temp  = thmevent.htr[i].temp;
+      sm_p->htr[i].power = thmevent.htr[i].power;
+    }
 
     /* Get end timestamp */
     clock_gettime(CLOCK_REALTIME,&end);

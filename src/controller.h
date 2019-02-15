@@ -548,6 +548,18 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SCIFULL,
 #define MTR_NDOORS         4
 
 /*************************************************
+ * Heater Parameters
+ *************************************************/
+#define HTR_POWER_MIN      0
+#define HTR_POWER_MAX      100
+#define HTR_SETPOINT_MIN  -40
+#define HTR_SETPOINT_MAX   80
+#define HTR_DEADBAND_MIN   0
+#define HTR_DEADBAND_MAX   10
+#define HTR_ADC_MIN        1
+#define HTR_ADC_MAX        3
+
+/*************************************************
  * Command Uplink Parameters
  *************************************************/
 #define UPLINK_DEVICE   "/dev/ttyS1"
@@ -704,14 +716,18 @@ typedef struct wsp_struct{
 } wsp_t;
 
 typedef struct htr_struct{
+  char   name[MAX_COMMAND]; //Heater name
   uint8  adc;      //ADC number {1,2,3}
   uint8  ch;       //ADC channel index
   uint8  power;    //Heater power [0-100%]
   uint8  maxpower; //Heater max power [0-100%]
+  uint8  override; //User override flag
+  uint8  enable;   //Heater enable flag
+  uint16 pad1;  
+  uint32 pad2;
   float  temp;     //Sensor temperature [C]
   float  setpoint; //Sensor setpoint [C]
   float  deadband; //Control deadband [C]
-  uint64 override; //User override flag (padded)
 } htr_t;
 
 typedef struct hum_struct{
@@ -722,7 +738,7 @@ typedef struct hum_struct{
 /*************************************************
  * Packet Header
  *************************************************/
-#define PICC_PKT_VERSION     9  //packet version number
+#define PICC_PKT_VERSION     10  //packet version number
 typedef struct pkthed_struct{
   uint16  version;      //packet version number
   uint16  type;         //packet ID word
@@ -1010,7 +1026,6 @@ typedef volatile struct {
   int stop_door[MTR_NDOORS];
   
   //Heater Settings
-  int   htr_enable;
   htr_t htr[SSR_NCHAN];
         
   //Zernike Targets
