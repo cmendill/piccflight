@@ -190,15 +190,15 @@ enum bmccalmodes {BMC_CALMODE_NONE,
 #define LYT_CONFIG_FILE        "config/lyt.cfg"
 #define DATAPATH               "output/flight_data/folder_%5.5d/"
 #define DATANAME               "output/flight_data/folder_%5.5d/picture.%s.%8.8d.dat"
-#define SHK_HEX_CALFILE        "output/calibration/shk_hex_%s_%s_caldata.dat"
-#define SHK_ALP_CALFILE        "output/calibration/shk_alp_%s_%s_caldata.dat"
-#define SHK_TGT_CALFILE        "output/calibration/shk_tgt_%s_%s_caldata.dat"
-#define LYT_ALP_CALFILE        "output/calibration/lyt_alp_%s_%s_caldata.dat"
-#define SCI_BMC_CALFILE        "output/calibration/sci_bmc_%s_%s_caldata.dat"
+#define SHK_HEX_CALFILE        "output/calibration/shk_hex_%s_%s_%s_caldata.dat"
+#define SHK_ALP_CALFILE        "output/calibration/shk_alp_%s_%s_%s_caldata.dat"
+#define SHK_TGT_CALFILE        "output/calibration/shk_tgt_%s_%s_%s_caldata.dat"
+#define LYT_ALP_CALFILE        "output/calibration/lyt_alp_%s_%s_%s_caldata.dat"
+#define SCI_BMC_CALFILE        "output/calibration/sci_bmc_%s_%s__caldata.dat"
 #define SHKCEL2SHKZER_OUTFILE  "output/calibration/shkcel2shkzer_flight_output.dat"
 #define SHKZER2SHKCEL_OUTFILE  "output/calibration/shkzer2shkcel_flight_output.dat"
-#define SHK_OUTFILE            "output/calibration/shk_output.dat"
-#define LYT_OUTFILE            "output/calibration/lyt_output.dat"
+#define SHK_OUTFILE            "output/calibration/shk_output_%s.dat"
+#define LYT_OUTFILE            "output/calibration/lyt_output_%s.dat"
 #define SHK_ORIGIN_FILE        "output/settings/shk_origin.dat"
 #define ALP_FLAT_FILE          "output/settings/alp_flat.dat"
 #define SCI_ORIGIN_FILE        "output/settings/sci_origin.dat"
@@ -376,6 +376,7 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SCIFULL,
 #define SHK_ALP_CELL_INT_MIN -1
 #define SHK_ALP_ZERN_INT_MAX  0.1
 #define SHK_ALP_ZERN_INT_MIN -0.1
+#define SHK_SAVE_ZMATRIX      0
 #define SHK_NSAMPLES          20 //number of samples per shkevent
 #define SHK_BEAM_SELECT	{			\
       0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,		\

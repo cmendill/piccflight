@@ -89,7 +89,7 @@ int lyt_proc(void){
   char *configFileName = LYT_CONFIG_FILE;
   etStat eStat = PHX_OK;
   etParamValue eParamValue;
-  bobcatParamValue bParamValue,expmin,expmax,expcmd,frmmin,frmcmd;
+  bobcatParamValue bParamValue,expmin,expmax,expcmd,frmmin,frmcmd,lnmin;
   int nLastEventCount = 0;
   tContext lytContext;
   ui64 dwParamValue;
@@ -177,6 +177,10 @@ int lyt_proc(void){
     
     /* Setup exposure */
     usleep(500000);
+    //Get minimum line time and check against setting
+    eStat = BOBCAT_ParameterGet( lytCamera, BOBCAT_INFO_MIN_LN_TIME, &lnmin );
+    lnmin = ((lnmin & 0xFFFF0000) >> 16) & 0x0000FFFF;
+    printf("LYT: Min line time = %d\n",lnmin);
     //Get minimum frame time and check against command
     eStat = BOBCAT_ParameterGet( lytCamera, BOBCAT_INFO_MIN_FRM_TIME, &frmmin );
     frmcmd = lround(sm_p->lyt_frmtime*ONE_MILLION);

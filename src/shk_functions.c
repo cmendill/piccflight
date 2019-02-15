@@ -514,28 +514,30 @@ void shk_zernike_matrix(shkcell_t *cells, double *matrix_fwd, double *matrix_inv
   }
 
   /* Write forward matrix to file */
-  //Set up file name
-  sprintf(outfile, SHKZER2SHKCEL_OUTFILE);
-  //Create output folder if it does not exist
-  strcpy(temp,outfile);
-  strcpy(path,dirname(temp));
-  if(stat(path, &st) == -1){
-    printf("SHK: creating folder %s\n",path);
-    recursive_mkdir(path, 0777);
-  }
-  //Open file
-  if((fd = fopen(outfile, "w")) == NULL){
-    perror("SHK: zern2shk fopen");
-  }
-  else{
-    //Write matrix
-    if(fwrite(dz_dxdy,sizeof(dz_dxdy),1,fd) !=1){
-      perror("SHK: zern2shk fwrite");
-      fclose(fd);
-    }else{
-      //Close file
-      fclose(fd);
-      if(SHK_DEBUG) printf("SHK: Wrote Zernike matrix file: %s\n",outfile);
+  if(SHK_SAVE_ZMATRIX){
+    //Set up file name
+    sprintf(outfile, SHKZER2SHKCEL_OUTFILE);
+    //Create output folder if it does not exist
+    strcpy(temp,outfile);
+    strcpy(path,dirname(temp));
+    if(stat(path, &st) == -1){
+      printf("SHK: creating folder %s\n",path);
+      recursive_mkdir(path, 0777);
+    }
+    //Open file
+    if((fd = fopen(outfile, "w")) == NULL){
+      perror("SHK: zern2shk fopen");
+    }
+    else{
+      //Write matrix
+      if(fwrite(dz_dxdy,sizeof(dz_dxdy),1,fd) !=1){
+	perror("SHK: zern2shk fwrite");
+	fclose(fd);
+      }else{
+	//Close file
+	fclose(fd);
+	if(SHK_DEBUG) printf("SHK: Wrote Zernike matrix file: %s\n",outfile);
+      }
     }
   }
   
@@ -548,31 +550,33 @@ void shk_zernike_matrix(shkcell_t *cells, double *matrix_fwd, double *matrix_inv
     
   //Copy inverse matrix to calling routine
   memcpy(matrix_inv,dxdy_dz,sizeof(dxdy_dz));
-
+  
   /* Write inverse matrix to file */
-  //Set up file name
-  sprintf(outfile, SHKCEL2SHKZER_OUTFILE);
-  //Create output folder if it does not exist
-  strcpy(temp,outfile);
-  strcpy(path,dirname(temp));
-  if (stat(path, &st) == -1){
-    printf("SHK: creating folder %s\n",path);
-    recursive_mkdir(path, 0777);
-  }
-  //Open file
-  if((fd = fopen(outfile, "w")) == NULL){
-    perror("SHK: shk2zern fopen");
-  }
-  else{
-    //Write matrix
-    if(fwrite(dxdy_dz,sizeof(dxdy_dz),1,fd) !=1){
-      perror("SHK: shk2zern fwrite");
-      fclose(fd);
+  if(SHK_SAVE_ZMATRIX){
+    //Set up file name
+    sprintf(outfile, SHKCEL2SHKZER_OUTFILE);
+    //Create output folder if it does not exist
+    strcpy(temp,outfile);
+    strcpy(path,dirname(temp));
+    if (stat(path, &st) == -1){
+      printf("SHK: creating folder %s\n",path);
+      recursive_mkdir(path, 0777);
+    }
+    //Open file
+    if((fd = fopen(outfile, "w")) == NULL){
+      perror("SHK: shk2zern fopen");
     }
     else{
-      //Close file
-      fclose(fd);
-      if(SHK_DEBUG) printf("SHK: Wrote zernike matrix file: %s\n",outfile);
+      //Write matrix
+      if(fwrite(dxdy_dz,sizeof(dxdy_dz),1,fd) !=1){
+	perror("SHK: shk2zern fwrite");
+	fclose(fd);
+      }
+      else{
+	//Close file
+	fclose(fd);
+	if(SHK_DEBUG) printf("SHK: Wrote zernike matrix file: %s\n",outfile);
+      }
     }
   }
 }

@@ -425,7 +425,8 @@ int handle_command(char *line, sm_t *sm_p){
   if(!strncasecmp(line,cmd,strlen(cmd))){
     printf("CMD: Starting SHK data recording\n");
     //Setup filename
-    sprintf((char *)sm_p->calfile,SHK_OUTFILE);
+    timestamp(stemp);
+    sprintf((char *)sm_p->calfile,SHK_OUTFILE,stemp);
     //Start data recording
     printf("  -- Recording data to: %s\n",sm_p->calfile);
     sm_p->w[DIAID].launch = getshk_proc;
@@ -448,7 +449,8 @@ int handle_command(char *line, sm_t *sm_p){
   if(!strncasecmp(line,cmd,strlen(cmd))){
     printf("CMD: Starting LYT data recording\n");
     //Setup filename
-    sprintf((char *)sm_p->calfile,LYT_OUTFILE);
+    timestamp(stemp);
+    sprintf((char *)sm_p->calfile,LYT_OUTFILE,stemp);
     //Start data recording
     printf("  -- Recording data to: %s\n",sm_p->calfile);
     sm_p->w[DIAID].launch = getlyt_proc;
@@ -829,7 +831,8 @@ int handle_command(char *line, sm_t *sm_p){
       }
       printf("CMD: Running SHK HEX calibration\n");
       //Change calibration output filename
-      sprintf((char *)sm_p->calfile,SHK_HEX_CALFILE,hexcalmodes[calmode].cmd,sm_p->state_array[sm_p->state].cmd);
+      timestamp(stemp);
+      sprintf((char *)sm_p->calfile,SHK_HEX_CALFILE,hexcalmodes[calmode].cmd,sm_p->state_array[sm_p->state].cmd,stemp);
       //Start data recording
       printf("  -- Starting data recording to file: %s\n",sm_p->calfile);
       sm_p->w[DIAID].launch = getshk_proc;
@@ -871,7 +874,8 @@ int handle_command(char *line, sm_t *sm_p){
       }
       printf("CMD: Running SHK ALP calibration\n");
       //Change calibration output filename
-      sprintf((char *)sm_p->calfile,SHK_ALP_CALFILE,alpcalmodes[calmode].cmd,sm_p->state_array[sm_p->state].cmd);
+      timestamp(stemp);
+      sprintf((char *)sm_p->calfile,SHK_ALP_CALFILE,alpcalmodes[calmode].cmd,sm_p->state_array[sm_p->state].cmd,stemp);
       //Start data recording
       printf("  -- Starting data recording to file: %s\n",sm_p->calfile);
       sm_p->w[DIAID].launch = getshk_proc;
@@ -913,7 +917,8 @@ int handle_command(char *line, sm_t *sm_p){
       }
       printf("CMD: Running SHK TGT calibration\n");
       //Change calibration output filename
-      sprintf((char *)sm_p->calfile,SHK_TGT_CALFILE,tgtcalmodes[calmode].cmd,sm_p->state_array[sm_p->state].cmd);
+      timestamp(stemp);
+      sprintf((char *)sm_p->calfile,SHK_TGT_CALFILE,tgtcalmodes[calmode].cmd,sm_p->state_array[sm_p->state].cmd,stemp);
       //Start data recording
       printf("  -- Starting data recording to file: %s\n",sm_p->calfile);
       sm_p->w[DIAID].launch = getshk_proc;
@@ -955,7 +960,8 @@ int handle_command(char *line, sm_t *sm_p){
       }
       printf("CMD: Running LYT ALP calibration\n");
       //Change calibration output filename
-      sprintf((char *)sm_p->calfile,LYT_ALP_CALFILE,alpcalmodes[calmode].cmd,sm_p->state_array[sm_p->state].cmd);
+      timestamp(stemp);
+      sprintf((char *)sm_p->calfile,LYT_ALP_CALFILE,alpcalmodes[calmode].cmd,sm_p->state_array[sm_p->state].cmd,stemp);
       //Start data recording
       printf("  -- Starting data recording to file: %s\n",sm_p->calfile);
       sm_p->w[DIAID].launch = getlyt_proc;
@@ -997,7 +1003,8 @@ int handle_command(char *line, sm_t *sm_p){
       }
       printf("CMD: Running SCI BMC calibration\n");
       //Change calibration output filename
-      sprintf((char *)sm_p->calfile,SCI_BMC_CALFILE,bmccalmodes[calmode].cmd,sm_p->state_array[sm_p->state].cmd);
+      timestamp(stemp);
+      sprintf((char *)sm_p->calfile,SCI_BMC_CALFILE,bmccalmodes[calmode].cmd,sm_p->state_array[sm_p->state].cmd,stemp);
       //Start data recording
       printf("  -- Starting data recording to file: %s\n",sm_p->calfile);
       sm_p->w[DIAID].launch = getsci_proc;

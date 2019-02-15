@@ -440,7 +440,7 @@ void recursive_mkdir(const char *dir, mode_t mode) {
 /* RANDOM_ARRAY                                               */
 /* - Create an array of random numbers                        */
 /**************************************************************/
-void zernike_random(double *array, long num, double amplitude){
+void random_array(double *array, long num, double amplitude){
   time_t t;
   long i;
   
@@ -517,4 +517,17 @@ int setirq_affinity(int irq, int proc){
   //Return success
   return(0);
   
+}
+
+
+/**************************************************************/
+/* TIMESTAMP                                                  */
+/* - Generates a formatted timestamp string                   */
+/**************************************************************/
+void timestamp(char *ts){
+  time_t ltime;
+  ltime=time(NULL);
+  struct tm *tm;
+  tm=localtime(&ltime);
+  sprintf(ts,"%04d%02d%02d_%02d%02d%02d", tm->tm_year+1900, tm->tm_mon, tm->tm_mday, tm->tm_hour, tm->tm_min, tm->tm_sec);
 }
