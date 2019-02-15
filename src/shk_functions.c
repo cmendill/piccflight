@@ -225,10 +225,10 @@ void shk_centroid_cell(uint8 *image, shkcell_t *cell, int cmd_boxsize){
   boxsize = SHK_MAX_BOXSIZE;
   
   //Calculate corners of centroid box
-  blx = floor(cell->xtarget - boxsize);
-  bly = floor(cell->ytarget - boxsize);
-  trx = floor(cell->xtarget + boxsize);
-  try = floor(cell->ytarget + boxsize);
+  blx = floor((cell->xtarget - boxsize)/SHKBIN);
+  bly = floor((cell->ytarget - boxsize)/SHKBIN);
+  trx = floor((cell->xtarget + boxsize)/SHKBIN);
+  try = floor((cell->ytarget + boxsize)/SHKBIN);
   
   //Impose limits
   blx = blx > SHK_XMAX ? SHK_XMAX : blx;
@@ -250,8 +250,8 @@ void shk_centroid_cell(uint8 *image, shkcell_t *cell, int cmd_boxsize){
       intensity += image[px];
       if(image[px] > maxval){
 	maxval = image[px];
-	xcentroid = x + 0.5;
-	ycentroid = y + 0.5;
+	xcentroid = (x + 0.5)*SHKBIN;
+	ycentroid = (y + 0.5)*SHKBIN;
       }
     }
   }
@@ -291,10 +291,10 @@ void shk_centroid_cell(uint8 *image, shkcell_t *cell, int cmd_boxsize){
       boxsize = cmd_boxsize;
   
     //Calculate corners of centroid box
-    blx = floor(cell->xtarget - boxsize);
-    bly = floor(cell->ytarget - boxsize);
-    trx = floor(cell->xtarget + boxsize);
-    try = floor(cell->ytarget + boxsize);
+    blx = floor((cell->xtarget - boxsize)/SHKBIN);
+    bly = floor((cell->ytarget - boxsize)/SHKBIN);
+    trx = floor((cell->xtarget + boxsize)/SHKBIN);
+    try = floor((cell->ytarget + boxsize)/SHKBIN);
 
     //Impose limits
     blx = blx > SHK_XMAX ? SHK_XMAX : blx;
@@ -330,8 +330,8 @@ void shk_centroid_cell(uint8 *image, shkcell_t *cell, int cmd_boxsize){
     }
     
     //Calculate centroid
-    xcentroid = xnum/total;
-    ycentroid = ynum/total;
+    xcentroid = (xnum/total) * SHKBIN;
+    ycentroid = (ynum/total) * SHKBIN;
   }
   
   //Save boxsize
@@ -385,8 +385,8 @@ void shk_centroid(uint8 *image, shkevent_t *shkevent){
   double background=0;
   
   //Calculate detector background
-  for(i=20;i<50;i++){
-    for(j=20;j<50;j++){
+  for(i=20/SHKBIN;i<50/SHKBIN;i++){
+    for(j=20/SHKBIN;j<50/SHKBIN;j++){
       px = i + j*SHKYS;
       background += image[px];
       npix++;
@@ -407,7 +407,7 @@ void shk_centroid(uint8 *image, shkevent_t *shkevent){
 /**************************************************************/
 void shk_zernike_matrix(shkcell_t *cells, double *matrix_fwd, double *matrix_inv){
   int i;
-  double max_x = 0, max_y = 0, min_x = SHKXS, min_y = SHKYS;
+  double max_x = 0, max_y = 0, min_x = SHKXS*SHKBIN, min_y = SHKYS*SHKBIN;
   double beam_xcenter,beam_ycenter,beam_radius,beam_radius_m,unit_conversion;
   double dz_dxdy[2*SHK_BEAM_NCELLS*LOWFS_N_ZERNIKE] = {0};
   double dxdy_dz[2*SHK_BEAM_NCELLS*LOWFS_N_ZERNIKE] = {0};

@@ -279,8 +279,9 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SCIFULL,
  *************************************************/
 #define SCIXS           100
 #define SCIYS           100
-#define SHKXS           1024
-#define SHKYS           1024
+#define SHKXS           512
+#define SHKYS           512
+#define SHKBIN          2
 #define LYTXS           32
 #define LYTYS           32
 #define ACQXS           1280
