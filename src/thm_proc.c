@@ -411,10 +411,17 @@ void thm_proc(void){
       if(thmevent.htr[i].override)
 	thmevent.htr[i].power = sm_p->htr[i].power;
     
-    /* Heater Enable */
+    /* Check Heater Enable */
     for(i=0;i<SSR_NCHAN;i++)
       if(!thmevent.htr[i].enable)
 	thmevent.htr[i].power = 0;
+
+    /* Limit Heater Power (safety only, this should never do anything) */
+    for(i=0;i<SSR_NCHAN;i++){
+      thmevent.htr[i].power = thmevent.htr[i].power > thmevent.htr[i].maxpower ? thmevent.htr[i].maxpower : thmevent.htr[i].power;
+      thmevent.htr[i].power = thmevent.htr[i].power < 0 ? 0 : thmevent.htr[i].power;
+    }
+
     
     /* Command Heaters */
     for(k=0;k<HTR_NCYCLES;k++){
@@ -436,9 +443,10 @@ void thm_proc(void){
     /* Copy values back to shared memory */
     for(i=0;i<SSR_NCHAN;i++){
       sm_p->htr[i].temp  = thmevent.htr[i].temp;
-      sm_p->htr[i].power = thmevent.htr[i].power;
+      if(!thmevent.htr[i].override)
+	sm_p->htr[i].power = thmevent.htr[i].power;
     }
-
+    
     /* Get end timestamp */
     clock_gettime(CLOCK_REALTIME,&end);
     thmevent.hed.end_sec = end.tv_sec;

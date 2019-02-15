@@ -416,7 +416,7 @@ int main(int argc,char **argv){
   
   /* Initialize Heater Settings */
   for(i=0;i<SSR_NCHAN;i++)
-    thm_init_heater(i,&sm_p->htr[i]);
+    thm_init_heater(i,(htr_t *)&sm_p->htr[i]);
    
   /* Setup IO Permissions for all ISA boards */
   if(ioperm(REL_BASE,REL_IOPORT_LENGTH,1)){

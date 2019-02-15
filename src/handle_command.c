@@ -7,7 +7,7 @@
 #include <signal.h>
 #include <fcntl.h>
 #include <ctype.h>
-//#include <sys/io.h>
+#include <sys/io.h>
 
 /* piccflight headers */
 #include "watchdog.h"
@@ -174,7 +174,7 @@ void print_htr_status(sm_t *sm_p){
   printf("******************************** Heater Status *********************************\n");
     printf("%3s%7s%7s%7s%7s%7s%7s%7s%7s%7s%7s\n","#","Name","Enable","Over","Power","Max","ADC","CH","Temp","SetP","DeadB");
   for(i=0;i<SSR_NCHAN;i++)
-    printf("%3d%7s%7d%7d%7d%7d%7d%7d%7f%7f%7f\n",i,sm_p->htr[i].name,sm_p->htr[i].enable,sm_p->htr[i].override,sm_p->htr[i].power,sm_p->htr[i].maxpower,sm_p->htr[i].adc,sm_p->htr[i].ch,sm_p->htr[i].temp,sm_p->htr[i].setpoint,sm_p->htr[i].deadband);
+    printf("%3d%7s%7d%7d%7d%7d%7d%7d%7.2f%7.2f%7.2f\n",i,sm_p->htr[i].name,sm_p->htr[i].enable,sm_p->htr[i].override,sm_p->htr[i].power,sm_p->htr[i].maxpower,sm_p->htr[i].adc,sm_p->htr[i].ch,sm_p->htr[i].temp,sm_p->htr[i].setpoint,sm_p->htr[i].deadband);
   printf("********************************************************************************\n");
 
 }
@@ -1443,6 +1443,7 @@ int handle_command(char *line, sm_t *sm_p){
 	sm_p->htr[i].override = 1;
 	sm_p->htr[i].power    = 0; //zero power to be safe
       }
+      print_htr_status(sm_p);
       return CMD_NORMAL;
     }
     sprintf(cmd,"htr all release");
@@ -1452,18 +1453,21 @@ int handle_command(char *line, sm_t *sm_p){
 	sm_p->htr[i].override = 0;
 	sm_p->htr[i].power    = 0; //zero power to be safe
       }
+      print_htr_status(sm_p);
       return CMD_NORMAL;
     }
     sprintf(cmd,"htr all enable");
     if(!strncasecmp(line,cmd,strlen(cmd))){
       printf("CMD: Enabling ALL heaters\n");
       for(i=0;i<SSR_NCHAN;i++) sm_p->htr[i].enable = 1;
+      print_htr_status(sm_p);
       return CMD_NORMAL;
     }
     sprintf(cmd,"htr all disable");
     if(!strncasecmp(line,cmd,strlen(cmd))){
       printf("CMD: Disabling ALL heaters\n");
       for(i=0;i<SSR_NCHAN;i++) sm_p->htr[i].enable = 0;
+      print_htr_status(sm_p);
       return CMD_NORMAL;
     }
     //Commands for individual heaters
@@ -1473,6 +1477,7 @@ int handle_command(char *line, sm_t *sm_p){
         printf("CMD: Enabling heater %d manual override\n",i);
 	sm_p->htr[i].override = 1;
 	sm_p->htr[i].power    = 0; //zero power to be safe
+	print_htr_status(sm_p);
 	return CMD_NORMAL;
       }
       sprintf(cmd,"htr %d release",i);
@@ -1480,18 +1485,21 @@ int handle_command(char *line, sm_t *sm_p){
         printf("CMD: Disabling heater %d manual override\n",i);
 	sm_p->htr[i].override = 0;
 	sm_p->htr[i].power    = 0; //zero power to be safe
+	print_htr_status(sm_p);
 	return CMD_NORMAL;
       }
       sprintf(cmd,"htr %d enable",i);
       if(!strncasecmp(line,cmd,strlen(cmd))){
         printf("CMD: Enabling heater %d\n",i);
 	sm_p->htr[i].enable = 1;
+	print_htr_status(sm_p);
 	return CMD_NORMAL;
       }
       sprintf(cmd,"htr %d disable",i);
       if(!strncasecmp(line,cmd,strlen(cmd))){
         printf("CMD: Disabling heater %d\n",i);
 	sm_p->htr[i].enable = 0;
+	print_htr_status(sm_p);
 	return CMD_NORMAL;
       }
       sprintf(cmd,"htr %d power",i);
@@ -1502,6 +1510,7 @@ int handle_command(char *line, sm_t *sm_p){
 	    if(itemp >= HTR_POWER_MIN && itemp <= sm_p->htr[i].maxpower){
 	      sm_p->htr[i].power = itemp;
 	      printf("CMD: Setting heater %d power to %d percent\n",i,sm_p->htr[i].power);
+	      print_htr_status(sm_p);
 	      return CMD_NORMAL;
 	    }
 	    else{
@@ -1525,6 +1534,7 @@ int handle_command(char *line, sm_t *sm_p){
 	if(itemp >= HTR_POWER_MIN && itemp <= HTR_POWER_MAX){
 	  sm_p->htr[i].maxpower = itemp;
 	  printf("CMD: Setting heater %d max power to %d percent\n",i,sm_p->htr[i].maxpower);
+	  print_htr_status(sm_p);
 	  return CMD_NORMAL;
 	}
 	else{
@@ -1538,6 +1548,7 @@ int handle_command(char *line, sm_t *sm_p){
 	if(ftemp >= HTR_SETPOINT_MIN && ftemp <= HTR_SETPOINT_MAX){
 	  sm_p->htr[i].setpoint = ftemp;
 	  printf("CMD: Setting heater %d setpoint to %f C\n",i,sm_p->htr[i].setpoint);
+	  print_htr_status(sm_p);
 	  return CMD_NORMAL;
 	}
 	else{
@@ -1551,6 +1562,7 @@ int handle_command(char *line, sm_t *sm_p){
 	if(ftemp >= HTR_DEADBAND_MIN && ftemp <= HTR_DEADBAND_MAX){
 	  sm_p->htr[i].deadband = ftemp;
 	  printf("CMD: Setting heater %d deadband to %f C\n",i,sm_p->htr[i].deadband);
+	  print_htr_status(sm_p);
 	  return CMD_NORMAL;
 	}
 	else{
@@ -1581,6 +1593,7 @@ int handle_command(char *line, sm_t *sm_p){
 	    sm_p->htr[i].adc = iadc;
 	    sm_p->htr[i].ch  = ich;
 	    printf("CMD: Setting heater %d sensor to ADC %d CH %d\n",i,sm_p->htr[i].adc,sm_p->htr[i].ch);
+	    print_htr_status(sm_p);
 	    return CMD_NORMAL;
 	  }
 	  else{
@@ -1593,6 +1606,7 @@ int handle_command(char *line, sm_t *sm_p){
 	    sm_p->htr[i].adc = iadc;
 	    sm_p->htr[i].ch  = ich;
 	    printf("CMD: Setting heater %d sensor to ADC %d CH %d\n",i,sm_p->htr[i].adc,sm_p->htr[i].ch);
+	    print_htr_status(sm_p);
 	    return CMD_NORMAL;
 	  }
 	  else{
@@ -1605,6 +1619,7 @@ int handle_command(char *line, sm_t *sm_p){
 	    sm_p->htr[i].adc = iadc;
 	    sm_p->htr[i].ch  = ich;
 	    printf("CMD: Setting heater %d sensor to ADC %d CH %d\n",i,sm_p->htr[i].adc,sm_p->htr[i].ch);
+	    print_htr_status(sm_p);
 	    return CMD_NORMAL;
 	  }
 	  else{
