@@ -1,6 +1,7 @@
 excludes.txt
 sync.sh
 time.sh
+data.sh
 .git
 .gitignore
 *~
