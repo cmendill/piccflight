@@ -177,12 +177,13 @@ int shk_proc(void){
     
     /* Setup exposure */
     usleep(500000);
-    //Get minimum line time and check against setting
+    //Get minimum line time
     eStat = BOBCAT_ParameterGet( shkCamera, BOBCAT_INFO_MIN_LN_TIME, &lnmin );
     lnmin = ((lnmin & 0xFFFF0000) >> 16) & 0x0000FFFF;
-    printf("SHK: Min line time = %d\n",lnmin);
     //Get minimum frame time and check against command
     eStat = BOBCAT_ParameterGet( shkCamera, BOBCAT_INFO_MIN_FRM_TIME, &frmmin );
+    frmmin &= 0x00FFFFFF;
+    printf("SHK: Min line = %d | frame = %d\n",lnmin,frmmin);
     frmcmd = lround(sm_p->shk_frmtime*ONE_MILLION);
     frmcmd = frmcmd < frmmin ? frmmin : frmcmd;
     //Set the frame time
@@ -195,6 +196,8 @@ int shk_proc(void){
     usleep(500000);
     eStat = BOBCAT_ParameterGet( shkCamera, BOBCAT_INFO_MIN_EXP_TIME, &expmin );
     eStat = BOBCAT_ParameterGet( shkCamera, BOBCAT_INFO_MAX_EXP_TIME, &expmax );
+    expmin &= 0x00FFFFFF;
+    expmax &= 0x00FFFFFF;
     expcmd = lround(sm_p->shk_exptime*ONE_MILLION);
     expcmd = expcmd > expmax ? expmax : expcmd;
     expcmd = expcmd < expmin ? expmin : expcmd;
@@ -206,6 +209,8 @@ int shk_proc(void){
     //Get set exposure and frame times
     eStat = BOBCAT_ParameterGet( shkCamera, BOBCAT_INFO_EXP_TIME, &expcmd );
     eStat = BOBCAT_ParameterGet( shkCamera, BOBCAT_INFO_FRM_TIME, &frmcmd );
+    expcmd &= 0x00FFFFFF;
+    frmcmd &= 0x00FFFFFF;
     sm_p->shk_exptime = (double)expcmd / ONE_MILLION;
     sm_p->shk_frmtime = (double)frmcmd / ONE_MILLION;
     printf("SHK: Set frm = %d | exp = %d\n",frmcmd,expcmd);
