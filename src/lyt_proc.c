@@ -31,22 +31,24 @@ uint32 lyt_frame_count=0;
 
 /* Prototypes */
 void lyt_process_image(stImageBuff *buffer,sm_t *sm_p,uint32 frame_number);
+float BOBCAT_GetTemp(tHandle hCamera);
 
 /* CTRL-C Function */
 void lytctrlC(int sig)
 {
   close(lyt_shmfd);
-  if ( lytCamera ) PHX_StreamRead( lytCamera, PHX_ABORT, NULL ); /* Now cease all captures */
+  if(lytCamera)
+    PHX_StreamRead( lytCamera, PHX_ABORT, NULL ); /* Now cease all captures */
 
-  if ( lytCamera ) { /* Release the Phoenix board */
-    PHX_Close( &lytCamera ); /* Close the Phoenix board */
-    PHX_Destroy( &lytCamera ); /* Destroy the Phoenix handle */
+  if(lytCamera) {            /* Release the Phoenix board */
+    PHX_Close(&lytCamera);   /* Close the Phoenix board */
+    PHX_Destroy(&lytCamera); /* Destroy the Phoenix handle */
   }
 
 #if MSG_CTRLC
   printf("LYT: exiting\n");
 #endif
-  
+
   exit(sig);
 }
 
@@ -60,7 +62,6 @@ static void lyt_callback( tHandle lytCamera, ui32 dwInterruptMask, void *pvParam
   if ( dwInterruptMask & PHX_INTRPT_BUFFER_READY ) {
     stImageBuff stBuffer;
     tContext *aContext = (tContext *)pvParams;
-
     //Set DIO bit B1
     #if PICC_DIO_ENABLE
     outb(0x02,PICC_DIO_BASE+PICC_DIO_PORTB);
@@ -88,13 +89,12 @@ int lyt_proc(void){
   char *configFileName = LYT_CONFIG_FILE;
   etStat eStat = PHX_OK;
   etParamValue eParamValue;
-  bobcatParamValue bParamValue;
+  bobcatParamValue bParamValue,expmin,expmax,expcmd,frmmin,frmcmd;
   int nLastEventCount = 0;
   tContext lytContext;
   ui64 dwParamValue;
   etParamValue roiWidth, roiHeight, bufferWidth, bufferHeight;
   int camera_running = 0;
-
   
   /* Open Shared Memory */
   sm_t *sm_p;
@@ -162,6 +162,7 @@ int lyt_proc(void){
     printf("LYT: Camera current size        : [%d x %d]\n", (bParamValue&0x0000FFFF), (bParamValue&0xFFFF0000)>>16 );
   }
     
+
   /* ----------------------- Enter Main Loop ----------------------- */
   while(1){
     
@@ -173,30 +174,44 @@ int lyt_proc(void){
     }
     camera_running = 0;
     printf("LYT: Camera stopped\n");
-
+    
     /* Setup exposure */
     usleep(500000);
-    bParamValue = lround(sm_p->lyt_exptime*1000000);
-    eStat = BOBCAT_ParameterSet( lytCamera, BOBCAT_FRM_TIME, &bParamValue );
+    //Get minimum frame time and check against command
+    eStat = BOBCAT_ParameterGet( lytCamera, BOBCAT_INFO_MIN_FRM_TIME, &frmmin );
+    frmcmd = lround(sm_p->lyt_frmtime*ONE_MILLION);
+    frmcmd = frmcmd < frmmin ? frmmin : frmcmd;
+    //Set the frame time
+    eStat = BOBCAT_ParameterSet( lytCamera, BOBCAT_FRM_TIME, &frmcmd );
     if ( PHX_OK != eStat ){
-      printf("LYT: BOBCAT_ParameterSet --> BOBCAT_FRM_TIME %d\n",bParamValue);
+      printf("LYT: BOBCAT_ParameterSet --> BOBCAT_FRM_TIME %d\n",frmcmd);
       lytctrlC(0);
     }
+    //Get minimum and maximum exposure time and check against command
     usleep(500000);
-    eStat = BOBCAT_ParameterGet( lytCamera, BOBCAT_INFO_MAX_EXP_TIME, &bParamValue );
-    printf("LYT: Setting exp = %d | frm = %ld\n",bParamValue, lround(sm_p->lyt_exptime*1000000));
-    eStat = BOBCAT_ParameterSet( lytCamera, BOBCAT_EXP_TIME, &bParamValue );
+    eStat = BOBCAT_ParameterGet( lytCamera, BOBCAT_INFO_MIN_EXP_TIME, &expmin );
+    eStat = BOBCAT_ParameterGet( lytCamera, BOBCAT_INFO_MAX_EXP_TIME, &expmax );
+    expcmd = lround(sm_p->lyt_exptime*ONE_MILLION);
+    expcmd = expcmd > expmax ? expmax : expcmd;
+    expcmd = expcmd < expmin ? expmin : expcmd;
+    eStat = BOBCAT_ParameterSet( lytCamera, BOBCAT_EXP_TIME, &expcmd );
     if ( PHX_OK != eStat ){
-      printf("LYT: BOBCAT_ParameterSet --> BOBCAT_EXP_TIME %d\n",bParamValue);
+      printf("LYT: BOBCAT_ParameterSet --> BOBCAT_EXP_TIME %d\n",expcmd);
       lytctrlC(0);
     }
-
+    //Get set exposure and frame times
+    eStat = BOBCAT_ParameterGet( lytCamera, BOBCAT_INFO_EXP_TIME, &expcmd );
+    eStat = BOBCAT_ParameterGet( lytCamera, BOBCAT_INFO_FRM_TIME, &frmcmd );
+    sm_p->lyt_exptime = (double)expcmd / ONE_MILLION;
+    sm_p->lyt_frmtime = (double)frmcmd / ONE_MILLION;
+    printf("LYT: Set frm = %d | exp = %d\n",frmcmd,expcmd);
+    
     /* ----------------------- Enter Exposure Loop ----------------------- */
     while(1){
       /* Check if we've been asked to exit */
       if(sm_p->w[LYTID].die)
 	lytctrlC(0);
-
+      
       /* Check if we've been asked to reset the exposure */
       if(sm_p->lyt_reset_camera){
 	sm_p->lyt_reset_camera = 0;
