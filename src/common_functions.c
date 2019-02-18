@@ -539,18 +539,19 @@ void timestamp(char *ts){
 /*   to create an evenly spaced array of 1s & 0s              */
 /**************************************************************/
 int ditherfill(int *index, int length){
-  double *findex;
-  int *used;
-  double delta;
+  int debug = 0; //set for debugging statements
   unsigned int i,j,k,l,in,fn;
+  double delta;
+  double *findex;
+  int    *used;
   
   //malloc arrays
-  if((findex = (double *)malloc(length * sizeof(double))) == NULL){
-    printf("COM: malloc error ditherfill\n");
+  if((findex = (double *)malloc(2*length * sizeof(double))) == NULL){
+    printf("COM: malloc error ditherfill (findex)\n");
     return -1;
   }
   if((used = (int *)malloc(length * sizeof(int))) == NULL){
-    printf("COM: malloc error ditherfill\n");
+    printf("COM: malloc error ditherfill (used)\n");
     return -1;
   }
   
@@ -558,7 +559,10 @@ int ditherfill(int *index, int length){
   memset(findex,0,length * sizeof(double));
   memset(used,0,length * sizeof(int));
 
-   //fill the first two elements
+  //print header
+  if(debug) printf("%4s %4s %4s %4s %8s %8s %8s %4s %4s\n","j","k","l","fn","base","del","find","iind","used");
+  
+  //fill the first two elements
   fn=0;
   in=0;
   findex[fn] = 0;
@@ -584,6 +588,7 @@ int ditherfill(int *index, int length){
       l=(k/4)+i;
       findex[fn] = findex[l]-delta;
       index[in]  = floorl(findex[fn]);
+      if(debug) printf("%4d %4d %4d %4d %8.4f %8.4f %8.4f %4d %4d\n",j,k,l,fn,findex[l],-delta,findex[fn],index[in],used[index[in]]);
       //check if this index has been used
       if(!used[index[in]]){
 	used[index[in]] = 1;
@@ -596,6 +601,7 @@ int ditherfill(int *index, int length){
       l=(k/4)+i;
       findex[fn] = findex[l]+delta;
       index[in]  = floorl(findex[fn]);
+      if(debug) printf("%4d %4d %4d %4d %8.4f %8.4f %8.4f %4d %4d\n",j,k,l,fn,findex[l],-delta,findex[fn],index[in],used[index[in]]);
       //check if this index has been used
       if(!used[index[in]]){
 	used[index[in]] = 1;
@@ -606,8 +612,15 @@ int ditherfill(int *index, int length){
     //increment j
     j++;
   }
-  for(i=0;i<length;i++)
-    printf("%d %d\n",index[i],used[index[i]]);
+
+  //print results
+  if(debug){
+    printf("\n");
+    printf("---- Final Results ----\n");
+    printf("%4s %4s %4s\n","num","ind","used");
+    for(i=0;i<LENGTH;i++)
+      printf("%4d %4d %4d\n",i,index[i],used[i]);
+  }
 
   return 0;
 }
