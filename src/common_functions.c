@@ -531,3 +531,69 @@ void timestamp(char *ts){
   tm=localtime(&ltime);
   sprintf(ts,"%04d%02d%02d_%02d%02d%02d", tm->tm_year+1900, tm->tm_mon, tm->tm_mday, tm->tm_hour, tm->tm_min, tm->tm_sec);
 }
+
+/**************************************************************/
+/* DITHERFILL                                                 */
+/* - Fills an array (index) with indices in order of use      */
+/*   to create an evenly spaced array of 1s & 0s              */
+/**************************************************************/
+void ditherfill(int *index, int length){
+  double *findex = (double *)malloc(length * sizeof(double));
+  int *used = (int *)malloc(length * sizeof(int));
+  double delta;
+  unsigned int i,j,k,l,in,fn;
+
+  //zero out arrays
+  memset(findex,0,length * sizeof(double));
+  memset(used,0,length * sizeof(int));
+
+   //fill the first two elements
+  fn=0;
+  in=0;
+  findex[fn] = 0;
+  index[in]  = floor(findex[fn]);
+  used[index[in]] = 1;
+  fn++;
+  in++;
+  findex[fn] = length/2;
+  index[in]  = floor(findex[fn]);
+  used[index[in]] = 1;
+  fn++;
+  in++;
+
+  //fill remaining elements
+  j=2;
+  
+  while(in < length){
+    k=pow(2,j);
+    delta = (double)length/(double)k;
+    
+    //minus deltas
+    for(i=0;i<k/4;i++){
+      l=(k/4)+i;
+      findex[fn] = findex[l]-delta;
+      index[in]  = floor(findex[fn]);
+      //check if this index has been used
+      if(!used[index[in]]){
+	used[index[in]] = 1;
+	in++;
+      }
+      fn++;
+    }
+    //plus deltas
+    for(i=0;i<k/4;i++){
+      l=(k/4)+i;
+      findex[fn] = findex[l]+delta;
+      index[in]  = floor(findex[fn]);
+      //check if this index has been used
+      if(!used[index[in]]){
+	used[index[in]] = 1;
+	in++;
+      }
+      fn++;
+    }
+    //increment j
+    j++;
+  }
+
+}

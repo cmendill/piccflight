@@ -28,6 +28,7 @@ void random_array(double *array, long num, double amplitude);
 int getirq(char *driver);
 int setirq_affinity(int irq, int proc);
 void timestamp(char *ts);
+void ditherfill(int *index, int length);
 
 #endif
 
