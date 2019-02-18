@@ -66,6 +66,7 @@ void thm_proc(void){
   unsigned char htr_lsb=0,htr_msb=0;
   const long htr_sleep = ONE_MILLION / HTR_NSTEPS / HTR_NCYCLES; //us
   int i, j, k, iavg;
+  static int power_index[HTR_NSTEPS];
 
   //DSCUD Variables
   BYTE result;                    // returned error code
@@ -80,6 +81,11 @@ void thm_proc(void){
   if(!init){
     memset(&thmevent,0,sizeof(thmevent));
     count=0;
+    //Get dither indicies for heater control
+    if(ditherfill(power_index,HTR_NSTEPS)){
+      for(i=0;i<HTR_NSTEPS;i++)
+	power_index[i] = i;
+    }
     //Set init flag
     init=1;
     if(THM_DEBUG) printf("THM: Initialized\n");
@@ -429,6 +435,10 @@ void thm_proc(void){
 	htr_output = 0;
 	for(j=0;j<SSR_NCHAN;j++)
 	  htr_output |= (i < thmevent.htr[j].power) << j;
+	//SRR Board: 1 = OFF, 0 = ON
+	//Take ones complement of the command
+	//Seperate LSB and MSB
+	//Send to board
 	htr_lsb = ~htr_output & 0x00FF;
 	htr_msb = (~htr_output & 0xFF00) >> 8;
 	outb(htr_lsb,SSR_BASE+0);
