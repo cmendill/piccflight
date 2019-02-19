@@ -62,12 +62,13 @@ void thm_proc(void){
   static int init = 0;
   static unsigned long count=0;
   double resistance;              // calculated RTD resistance
-  uint16_t htr_output;            // heater output word
+  uint16_t htr_command;           // heater command word
   unsigned char htr_lsb=0,htr_msb=0;
   const long htr_sleep = ONE_MILLION / HTR_NSTEPS / HTR_NCYCLES; //us
   int i, j, k, iavg;
-  static int power_index[HTR_NSTEPS];
-
+  static int pulse_index[HTR_NSTEPS];
+  int htr_pulse[SSR_NCHAN][HTR_NSTEPS];
+  
   //DSCUD Variables
   BYTE result;                    // returned error code
   DSCB board1, board2, board3;    // handle used to refer to the board
@@ -82,9 +83,10 @@ void thm_proc(void){
     memset(&thmevent,0,sizeof(thmevent));
     count=0;
     //Get dither indicies for heater control
-    if(ditherfill(power_index,HTR_NSTEPS)){
+    if(ditherfill(pulse_index,HTR_NSTEPS)){
+      printf("THM: ditherfill error. Using default.\n");
       for(i=0;i<HTR_NSTEPS;i++)
-	power_index[i] = i;
+	pulse_index[i] = i;
     }
     //Set init flag
     init=1;
@@ -426,21 +428,30 @@ void thm_proc(void){
     for(i=0;i<SSR_NCHAN;i++){
       thmevent.htr[i].power = thmevent.htr[i].power > thmevent.htr[i].maxpower ? thmevent.htr[i].maxpower : thmevent.htr[i].power;
       thmevent.htr[i].power = thmevent.htr[i].power < 0 ? 0 : thmevent.htr[i].power;
+      thmevent.htr[i].power = thmevent.htr[i].power > HTR_POWER_MAX ? HTR_POWER_MAX : thmevent.htr[i].power;
     }
-
     
+    /* Fill out Heater Pulses */
+    memset(htr_pulse,0,sizeof(htr_pulse));
+    for(i=0;i<SSR_NCHAN;i++)
+      for(j=0;j<thmevent.htr[i].power;j++)
+	htr_pulse[i][pulse_index[j]] = 1;
+	
     /* Command Heaters */
-    for(k=0;k<HTR_NCYCLES;k++){
-      for(i=0;i<HTR_NSTEPS;i++){
-	htr_output = 0;
-	for(j=0;j<SSR_NCHAN;j++)
-	  htr_output |= (i < thmevent.htr[j].power) << j;
-	//SRR Board: 1 = OFF, 0 = ON
-	//Take ones complement of the command
+    for(i=0;i<HTR_NCYCLES;i++){
+      for(j=0;j<HTR_NSTEPS;j++){
+	htr_command = 0;
+	for(k=0;k<SSR_NCHAN;k++){
+	  htr_command |= htr_pulse[k][j] << k;
+	}
+	
+	//htr_command: 1 = ON,  0 = OFF
+	//SRR Board:   1 = OFF, 0 = ON
+	//Take ones complement of htr_command
 	//Seperate LSB and MSB
 	//Send to board
-	htr_lsb = ~htr_output & 0x00FF;
-	htr_msb = (~htr_output & 0xFF00) >> 8;
+	htr_lsb = ~htr_command & 0x00FF;
+	htr_msb = (~htr_command & 0xFF00) >> 8;
 	outb(htr_lsb,SSR_BASE+0);
 	outb(htr_msb,SSR_BASE+4);
 	

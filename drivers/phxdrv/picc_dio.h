@@ -1,7 +1,7 @@
 #ifndef _PICC_DIO
 #define _PICC_DIO
 
-#define PICC_DIO_ENABLE  1      //Set to enable DIO debugging strobes
+#define PICC_DIO_ENABLE  0      //Set to enable DIO debugging strobes
 #define PICC_DIO_BASE    0x300
 #define PICC_DIO_PORTA   12     //Port A on DMM ADC board
 #define PICC_DIO_PORTB   13     //Port B on DMM ADC board

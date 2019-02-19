@@ -618,7 +618,7 @@ int ditherfill(int *index, int length){
     printf("\n");
     printf("---- Final Results ----\n");
     printf("%4s %4s %4s\n","num","ind","used");
-    for(i=0;i<LENGTH;i++)
+    for(i=0;i<length;i++)
       printf("%4d %4d %4d\n",i,index[i],used[i]);
   }
 
