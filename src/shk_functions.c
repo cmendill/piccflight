@@ -892,8 +892,10 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
 
   //Save gains
   memcpy(shkevent.gain_alp_cell,(void *)sm_p->shk_gain_alp_cell,sizeof(shkevent.gain_alp_cell));
-  memcpy(shkevent.gain_alp_zern,(void *)sm_p->shk_gain_alp_zern,sizeof(shkevent.gain_alp_zern));
   memcpy(shkevent.gain_hex_zern,(void *)sm_p->shk_gain_hex_zern,sizeof(shkevent.gain_hex_zern));
+  for(i=0;i<LOWFS_N_ZERNIKE;i++)
+    for(j=0;j<LOWFS_N_PID;j++)
+      shkevent.gain_alp_zern[i][j] = sm_p->shk_gain_alp_zern[i][j] * sm_p->zernike_control[i];
   
   //Save calmodes
   shkevent.hed.hex_calmode = sm_p->hex_calmode;

@@ -1,5 +1,5 @@
 #!/bin/bash
 
-#sync files. use checksums. use gse time.
-rsync -ctrlpgoDvz --delete --exclude-from=excludes.txt ../piccflight picture@picture:
+#sync files
+rsync -avz --update --delete --exclude-from=excludes.txt ../piccflight picture@picture:
 

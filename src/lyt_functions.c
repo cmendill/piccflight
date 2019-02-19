@@ -595,8 +595,10 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   lytevent.hed.tgt_calmode  = sm_p->tgt_calmode;
  
   //Save gains
-  memcpy(&lytevent.gain_alp_zern[0][0],(double *)&sm_p->lyt_gain_alp_zern[0][0],sizeof(lytevent.gain_alp_zern));
   memcpy(lytevent.gain_alp_act,(double *)sm_p->lyt_gain_alp_act,sizeof(lytevent.gain_alp_act));
+  for(i=0;i<LOWFS_N_ZERNIKE;i++)
+    for(j=0;j<LOWFS_N_PID;j++)
+      lytevent.gain_alp_zern[i][j] = sm_p->lyt_gain_alp_zern[i][j] * sm_p->zernike_control[i];
   
   //Save zernike targets
   memcpy(lytevent.zernike_target,(double *)sm_p->lyt_zernike_target,sizeof(lytevent.zernike_target));

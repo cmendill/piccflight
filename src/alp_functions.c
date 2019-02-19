@@ -28,6 +28,7 @@
 void alp_init_calmode(int calmode, calmode_t *alp){
   int i;
   const double shk_zramp[LOWFS_N_ZERNIKE]={4.0,4.0,1.25,1.5,1.5,0.5,0.5,1.0,1.0,0.3,0.3,0.3,0.7,0.7,0.2,0.2,0.2,0.2,0.6,0.6,0.2,0.2,0.2};
+  const double lyt_zramp[LOWFS_N_ZERNIKE]={0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05};
   
   //DEFAULTS
   alp->shk_ncalim = ALP_SHK_NCALIM;
@@ -97,7 +98,7 @@ void alp_init_calmode(int calmode, calmode_t *alp){
     alp->shk_boxsize_cmd = SHK_BOXSIZE_CMD_MAX;
     for(i=0;i<LOWFS_N_ZERNIKE;i++){
       alp->shk_zpoke[i]  = shk_zramp[i];
-      alp->lyt_zpoke[i]  = 0.01*shk_zramp[i];
+      alp->lyt_zpoke[i]  = lyt_zramp[i];
     }
   }
 
@@ -421,7 +422,7 @@ int alp_calibrate(int calmode, alp_t *alp, uint32_t *step, int procid, int reset
   static struct timespec start,this,last,delta;
   static double zernike_errors[LOWFS_N_ZERNIKE][ZERNIKE_ERRORS_NUMBER]={{0}};
   const double zernike_timestep = ZERNIKE_ERRORS_PERIOD;
-  static int init=0;
+  static int init=0,quick_init=0;
   time_t t;
   FILE *fileptr=NULL;
   char filename[MAX_FILENAME];
@@ -440,25 +441,20 @@ int alp_calibrate(int calmode, alp_t *alp, uint32_t *step, int procid, int reset
   static uint64 countB[ALP_NCALMODES] = {0};
   static calmode_t alpcalmodes[ALP_NCALMODES];
 
-  /* Reset */
-  if(reset){
-    memset(countA,0,sizeof(countA));
-    memset(countB,0,sizeof(countB));
-    memset(mode_init,0,sizeof(mode_init));
-    memset(alp_start,0,sizeof(alp_start));
-    memset(last_zernike,0,sizeof(last_zernike));
-    init=0;
-    return calmode;
-  }
-
-  /* Initialize */
-  if(!init){
+  /* Reset & Quick Init*/
+  if(reset || !quick_init){
     memset(countA,0,sizeof(countA));
     memset(countB,0,sizeof(countB));
     memset(mode_init,0,sizeof(mode_init));
     memset(alp_start,0,sizeof(alp_start));
     memset(last_zernike,0,sizeof(last_zernike));
     clock_gettime(CLOCK_REALTIME, &start);
+    quick_init = 1;
+    if(reset) return calmode;
+  }
+  
+  /* Initialize (slow) */
+  if(!init){
     //Init ALP calmodes
     for(i=0;i<ALP_NCALMODES;i++)
       alp_init_calmode(i,&alpcalmodes[i]);
@@ -483,6 +479,7 @@ int alp_calibrate(int calmode, alp_t *alp, uint32_t *step, int procid, int reset
       perror("fread");
       goto endofinit;
     }
+    printf("ALP: Read for PROC %d: %s\n",procid,filename);
   endofinit:
     //--close file
     if(fileptr != NULL){
@@ -505,7 +502,6 @@ int alp_calibrate(int calmode, alp_t *alp, uint32_t *step, int procid, int reset
     ncalim = alpcalmodes[calmode].lyt_ncalim;
   }
   
-
   /* Calculate times */
   clock_gettime(CLOCK_REALTIME, &this);
   if(timespec_subtract(&delta,&this,&start))
@@ -532,7 +528,7 @@ int alp_calibrate(int calmode, alp_t *alp, uint32_t *step, int procid, int reset
       //Turn off calibration
       printf("ALP: Stopping ALP calmode ALP_CALMODE_TIMER\n");
       calmode = ALP_CALMODE_NONE;
-      init = 0;
+      quick_init = 0;
     }
 
     //Increment counter
@@ -593,7 +589,7 @@ int alp_calibrate(int calmode, alp_t *alp, uint32_t *step, int procid, int reset
       //Turn off calibration
       printf("ALP: Stopping ALP calmode ALP_CALMODE_POKE\n");
       calmode = ALP_CALMODE_NONE;
-      init = 0;
+      quick_init = 0;
     }
     return calmode;
 
@@ -637,7 +633,7 @@ int alp_calibrate(int calmode, alp_t *alp, uint32_t *step, int procid, int reset
       //Turn off calibration
       printf("ALP: Stopping calmode ALP_CALMODE_ZPOKE\n");
       calmode = ALP_CALMODE_NONE;
-      init = 0;
+      quick_init = 0;
     }
     return calmode;
   }
@@ -673,7 +669,7 @@ int alp_calibrate(int calmode, alp_t *alp, uint32_t *step, int procid, int reset
       //Turn off calibration
       printf("ALP: Stopping ALP calmode ALP_CALMODE_RAMP\n");
       calmode = ALP_CALMODE_NONE;
-      init = 0;
+      quick_init = 0;
     }
     return calmode;
 
@@ -718,7 +714,7 @@ int alp_calibrate(int calmode, alp_t *alp, uint32_t *step, int procid, int reset
       //Turn off calibration
       printf("ALP: Stopping calmode ALP_CALMODE_ZRAMP\n");
       calmode = ALP_CALMODE_NONE;
-      init = 0;
+      quick_init = 0;
     }
     return calmode;
   }
@@ -764,7 +760,7 @@ int alp_calibrate(int calmode, alp_t *alp, uint32_t *step, int procid, int reset
       //Turn off calibration
       printf("ALP: Stopping ALP calmode ALP_CALMODE_FLIGHT\n");
       calmode = ALP_CALMODE_NONE;
-      init = 0;
+      quick_init = 0;
       return calmode;
     }
   }

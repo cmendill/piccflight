@@ -191,7 +191,7 @@ int handle_command(char *line, sm_t *sm_p){
   int    cmdfound=0;
   int    i=0,j=0,hex_axis=0;
   double hex_poke=0;
-  int    calmode=0;
+  int    calmode=0,count=0;
   uint16_t led;
   static double trl_poke = HEX_TRL_POKE;//0.01;
   static double rot_poke = HEX_ROT_POKE;///0.01;
@@ -405,7 +405,20 @@ int handle_command(char *line, sm_t *sm_p){
     if(!cmdfound) print_states(sm_p,sm_p->state);
     return(CMD_NORMAL);
   }
-
+  
+  //Flight Simulator Length
+  sprintf(cmd,"flight sim length");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    itemp = atoi(line+strlen(cmd)+1);
+    if(itemp >= 0 && itemp <= ZERNIKE_ERRORS_LENGTH){
+      sm_p->flight_sim_length = itemp;
+      printf("CMD: Setting flight sim length to %d seconds\n",itemp);
+    }
+    else
+      printf("CMD: Flight sim length = [0,%d] seconds\n",ZERNIKE_ERRORS_LENGTH);
+    return(CMD_NORMAL);
+  }
+  
   //Sleep
   sprintf(cmd,"sleep");
   if(!strncasecmp(line,cmd,strlen(cmd))){
@@ -884,8 +897,18 @@ int handle_command(char *line, sm_t *sm_p){
       //Start probe pattern
       sm_p->alp_calmode = calmode;
       printf("  -- Changing ALP calibration mode to %s\n",alpcalmodes[sm_p->alp_calmode].name);
-      while(sm_p->alp_calmode == calmode)
+      count=0;
+      while(sm_p->alp_calmode == calmode){
+	if(calmode == ALP_CALMODE_FLIGHT){
+	  if(count == sm_p->flight_sim_length){
+	    sm_p->alp_calmode = ALP_CALMODE_NONE;
+	    printf("  -- Changing ALP calibration mode to %s\n",alpcalmodes[sm_p->alp_calmode].name);
+	    break;
+	  }
+	}
 	sleep(1);
+	count++;
+      }
       printf("  -- Stopping data recording\n");
       //Stop data recording
       sm_p->w[DIAID].run    = 0;
@@ -970,8 +993,18 @@ int handle_command(char *line, sm_t *sm_p){
       //Start probe pattern
       sm_p->alp_calmode = calmode;
       printf("  -- Changing ALP calibration mode to %s\n",alpcalmodes[sm_p->alp_calmode].name);
-      while(sm_p->alp_calmode == calmode)
+      count=0;
+      while(sm_p->alp_calmode == calmode){
+	if(calmode == ALP_CALMODE_FLIGHT){
+	  if(count == sm_p->flight_sim_length){
+	    sm_p->alp_calmode = ALP_CALMODE_NONE;
+	    printf("  -- Changing ALP calibration mode to %s\n",alpcalmodes[sm_p->alp_calmode].name);
+	    break;
+	  }
+	}
 	sleep(1);
+	count++;
+      }
       printf("  -- Stopping data recording\n");
       //Stop data recording
       sm_p->w[DIAID].run    = 0;

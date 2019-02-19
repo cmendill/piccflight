@@ -271,9 +271,9 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SCIFULL,
  * Zernike Errors
  *************************************************/
 #define ZERNIKE_ERRORS_FILE   "config/zernike_errors.dat"
-#define ZERNIKE_ERRORS_NUMBER 15000
+#define ZERNIKE_ERRORS_NUMBER 150000
 #define ZERNIKE_ERRORS_PERIOD 0.00200000
-
+#define ZERNIKE_ERRORS_LENGTH 300
 /*************************************************
  * Camera Settings -- Keep sizes divisible by 4 (packets)
  *************************************************/
@@ -988,6 +988,9 @@ typedef volatile struct {
   int hex_calmode;
   int bmc_calmode;
   int tgt_calmode;
+
+  //Flight simulator length (seconds)
+  int flight_sim_length;
 
   //Calibration file name
   char calfile[MAX_FILENAME];

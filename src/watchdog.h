@@ -37,10 +37,10 @@
 //Exposure times
 #define SCI_EXPTIME_DEFAULT 0.010
 #define SCI_FRMTIME_DEFAULT 0.010
-#define SHK_EXPTIME_DEFAULT 0.050
-#define SHK_FRMTIME_DEFAULT 0.050
-#define LYT_EXPTIME_DEFAULT 0.002
-#define LYT_FRMTIME_DEFAULT 0.002
+#define SHK_EXPTIME_DEFAULT 0.025  //40hz
+#define SHK_FRMTIME_DEFAULT 0.025  //40hz
+#define LYT_EXPTIME_DEFAULT 0.0025 //400hz
+#define LYT_FRMTIME_DEFAULT 0.0025 //400hz
 #define ACQ_EXPTIME_DEFAULT 0.200
 #define ACQ_FRMTIME_DEFAULT 0.200
 
@@ -109,6 +109,9 @@
 
 //Hexapod Settings
 #define HEX_TILT_CORRECT_DEFAULT  1
+
+//Flight Simulator Length
+#define FLIGHT_SIM_LENGTH_DEFAULT 30 //seconds
 
 /*************************************************
  * System Settings & Messages
