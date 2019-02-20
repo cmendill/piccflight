@@ -168,9 +168,13 @@ etStat PHX_BOBCAT_Configure(tHandle hpb, phxbobcatParam parameter, void* value) 
       if ( eStat != PHX_OK ) goto Error;
       eStat = PHX_ParameterSet( hpb, PHX_ROI_YLENGTH, (etParamValue*) &(proi->y_length) );
       if ( eStat != PHX_OK ) goto Error;
-      eParamValue = 0;
-      eStat = PHX_ParameterSet( hpb, PHX_CAM_ACTIVE_XOFFSET, (etParamValue*) &(proi->x_offset) );
+      eStat = PHX_ParameterGet( hpb, PHX_CAM_HTAP_NUM, (etParamValue*) &(eParamValue) );
       if ( eStat != PHX_OK ) goto Error;
+      //NOTE: Set only the x-offset on the frame grabber. must divide by the number of taps.
+      eParamValue = proi->x_offset/eParamValue;
+      eStat = PHX_ParameterSet( hpb, PHX_CAM_ACTIVE_XOFFSET, (etParamValue*) &(eParamValue) );
+      if ( eStat != PHX_OK ) goto Error;
+      eParamValue = 0;
       eStat = PHX_ParameterSet( hpb, PHX_CAM_ACTIVE_YOFFSET, (etParamValue*) &(eParamValue) );
       if ( eStat != PHX_OK ) goto Error;
       eStat = PHX_ParameterSet( hpb, PHX_ROI_SRC_XOFFSET, (etParamValue*) &(eParamValue) );
