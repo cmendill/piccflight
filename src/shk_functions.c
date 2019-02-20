@@ -260,8 +260,15 @@ void shk_centroid_cell(uint8 *image, shkcell_t *cell, int cmd_boxsize){
   if(maxval > SHK_SPOT_UPPER_THRESH)
     cell->spot_found=1;
   if(maxval < SHK_SPOT_LOWER_THRESH){
+    //Reset values
     cell->spot_found=0;
     cell->spot_captured=0;
+    cell->xcentroid = 0;
+    cell->ycentroid = 0;
+    cell->xtarget_deviation = 0;
+    cell->ytarget_deviation = 0;
+    cell->xorigin_deviation = 0;
+    cell->yorigin_deviation = 0;
   }
   
   /***********************************************************/
@@ -332,6 +339,16 @@ void shk_centroid_cell(uint8 *image, shkcell_t *cell, int cmd_boxsize){
     //Calculate centroid
     xcentroid = (xnum/total) * SHKBIN;
     ycentroid = (ynum/total) * SHKBIN;
+
+    //Save centroids
+    cell->xcentroid = xcentroid;
+    cell->ycentroid = ycentroid;
+    
+    //Save deviations
+    cell->xtarget_deviation = xcentroid - cell->xtarget;
+    cell->ytarget_deviation = ycentroid - cell->ytarget;
+    cell->xorigin_deviation = xcentroid - cell->xorigin;
+    cell->yorigin_deviation = ycentroid - cell->yorigin;
   }
   
   //Save boxsize
@@ -342,16 +359,6 @@ void shk_centroid_cell(uint8 *image, shkcell_t *cell, int cmd_boxsize){
   
   //Save total intensity (of final centroid box)
   cell->intensity  = intensity;
-  
-  //Save centroids
-  cell->xcentroid = xcentroid;
-  cell->ycentroid = ycentroid;
-  
-  //Save deviations
-  cell->xtarget_deviation = xcentroid - cell->xtarget;
-  cell->ytarget_deviation = ycentroid - cell->ytarget;
-  cell->xorigin_deviation = xcentroid - cell->xorigin;
-  cell->yorigin_deviation = ycentroid - cell->yorigin;
   
   /**********************************************************/
   /* APPLY UNIT CONVERSION                                  */
