@@ -479,11 +479,7 @@ int alp_calibrate(int calmode, alp_t *alp, uint32_t *step, int procid, int reset
     if(fread(zernike_errors,sizeof(zernike_errors),1,fileptr) != 1){
       perror("fread");
       goto endofinit;
-    }
-    for(i=0;i<LOWFS_N_ZERNIKE;i++)
-      for(j=0;j<100;j++)
-	zernike_errors[i][j] = zernike_errors[i][j]* (double)j/100.0;
-    
+    }    
     printf("ALP: Read for PROC %d: %s\n",procid,filename);
   endofinit:
     //--close file
@@ -746,14 +742,17 @@ int alp_calibrate(int calmode, alp_t *alp, uint32_t *step, int procid, int reset
 	//Convert from [Microns RMS Wavefront] to [Microns RMS Surface]
 	dz[i] = 0.5*(this_zernike[i] - last_zernike[i]);
       }
-      //Add zernike deltas to ALP command
-      for(i=0;i<LOWFS_N_ZERNIKE;i++)
-	alp->zcmd[i] += dz[i];
-      //Convert zernike deltas to actuator deltas
-      alp_zern2alp(dz,act,FUNCTION_NO_RESET);
-      //Add offsets to ALP position
-      for(i=0;i<ALP_NACT;i++)
-	alp->acmd[i] += act[i];
+      //Wait for the 2nd iteration to move the mirror to prevent large deltas
+      if(countA[calmode] > 0){
+	//Add zernike deltas to ALP command
+	for(i=0;i<LOWFS_N_ZERNIKE;i++)
+	  alp->zcmd[i] += dz[i];
+	//Convert zernike deltas to actuator deltas
+	alp_zern2alp(dz,act,FUNCTION_NO_RESET);
+	//Add offsets to ALP position
+	for(i=0;i<ALP_NACT;i++)
+	  alp->acmd[i] += act[i];
+      }
       //Save zernikes
       memcpy(last_zernike,this_zernike,sizeof(last_zernike));
       //Increment counter
