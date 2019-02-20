@@ -285,6 +285,8 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SCIFULL,
 #define SHKBIN          2
 #define LYTXS           32
 #define LYTYS           32
+#define LYTREADXS       48   
+#define LYTREADYS       48 
 #define ACQXS           1280
 #define ACQYS           960
 
@@ -409,9 +411,9 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SCIFULL,
 #define LYT_ALP_ACT_INT_MAX   0.01
 #define LYT_ALP_ACT_INT_MIN  -0.01
 #define LYT_XORIGIN_MIN       0
-#define LYT_XORIGIN_MAX       100
+#define LYT_XORIGIN_MAX       (LYTREADYS-LYTYS) //origins are transposed
 #define LYT_YORIGIN_MIN       0
-#define LYT_YORIGIN_MAX       100
+#define LYT_YORIGIN_MAX       (LYTREADXS-LYTXS) //origins are transposed
 
 /*************************************************
  * SCI Camera Parameters

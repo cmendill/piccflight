@@ -515,6 +515,7 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   int zernike_switch[LOWFS_N_ZERNIKE] = {0};
   uint32_t n_dither=1;
   int sample;
+  uint16_t lytread[LYTREADXS][LYTREADYS];
   
   //Get time immidiately
   clock_gettime(CLOCK_REALTIME,&start);
@@ -621,7 +622,12 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   }
   else{
     //Copy image data
-    memcpy(&(lytevent.image.data[0][0]),buffer->pvAddress,sizeof(lytevent.image.data));
+    memcpy(&(lytread[0][0]),buffer->pvAddress,sizeof(lytread));
+    //Cut out ROI -- transpose offsets
+    for(i=0;i<LYTXS;i++)
+      for(j=0;j<LYTYS;j++)
+	lytevent.image.data[i][j]=lytread[i+sm_p->lyt_yorigin][j+sm_p->lyt_xorigin];
+   
   }
   
   //Fit Zernikes
@@ -789,7 +795,7 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
       }
       else{
 	//Copy full image
-	memcpy(&(lytfull.image.data[0][0]),buffer->pvAddress,sizeof(lytfull.image.data));
+	memcpy(&(lytfull.image.data[0][0]),&(lytevent.image.data[0][0]),sizeof(lytfull.image.data));
       }
 
       //Copy event

@@ -468,6 +468,53 @@ int handle_command(char *line, sm_t *sm_p){
     return(CMD_NORMAL);
   }
 
+  //Shift LYT origin
+  sprintf(cmd,"lyt shift origin +x");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    itemp = sm_p->lyt_xorigin + 1;
+    if(itemp < LYT_XORIGIN_MIN || itemp > LYT_XORIGIN_MAX){
+      printf("CMD: LYT xorigin %d out of range [%d,%d]\n",itemp,LYT_XORIGIN_MIN,LYT_XORIGIN_MAX);
+      return CMD_NORMAL;
+    }
+    sm_p->lyt_xorigin = itemp;
+    printf("CMD: LYT shifted xorigin +1px to %d\n",sm_p->lyt_xorigin);
+    return CMD_NORMAL;
+  }
+  sprintf(cmd,"lyt shift origin -x");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    itemp = sm_p->lyt_xorigin - 1;
+    if(itemp < LYT_XORIGIN_MIN || itemp > LYT_XORIGIN_MAX){
+      printf("CMD: LYT xorigin %d out of range [%d,%d]\n",itemp,LYT_XORIGIN_MIN,LYT_XORIGIN_MAX);
+      return CMD_NORMAL;
+    }
+    sm_p->lyt_xorigin = itemp;
+    printf("CMD: LYT shifted xorigin -1px to %d\n",sm_p->lyt_xorigin);
+    return CMD_NORMAL;
+  }
+  sprintf(cmd,"lyt shift origin +y");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    itemp = sm_p->lyt_yorigin + 1;
+    if(itemp < LYT_YORIGIN_MIN || itemp > LYT_YORIGIN_MAX){
+      printf("CMD: LYT yorigin %d out of range [%d,%d]\n",itemp,LYT_YORIGIN_MIN,LYT_YORIGIN_MAX);
+      return CMD_NORMAL;
+    }
+    sm_p->lyt_yorigin = itemp;
+    printf("CMD: LYT shifted yorigin +1px to %d\n",sm_p->lyt_yorigin);
+    return CMD_NORMAL;
+  }
+  sprintf(cmd,"lyt shift origin -y");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    itemp = sm_p->lyt_yorigin - 1;
+    if(itemp < LYT_YORIGIN_MIN || itemp > LYT_YORIGIN_MAX){
+      printf("CMD: LYT yorigin %d out of range [%d,%d]\n",itemp,LYT_YORIGIN_MIN,LYT_YORIGIN_MAX);
+      return CMD_NORMAL;
+    }
+    sm_p->lyt_yorigin = itemp;
+    printf("CMD: LYT shifted yorigin -1px to %d\n",sm_p->lyt_yorigin);
+    return CMD_NORMAL;
+  }
+
+  
   //User Hexapod Control
   sprintf(cmd,"hex");
   if(!strncasecmp(line,cmd,strlen(cmd))){
