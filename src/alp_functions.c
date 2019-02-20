@@ -426,7 +426,8 @@ int alp_calibrate(int calmode, alp_t *alp, uint32_t *step, int procid, int reset
   time_t t;
   FILE *fileptr=NULL;
   char filename[MAX_FILENAME];
-  double dt=0,dt0=0;
+  double dt=0;
+  static double dt0=0;
   double step_fraction=0;
   double dz[LOWFS_N_ZERNIKE]={0};
   double this_zernike[LOWFS_N_ZERNIKE]={0};

@@ -44,6 +44,9 @@
 #define ACQ_EXPTIME_DEFAULT 0.200
 #define ACQ_FRMTIME_DEFAULT 0.200
 
+//LYT ROI Settings
+#define LYT_XORIGIN_DEFAULT 8
+#define LYT_YORIGIN_DEFAULT 8
 
 //Shack-Hartmann Settings
 #define SHK_BOXSIZE_DEFAULT        7
@@ -109,9 +112,6 @@
 
 //Hexapod Settings
 #define HEX_TILT_CORRECT_DEFAULT  1
-
-//Flight Simulator Length
-#define FLIGHT_SIM_LENGTH_DEFAULT 30 //seconds
 
 /*************************************************
  * System Settings & Messages

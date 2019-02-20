@@ -271,9 +271,10 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SCIFULL,
  * Zernike Errors
  *************************************************/
 #define ZERNIKE_ERRORS_FILE   "config/zernike_errors.dat"
-#define ZERNIKE_ERRORS_NUMBER 150000
+#define ZERNIKE_ERRORS_NUMBER 15000
 #define ZERNIKE_ERRORS_PERIOD 0.00200000
-#define ZERNIKE_ERRORS_LENGTH 300
+#define ZERNIKE_ERRORS_LENGTH 30
+
 /*************************************************
  * Camera Settings -- Keep sizes divisible by 4 (packets)
  *************************************************/
@@ -407,6 +408,10 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SCIFULL,
 #define LYT_ALP_ZERN_INT_MIN -0.1
 #define LYT_ALP_ACT_INT_MAX   0.01
 #define LYT_ALP_ACT_INT_MIN  -0.01
+#define LYT_XORIGIN_MIN       0
+#define LYT_XORIGIN_MAX       100
+#define LYT_YORIGIN_MIN       0
+#define LYT_YORIGIN_MAX       100
 
 /*************************************************
  * SCI Camera Parameters
@@ -989,9 +994,6 @@ typedef volatile struct {
   int bmc_calmode;
   int tgt_calmode;
 
-  //Flight simulator length (seconds)
-  int flight_sim_length;
-
   //Calibration file name
   char calfile[MAX_FILENAME];
 
@@ -1004,6 +1006,8 @@ typedef volatile struct {
   //Lyot LOWFS Settings
   double lyt_gain_alp_zern[LOWFS_N_ZERNIKE][LOWFS_N_PID];  //LYT ALP zernike PID gains
   double lyt_gain_alp_act[LOWFS_N_PID];                    //LYT ALP actuator PID gains
+  int    lyt_xorigin;                                      //LYT ROI bottom-left X
+  int    lyt_yorigin;                                      //LYT ROI bottom-left Y
   
   //Camera Reset Commands
   int shk_reset_camera;

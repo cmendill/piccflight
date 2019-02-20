@@ -19,6 +19,9 @@
 #include "phx_config.h"
 #include "../drivers/phxdrv/picc_dio.h"
 #include "alp_functions.h"
+#include "phx_bobcat.h"
+#include "phx_phoenix_bobcat.h"
+
 
 /* LYT board number */
 #define LYT_BOARD_NUMBER PHX_BOARD_NUMBER_2
@@ -90,7 +93,9 @@ int lyt_proc(void){
   char *configFileName = LYT_CONFIG_FILE;
   etStat eStat = PHX_OK;
   etParamValue eParamValue;
+  char strParamValue[PHX_CONFIG_MAX_LINE];
   bobcatParamValue bParamValue,expmin,expmax,expcmd,frmmin,frmcmd,lnmin;
+  region roi;
   int nLastEventCount = 0;
   tContext lytContext;
   ui64 dwParamValue;
@@ -180,6 +185,25 @@ int lyt_proc(void){
     }
     camera_running = 0;
     printf("LYT: Camera stopped\n");
+    
+    /* Setup ROI */
+    if(0){
+      usleep(500000);
+      sprintf(strParamValue,"%d,%d,%d,%d,BOBCAT_BINNING_1X,BOBCAT_BINNING_1X",sm_p->lyt_xorigin,sm_p->lyt_yorigin,sm_p->lyt_xorigin+LYTXS,sm_p->lyt_yorigin+LYTYS);
+      printf("LYT: Trying to configure ROI: %s\n",strParamValue);
+      if (CONFIG_str_to_region(strParamValue, &roi)<0) {
+	eStat = PHX_ERROR_BAD_PARAM_VALUE;
+	printf("LYT: ROI config failed\n");
+	lytctrlC(0);
+      } else {
+	eStat = PHX_BOBCAT_Configure(lytCamera, PHX_BOBCAT_ROI, &roi);
+	if ( PHX_OK != eStat ){
+	  printf("LYT: Error PHX_BOBCAT_Configure\n");
+	  lytctrlC(0);
+	}
+      }
+      printf("LYT: Configured ROI: %s\n",strParamValue);
+    }
     
     /* Setup exposure */
     usleep(500000);

@@ -323,9 +323,10 @@ int main(int argc,char **argv){
   sm_p->acq_frmtime        = ACQ_FRMTIME_DEFAULT;
   sm_p->shk_boxsize        = SHK_BOXSIZE_DEFAULT;
   sm_p->hex_tilt_correct   = HEX_TILT_CORRECT_DEFAULT;
-  sm_p->flight_sim_length  = FLIGHT_SIM_LENGTH_DEFAULT;
   sm_p->alp_n_dither       = -1;
   sm_p->alp_proc_id        = -1;
+  sm_p->lyt_xorigin        = LYT_XORIGIN_DEFAULT;
+  sm_p->lyt_yorigin        = LYT_YORIGIN_DEFAULT;
   
   //Enable control of all zernikes by default
   for(i=0;i<LOWFS_N_ZERNIKE;i++) sm_p->zernike_control[i] = 1;
