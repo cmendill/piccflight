@@ -189,7 +189,7 @@ int shk_proc(void){
     //Get minimum frame time and check against command
     eStat = BOBCAT_ParameterGet( shkCamera, BOBCAT_INFO_MIN_FRM_TIME, &frmmin );
     frmmin &= 0x00FFFFFF;
-    printf("SHK: Min line = %d | frame = %d\n",lnmin,frmmin);
+    printf("SHK: Min ln = %d | frm = %d\n",lnmin,frmmin);
     frmcmd = lround(sm_p->shk_frmtime*ONE_MILLION);
     frmcmd = frmcmd < frmmin ? frmmin : frmcmd;
     //Set the frame time

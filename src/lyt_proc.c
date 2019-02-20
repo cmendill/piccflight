@@ -186,25 +186,6 @@ int lyt_proc(void){
     camera_running = 0;
     printf("LYT: Camera stopped\n");
     
-    /* Setup ROI */
-    if(0){
-      usleep(500000);
-      sprintf(strParamValue,"%d,%d,%d,%d,BOBCAT_BINNING_1X,BOBCAT_BINNING_1X",sm_p->lyt_xorigin,sm_p->lyt_yorigin,sm_p->lyt_xorigin+LYTXS,sm_p->lyt_yorigin+LYTYS);
-      printf("LYT: Trying to configure ROI: %s\n",strParamValue);
-      if (CONFIG_str_to_region(strParamValue, &roi)<0) {
-	eStat = PHX_ERROR_BAD_PARAM_VALUE;
-	printf("LYT: ROI config failed\n");
-	lytctrlC(0);
-      } else {
-	eStat = PHX_BOBCAT_Configure(lytCamera, PHX_BOBCAT_ROI, &roi);
-	if ( PHX_OK != eStat ){
-	  printf("LYT: Error PHX_BOBCAT_Configure\n");
-	  lytctrlC(0);
-	}
-      }
-      printf("LYT: Configured ROI: %s\n",strParamValue);
-    }
-    
     /* Setup exposure */
     usleep(500000);
     //Get minimum line time
@@ -213,7 +194,7 @@ int lyt_proc(void){
     //Get minimum frame time and check against command
     eStat = BOBCAT_ParameterGet( lytCamera, BOBCAT_INFO_MIN_FRM_TIME, &frmmin );
     frmmin &= 0x00FFFFFF;
-    printf("LYT: Min line = %d | frame = %d\n",lnmin,frmmin);
+    printf("LYT: Min ln = %d | frm = %d\n",lnmin,frmmin);
     frmcmd = lround(sm_p->lyt_frmtime*ONE_MILLION);
     frmcmd = frmcmd < frmmin ? frmmin : frmcmd;
     //Set the frame time
