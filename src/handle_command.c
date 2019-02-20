@@ -1252,7 +1252,9 @@ int handle_command(char *line, sm_t *sm_p){
       for(i=0;i<LOWFS_N_ZERNIKE;i++) 
 	for(j=0;j<LOWFS_N_PID;j++)
 	  sm_p->shk_gain_alp_zern[i][j];
-      printf("CMD: SHK changing ALP gain multiplier to %f\n",ftemp);
+      printf("CMD: Changing SHK-->ALP gain multiplier to %f\n",ftemp);
+      for(i=0;i<LOWFS_N_ZERNIKE;i++) 
+	printf("CMD: SHK Z[%2.2d] Gain: %10.6f | %10.6f | %10.6f\n", i, sm_p->shk_gain_alp_zern[i][0],sm_p->shk_gain_alp_zern[i][1],sm_p->shk_gain_alp_zern[i][2]);
     }else printf("CMD: Gain multiplier must be >= 0\n");
     return CMD_NORMAL;
   }
@@ -1265,7 +1267,7 @@ int handle_command(char *line, sm_t *sm_p){
       double shk_gain_hex_zern[LOWFS_N_PID] = SHK_GAIN_HEX_ZERN_DEFAULT;
       for(i=0;i<LOWFS_N_PID;i++)
 	sm_p->shk_gain_hex_zern[i] = shk_gain_hex_zern[i]*ftemp;
-      printf("CMD: SHK changing HEX gain multiplier to %f\n",ftemp);
+      printf("CMD: Changing SHK-->HEX gain multiplier to %f\n",ftemp);
     }else printf("CMD: Gain multiplier must be >= 0\n");
     return CMD_NORMAL;
   }
@@ -1285,7 +1287,9 @@ int handle_command(char *line, sm_t *sm_p){
       for(j=0;j<LOWFS_N_PID;j++)
 	sm_p->lyt_gain_alp_act[j] = ftemp * lyt_gain_alp_act[j];
 
-      printf("SHK: LYT changing ALP gain multiplier to %f\n",ftemp);
+      printf("CMD: Changing LYT-->ALP gain multiplier to %f\n",ftemp);
+      for(i=0;i<LOWFS_N_ZERNIKE;i++) 
+	printf("CMD: LYT Z[%2.2d] Gain: %10.6f | %10.6f | %10.6f\n", i, sm_p->lyt_gain_alp_zern[i][0],sm_p->lyt_gain_alp_zern[i][1],sm_p->lyt_gain_alp_zern[i][2]);
     }else printf("CMD: Gain multiplier must be >= 0\n");
     return CMD_NORMAL;
   }
