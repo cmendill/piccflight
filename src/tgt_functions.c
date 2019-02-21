@@ -161,7 +161,7 @@ int tgt_calibrate(int calmode, double *zernikes, uint32_t *step, int procid, int
   }
 
   /* TGT_CALMODE_ZRAND: Poke all Zernikes to a random value */
-  if(calmode == TGT_CALMODE_ZPOKE){
+  if(calmode == TGT_CALMODE_ZRAND){
     //Zet all Zernikes to zero
     for(i=0;i<LOWFS_N_ZERNIKE;i++)
       zernikes[i] = 0;
