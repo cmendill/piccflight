@@ -1120,7 +1120,40 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     //Calibrate ALP
     if(shkevent.hed.alp_calmode != ALP_CALMODE_NONE)
       sm_p->alp_calmode = alp_calibrate(shkevent.hed.alp_calmode,&alp_try,&shkevent.hed.alp_calstep,SHKID,FUNCTION_NO_RESET);
-     
+
+    //TESTING: Edge actuator limiting
+    if(shkevent.hed.state == STATE_SHK_CELL_LOWFC){
+      alp_try.acmd[0]  = alp_try.acmd[6];
+      alp_try.acmd[1]  = alp_try.acmd[7];
+      alp_try.acmd[2]  = alp_try.acmd[8];
+      alp_try.acmd[3]  = alp_try.acmd[9];
+      alp_try.acmd[4]  = alp_try.acmd[10];
+      alp_try.acmd[31] = alp_try.acmd[30];
+      alp_try.acmd[42] = alp_try.acmd[41];
+      alp_try.acmd[53] = alp_try.acmd[52];
+      alp_try.acmd[64] = alp_try.acmd[63];
+      alp_try.acmd[75] = alp_try.acmd[74];
+      alp_try.acmd[21] = alp_try.acmd[22];
+      alp_try.acmd[32] = alp_try.acmd[33];
+      alp_try.acmd[43] = alp_try.acmd[44];
+      alp_try.acmd[54] = alp_try.acmd[55];
+      alp_try.acmd[65] = alp_try.acmd[66];
+      alp_try.acmd[92] = alp_try.acmd[86];
+      alp_try.acmd[93] = alp_try.acmd[87];
+      alp_try.acmd[94] = alp_try.acmd[88];
+      alp_try.acmd[95] = alp_try.acmd[89];
+      alp_try.acmd[96] = alp_try.acmd[90];
+      
+      alp_try.acmd[5]  = (alp_try.acmd[6]+alp_try.acmd[13])/2;
+      alp_try.acmd[12] = (alp_try.acmd[13]+alp_try.acmd[22])/2;
+      alp_try.acmd[11] = (alp_try.acmd[10]+alp_try.acmd[19])/2;
+      alp_try.acmd[20] = (alp_try.acmd[19]+alp_try.acmd[30])/2;
+      alp_try.acmd[84] = (alp_try.acmd[74]+alp_try.acmd[83])/2;
+      alp_try.acmd[91] = (alp_try.acmd[90]+alp_try.acmd[83])/2;
+      alp_try.acmd[76] = (alp_try.acmd[66]+alp_try.acmd[77])/2;
+      alp_try.acmd[85] = (alp_try.acmd[77]+alp_try.acmd[86])/2;
+    }
+    
     //Send command to ALP
     if(alp_send_command(sm_p,&alp_try,SHKID,n_dither)){
       // - copy command to current position
