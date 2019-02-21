@@ -204,7 +204,8 @@ void shk_centroid_cell(uint8 *image, shkcell_t *cell, int cmd_boxsize){
   uint16 maxval;
   double xhist[SHKXS]={0};
   double yhist[SHKYS]={0};
-  int    x,y,px,blx,bly,trx,try,npix,boxsize;
+  int    x,y,blx,bly,trx,try,boxsize;
+  uint64 px;
   double wave2surf = 1;
   double xcentroid=0,ycentroid=0,xdeviation=0,ydeviation=0;
 
@@ -320,9 +321,9 @@ void shk_centroid_cell(uint8 *image, shkcell_t *cell, int cmd_boxsize){
     for(x=blx;x<=trx;x++){
       for(y=bly;y<=try;y++){
 	px = x + y*SHKXS;
-	xhist[x]  += image[px] - cell->background;
-	yhist[y]  += image[px] - cell->background;
-	intensity += image[px] - cell->background;
+	xhist[x]  += (double)image[px] - cell->background;
+	yhist[y]  += (double)image[px] - cell->background;
+	intensity += (double)image[px] - cell->background;
       }
     }
     
@@ -337,14 +338,16 @@ void shk_centroid_cell(uint8 *image, shkcell_t *cell, int cmd_boxsize){
       ynum  += ((double)y+0.5) * yhist[y]; //binned coordinates
       total += yhist[y];
     }
-    if(0){
-      if(blx > 200 && blx < 230 && bly > 200 && bly < 230){
-	printf("SHK: ");
-	for(x=blx;x<=trx;x++)
-	  printf("%f ",xhist[x]);
-	printf("\n");
-      }
-    }
+
+    //Debugging
+    //if(blx > 200 && blx < 230 && bly > 200 && bly < 230){
+    // printf("SHK: ");
+    //for(x=blx;x<=trx;x++)
+    //	printf("%4.1f ",xhist[x]);
+    //printf("\n");
+    //}
+    
+    
     //Calculate centroid
     xcentroid = (xnum/total) * SHKBIN; //unbinned coordinates
     ycentroid = (ynum/total) * SHKBIN; //unbinned coordinates
@@ -396,14 +399,15 @@ void shk_centroid_cell(uint8 *image, shkcell_t *cell, int cmd_boxsize){
 /*  - Measure centroids of all SHK cells                      */
 /**************************************************************/
 void shk_centroid(uint8 *image, shkevent_t *shkevent){
-  int i,j,px;
+  int i,j;
+  uint64 px;
   int npix=0;
   double background=0;
   
   //Calculate detector background
   for(i=20/SHKBIN;i<50/SHKBIN;i++){
     for(j=20/SHKBIN;j<50/SHKBIN;j++){
-      px = i + j*SHKYS;
+      px = i + j*SHKXS;
       background += (double)image[px];
       npix++;
     }
