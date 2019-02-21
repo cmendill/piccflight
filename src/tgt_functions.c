@@ -63,6 +63,15 @@ void tgt_init_calmode(int calmode, calmode_t *tgt){
       tgt->lyt_zpoke[i]  = 0.01*shk_zramp[i];
     }
   }
+  //TGT_CALMODE_ZRAND
+  if(calmode == TGT_CALMODE_ZRAND){
+    sprintf(tgt->name,"TGT_CALMODE_ZRAND");
+    sprintf(tgt->cmd,"zrand");
+    for(i=0;i<LOWFS_N_ZERNIKE;i++){
+      tgt->shk_zpoke[i]  = shk_zpoke[i];
+      tgt->lyt_zpoke[i]  = lyt_zpoke[i];
+    }
+  }
 }
 
 /**************************************************************/
@@ -71,12 +80,13 @@ void tgt_init_calmode(int calmode, calmode_t *tgt){
 /**************************************************************/
 int tgt_calibrate(int calmode, double *zernikes, uint32_t *step, int procid, int reset){
   int i,j,z;
-  time_t t;
+  time_t trand;
   static int init=0;
   static long countA=0,countB=0,ncalim=0;
   double zpoke[LOWFS_N_ZERNIKE]={0};
   static calmode_t tgtcalmodes[TGT_NCALMODES];
-
+  static double zrand[LOWFS_N_ZERNIKE]={0};
+  
   /* Initialize */
   if(!init || reset){
     countA = 0;
@@ -84,6 +94,7 @@ int tgt_calibrate(int calmode, double *zernikes, uint32_t *step, int procid, int
     //Init TGT calmodes
     for(i=0;i<TGT_NCALMODES;i++)
       tgt_init_calmode(i,&tgtcalmodes[i]);
+    for(i=0;i<LOWFS_N_ZERNIKE;i++) zrand[i] = (2*(rand() / (double) RAND_MAX) - 1);
     init=1;
     //Return if reset
     if(reset) return calmode;
@@ -146,6 +157,33 @@ int tgt_calibrate(int calmode, double *zernikes, uint32_t *step, int procid, int
       calmode = TGT_CALMODE_NONE;
     }
     
+    return calmode;
+  }
+
+  /* TGT_CALMODE_ZRAND: Poke all Zernikes to a random value */
+  if(calmode == TGT_CALMODE_ZPOKE){
+    //Zet all Zernikes to zero
+    for(i=0;i<LOWFS_N_ZERNIKE;i++)
+      zernikes[i] = 0;
+    
+    //Check counters
+    if(countA >= 0 && countA < (2*ncalim)){
+      //Set step counter
+      *step = (countA/ncalim);
+      //Poke all zernikes by random amount
+      if((countA/ncalim) % 2 == 1){
+	for(i=0;i<LOWFS_N_ZERNIKE;i++)
+	  zernikes[i] = zpoke[i] * zrand[i];
+      }
+      countA++;
+    }
+    else{
+      //Calibration done
+      //Turn off calibration
+      printf("TGT: Stopping calmode TGT_CALMODE_ZRAND\n");
+      init = 0;
+      calmode = TGT_CALMODE_NONE;
+    }
     return calmode;
   }
 
