@@ -224,13 +224,13 @@ void shk_centroid_cell(uint8 *image, shkcell_t *cell, int cmd_boxsize){
   //Set boxsize to maximum
   boxsize = SHK_MAX_BOXSIZE;
   
-  //Calculate corners of centroid box
+  //Calculate corners of centroid box (binned coordinates)
   blx = floor((cell->xtarget - boxsize)/SHKBIN);
   bly = floor((cell->ytarget - boxsize)/SHKBIN);
   trx = floor((cell->xtarget + boxsize)/SHKBIN);
   try = floor((cell->ytarget + boxsize)/SHKBIN);
   
-  //Impose limits
+  //Impose limits (binned coordinates)
   blx = blx > SHK_XMAX ? SHK_XMAX : blx;
   bly = bly > SHK_YMAX ? SHK_YMAX : bly;
   blx = blx < SHK_XMIN ? SHK_XMIN : blx;
@@ -250,15 +250,17 @@ void shk_centroid_cell(uint8 *image, shkcell_t *cell, int cmd_boxsize){
       intensity += image[px];
       if(image[px] > maxval){
 	maxval = image[px];
-	xcentroid = (x + 0.5)*SHKBIN;
-	ycentroid = (y + 0.5)*SHKBIN;
+	xcentroid = (x + 0.5)*SHKBIN; //unbinned coordinates
+	ycentroid = (y + 0.5)*SHKBIN; //unbinned coordinates
       }
     }
   }
   
   //Check if spot is above or below deadband threshold
-  if(maxval > SHK_SPOT_UPPER_THRESH)
+  if(maxval > SHK_SPOT_UPPER_THRESH){
     cell->spot_found=1;
+    //Centroid will be re-calculated below
+  }
   if(maxval < SHK_SPOT_LOWER_THRESH){
     //Reset values
     cell->spot_found=0;
@@ -278,7 +280,7 @@ void shk_centroid_cell(uint8 *image, shkcell_t *cell, int cmd_boxsize){
     //Set target deviations
     xdeviation = xcentroid - cell->xtarget;
     ydeviation = ycentroid - cell->ytarget;
-
+    
     //Check if the spot is captured
     if(cell->spot_captured){
       //If spot was captured, but is now outside the box, unset captured
@@ -297,13 +299,13 @@ void shk_centroid_cell(uint8 *image, shkcell_t *cell, int cmd_boxsize){
     if(cell->spot_captured)
       boxsize = cmd_boxsize;
   
-    //Calculate corners of centroid box
+    //Calculate corners of centroid box (binned coordinates)
     blx = floor((cell->xtarget - boxsize)/SHKBIN);
     bly = floor((cell->ytarget - boxsize)/SHKBIN);
     trx = floor((cell->xtarget + boxsize)/SHKBIN);
     try = floor((cell->ytarget + boxsize)/SHKBIN);
 
-    //Impose limits
+    //Impose limits (binned coordinates)
     blx = blx > SHK_XMAX ? SHK_XMAX : blx;
     bly = bly > SHK_YMAX ? SHK_YMAX : bly;
     blx = blx < SHK_XMIN ? SHK_XMIN : blx;
@@ -329,16 +331,16 @@ void shk_centroid_cell(uint8 *image, shkcell_t *cell, int cmd_boxsize){
     xnum  = 0;
     ynum  = 0;
     for(x=blx;x<=trx;x++){
-      xnum  += ((double)x+0.5) * xhist[x];
+      xnum  += ((double)x+0.5) * xhist[x]; //binned coordinates
     }
     for(y=bly;y<=try;y++){
-      ynum  += ((double)y+0.5) * yhist[y];
+      ynum  += ((double)y+0.5) * yhist[y]; //binned coordinates
       total += yhist[y];
     }
     
     //Calculate centroid
-    xcentroid = (xnum/total) * SHKBIN;
-    ycentroid = (ynum/total) * SHKBIN;
+    xcentroid = (xnum/total) * SHKBIN; //unbinned coordinates
+    ycentroid = (ynum/total) * SHKBIN; //unbinned coordinates
 
     //Save centroids
     cell->xcentroid = xcentroid;
