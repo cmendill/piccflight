@@ -246,7 +246,7 @@ void shk_centroid_cell(uint8 *image, shkcell_t *cell, int cmd_boxsize){
   intensity=0;
   for(x=blx;x<=trx;x++){
     for(y=bly;y<=try;y++){
-      px = x + y*SHKYS;
+      px = x + y*SHKXS;
       intensity += image[px];
       if(image[px] > maxval){
 	maxval = image[px];
@@ -317,7 +317,7 @@ void shk_centroid_cell(uint8 *image, shkcell_t *cell, int cmd_boxsize){
     intensity=0;
     for(x=blx;x<=trx;x++){
       for(y=bly;y<=try;y++){
-	px = x + y*SHKYS;
+	px = x + y*SHKXS;
 	xhist[x]  += image[px];
 	yhist[y]  += image[px];
 	intensity += image[px];
