@@ -750,7 +750,7 @@ typedef struct hum_struct{
 /*************************************************
  * Packet Header
  *************************************************/
-#define PICC_PKT_VERSION     11  //packet version number
+#define PICC_PKT_VERSION     12  //packet version number
 typedef struct pkthed_struct{
   uint16  version;      //packet version number
   uint16  type;         //packet ID word
@@ -785,8 +785,8 @@ typedef struct shkcell_struct{
   uint16    spot_captured;
   uint16    maxval;
   uint16    boxsize;
-  uint32    intensity;
-  uint32    background;
+  uint64    intensity;
+  double    background;
   double    xorigin;
   double    yorigin;
   double    xtarget;
@@ -822,7 +822,7 @@ typedef struct pktcell_struct{
   uint16    maxval;
   uint16    boxsize;
   uint32    intensity;
-  uint32    background;
+  float     background;
   float     xorigin;
   float     yorigin;
   float     xtarget;

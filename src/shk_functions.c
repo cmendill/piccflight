@@ -320,9 +320,9 @@ void shk_centroid_cell(uint8 *image, shkcell_t *cell, int cmd_boxsize){
     for(x=blx;x<=trx;x++){
       for(y=bly;y<=try;y++){
 	px = x + y*SHKXS;
-	xhist[x]  += image[px];
-	yhist[y]  += image[px];
-	intensity += image[px];
+	xhist[x]  += image[px] - cell->background;
+	yhist[y]  += image[px] - cell->background;
+	intensity += image[px] - cell->background;
       }
     }
     
@@ -337,7 +337,14 @@ void shk_centroid_cell(uint8 *image, shkcell_t *cell, int cmd_boxsize){
       ynum  += ((double)y+0.5) * yhist[y]; //binned coordinates
       total += yhist[y];
     }
-    
+    if(0){
+      if(blx > 200 && blx < 230 && bly > 200 && bly < 230){
+	printf("SHK: ");
+	for(x=blx;x<=trx;x++)
+	  printf("%f ",xhist[x]);
+	printf("\n");
+      }
+    }
     //Calculate centroid
     xcentroid = (xnum/total) * SHKBIN; //unbinned coordinates
     ycentroid = (ynum/total) * SHKBIN; //unbinned coordinates
@@ -397,7 +404,7 @@ void shk_centroid(uint8 *image, shkevent_t *shkevent){
   for(i=20/SHKBIN;i<50/SHKBIN;i++){
     for(j=20/SHKBIN;j<50/SHKBIN;j++){
       px = i + j*SHKYS;
-      background += image[px];
+      background += (double)image[px];
       npix++;
     }
   }

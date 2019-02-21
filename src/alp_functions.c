@@ -76,7 +76,6 @@ void alp_init_calmode(int calmode, calmode_t *alp){
     sprintf(alp->name,"ALP_CALMODE_ZPOKE");
     sprintf(alp->cmd,"zpoke");
     alp->shk_boxsize_cmd = SHK_BOXSIZE_CMD_STD;
-    alp->shk_ncalim = 100;
   }
   //ALP_CALMODE_FLIGHT
   if(calmode == ALP_CALMODE_FLIGHT){
