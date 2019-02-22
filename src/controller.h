@@ -356,7 +356,7 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 #define SHK_NCELLS            256
 #define SHK_LENSLET_PITCH_UM  300.0
 #define SHK_FOCAL_LENGTH_UM   18600.0
-#define SHK_BOX_DEADBAND      3      //[pixels] deadband radius for switching to smaller boxsize
+#define SHK_BOX_DEADBAND      2      //[pixels] deadband radius for switching to smaller boxsize
 #define SHK_MIN_BOXSIZE       (SHK_BOX_DEADBAND+1)
 #define SHK_MAX_BOXSIZE       27     //[pixels] gives a 5 pixel buffer around edges
 #define SHK_SPOT_UPPER_THRESH 5  //spot found above this
