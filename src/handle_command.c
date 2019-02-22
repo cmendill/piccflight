@@ -1412,32 +1412,39 @@ int handle_command(char *line, sm_t *sm_p){
     return CMD_NORMAL;
   }
 
-  //LYT Origin Commands
-  sprintf(cmd,"lyt set origin");
+  //LYT Reference Image Commands
+  sprintf(cmd,"lyt set ref");
   if(!strncasecmp(line,cmd,strlen(cmd))){
-    printf("CMD: Setting LYT origin\n");
-    sm_p->lyt_setorigin=1;
+    printf("CMD: Setting current LYT image as referance\n");
+    sm_p->lyt_setref=1;
     return(CMD_NORMAL);
   }
 
-  sprintf(cmd,"lyt revert origin");
+  sprintf(cmd,"lyt mod ref");
   if(!strncasecmp(line,cmd,strlen(cmd))){
-    printf("CMD: Reverting LYT origin\n");
-    sm_p->lyt_revertorigin=1;
+    printf("CMD: Setting model LYT image as reference\n");
+    sm_p->lyt_modref=1;
     return(CMD_NORMAL);
   }
 
-  sprintf(cmd,"lyt save origin");
+  sprintf(cmd,"lyt def ref");
   if(!strncasecmp(line,cmd,strlen(cmd))){
-    printf("CMD: Saving LYT origin\n");
-    sm_p->lyt_saveorigin=1;
+    printf("CMD: Setting default LYT image as reference\n");
+    sm_p->lyt_defref=1;
+    return(CMD_NORMAL);
+  }
+  
+  sprintf(cmd,"lyt load ref");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    printf("CMD: Loading LYT referance image from file\n");
+    sm_p->lyt_loadref=1;
     return(CMD_NORMAL);
   }
 
-  sprintf(cmd,"lyt load origin");
+  sprintf(cmd,"lyt save ref");
   if(!strncasecmp(line,cmd,strlen(cmd))){
-    printf("CMD: Loading LYT origin\n");
-    sm_p->lyt_loadorigin=1;
+    printf("CMD: Saving LYT referance image to file\n");
+    sm_p->lyt_saveref=1;
     return(CMD_NORMAL);
   }
 

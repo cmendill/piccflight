@@ -19,77 +19,140 @@
 #include "bmc_functions.h"
 #include "tgt_functions.h"
 
-/***************************************************************/
-/* LYT_SETORIGIN                                               */
-/*  - Set band origins from current image                      */
-/***************************************************************/
-void lyt_setorigin(lytevent_t *lyt,uint16_t *img_buffer){
-  int i,j,k;
-  int imax=0,jmax=0;
-  uint16_t pmax=0,p=0;
+/**************************************************************/
+/* LYT_INITREF                                                */
+/*  - Initialize reference image structure                    */
+/**************************************************************/
+void lyt_initref(lytref_t *lytref){
+  FILE   *fd=NULL;
+  char   filename[MAX_FILENAME];
+  uint64 fsize,rsize;
   
-  /* Loop through band images, find max pixel */
-  for(k=0;k<LYT_NBANDS;k++){
-    pmax=0;
-    for(i=0;i<LYTXS;i++){
-      for(j=0;j<LYTYS;j++){
-	p = img_buffer[lyt_xy2index(lyt->xorigin[k]-(LYTXS/2)+i,lyt->yorigin[k]-(LYTYS/2)+j)];
-	if(p > pmax){
-	  pmax = p;
-	  imax = i;
-	  jmax = j;
-	}
-      }
-    }
-    //Set new origin
-    lyt->xorigin[k] += imax - (LYTXS/2);
-    lyt->yorigin[k] += jmax - (LYTYS/2);
-  }  
+  /****** READ DEFAULT REFERENCE IMAGE FILE ******/
+  //--setup filename
+  sprintf(filename,LYTPIX2ALPZER_REFIMG_FILE);
+  //--open file
+  if((fd = fopen(filename,"r")) == NULL){
+    perror("fopen");
+    printf("lyt_refimg file\n");
+    goto end_of_init;
+  }
+  //--check file size
+  fseek(fd, 0L, SEEK_END);
+  fsize = ftell(fd);
+  rewind(fd);
+  rsize = sizeof(lytref->refdef);
+  if(fsize != rsize){
+    printf("LYT: incorrect lyt_refimg file size %lu != %lu\n",fsize,rsize);
+    fclose(fd);
+    goto end_of_init;
+  }
+  //--read file
+  if(fread(&lytref->refdef[0][0],rsize,1,fd) != 1){
+    perror("fread");
+    printf("lyt_refimg file\n");
+    fclose(fd);
+    goto end_of_init;
+  }
+  //--close file
+  fclose(fd);
+  printf("LYT: Read: %s\n",filename);
+  //--copy to current reference image
+  memcpy(&lytref->refimg[0][0],&lytref->refdef[0][0],sizeof(lytref->refimg));
+    
+  /****** READ MODEL REFERENCE IMAGE FILE ******/
+  //--setup filename
+  sprintf(filename,LYTPIX2ALPZER_REFMOD_FILE);
+  //--open file
+  if((fd = fopen(filename,"r")) == NULL){
+    perror("fopen");
+    printf("lyt_refmod file\n");
+    goto end_of_init;
+  }
+  //--check file size
+  fseek(fd, 0L, SEEK_END);
+  fsize = ftell(fd);
+  rewind(fd);
+  rsize = sizeof(lytref->refmod);
+  if(fsize != rsize){
+    printf("LYT: incorrect lyt_refmod file size %lu != %lu\n",fsize,rsize);
+    fclose(fd);
+    goto end_of_init;
+  }
+  //--read file
+  if(fread(&lytref->refmod[0][0],rsize,1,fd) != 1){
+    perror("fread");
+    printf("lyt_refmod file\n");
+    fclose(fd);
+    goto end_of_init;
+  }
+  //--close file
+  fclose(fd);
+  printf("LYT: Read: %s\n",filename);
+
+  /****** READ PIXEL MASK FILE ******/
+  //--setup filename
+  sprintf(filename,LYTPIX2ALPZER_PXMASK_FILE);
+  //--open file
+  if((fd = fopen(filename,"r")) == NULL){
+    perror("fopen");
+    printf("lyt_pxmask file\n");
+    goto end_of_init;
+  }
+  //--check file size
+  fseek(fd, 0L, SEEK_END);
+  fsize = ftell(fd);
+  rewind(fd);
+  rsize = sizeof(lytref->pxmask);
+  if(fsize != rsize){
+    printf("LYT: incorrect lyt_pxmask file size %lu != %lu\n",fsize,rsize);
+    fclose(fd);
+    goto end_of_init;
+  }
+  //--read file
+  if(fread(&lytref->pxmask[0][0],rsize,1,fd) != 1){
+    perror("fread");
+    printf("lyt_pxmask file\n");
+    fclose(fd);
+    goto end_of_init;
+  }
+  //--close file
+  fclose(fd);
+  printf("LYT: Read: %s\n",filename);
 }
 
-
 /**************************************************************/
-/* LYT_LOADORIGIN                                             */
-/*  - Load band origins from file                             */
+/* LYT_LOADREF                                                */
+/*  - Load referance image from file                          */
 /**************************************************************/
-void lyt_loadorigin(lytevent_t *lyt){
+void lyt_loadref(lytref_t *lytref){
   FILE *fd=NULL;
   char filename[MAX_FILENAME];
   uint64 fsize,rsize;
-  uint32 xorigin[LYT_NBANDS] = LYT_XORIGIN;
-  uint32 yorigin[LYT_NBANDS] = LYT_YORIGIN;
+  double refimg[LYTXS][LYTYS];
   
-  /* Initialize with default origins */
-  memcpy(lyt->xorigin,xorigin,sizeof(xorigin));
-  memcpy(lyt->yorigin,yorigin,sizeof(yorigin));
-  
-  /* Open origin file */
+  /* Open refimg file */
   //--setup filename
-  sprintf(filename,LYT_ORIGIN_FILE);
+  sprintf(filename,LYT_REFIMG_FILE);
   //--open file
   if((fd = fopen(filename,"r")) == NULL){
-    perror("LYT: loadorigin fopen");
+    perror("LYT: loadref fopen");
     return;
   }
   //--check file size
   fseek(fd, 0L, SEEK_END);
   fsize = ftell(fd);
   rewind(fd);
-  rsize = sizeof(xorigin) + sizeof(yorigin);
+  rsize = sizeof(refimg);
   if(fsize != rsize){
-    printf("LYT: incorrect LYT_ORIGIN_FILE size %lu != %lu\n",fsize,rsize);
+    printf("LYT: incorrect LYT_REFIMG_FILE size %lu != %lu\n",fsize,rsize);
     fclose(fd);
     return;
   }
   
   //Read file
-  if(fread(xorigin,sizeof(xorigin),1,fd) != 1){
-    perror("LYT: loadorigin fread");
-    fclose(fd);
-    return;
-  }
-  if(fread(yorigin,sizeof(yorigin),1,fd) != 1){
-    perror("LYT: loadorigin fread");
+  if(fread(&refimg[0][0],sizeof(refimg),1,fd) != 1){
+    perror("LYT: loadref fread");
     fclose(fd);
     return;
   }
@@ -98,26 +161,25 @@ void lyt_loadorigin(lytevent_t *lyt){
   fclose(fd);
   printf("LYT: Read: %s\n",filename);
 
-  //Copy origins
-  memcpy(lyt->xorigin,xorigin,sizeof(xorigin));
-  memcpy(lyt->yorigin,yorigin,sizeof(yorigin));
+  //Copy image into reference structure
+  memcpy(&lytref->refimg[0][0],&refimg[0][0],sizeof(refimg));
 }
 
 /***************************************************************/
-/* LYT_SAVEORIGIN                                              */
-/*  - Saves cell origins to file                               */
+/* LYT_SAVEREF                                                 */
+/*  - Save reference image to file                             */
 /***************************************************************/
-void lyt_saveorigin(lytevent_t *lyt){
+void lyt_saveref(lytref_t *lytref){
   struct stat st = {0};
   FILE *fd=NULL;
   static char outfile[MAX_FILENAME];
   char temp[MAX_FILENAME];
   char path[MAX_FILENAME];
   int i;
-
+  
   /* Open output file */
   //--setup filename
-  sprintf(outfile,"%s",LYT_ORIGIN_FILE);
+  sprintf(outfile,"%s",LYT_REFIMG_FILE);
   //--create output folder if it does not exist
   strcpy(temp,outfile);
   strcpy(path,dirname(temp));
@@ -127,40 +189,21 @@ void lyt_saveorigin(lytevent_t *lyt){
   }
   //--open file
   if((fd = fopen(outfile, "w")) == NULL){
-    perror("LYT: saveorigin fopen()\n");
+    perror("LYT: saveref fopen()\n");
     return;
   }
   
-  //Save origins
-  if(fwrite(lyt->xorigin,sizeof(lyt->xorigin),1,fd) != 1){
-    printf("LYT: saveorigin fwrite error!\n");
-    fclose(fd);
-    return;
-  }
-  if(fwrite(lyt->yorigin,sizeof(lyt->yorigin),1,fd) != 1){
-    printf("LYT: saveorigin fwrite error!\n");
+  //Save refimg
+  if(fwrite(&lytref->refimg[0][0],sizeof(lytref->refimg),1,fd) != 1){
+    printf("LYT: saveref fwrite error!\n");
     fclose(fd);
     return;
   }
   printf("LYT: Wrote: %s\n",outfile);
-
+  
   //Close file
   fclose(fd);
   return;
-}
-
-/**************************************************************/
-/* LYT_REVERTORIGIN                                           */
-/*  - Set band origins to default                             */
-/**************************************************************/
-void lyt_revertorigin(lytevent_t *lyt){
-  const uint32 xorigin[LYT_NBANDS] = LYT_XORIGIN;
-  const uint32 yorigin[LYT_NBANDS] = LYT_YORIGIN;
-  
-  /* Copy default origins */
-  memcpy(lyt->xorigin,xorigin,sizeof(xorigin));
-  memcpy(lyt->yorigin,yorigin,sizeof(yorigin));
-    
 }
 
 /**************************************************************/
@@ -198,149 +241,30 @@ void lyt_alp_zernpid(lytevent_t *lytevent, double *zernike_delta, int *zernike_s
 }
 
 /**************************************************************/
-/* LYT_COPY_LYTPIX2ALPZER_REFIMG                              */
-/*  - Copy reference image into image pointer                 */
-/**************************************************************/
-void lyt_copy_lytpix2alpzer_refimg(lyt_t *image, int reset){
-  static double lyt_refimg[LYTXS][LYTYS]={{0}}; //reference image
-  static int init=0;
-  int i,j;
-  uint64 fsize,rsize;
-  FILE   *fd=NULL;
-  char   filename[MAX_FILENAME];
-
-  /* Initialize */
-  if(!init || reset){
-    /****** READ REFERENCE IMAGE FILE ******/
-    //--setup filename
-    sprintf(filename,LYTPIX2ALPZER_REFIMG_FILE);
-    //--open file
-    if((fd = fopen(filename,"r")) == NULL){
-      perror("fopen");
-      printf("lyt_refimg file\n");
-      goto end_of_init;
-    }
-    //--check file size
-    fseek(fd, 0L, SEEK_END);
-    fsize = ftell(fd);
-    rewind(fd);
-    rsize = sizeof(lyt_refimg);
-    if(fsize != rsize){
-      printf("LYT: incorrect lyt_refimg file size %lu != %lu\n",fsize,rsize);
-      fclose(fd);
-      goto end_of_init;
-    }
-    //--read file
-    if(fread(lyt_refimg,rsize,1,fd) != 1){
-      perror("fread");
-      printf("lyt_refimg file\n");
-      fclose(fd);
-      goto end_of_init;
-    }
-    //--close file
-    fclose(fd);
-
-  end_of_init:
-    //--set init flag
-    init=1;
-    //--return if reset
-    if(reset) return;
-  }
-
-  /* Copy image */
-  for(i=0;i<LYTXS;i++)
-    for(j=0;j<LYTYS;j++)
-      image->data[i][j] = lyt_refimg[i][j]*40000;
-  
-}
-
-
-/**************************************************************/
 /* LYT_ZERNIKE_FIT                                            */
 /*  - Fit Zernikes to LYT pixels                              */
 /**************************************************************/
-void lyt_zernike_fit(lyt_t *image, double *zernikes,int reset){
+void lyt_zernike_fit(lyt_t *image, lytref_t *lytref, double *zernikes, int reset){
   FILE   *fd=NULL;
   char   filename[MAX_FILENAME];
   static lytevent_t lytevent;
   static int init=0;
   static double lyt2zern_matrix[LYTXS*LYTYS*LOWFS_N_ZERNIKE]={0}; //zernike fitting matrix (max size)
-  static double lyt_delta[LYTXS*LYTYS]={0};     //measured image - reference (max size)
-  static double lyt_refimg[LYTXS][LYTYS]={{0}}; //reference image
-  static uint16 lyt_pxmask[LYTXS][LYTYS]={{0}}; //pixel selection mask
-  static int    lyt_npix=0;
+  static int lyt_npix=0;
+  double lyt_delta[LYTXS*LYTYS]={0}; //measured image - reference (max size)
   uint64 fsize,rsize;
-  double total;
+  double img_total;
+  double ref_total;
   int    i,j,count;
 
   /* Initialize Fitting Matrix */
   if(!init || reset){
 
-    /****** READ REFERENCE IMAGE FILE ******/
-    //--setup filename
-    sprintf(filename,LYTPIX2ALPZER_REFIMG_FILE);
-    //--open file
-    if((fd = fopen(filename,"r")) == NULL){
-      perror("fopen");
-      printf("lyt_refimg file\n");
-      goto end_of_init;
-    }
-    //--check file size
-    fseek(fd, 0L, SEEK_END);
-    fsize = ftell(fd);
-    rewind(fd);
-    rsize = sizeof(lyt_refimg);
-    if(fsize != rsize){
-      printf("LYT: incorrect lyt_refimg file size %lu != %lu\n",fsize,rsize);
-      fclose(fd);
-      goto end_of_init;
-    }
-    //--read file
-    if(fread(lyt_refimg,rsize,1,fd) != 1){
-      perror("fread");
-      printf("lyt_refimg file\n");
-      fclose(fd);
-      goto end_of_init;
-    }
-    //--close file
-    fclose(fd);
-    printf("LYT: Read: %s\n",filename);
-
-    /****** READ PIXEL MASK FILE ******/
-    //--setup filename
-    sprintf(filename,LYTPIX2ALPZER_PXMASK_FILE);
-    //--open file
-    if((fd = fopen(filename,"r")) == NULL){
-      perror("fopen");
-      printf("lyt_pxmask file\n");
-      goto end_of_init;
-    }
-    //--check file size
-    fseek(fd, 0L, SEEK_END);
-    fsize = ftell(fd);
-    rewind(fd);
-    rsize = sizeof(lyt_pxmask);
-    if(fsize != rsize){
-      printf("LYT: incorrect lyt_pxmask file size %lu != %lu\n",fsize,rsize);
-      fclose(fd);
-      goto end_of_init;
-    }
-    //--read file
-    if(fread(lyt_pxmask,rsize,1,fd) != 1){
-      perror("fread");
-      printf("lyt_pxmask file\n");
-      fclose(fd);
-      goto end_of_init;
-    }
-    //--close file
-    fclose(fd);
-    printf("LYT: Read: %s\n",filename);
-
     /****** COUNT NUMBER OF CONTROLED PIXELS ******/
     lyt_npix=0;
     for(i=0;i<LYTXS;i++)
       for(j=0;j<LYTYS;j++)
-	if(lyt_pxmask[i][j])
+	if(lytref->pxmask[i][j])
 	  lyt_npix++;
 
 
@@ -384,16 +308,21 @@ void lyt_zernike_fit(lyt_t *image, double *zernikes,int reset){
   }
 
   //Normalize image pixels & subtract reference image
-  total=0;
+  img_total=0;
+  ref_total=0;
   count=0;
+  for(i=0;i<LYTXS;i++){
+    for(j=0;j<LYTYS;j++){
+      if(lytref->pxmask[i][j]){
+	img_total += (double)image->data[i][j];
+	ref_total += lytref->refimg[i][j];
+      }
+    }
+  }
   for(i=0;i<LYTXS;i++)
     for(j=0;j<LYTYS;j++)
-      if(lyt_pxmask[i][j])
-	total += (double)image->data[i][j];
-  for(i=0;i<LYTXS;i++)
-    for(j=0;j<LYTYS;j++)
-      if(lyt_pxmask[i][j])
-	lyt_delta[count++]  = ((double)image->data[i][j])/total - lyt_refimg[i][j];
+      if(lytref->pxmask[i][j])
+	lyt_delta[count++]  = ((double)image->data[i][j])/img_total - lytref->refimg[i][j]/ref_total;
 
   //Do matrix multiply
   num_dgemv(lyt2zern_matrix, lyt_delta, zernikes, LOWFS_N_ZERNIKE, lyt_npix);
@@ -414,6 +343,7 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   static calmode_t tgtcalmodes[TGT_NCALMODES];
   static struct timespec start,end,delta,last;
   static int init=0;
+  static lytref_t lytref;
   double dt;
   int i,j;
   uint16_t fakepx=0;
@@ -452,10 +382,10 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     tgt_calibrate(0,NULL,NULL,LYTID,FUNCTION_RESET);
     //Reset PID controllers
     lyt_alp_zernpid(NULL,NULL,NULL,FUNCTION_RESET);
+    //Init reference image structure
+    lyt_initref(&lytref);
     //Reset zernike fitter
-    lyt_zernike_fit(NULL,NULL,FUNCTION_RESET);
-    //Reset reference image copying
-    lyt_copy_lytpix2alpzer_refimg(NULL,FUNCTION_RESET);
+    lyt_zernike_fit(NULL,&lytref,NULL,FUNCTION_RESET);
     //Init ALP calmodes
     for(i=0;i<ALP_NCALMODES;i++)
       alp_init_calmode(i,&alpcalmodes[i]);
@@ -483,7 +413,6 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
 
   //Save time
   memcpy(&last,&start,sizeof(struct timespec));
-
 
   //Fill out event header
   lytevent.hed.version      = PICC_PKT_VERSION;
@@ -519,7 +448,9 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
 	for(j=0;j<LYTYS;j++)
 	  lytevent.image.data[i][j]=fakepx++;
     if(sm_p->w[LYTID].fakemode == FAKEMODE_LYTPIX2ALPZER_REFIMG)
-      lyt_copy_lytpix2alpzer_refimg(&lytevent.image, FUNCTION_NO_RESET);
+      for(i=0;i<LYTXS;i++)
+	for(j=0;j<LYTYS;j++)
+	  lytevent.image.data[i][j]=lytref.refimg[i][j]*40000;
   }
   else{
     //Copy image data
@@ -531,30 +462,42 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
    
   }
   
-  //Command: lyt_setorigin 
-  if(sm_p->lyt_setorigin){
-    lyt_setorigin(&lytevent);
-    sm_p->lyt_setorigin=0;
+  //Command: lyt_setref 
+  if(sm_p->lyt_setref){
+    //Copy current image to reference image
+    for(i=0;i<LYTXS;i++)
+      for(j=0;j<LYTYS;j++)
+	lytref.refimg[i][j] = lytevent.image.data[i][j];
+    sm_p->lyt_setref=0;
   }
-  //Command: lyt_saveorigin 
-  if(sm_p->lyt_saveorigin){
-    lyt_saveorigin(&lytevent);
-    sm_p->lyt_saveorigin=0;
+  //Command: lyt_defref 
+  if(sm_p->lyt_defref){
+    //Switch to default reference image
+    memcpy(&lytref.refimg[0][0],&lytref.defimg[0][0],sizeof(lytref.refimg));
+    sm_p->lyt_defref=0;
   }
-  //Command: lyt_loadorigin 
-  if(sm_p->lyt_loadorigin){
-    lyt_loadorigin(&lytevent);
-    sm_p->lyt_loadorigin=0;
+  //Command: lyt_modref 
+  if(sm_p->lyt_modref){
+    //Switch to model reference image
+    memcpy(&lytref.refimg[0][0],&lytref.modimg[0][0],sizeof(lytref.refimg));
+    sm_p->lyt_modref=0;
   }
-  //Command: lyt_revertorigin 
-  if(sm_p->lyt_revertorigin){
-    lyt_revertorigin(&lytevent);
-    sm_p->lyt_revertorigin=0;
+  //Command: lyt_saveref 
+  if(sm_p->lyt_saveref){
+    //Save current reference image to disk
+    lyt_saveref(&lytref);
+    sm_p->lyt_saveref=0;
+  }
+  //Command: lyt_loadref 
+  if(sm_p->lyt_loadref){
+    //Load saved reference image from disk
+    lyt_loadref(&lytref);
+    sm_p->lyt_loadref=0;
   }
 
   //Fit Zernikes
   if(sm_p->state_array[state].lyt.fit_zernikes)
-    lyt_zernike_fit(&lytevent.image,lytevent.zernike_measured, FUNCTION_NO_RESET);
+    lyt_zernike_fit(&lytevent.image,&lytref,lytevent.zernike_measured, FUNCTION_NO_RESET);
 
 
   /*************************************************************/

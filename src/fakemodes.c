@@ -20,9 +20,9 @@ void init_fakemode(int fakemode, calmode_t *fake){
     sprintf(fake->name,"FAKEMODE_TEST_PATTERN");
     sprintf(fake->cmd,"pattern");
   }
-  //FAKEMODE_LYTPIX2ALPZER_REFIMG
-  if(fakemode == FAKEMODE_LYTPIX2ALPZER_REFIMG){
-    sprintf(fake->name,"FAKEMODE_LYTPIX2ALPZER_REFIMG");
-    sprintf(fake->cmd,"lzref");
+  //FAKEMODE_LYT_REFIMG
+  if(fakemode == FAKEMODE_LYT_REFIMG){
+    sprintf(fake->name,"FAKEMODE_LYT_REFIMG");
+    sprintf(fake->cmd,"lytref");
   }
 }

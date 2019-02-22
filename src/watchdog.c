@@ -395,11 +395,6 @@ int main(int argc,char **argv){
   sprintf((char *)sm_p->circbuf[BUFFER_LYTPKT].name,"LYTPKT");
 
   //-- Full frame buffers
-  sm_p->circbuf[BUFFER_SCIFULL].buffer  = (void *)sm_p->scifull;
-  sm_p->circbuf[BUFFER_SCIFULL].nbytes  = sizeof(scifull_t);
-  sm_p->circbuf[BUFFER_SCIFULL].bufsize = SCIFULLSIZE;
-  sm_p->write_circbuf[BUFFER_SCIFULL]   = WRITE_SCIFULL_DEFAULT;
-  sprintf((char *)sm_p->circbuf[BUFFER_SCIFULL].name,"SCIFULL");
   sm_p->circbuf[BUFFER_SHKFULL].buffer  = (void *)sm_p->shkfull;
   sm_p->circbuf[BUFFER_SHKFULL].nbytes  = sizeof(shkfull_t);
   sm_p->circbuf[BUFFER_SHKFULL].bufsize = SHKFULLSIZE;

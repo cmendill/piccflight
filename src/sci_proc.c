@@ -296,10 +296,8 @@ int sci_expose(sm_t *sm_p, flidev_t dev, uint16 *img_buffer){
 /**************************************************************/
 void sci_process_image(sm_t *sm_p,uint16 *img_buffer,double ccdtemp){
   static scievent_t scievent;
-  static scifull_t scifull;
-  scifull_t* scifull_p;
   scievent_t* scievent_p;
-  static struct timespec start,end,delta,last,full_last;
+  static struct timespec start,end,delta,last;
   static int init = 0;
   double dt;
   uint16 fakepx=0;
@@ -323,10 +321,8 @@ void sci_process_image(sm_t *sm_p,uint16 *img_buffer,double ccdtemp){
 
   //Initialize 
   if(!init){
-    memset(&scifull,0,sizeof(scifull));
     memset(&scievent,0,sizeof(scievent));
     memcpy(&last,&start,sizeof(struct timespec));
-    memcpy(&full_last,&start,sizeof(struct timespec));
     sci_loadorigin(&scievent);
     frame_number=0;
     init=1;
@@ -373,7 +369,6 @@ void sci_process_image(sm_t *sm_p,uint16 *img_buffer,double ccdtemp){
 
   //Save CCD temp
   scievent.ccd_temp         = ccdtemp;
-
   
   //Fake data
   if(sm_p->w[SCIID].fakemode != FAKEMODE_NONE){
@@ -406,55 +401,6 @@ void sci_process_image(sm_t *sm_p,uint16 *img_buffer,double ccdtemp){
     
     //Close buffer 
     close_buffer(sm_p,BUFFER_SCIEVENT);
-  }
-  
-  /*************************************************************/
-  /**********************  Full Image Code  ********************/
-  /*************************************************************/
-  if(sm_p->write_circbuf[BUFFER_SCIEVENT]){
-    if(timespec_subtract(&delta,&start,&full_last))
-      printf("SCI: sci_process_image --> timespec_subtract error!\n");
-    ts2double(&delta,&dt);
-    if(dt > SCI_FULL_IMAGE_TIME){
-      //Debugging 
-      if(SCI_DEBUG) printf("SCI: Buffer Size: %lu\n",sizeof(sci_t));  
-      //Copy packet header 
-      memcpy(&scifull.hed,&scievent.hed,sizeof(pkthed_t));
-      scifull.hed.type = BUFFER_SCIFULL;
-
-      //Fake data
-      if(sm_p->w[SCIID].fakemode != FAKEMODE_NONE){
-	if(sm_p->w[SCIID].fakemode == FAKEMODE_TEST_PATTERN)
-	  for(k=0;k<SCI_NBANDS;k++)
-	    for(i=0;i<SCIXS;i++)
-	      for(j=0;j<SCIYS;j++)
-		scifull.image[k].data[i][j]=fakepx++;
-      }
-      else{
-	//Cut out bands 
-	for(k=0;k<SCI_NBANDS;k++)
-	  for(i=0;i<SCIXS;i++)
-	    for(j=0;j<SCIYS;j++)
-	      scifull.image[k].data[i][j] = img_buffer[sci_xy2index(scievent.xorigin[k]-(SCIXS/2)+i,scievent.yorigin[k]-(SCIYS/2)+j)];
-      }
-    
-      //Open circular buffer 
-      scifull_p=(scifull_t *)open_buffer(sm_p,BUFFER_SCIFULL);
-
-      //Copy data 
-      memcpy(scifull_p,&scifull,sizeof(scifull_t));;
-
-      //Get final timestamp 
-      clock_gettime(CLOCK_REALTIME,&end);
-      scifull_p->hed.end_sec = end.tv_sec;
-      scifull_p->hed.end_nsec = end.tv_nsec;
-
-      //Close buffer 
-      close_buffer(sm_p,BUFFER_SCIFULL);
-    
-      //Reset time 
-      memcpy(&full_last,&start,sizeof(struct timespec));
-    }
   }
 }
 

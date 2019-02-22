@@ -88,7 +88,6 @@ enum states { STATE_STANDBY,
 	      STATE_SHK_CELL_LOWFC,
 	      STATE_LYT_ALP_CALIBRATE,
 	      STATE_LYT_ZERN_LOWFC,
-	      STATE_LYT_FULL_LOWFC,
 	      STATE_LYT_TT_LOWFC,
 	      STATE_SCI_BMC_CALIBRATE,
 	      STATE_SCI_DARK_HOLE,
@@ -186,6 +185,7 @@ enum bmccalmodes {BMC_CALMODE_NONE,
 #define ALPZER2LYTPIX_FILE     "config/alpzer2lytpix.dat"
 #define LYTPIX2ALPZER_FILE     "config/lytpix2alpzer.dat"
 #define LYTPIX2ALPZER_REFIMG_FILE "config/lytpix2alpzer_refimg.dat"
+#define LYTPIX2ALPZER_REFMOD_FILE "config/lytpix2alpzer_refmod.dat"
 #define LYTPIX2ALPZER_PXMASK_FILE "config/lytpix2alpzer_pxmask.dat"
 #define SHK_CONFIG_FILE        "config/shk.cfg"
 #define LYT_CONFIG_FILE        "config/lyt.cfg"
@@ -203,7 +203,7 @@ enum bmccalmodes {BMC_CALMODE_NONE,
 #define SHK_ORIGIN_FILE        "output/settings/shk_origin.dat"
 #define ALP_FLAT_FILE          "output/settings/alp_flat.dat"
 #define SCI_ORIGIN_FILE        "output/settings/sci_origin.dat"
-#define LYT_ORIGIN_FILE        "output/settings/lyt_origin.dat"
+#define LYT_REFIMG_FILE        "output/settings/lyt_refimg.dat"
 
 /*************************************************
  * Network Addresses & Ports
@@ -235,12 +235,11 @@ enum bmccalmodes {BMC_CALMODE_NONE,
 /*************************************************
  * Circular Buffer Info
  *************************************************/
-enum bufids {BUFFER_SCIEVENT, BUFFER_SCIFULL,
-	     BUFFER_SHKEVENT, BUFFER_SHKFULL,
-	     BUFFER_LYTEVENT,
-	     BUFFER_ACQEVENT, BUFFER_ACQFULL,
+enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
+	     BUFFER_LYTEVENT, BUFFER_ACQEVENT,
 	     BUFFER_THMEVENT, BUFFER_MTREVENT,
 	     BUFFER_SHKPKT,   BUFFER_LYTPKT,
+	     BUFFER_SHKFULL,  BUFFER_ACQFULL,
 	     NCIRCBUF};
 
 #define SCIEVENTSIZE     3
@@ -251,7 +250,6 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SCIFULL,
 #define MTREVENTSIZE     3
 #define SHKPKTSIZE       3
 #define LYTPKTSIZE       30
-#define SCIFULLSIZE      3
 #define SHKFULLSIZE      3
 #define ACQFULLSIZE      3
 
@@ -296,8 +294,6 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SCIFULL,
  * Camera Full Image Times
  *************************************************/
 #define SHK_FULL_IMAGE_TIME   0.5    //[seconds] period that full images are written to circbuf
-#define LYT_FULL_IMAGE_TIME   0.5    //[seconds] period that full images are written to circbuf
-#define SCI_FULL_IMAGE_TIME   0.5    //[seconds] period that full images are written to circbuf
 #define ACQ_FULL_IMAGE_TIME   0.5    //[seconds] period that full images are written to circbuf
 
 /*************************************************
@@ -698,6 +694,13 @@ typedef struct lyt_struct{
   uint16 data[LYTXS][LYTYS];
 } lyt_t;
 
+typedef struct lytref_struct{
+  double refimg[LYTXS][LYTYS]; //current reference image
+  double refmod[LYTXS][LYTYS]; //model reference image
+  double refdef[LYTXS][LYTYS]; //default reference image
+  uint16 pxmask[LYTXS][LYTYS]; //pixel mask
+} lytref_t;
+
 typedef struct acq_struct{
   uint16 data[ACQXS][ACQYS];
 } acq_t;
@@ -903,11 +906,6 @@ typedef struct mtrevent_struct{
 /*************************************************
  * Full Frame Structures
  *************************************************/
-typedef struct scifull_struct{
-  pkthed_t hed;
-  sci_t    image[SCI_NBANDS];
-} scifull_t;
-
 typedef struct shkfull_struct{
   pkthed_t   hed;
   shk_t      image;
@@ -1010,23 +1008,32 @@ typedef volatile struct {
   int sci_reset_camera;
   int lyt_reset_camera;
 
-  //Other Commands
-  int hex_getpos;
+  //SCI Origin Commands
+  int sci_setorigin;
+  int sci_revertorigin;
+  int sci_saveorigin;
+  int sci_loadorigin;
+  int sci_xshiftorigin;
+  int sci_yshiftorigin;
+
+  //SHK Origin Commands
   int shk_setorigin;
   int shk_revertorigin;
   int shk_saveorigin;
   int shk_loadorigin;
   int shk_xshiftorigin;
   int shk_yshiftorigin;
+  
+  //LYT Referance Image Commands
+  int lyt_setref;
+  int lyt_defref;
+  int lyt_modref;
+  int lyt_saveref;
+  int lyt_loadref;
+  
+  //Other Commands
+  int hex_getpos;
   int hex_tilt_correct;
-  int sci_setorigin;
-  int sci_revertorigin;
-  int sci_saveorigin;
-  int sci_loadorigin;
-  int lyt_setorigin;
-  int lyt_revertorigin;
-  int lyt_saveorigin;
-  int lyt_loadorigin;
 
   //Door Commands
   int open_door[MTR_NDOORS];
@@ -1054,7 +1061,6 @@ typedef volatile struct {
   lytpkt_t   lytpkt[LYTPKTSIZE];
 
   //Full frame circular buffers
-  scifull_t scifull[SCIFULLSIZE];
   shkfull_t shkfull[SHKFULLSIZE];
   acqfull_t acqfull[ACQFULLSIZE];
   

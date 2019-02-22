@@ -64,9 +64,7 @@ void srv_proc(void) {
   sm_p->write_circbuf[BUFFER_ACQEVENT] = WRITE_ACQEVENT_DEFAULT;
   sm_p->write_circbuf[BUFFER_MTREVENT] = WRITE_MTREVENT_DEFAULT;
   sm_p->write_circbuf[BUFFER_THMEVENT] = WRITE_THMEVENT_DEFAULT;
-  sm_p->write_circbuf[BUFFER_SCIFULL]  = WRITE_SCIFULL_DEFAULT;
   sm_p->write_circbuf[BUFFER_SHKFULL]  = WRITE_SHKFULL_DEFAULT;
-  sm_p->write_circbuf[BUFFER_LYTFULL]  = WRITE_LYTFULL_DEFAULT;
   sm_p->write_circbuf[BUFFER_ACQFULL]  = WRITE_ACQFULL_DEFAULT;
   sm_p->write_circbuf[BUFFER_SHKPKT]   = WRITE_SHKPKT_DEFAULT;
   sm_p->write_circbuf[BUFFER_LYTPKT]   = WRITE_LYTPKT_DEFAULT;
@@ -120,9 +118,7 @@ void srv_proc(void) {
 		sm_p->write_circbuf[BUFFER_ACQEVENT] = WRITE_ACQEVENT_DEFAULT;
 		sm_p->write_circbuf[BUFFER_MTREVENT] = WRITE_MTREVENT_DEFAULT;
 		sm_p->write_circbuf[BUFFER_THMEVENT] = WRITE_THMEVENT_DEFAULT;
-		sm_p->write_circbuf[BUFFER_SCIFULL]  = WRITE_SCIFULL_DEFAULT;
 		sm_p->write_circbuf[BUFFER_SHKFULL]  = WRITE_SHKFULL_DEFAULT;
-		sm_p->write_circbuf[BUFFER_LYTFULL]  = WRITE_LYTFULL_DEFAULT;
 		sm_p->write_circbuf[BUFFER_ACQFULL]  = WRITE_ACQFULL_DEFAULT;
 		sm_p->write_circbuf[BUFFER_SHKPKT]   = WRITE_SHKPKT_DEFAULT;
 		sm_p->write_circbuf[BUFFER_LYTPKT]   = WRITE_LYTPKT_DEFAULT;
