@@ -385,7 +385,6 @@ static DM7820_Error rtd_tlm_write_dma_fifo(DM7820_Board_Descriptor* p_rtd_board)
 /* - Send a command to the ALPAO controller                   */
 /**************************************************************/
 DM7820_Error rtd_send_alp(DM7820_Board_Descriptor* p_rtd_board, double *cmd) {
-  //dma_done_count links back through the user code to the ISR through shared memory
   rtd_alp_limit_command(cmd);
   rtd_alp_limit_power(cmd);
   rtd_alp_build_dither_block(cmd);
