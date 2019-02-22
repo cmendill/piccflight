@@ -208,7 +208,8 @@ void shk_centroid_cell(uint8 *image, shkcell_t *cell, int cmd_boxsize){
   uint64 px;
   double wave2surf = 1;
   double xcentroid=0,ycentroid=0,xdeviation=0,ydeviation=0;
-
+  double value;
+  
   /********************************************************************/
   //NOTES: The technique here is to first search the maximum boxsize 
   //for the brightest pixel, then calculate the true centroid either 
@@ -321,9 +322,12 @@ void shk_centroid_cell(uint8 *image, shkcell_t *cell, int cmd_boxsize){
     for(x=blx;x<=trx;x++){
       for(y=bly;y<=try;y++){
 	px = x + y*SHKXS;
-	xhist[x]  += (double)image[px] - cell->background;
-	yhist[y]  += (double)image[px] - cell->background;
-	intensity += (double)image[px] - cell->background;
+	value = (double)image[px] - cell->background;
+	if(value > SHK_SPOT_UPPER_THRESH){
+	  xhist[x]  += value;
+	  yhist[y]  += value;
+	  intensity += value;
+	}
       }
     }
     
@@ -340,13 +344,14 @@ void shk_centroid_cell(uint8 *image, shkcell_t *cell, int cmd_boxsize){
     }
 
     //Debugging
-    //if(blx > 200 && blx < 230 && bly > 200 && bly < 230){
-    // printf("SHK: ");
-    //for(x=blx;x<=trx;x++)
-    //	printf("%4.1f ",xhist[x]);
-    //printf("\n");
-    //}
-    
+    /*
+    if(blx > 200 && blx < 230 && bly > 200 && bly < 230){
+      printf("SHK: ");
+      for(x=blx;x<=trx;x++)
+    	printf("%4.1f ",xhist[x]);
+      printf("\n");
+    }
+    */
     
     //Calculate centroid
     xcentroid = (xnum/total) * SHKBIN; //unbinned coordinates
