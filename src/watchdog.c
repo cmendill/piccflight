@@ -405,11 +405,6 @@ int main(int argc,char **argv){
   sm_p->circbuf[BUFFER_SHKFULL].bufsize = SHKFULLSIZE;
   sm_p->write_circbuf[BUFFER_SHKFULL]   = WRITE_SHKFULL_DEFAULT;
   sprintf((char *)sm_p->circbuf[BUFFER_SHKFULL].name,"SHKFULL");
-  sm_p->circbuf[BUFFER_LYTFULL].buffer  = (void *)sm_p->lytfull;
-  sm_p->circbuf[BUFFER_LYTFULL].nbytes  = sizeof(lytfull_t);
-  sm_p->circbuf[BUFFER_LYTFULL].bufsize = LYTFULLSIZE;
-  sm_p->write_circbuf[BUFFER_LYTFULL]   = WRITE_LYTFULL_DEFAULT;
-  sprintf((char *)sm_p->circbuf[BUFFER_LYTFULL].name,"LYTFULL");
   sm_p->circbuf[BUFFER_ACQFULL].buffer  = (void *)sm_p->acqfull;
   sm_p->circbuf[BUFFER_ACQFULL].nbytes  = sizeof(acqfull_t);
   sm_p->circbuf[BUFFER_ACQFULL].bufsize = ACQFULLSIZE;

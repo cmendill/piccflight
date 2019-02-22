@@ -185,11 +185,8 @@ enum bmccalmodes {BMC_CALMODE_NONE,
 #define SHKZER2ALPACT_FILE     "config/shkzer2alpact.dat"
 #define ALPZER2LYTPIX_FILE     "config/alpzer2lytpix.dat"
 #define LYTPIX2ALPZER_FILE     "config/lytpix2alpzer.dat"
-#define LYTPIX2ALPACT_FILE     "config/lytpix2alpact.dat"
 #define LYTPIX2ALPZER_REFIMG_FILE "config/lytpix2alpzer_refimg.dat"
 #define LYTPIX2ALPZER_PXMASK_FILE "config/lytpix2alpzer_pxmask.dat"
-#define LYTPIX2ALPACT_REFIMG_FILE "config/lytpix2alpact_refimg.dat"
-#define LYTPIX2ALPACT_PXMASK_FILE "config/lytpix2alpact_pxmask.dat"
 #define SHK_CONFIG_FILE        "config/shk.cfg"
 #define LYT_CONFIG_FILE        "config/lyt.cfg"
 #define DATAPATH               "output/flight_data/folder_%5.5d/"
@@ -206,6 +203,7 @@ enum bmccalmodes {BMC_CALMODE_NONE,
 #define SHK_ORIGIN_FILE        "output/settings/shk_origin.dat"
 #define ALP_FLAT_FILE          "output/settings/alp_flat.dat"
 #define SCI_ORIGIN_FILE        "output/settings/sci_origin.dat"
+#define LYT_ORIGIN_FILE        "output/settings/lyt_origin.dat"
 
 /*************************************************
  * Network Addresses & Ports
@@ -239,7 +237,7 @@ enum bmccalmodes {BMC_CALMODE_NONE,
  *************************************************/
 enum bufids {BUFFER_SCIEVENT, BUFFER_SCIFULL,
 	     BUFFER_SHKEVENT, BUFFER_SHKFULL,
-	     BUFFER_LYTEVENT, BUFFER_LYTFULL,
+	     BUFFER_LYTEVENT,
 	     BUFFER_ACQEVENT, BUFFER_ACQFULL,
 	     BUFFER_THMEVENT, BUFFER_MTREVENT,
 	     BUFFER_SHKPKT,   BUFFER_LYTPKT,
@@ -255,7 +253,6 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SCIFULL,
 #define LYTPKTSIZE       30
 #define SCIFULLSIZE      3
 #define SHKFULLSIZE      3
-#define LYTFULLSIZE      3
 #define ACQFULLSIZE      3
 
 /*************************************************
@@ -855,7 +852,6 @@ typedef struct shkpkt_struct{
 
 typedef struct lytevent_struct{
   pkthed_t  hed;
-  double    gain_alp_act[LOWFS_N_PID];
   double    gain_alp_zern[LOWFS_N_ZERNIKE][LOWFS_N_PID];
   double    zernike_measured[LOWFS_N_ZERNIKE];
   double    zernike_target[LOWFS_N_ZERNIKE];
@@ -917,12 +913,6 @@ typedef struct shkfull_struct{
   shk_t      image;
   shkevent_t shkevent;
 } shkfull_t;
-
-typedef struct lytfull_struct{
-  pkthed_t   hed;
-  lyt_t      image;
-  lytevent_t lytevent;
-} lytfull_t;
 
 typedef struct acqfull_struct{
   pkthed_t hed;
@@ -1004,14 +994,13 @@ typedef volatile struct {
   char calfile[MAX_FILENAME];
 
   //Shack-Hartmann Settings
-  int shk_boxsize;                                        //SHK centroid boxsize
+  int shk_boxsize;                                         //SHK centroid boxsize
   double shk_gain_alp_cell[LOWFS_N_PID];                   //SHK ALP cell gains
   double shk_gain_alp_zern[LOWFS_N_ZERNIKE][LOWFS_N_PID];  //SHK ALP zern gains
   double shk_gain_hex_zern[LOWFS_N_PID];                   //SHK HEX zern gains
 
   //Lyot LOWFS Settings
   double lyt_gain_alp_zern[LOWFS_N_ZERNIKE][LOWFS_N_PID];  //LYT ALP zernike PID gains
-  double lyt_gain_alp_act[LOWFS_N_PID];                    //LYT ALP actuator PID gains
   int    lyt_xorigin;                                      //LYT ROI bottom-left X
   int    lyt_yorigin;                                      //LYT ROI bottom-left Y
   
@@ -1034,6 +1023,10 @@ typedef volatile struct {
   int sci_revertorigin;
   int sci_saveorigin;
   int sci_loadorigin;
+  int lyt_setorigin;
+  int lyt_revertorigin;
+  int lyt_saveorigin;
+  int lyt_loadorigin;
 
   //Door Commands
   int open_door[MTR_NDOORS];
@@ -1063,7 +1056,6 @@ typedef volatile struct {
   //Full frame circular buffers
   scifull_t scifull[SCIFULLSIZE];
   shkfull_t shkfull[SHKFULLSIZE];
-  lytfull_t lytfull[LYTFULLSIZE];
   acqfull_t acqfull[ACQFULLSIZE];
   
   //Circular buffer switches

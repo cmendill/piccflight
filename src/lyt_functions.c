@@ -19,6 +19,150 @@
 #include "bmc_functions.h"
 #include "tgt_functions.h"
 
+/***************************************************************/
+/* LYT_SETORIGIN                                               */
+/*  - Set band origins from current image                      */
+/***************************************************************/
+void lyt_setorigin(lytevent_t *lyt,uint16_t *img_buffer){
+  int i,j,k;
+  int imax=0,jmax=0;
+  uint16_t pmax=0,p=0;
+  
+  /* Loop through band images, find max pixel */
+  for(k=0;k<LYT_NBANDS;k++){
+    pmax=0;
+    for(i=0;i<LYTXS;i++){
+      for(j=0;j<LYTYS;j++){
+	p = img_buffer[lyt_xy2index(lyt->xorigin[k]-(LYTXS/2)+i,lyt->yorigin[k]-(LYTYS/2)+j)];
+	if(p > pmax){
+	  pmax = p;
+	  imax = i;
+	  jmax = j;
+	}
+      }
+    }
+    //Set new origin
+    lyt->xorigin[k] += imax - (LYTXS/2);
+    lyt->yorigin[k] += jmax - (LYTYS/2);
+  }  
+}
+
+
+/**************************************************************/
+/* LYT_LOADORIGIN                                             */
+/*  - Load band origins from file                             */
+/**************************************************************/
+void lyt_loadorigin(lytevent_t *lyt){
+  FILE *fd=NULL;
+  char filename[MAX_FILENAME];
+  uint64 fsize,rsize;
+  uint32 xorigin[LYT_NBANDS] = LYT_XORIGIN;
+  uint32 yorigin[LYT_NBANDS] = LYT_YORIGIN;
+  
+  /* Initialize with default origins */
+  memcpy(lyt->xorigin,xorigin,sizeof(xorigin));
+  memcpy(lyt->yorigin,yorigin,sizeof(yorigin));
+  
+  /* Open origin file */
+  //--setup filename
+  sprintf(filename,LYT_ORIGIN_FILE);
+  //--open file
+  if((fd = fopen(filename,"r")) == NULL){
+    perror("LYT: loadorigin fopen");
+    return;
+  }
+  //--check file size
+  fseek(fd, 0L, SEEK_END);
+  fsize = ftell(fd);
+  rewind(fd);
+  rsize = sizeof(xorigin) + sizeof(yorigin);
+  if(fsize != rsize){
+    printf("LYT: incorrect LYT_ORIGIN_FILE size %lu != %lu\n",fsize,rsize);
+    fclose(fd);
+    return;
+  }
+  
+  //Read file
+  if(fread(xorigin,sizeof(xorigin),1,fd) != 1){
+    perror("LYT: loadorigin fread");
+    fclose(fd);
+    return;
+  }
+  if(fread(yorigin,sizeof(yorigin),1,fd) != 1){
+    perror("LYT: loadorigin fread");
+    fclose(fd);
+    return;
+  }
+  
+  //Close file
+  fclose(fd);
+  printf("LYT: Read: %s\n",filename);
+
+  //Copy origins
+  memcpy(lyt->xorigin,xorigin,sizeof(xorigin));
+  memcpy(lyt->yorigin,yorigin,sizeof(yorigin));
+}
+
+/***************************************************************/
+/* LYT_SAVEORIGIN                                              */
+/*  - Saves cell origins to file                               */
+/***************************************************************/
+void lyt_saveorigin(lytevent_t *lyt){
+  struct stat st = {0};
+  FILE *fd=NULL;
+  static char outfile[MAX_FILENAME];
+  char temp[MAX_FILENAME];
+  char path[MAX_FILENAME];
+  int i;
+
+  /* Open output file */
+  //--setup filename
+  sprintf(outfile,"%s",LYT_ORIGIN_FILE);
+  //--create output folder if it does not exist
+  strcpy(temp,outfile);
+  strcpy(path,dirname(temp));
+  if (stat(path, &st) == -1){
+    printf("LYT: creating folder %s\n",path);
+    recursive_mkdir(path, 0777);
+  }
+  //--open file
+  if((fd = fopen(outfile, "w")) == NULL){
+    perror("LYT: saveorigin fopen()\n");
+    return;
+  }
+  
+  //Save origins
+  if(fwrite(lyt->xorigin,sizeof(lyt->xorigin),1,fd) != 1){
+    printf("LYT: saveorigin fwrite error!\n");
+    fclose(fd);
+    return;
+  }
+  if(fwrite(lyt->yorigin,sizeof(lyt->yorigin),1,fd) != 1){
+    printf("LYT: saveorigin fwrite error!\n");
+    fclose(fd);
+    return;
+  }
+  printf("LYT: Wrote: %s\n",outfile);
+
+  //Close file
+  fclose(fd);
+  return;
+}
+
+/**************************************************************/
+/* LYT_REVERTORIGIN                                           */
+/*  - Set band origins to default                             */
+/**************************************************************/
+void lyt_revertorigin(lytevent_t *lyt){
+  const uint32 xorigin[LYT_NBANDS] = LYT_XORIGIN;
+  const uint32 yorigin[LYT_NBANDS] = LYT_YORIGIN;
+  
+  /* Copy default origins */
+  memcpy(lyt->xorigin,xorigin,sizeof(xorigin));
+  memcpy(lyt->yorigin,yorigin,sizeof(yorigin));
+    
+}
+
 /**************************************************************/
 /* LYT_ALP_ZERNPID                                            */
 /*  - Run PID controller on measured Zernikes for ALP         */
@@ -50,38 +194,6 @@ void lyt_alp_zernpid(lytevent_t *lytevent, double *zernike_delta, int *zernike_s
       //Calculate command
       zernike_delta[i] = lytevent->gain_alp_zern[i][0] * error + lytevent->gain_alp_zern[i][1] * zint[i];
     }
-  }
-}
-
-/**************************************************************/
-/* LYT_ALP_ACTPID                                             */
-/*  - Run PID controller on measured actuators for ALP        */
-/**************************************************************/
-void lyt_alp_actpid(lytevent_t *lytevent, double *act_delta, int reset){
-  static int init = 0;
-  static double aint[ALP_NACT] = {0};
-  double error;
-  int i;
-
-  //Initialize
-  if(!init || reset){
-    memset(aint,0,sizeof(aint));
-    init=1;
-    if(reset) return;
-  }
-
-  //Run PID
-  for(i=0;i<ALP_NACT;i++){
-    //Calculate error
-    error = lytevent->alp_measured[i];
-    //Calculate integral
-    aint[i] += error;
-
-    if(aint[i] > LYT_ALP_ACT_INT_MAX) aint[i]=LYT_ALP_ACT_INT_MAX;
-    if(aint[i] < LYT_ALP_ACT_INT_MIN) aint[i]=LYT_ALP_ACT_INT_MIN;
-
-    //Calculate command
-    act_delta[i] = lytevent->gain_alp_act[0] * error + lytevent->gain_alp_act[1] * aint[i];
   }
 }
 
@@ -142,62 +254,6 @@ void lyt_copy_lytpix2alpzer_refimg(lyt_t *image, int reset){
   
 }
 
-/**************************************************************/
-/* LYT_COPY_LYTPIX2ALPACT_REFIMG                              */
-/*  - Copy reference image into image pointer                 */
-/**************************************************************/
-void lyt_copy_lytpix2alpact_refimg(lyt_t *image, int reset){
-  static double lyt_refimg[LYTXS][LYTYS]={{0}}; //reference image
-  static int init=0;
-  int i,j;
-  uint64 fsize,rsize;
-  FILE   *fd=NULL;
-  char   filename[MAX_FILENAME];
-
-  /* Initialize */
-  if(!init || reset){
-    /****** READ REFERENCE IMAGE FILE ******/
-    //--setup filename
-    sprintf(filename,LYTPIX2ALPACT_REFIMG_FILE);
-    //--open file
-    if((fd = fopen(filename,"r")) == NULL){
-      perror("fopen");
-      printf("lyt_refimg file\n");
-      goto end_of_init;
-    }
-    //--check file size
-    fseek(fd, 0L, SEEK_END);
-    fsize = ftell(fd);
-    rewind(fd);
-    rsize = sizeof(lyt_refimg);
-    if(fsize != rsize){
-      printf("LYT: incorrect lyt_refimg file size %lu != %lu\n",fsize,rsize);
-      fclose(fd);
-      goto end_of_init;
-    }
-    //--read file
-    if(fread(lyt_refimg,rsize,1,fd) != 1){
-      perror("fread");
-      printf("lyt_refimg file\n");
-      fclose(fd);
-      goto end_of_init;
-    }
-    //--close file
-    fclose(fd);
-
-  end_of_init:
-    //--set init flag
-    init=1;
-    //--return if reset
-    if(reset) return;
-  }
-
-  /* Copy image */
-  for(i=0;i<LYTXS;i++)
-    for(j=0;j<LYTYS;j++)
-      image->data[i][j] = lyt_refimg[i][j]*40000;
-  
-}
 
 /**************************************************************/
 /* LYT_ZERNIKE_FIT                                            */
@@ -343,168 +399,20 @@ void lyt_zernike_fit(lyt_t *image, double *zernikes,int reset){
   num_dgemv(lyt2zern_matrix, lyt_delta, zernikes, LOWFS_N_ZERNIKE, lyt_npix);
 }
 
-
-/**************************************************************/
-/* LYT_ACTUATOR_FIT                                           */
-/*  - Fit ALP actuators to LYT pixels                         */
-/**************************************************************/
-void lyt_actuator_fit(lyt_t *image, double *actuators, int reset){
-  FILE   *fd=NULL;
-  char   filename[MAX_FILENAME];
-  static lytevent_t lytevent;
-  static int init=0;
-  static double lyt2act_matrix[LYTXS*LYTYS*ALP_NACT]={0}; //actuator fitting matrix (max size)
-  static double lyt_delta[LYTXS*LYTYS]={0};     //measured image - reference (max size)
-  static double lyt_refimg[LYTXS][LYTYS]={{0}}; //reference image
-  static uint16 lyt_pxmask[LYTXS][LYTYS]={{0}}; //pixel selection mask
-  static int    lyt_npix=0;
-  uint64 fsize,rsize;
-  double total;
-  int    i,j,count;
-
-  /* Initialize Fitting Matrix */
-  if(!init || reset){
-
-    /****** READ REFERENCE IMAGE FILE ******/
-    //--setup filename
-    sprintf(filename,LYTPIX2ALPACT_REFIMG_FILE);
-    //--open file
-    if((fd = fopen(filename,"r")) == NULL){
-      perror("fopen");
-      printf("lyt_refimg file\n");
-      goto end_of_init;
-    }
-    //--check file size
-    fseek(fd, 0L, SEEK_END);
-    fsize = ftell(fd);
-    rewind(fd);
-    rsize = sizeof(lyt_refimg);
-    if(fsize != rsize){
-      printf("LYT: incorrect lyt_refimg file size %lu != %lu\n",fsize,rsize);
-      fclose(fd);
-      goto end_of_init;
-    }
-    //--read file
-    if(fread(lyt_refimg,rsize,1,fd) != 1){
-      perror("fread");
-      printf("lyt_refimg file\n");
-      fclose(fd);
-      goto end_of_init;
-    }
-    //--close file
-    fclose(fd);
-    printf("LYT: Read: %s\n",filename);
-
-    /****** READ PIXEL MASK FILE ******/
-    //--setup filename
-    sprintf(filename,LYTPIX2ALPACT_PXMASK_FILE);
-    //--open file
-    if((fd = fopen(filename,"r")) == NULL){
-      perror("fopen");
-      printf("lyt_pxmask file\n");
-      goto end_of_init;
-    }
-    //--check file size
-    fseek(fd, 0L, SEEK_END);
-    fsize = ftell(fd);
-    rewind(fd);
-    rsize = sizeof(lyt_pxmask);
-    if(fsize != rsize){
-      printf("LYT: incorrect lyt_pxmask file size %lu != %lu\n",fsize,rsize);
-      fclose(fd);
-      goto end_of_init;
-    }
-    //--read file
-    if(fread(lyt_pxmask,rsize,1,fd) != 1){
-      perror("fread");
-      printf("lyt_pxmask file\n");
-      fclose(fd);
-      goto end_of_init;
-    }
-    //--close file
-    fclose(fd);
-    printf("LYT: Read: %s\n",filename);
-
-    /****** COUNT NUMBER OF CONTROLED PIXELS ******/
-    lyt_npix=0;
-    for(i=0;i<LYTXS;i++)
-      for(j=0;j<LYTYS;j++)
-	if(lyt_pxmask[i][j])
-	  lyt_npix++;
-
-
-    /****** READ ACTUATOR MATRIX FILE ******/
-    //--setup filename
-    sprintf(filename,LYTPIX2ALPACT_FILE);
-    //--open file
-    if((fd = fopen(filename,"r")) == NULL){
-      perror("fopen");
-      printf("lyt2act file\n");
-      goto end_of_init;
-    }
-    //--calculate
-    //--check file size
-    fseek(fd, 0L, SEEK_END);
-    fsize = ftell(fd);
-    rewind(fd);
-    rsize = lyt_npix*ALP_NACT*sizeof(double);
-    if(fsize != rsize){
-      printf("LYT: incorrect lyt2act matrix file size %lu != %lu\n",fsize,rsize);
-      fclose(fd);
-      goto end_of_init;
-    }
-    //--read matrix
-    if(fread(lyt2act_matrix,rsize,1,fd) != 1){
-      perror("fread");
-      printf("lyt2act file\n");
-      fclose(fd);
-      goto end_of_init;
-    }
-    //--close file
-    fclose(fd);
-    printf("LYT: Read: %s\n",filename);
-
-
-  end_of_init:
-    //--set init flag
-    init=1;
-    //--return if reset
-    if(reset) return;
-  }
-
-  //Normalize image pixels & subtract reference image
-  total=0;
-  count=0;
-  for(i=0;i<LYTXS;i++)
-    for(j=0;j<LYTYS;j++)
-      if(lyt_pxmask[i][j])
-	total += (double)image->data[i][j];
-  for(i=0;i<LYTXS;i++)
-    for(j=0;j<LYTYS;j++)
-      if(lyt_pxmask[i][j])
-	lyt_delta[count++]  = ((double)image->data[i][j])/total - lyt_refimg[i][j];
-
-  //Do matrix multiply
-  num_dgemv(lyt2act_matrix, lyt_delta, actuators, ALP_NACT, lyt_npix);
-}
-
-
 /**************************************************************/
 /* LYT_PROCESS_IMAGE                                          */
 /*  - Main image processing function for LYT                  */
 /**************************************************************/
 void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
-  static lytfull_t lytfull;
   static lytevent_t lytevent;
   static lytpkt_t lytpkt;
-  lytfull_t *lytfull_p;
   lytevent_t *lytevent_p;
   lytpkt_t *lytpkt_p;
   static calmode_t alpcalmodes[ALP_NCALMODES];
   static calmode_t hexcalmodes[HEX_NCALMODES];
   static calmode_t bmccalmodes[BMC_NCALMODES];
   static calmode_t tgtcalmodes[TGT_NCALMODES];
-  static struct timespec start,end,delta,last,full_last;
+  static struct timespec start,end,delta,last;
   static int init=0;
   double dt;
   int i,j;
@@ -535,7 +443,6 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   //Initialize
   if(!init){
     //Zero out events & commands
-    memset(&lytfull,0,sizeof(lytfull_t));
     memset(&lytevent,0,sizeof(lytevent_t));
     memset(&lytpkt,0,sizeof(lytpkt_t));
     //Reset zern2alp mapping
@@ -547,11 +454,8 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     lyt_alp_zernpid(NULL,NULL,NULL,FUNCTION_RESET);
     //Reset zernike fitter
     lyt_zernike_fit(NULL,NULL,FUNCTION_RESET);
-    //Reset actuator fitter
-    lyt_actuator_fit(NULL,NULL,FUNCTION_RESET);
     //Reset reference image copying
     lyt_copy_lytpix2alpzer_refimg(NULL,FUNCTION_RESET);
-    lyt_copy_lytpix2alpact_refimg(NULL,FUNCTION_RESET);
     //Init ALP calmodes
     for(i=0;i<ALP_NCALMODES;i++)
       alp_init_calmode(i,&alpcalmodes[i]);
@@ -565,7 +469,6 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     for(i=0;i<TGT_NCALMODES;i++)
       tgt_init_calmode(i,&tgtcalmodes[i]);
     //Reset last times
-    memcpy(&full_last,&start,sizeof(struct timespec));
     memcpy(&last,&start,sizeof(struct timespec));
     //Set init flag
     init=1;
@@ -580,6 +483,7 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
 
   //Save time
   memcpy(&last,&start,sizeof(struct timespec));
+
 
   //Fill out event header
   lytevent.hed.version      = PICC_PKT_VERSION;
@@ -596,7 +500,6 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   lytevent.hed.tgt_calmode  = sm_p->tgt_calmode;
  
   //Save gains
-  memcpy(lytevent.gain_alp_act,(double *)sm_p->lyt_gain_alp_act,sizeof(lytevent.gain_alp_act));
   for(i=0;i<LOWFS_N_ZERNIKE;i++)
     for(j=0;j<LOWFS_N_PID;j++)
       lytevent.gain_alp_zern[i][j] = sm_p->lyt_gain_alp_zern[i][j] * sm_p->zernike_control[i];
@@ -617,8 +520,6 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
 	  lytevent.image.data[i][j]=fakepx++;
     if(sm_p->w[LYTID].fakemode == FAKEMODE_LYTPIX2ALPZER_REFIMG)
       lyt_copy_lytpix2alpzer_refimg(&lytevent.image, FUNCTION_NO_RESET);
-    if(sm_p->w[LYTID].fakemode == FAKEMODE_LYTPIX2ALPACT_REFIMG)
-      lyt_copy_lytpix2alpact_refimg(&lytevent.image, FUNCTION_NO_RESET);
   }
   else{
     //Copy image data
@@ -630,9 +531,31 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
    
   }
   
+  //Command: lyt_setorigin 
+  if(sm_p->lyt_setorigin){
+    lyt_setorigin(&lytevent);
+    sm_p->lyt_setorigin=0;
+  }
+  //Command: lyt_saveorigin 
+  if(sm_p->lyt_saveorigin){
+    lyt_saveorigin(&lytevent);
+    sm_p->lyt_saveorigin=0;
+  }
+  //Command: lyt_loadorigin 
+  if(sm_p->lyt_loadorigin){
+    lyt_loadorigin(&lytevent);
+    sm_p->lyt_loadorigin=0;
+  }
+  //Command: lyt_revertorigin 
+  if(sm_p->lyt_revertorigin){
+    lyt_revertorigin(&lytevent);
+    sm_p->lyt_revertorigin=0;
+  }
+
   //Fit Zernikes
   if(sm_p->state_array[state].lyt.fit_zernikes)
     lyt_zernike_fit(&lytevent.image,lytevent.zernike_measured, FUNCTION_NO_RESET);
+
 
   /*************************************************************/
   /*******************  ALPAO DM Control Code  *****************/
@@ -675,27 +598,13 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
       for(i=0;i<ALP_NACT;i++)
 	alp_try.acmd[i] += alp_delta.acmd[i];
     }
-
-    //Run ALP actuator control
-    if(sm_p->state_array[state].lyt.act_control == ACTUATOR_ALP){
-      // - fit actuator functions
-      lyt_actuator_fit(&lytevent.image,lytevent.alp_measured, FUNCTION_NO_RESET);
-      
-      // - run actuator PID
-      lyt_alp_actpid(&lytevent, alp_delta.acmd, FUNCTION_NO_RESET);
-
-      // - add actuator deltas to ALP command
-      for(i=0;i<ALP_NACT;i++)
-	alp_try.acmd[i] += alp_delta.acmd[i];
-    }
-    
     //Calibrate ALP
     if(lytevent.hed.alp_calmode != ALP_CALMODE_NONE)
       sm_p->alp_calmode = alp_calibrate(lytevent.hed.alp_calmode,&alp_try,&lytevent.hed.alp_calstep,LYTID,FUNCTION_NO_RESET);
-
+    
     //Send command to ALP
     if(alp_send_command(sm_p,&alp_try,LYTID,n_dither)){
-
+      
       // - copy command to current position
       memcpy(&alp,&alp_try,sizeof(alp_t));
     }
@@ -703,12 +612,7 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
 
   //Copy ALP command to lytevent
   memcpy(&lytevent.alp,&alp,sizeof(alp_t));
-
-  //Get end timestamp
-  clock_gettime(CLOCK_REALTIME,&end);
-  lytevent.hed.end_sec  = end.tv_sec;
-  lytevent.hed.end_nsec = end.tv_nsec;
-
+  
   //Write LYTEVENT circular buffer
   if(sm_p->write_circbuf[BUFFER_LYTEVENT]){
     //Open LYTEVENT circular buffer
@@ -724,10 +628,6 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     
     //Close buffer
     close_buffer(sm_p,BUFFER_LYTEVENT);
-  
-    //Save end timestamps for full image code
-    lytevent.hed.end_sec  = end.tv_sec;
-    lytevent.hed.end_nsec = end.tv_nsec;
   }
   
   /*************************************************************/
@@ -767,56 +667,6 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     
       //Close buffer
       close_buffer(sm_p,BUFFER_LYTPKT);
-    }
-  }
-  
-  /*************************************************************/
-  /**********************  Full Image Code  ********************/
-  /*************************************************************/
-  if(sm_p->write_circbuf[BUFFER_LYTFULL]){
-    if(timespec_subtract(&delta,&start,&full_last))
-      printf("LYT: lyt_process_image --> timespec_subtract error!\n");
-    ts2double(&delta,&dt);
-    if(dt > LYT_FULL_IMAGE_TIME){
-      //Copy packet header
-      memcpy(&lytfull.hed,&lytevent.hed,sizeof(pkthed_t));
-      lytfull.hed.type = BUFFER_LYTFULL;
-
-      //Fake data
-      if(sm_p->w[LYTID].fakemode != FAKEMODE_NONE){
-	if(sm_p->w[LYTID].fakemode == FAKEMODE_TEST_PATTERN)
-	  for(i=0;i<LYTXS;i++)
-	    for(j=0;j<LYTYS;j++)
-	      lytfull.image.data[i][j]=fakepx++;
-	if(sm_p->w[LYTID].fakemode == FAKEMODE_LYTPIX2ALPZER_REFIMG)
-	  lyt_copy_lytpix2alpzer_refimg(&lytfull.image, FUNCTION_NO_RESET);
-	if(sm_p->w[LYTID].fakemode == FAKEMODE_LYTPIX2ALPACT_REFIMG)
-	  lyt_copy_lytpix2alpact_refimg(&lytfull.image, FUNCTION_NO_RESET);
-      }
-      else{
-	//Copy full image
-	memcpy(&(lytfull.image.data[0][0]),&(lytevent.image.data[0][0]),sizeof(lytfull.image.data));
-      }
-
-      //Copy event
-      memcpy(&lytfull.lytevent,&lytevent,sizeof(lytevent));
-
-      //Open circular buffer
-      lytfull_p=(lytfull_t *)open_buffer(sm_p,BUFFER_LYTFULL);
-
-      //Copy data
-      memcpy(lytfull_p,&lytfull,sizeof(lytfull_t));;
-
-      //Get final timestamp
-      clock_gettime(CLOCK_REALTIME,&end);
-      lytfull_p->hed.end_sec  = end.tv_sec;
-      lytfull_p->hed.end_nsec = end.tv_nsec;
-
-      //Close buffer
-      close_buffer(sm_p,BUFFER_LYTFULL);
-
-      //Reset time
-      memcpy(&full_last,&start,sizeof(struct timespec));
     }
   }
 }

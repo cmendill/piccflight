@@ -1278,15 +1278,10 @@ int handle_command(char *line, sm_t *sm_p){
     ftemp = atof(line+strlen(cmd)+1);
     if(ftemp >= 0){
       double lyt_gain_alp_zern[LOWFS_N_ZERNIKE][LOWFS_N_PID] = LYT_GAIN_ALP_ZERN_DEFAULT;
-      double lyt_gain_alp_act[LOWFS_N_PID] = LYT_GAIN_ALP_ACT_DEFAULT;
       // -- zernike gain
       for(i=0;i<LOWFS_N_ZERNIKE;i++) 
 	for(j=0;j<LOWFS_N_PID;j++)
 	  sm_p->lyt_gain_alp_zern[i][j] = ftemp * lyt_gain_alp_zern[i][j];
-      // -- actuator gain
-      for(j=0;j<LOWFS_N_PID;j++)
-	sm_p->lyt_gain_alp_act[j] = ftemp * lyt_gain_alp_act[j];
-
       printf("CMD: Changing LYT-->ALP gain multiplier to %f\n",ftemp);
       for(i=0;i<LOWFS_N_ZERNIKE;i++) 
 	printf("CMD: LYT Z[%2.2d] Gain: %10.6f | %10.6f | %10.6f\n", i, sm_p->lyt_gain_alp_zern[i][0],sm_p->lyt_gain_alp_zern[i][1],sm_p->lyt_gain_alp_zern[i][2]);
@@ -1417,7 +1412,36 @@ int handle_command(char *line, sm_t *sm_p){
     return CMD_NORMAL;
   }
 
-  //SCI Commands
+  //LYT Origin Commands
+  sprintf(cmd,"lyt set origin");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    printf("CMD: Setting LYT origin\n");
+    sm_p->lyt_setorigin=1;
+    return(CMD_NORMAL);
+  }
+
+  sprintf(cmd,"lyt revert origin");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    printf("CMD: Reverting LYT origin\n");
+    sm_p->lyt_revertorigin=1;
+    return(CMD_NORMAL);
+  }
+
+  sprintf(cmd,"lyt save origin");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    printf("CMD: Saving LYT origin\n");
+    sm_p->lyt_saveorigin=1;
+    return(CMD_NORMAL);
+  }
+
+  sprintf(cmd,"lyt load origin");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    printf("CMD: Loading LYT origin\n");
+    sm_p->lyt_loadorigin=1;
+    return(CMD_NORMAL);
+  }
+
+  //SCI Origin Commands
   sprintf(cmd,"sci set origin");
   if(!strncasecmp(line,cmd,strlen(cmd))){
     printf("CMD: Setting SCI origin\n");

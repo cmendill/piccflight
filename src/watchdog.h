@@ -106,9 +106,6 @@
 				   {-0.005000,  -0.001000,       0.0}, \
 				   {-0.005000,  -0.001000,       0.0}, \
 				   {-0.005000,  -0.001000,       0.0}}  
-  
-#define LYT_GAIN_ALP_ACT_DEFAULT   {     -0.5,       -0.1,       0.0}
-
 
 //Hexapod Settings
 #define HEX_TILT_CORRECT_DEFAULT  1
