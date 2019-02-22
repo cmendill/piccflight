@@ -342,8 +342,6 @@ int main(int argc,char **argv){
   //LYT PID Gains
   double lyt_gain_alp_zern[LOWFS_N_ZERNIKE][LOWFS_N_PID] = LYT_GAIN_ALP_ZERN_DEFAULT;
   memcpy((double *)&sm_p->lyt_gain_alp_zern[0][0],&lyt_gain_alp_zern[0][0],sizeof(lyt_gain_alp_zern));
-  double lyt_gain_alp_act[LOWFS_N_PID] = LYT_GAIN_ALP_ACT_DEFAULT;
-  memcpy((double *)&sm_p->lyt_gain_alp_act,&lyt_gain_alp_act,sizeof(lyt_gain_alp_act));
   
   /* Initialize States */
   for(i=0;i<NSTATES;i++)

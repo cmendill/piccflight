@@ -195,7 +195,7 @@ enum bmccalmodes {BMC_CALMODE_NONE,
 #define SHK_ALP_CALFILE        "output/calibration/shk_alp_%s_%s_%s_caldata.dat"
 #define SHK_TGT_CALFILE        "output/calibration/shk_tgt_%s_%s_%s_caldata.dat"
 #define LYT_ALP_CALFILE        "output/calibration/lyt_alp_%s_%s_%s_caldata.dat"
-#define SCI_BMC_CALFILE        "output/calibration/sci_bmc_%s_%s__caldata.dat"
+#define SCI_BMC_CALFILE        "output/calibration/sci_bmc_%s_%s_%s_caldata.dat"
 #define SHKCEL2SHKZER_OUTFILE  "output/calibration/shkcel2shkzer_flight_output.dat"
 #define SHKZER2SHKCEL_OUTFILE  "output/calibration/shkzer2shkcel_flight_output.dat"
 #define SHK_OUTFILE            "output/calibration/shk_output_%s.dat"

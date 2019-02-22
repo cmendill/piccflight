@@ -42,7 +42,10 @@ void srv_proc(void) {
   int nbytes,i;
   void *buffer;
   int max_buf_size=0;
-  unsigned long data_ready;
+  int data_sent;
+  struct timespec now,delta,last[NCIRCBUF];
+  double bufdt[NCIRCBUF];
+  double dt;
   
   /* Set soft interrupt handler */
   sigset(SIGINT, srvctrlC);	/* usually ^C */
@@ -57,6 +60,22 @@ void srv_proc(void) {
   /* Zero out srv_send */
   memset((void *)srv_send,0,sizeof srv_send);
 
+  /* Set buffer send rates (seconds) */
+  bufdt[BUFFER_SCIEVENT] = 0.5;
+  bufdt[BUFFER_SHKEVENT] = 0.5;
+  bufdt[BUFFER_LYTEVENT] = 0.5;
+  bufdt[BUFFER_ACQEVENT] = 0.5;
+  bufdt[BUFFER_MTREVENT] = 0.5;
+  bufdt[BUFFER_THMEVENT] = 0.5;
+  bufdt[BUFFER_SHKPKT]   = 0.5;
+  bufdt[BUFFER_LYTPKT]   = 0.5;
+  bufdt[BUFFER_SHKFULL]  = 0.5;
+  bufdt[BUFFER_ACQFULL]  = 0.5;
+
+  /* Init start times */
+  for(i=0;i<NCIRCBUF;i++)
+    clock_gettime(CLOCK_REALTIME,&last[i]);
+  
   /* Set data switches to defaults */
   sm_p->write_circbuf[BUFFER_SCIEVENT] = WRITE_SCIEVENT_DEFAULT;
   sm_p->write_circbuf[BUFFER_SHKEVENT] = WRITE_SHKEVENT_DEFAULT;
@@ -89,19 +108,19 @@ void srv_proc(void) {
   
   while(1){
     if(clientfd >= 0){
-      //first check if there is any data
-      data_ready = 0;
-      for(i=0;i<NCIRCBUF;i++)
+      //Loop through buffers
+      data_sent = 0;
+      for(i=0;i<NCIRCBUF;i++){
 	if(srv_send[i]){
-	  //enable data
+	  //Request data
 	  sm_p->write_circbuf[i] = 1;
-	  //check data
-	  data_ready += check_buffer(sm_p,i,SRVID);
-	}
-      //read data if its ready
-      if(data_ready){
-	for(i=0;i<NCIRCBUF;i++){
-	  if(srv_send[i]){
+	  //Get time
+	  clock_gettime(CLOCK_REALTIME,&now);
+	  if(timespec_subtract(&delta,&now,&last[i]))
+	    printf("SRV: timespec_subtract error!\n");
+	  ts2double(&delta,&dt);
+	  //Read data if enough time has elapsed since last packet
+	  if(dt > bufdt[i]){
 	    if(read_from_buffer(sm_p, buffer, i, SRVID)){
 	      //write data to socket
 	      if(SRV_DEBUG) printf("SRV: Writing Packet %d\n",i);
@@ -122,20 +141,21 @@ void srv_proc(void) {
 		sm_p->write_circbuf[BUFFER_ACQFULL]  = WRITE_ACQFULL_DEFAULT;
 		sm_p->write_circbuf[BUFFER_SHKPKT]   = WRITE_SHKPKT_DEFAULT;
 		sm_p->write_circbuf[BUFFER_LYTPKT]   = WRITE_LYTPKT_DEFAULT;
-				
+		
 		printf("SRV: Client hung up\n");
 	      }
 	      //increment packet counter
 	      srv_packet_count++;
+	      //save time
+	      memcpy(&last[i],&now,sizeof(struct timespec));
 	      //check in with watchdog -- make this slower
 	      checkin(sm_p,SRVID);
 	    }
 	  }
 	}
-      }else{
-	//sleep if there is no data
-	usleep(100000);
       }
+      //sleep if no data was sent
+      if(!data_sent) usleep(100000);
     }else{
       //sleep
       sleep(sm_p->w[SRVID].per);

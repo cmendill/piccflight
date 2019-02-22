@@ -132,8 +132,7 @@ int alp_zern2alp(double *zernikes,double *actuators,int reset){
     sprintf(matrix_file,SHKZER2ALPACT_FILE);
     //--open matrix file
     if((matrix = fopen(matrix_file,"r")) == NULL){
-      printf("zern2alp file\r");
-      perror("fopen");
+      perror("ALP: zern2alp fopen");
       return 1;
     }
 
@@ -149,8 +148,7 @@ int alp_zern2alp(double *zernikes,double *actuators,int reset){
 
     //--read matrix
     if(fread(zern2alp_matrix,LOWFS_N_ZERNIKE*ALP_NACT*sizeof(double),1,matrix) != 1){
-      printf("zern2alp file\r");
-      perror("fread");
+      perror("ALP: zern2alp fread");
       return 1;
     }
     //--close file
@@ -211,7 +209,7 @@ int alp_send_command(sm_t *sm_p, alp_t *cmd, int proc_id, int n_dither){
 	//Init ALPAO RTD interface
 	printf("ALP: Initializing RTD board for %s with %d dither steps\n",sm_p->w[proc_id].name,n_dither);
 	if(rtd_init_alp(sm_p->p_rtd_board,n_dither))
-	  perror("rtd_init_alp");
+	  perror("ALP: rtd_init_alp");
 	else{
 	  sm_p->alp_proc_id = proc_id;
 	  sm_p->alp_n_dither = n_dither;
@@ -491,7 +489,7 @@ int alp_calibrate(int calmode, alp_t *alp, uint32_t *step, int procid, int reset
     rewind(fileptr);
     //--read data
     if(fread(zernike_errors,sizeof(zernike_errors),1,fileptr) != 1){
-      perror("fread");
+      perror("ALP: zernike_errors fread");
       goto endofinit;
     }    
     printf("ALP: Read for PROC %d: %s\n",procid,filename);
