@@ -25,6 +25,8 @@ void init_state(int state_number, state_t *state){
   state->alp_commander = -1;
   state->bmc_commander = -1;
   state->wsp_commander = -1;
+  state->shk.fit_zernikes = 1;
+  state->lyt.fit_zernikes = 1;
 
   //STATE_STANDBY
   if(state_number == STATE_STANDBY){
@@ -305,7 +307,7 @@ void init_state(int state_number, state_t *state){
       state->lyt.zernike_control[i] = ACTUATOR_ALP;
     return;
   }
-
+  
   //STATE_LYT_FULL_LOWFC
   if(state_number == STATE_LYT_FULL_LOWFC){
     //Set name
@@ -322,6 +324,26 @@ void init_state(int state_number, state_t *state){
     //LYT Settings
     state->lyt.fit_zernikes = 1;
     state->lyt.act_control = ACTUATOR_ALP;
+    return;
+  }
+
+  //STATE_LYT_TT_LOWFC
+  if(state_number == STATE_LYT_TT_LOWFC){
+    //Set name
+    sprintf(state->name,"STATE_LYT_TT_LOWFC");
+    //Set cmd
+    sprintf(state->cmd,"ltt");
+    //Config Cameras
+    state->shk.run_camera = 1;
+    state->lyt.run_camera = 1;
+    state->sci.run_camera = 1;
+    state->acq.run_camera = 1;
+    //Set LYTID as alp commander
+    state->alp_commander = LYTID;
+    //LYT Settings
+    state->lyt.fit_zernikes = 1;
+    state->lyt.zernike_control[0] = ACTUATOR_ALP;
+    state->lyt.zernike_control[1] = ACTUATOR_ALP;
     return;
   }
 
