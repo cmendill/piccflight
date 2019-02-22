@@ -405,8 +405,8 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 #define LYT_NSAMPLES          200 //number of samples per lytevent
 #define LYT_ALP_ZERN_INT_MAX  0.1
 #define LYT_ALP_ZERN_INT_MIN -0.1
-#define LYT_ALP_ACT_INT_MAX   0.01
-#define LYT_ALP_ACT_INT_MIN  -0.01
+#define LYT_ZERNIKE_MIN      -0.05 //min limit for measured zernikes [microns]
+#define LYT_ZERNIKE_MAX       0.05 //max limit for measured zernikes [microns]
 #define LYT_XORIGIN_MIN       0
 #define LYT_XORIGIN_MAX       (LYTREADYS-LYTYS) //origins are transposed
 #define LYT_YORIGIN_MIN       0
