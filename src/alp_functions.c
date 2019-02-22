@@ -773,14 +773,16 @@ int alp_calibrate(int calmode, alp_t *alp, uint32_t *step, int procid, int reset
       memcpy(&alp_start[calmode],alp,sizeof(alp_t));
       mode_init[calmode]=1;
     }
-
     
     //Check counters
     if(countA[calmode] >= 0 && countA[calmode] < (2*ncalim)){
       //Set step counter
       *step = (countA[calmode]/ncalim);
+      //Set all Zernikes to zero
+      for(i=0;i<LOWFS_N_ZERNIKE;i++)
+	alp->zcmd[i] = 0.0;
       //Poke all zernikes by random amount (just once)
-      if(countA[calmode] == ncalim){
+      if(countA[calmode] >= ncalim){
 	for(i=0; i<LOWFS_N_ZERNIKE; i++)
 	  alp->zcmd[i] = zpoke[i]*zrand[i];
 	alp_zern2alp(alp->zcmd,act,FUNCTION_NO_RESET);
