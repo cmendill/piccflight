@@ -148,17 +148,34 @@ void print_fakemodes(calmode_t *fake, int current){
 }
 
 /**************************************************************/
-/* PRINT_ZERNIKES                                             */
-/*  - Print out zernike control status                        */
+/* PRINT_SHK_ZERNIKES                                             */
+/*  - Print out SHK zernike control status                        */
 /**************************************************************/
-void print_zernikes(sm_t *sm_p){
+void print_shk_zernikes(sm_t *sm_p){
   int i;
-  printf("************ Zernike Control ************\n");
+  printf("************ SHK Zernike Control ************\n");
   printf("Zernike   Controlled\n");
   for(i=0;i<LOWFS_N_ZERNIKE;i++){
-    if(sm_p->zernike_control[i] == 1) printf("%02d        YES\n",i);        
+    if(sm_p->shk_zernike_control[i] == 1) printf("%02d        YES\n",i);        
      else
-   if(sm_p->zernike_control[i] == 0) printf("%02d        NO\n",i);
+   if(sm_p->shk_zernike_control[i] == 0) printf("%02d        NO\n",i);
+  }
+  printf("******************************************\n");
+
+}
+
+/**************************************************************/
+/* PRINT_LYT_ZERNIKES                                             */
+/*  - Print out LYT zernike control status                        */
+/**************************************************************/
+void print_lyt_zernikes(sm_t *sm_p){
+  int i;
+  printf("************ LYT Zernike Control ************\n");
+  printf("Zernike   Controlled\n");
+  for(i=0;i<LOWFS_N_ZERNIKE;i++){
+    if(sm_p->lyt_zernike_control[i] == 1) printf("%02d        YES\n",i);        
+     else
+   if(sm_p->lyt_zernike_control[i] == 0) printf("%02d        NO\n",i);
   }
   printf("******************************************\n");
 
@@ -1340,72 +1357,129 @@ int handle_command(char *line, sm_t *sm_p){
     return CMD_NORMAL;
   }
 
-  //Zernike control commands
-  sprintf(cmd,"zernike status");
+  //SHK Zernike control commands
+  sprintf(cmd,"shk zernike status");
   if(!strncasecmp(line,cmd,strlen(cmd))){
-    print_zernikes(sm_p);
+    print_shk_zernikes(sm_p);
     return CMD_NORMAL;
   }
-  sprintf(cmd,"zernike disable all");
+  sprintf(cmd,"shk zernike disable all");
   if(!strncasecmp(line,cmd,strlen(cmd))){
-    printf("CMD: Disabling control of ALL Zernikes\n\n");
+    printf("CMD: Disabling SHK control of ALL Zernikes\n\n");
     for(i=0;i<LOWFS_N_ZERNIKE;i++)
-      sm_p->zernike_control[i]=0;
-    print_zernikes(sm_p);
+      sm_p->shk_zernike_control[i]=0;
+    print_shk_zernikes(sm_p);
     return CMD_NORMAL;
   }
-  sprintf(cmd,"zernike enable all");
+  sprintf(cmd,"shk zernike enable all");
   if(!strncasecmp(line,cmd,strlen(cmd))){
-    printf("CMD: Enabling control of ALL Zernikes\n\n");
+    printf("CMD: Enabling SHK control of ALL Zernikes\n\n");
     for(i=0;i<LOWFS_N_ZERNIKE;i++)
-      sm_p->zernike_control[i]=1;
-    print_zernikes(sm_p);
+      sm_p->shk_zernike_control[i]=1;
+    print_shk_zernikes(sm_p);
     return CMD_NORMAL;
   }
-  sprintf(cmd,"zernike disable");
+  sprintf(cmd,"shk zernike disable");
   if(!strncasecmp(line,cmd,strlen(cmd)) && strlen(line) > strlen(cmd)){
     pch = strtok(line+strlen(cmd)," ");
     while(pch != NULL){
       itemp  = atoi(pch);
       if(itemp >= 0 && itemp < LOWFS_N_ZERNIKE){
-	sm_p->zernike_control[itemp]=0;
-	printf("CMD: Disabling control of Zernike %d\n",itemp);
+	sm_p->shk_zernike_control[itemp]=0;
+	printf("CMD: Disabling SHK control of Zernike %d\n",itemp);
       }
       else{
 	printf("CMD: Invalid Zernike %d\n",itemp);
       }
       pch = strtok(NULL," ");
     }
-    print_zernikes(sm_p);
+    print_shk_zernikes(sm_p);
     return CMD_NORMAL;
   }
-  sprintf(cmd,"zernike enable");
+  sprintf(cmd,"shk zernike enable");
   if(!strncasecmp(line,cmd,strlen(cmd)) && strlen(line) > strlen(cmd)){
     pch = strtok(line+strlen(cmd)," ");
     while(pch != NULL){
       itemp  = atoi(pch);
       if(itemp >= 0 && itemp < LOWFS_N_ZERNIKE){
-	sm_p->zernike_control[itemp]=1;
-	printf("CMD: Enabling control of Zernike %d\n",itemp);
+	sm_p->shk_zernike_control[itemp]=1;
+	printf("CMD: Enabling SHK control of Zernike %d\n",itemp);
       }
       else{
 	printf("CMD: Invalid Zernike %d\n",itemp);
       }
       pch = strtok(NULL," ");
     }
-    print_zernikes(sm_p);
+    print_shk_zernikes(sm_p);
     return CMD_NORMAL;
   }
 
-  //SHK Zernike Targets
-  sprintf(cmd,"shk zernike reset");
+  //LYT Zernike control commands
+  sprintf(cmd,"lyt zernike status");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    print_lyt_zernikes(sm_p);
+    return CMD_NORMAL;
+  }
+  sprintf(cmd,"lyt zernike disable all");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    printf("CMD: Disabling LYT control of ALL Zernikes\n\n");
+    for(i=0;i<LOWFS_N_ZERNIKE;i++)
+      sm_p->lyt_zernike_control[i]=0;
+    print_lyt_zernikes(sm_p);
+    return CMD_NORMAL;
+  }
+  sprintf(cmd,"lyt zernike enable all");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    printf("CMD: Enabling LYT control of ALL Zernikes\n\n");
+    for(i=0;i<LOWFS_N_ZERNIKE;i++)
+      sm_p->lyt_zernike_control[i]=1;
+    print_lyt_zernikes(sm_p);
+    return CMD_NORMAL;
+  }
+  sprintf(cmd,"lyt zernike disable");
+  if(!strncasecmp(line,cmd,strlen(cmd)) && strlen(line) > strlen(cmd)){
+    pch = strtok(line+strlen(cmd)," ");
+    while(pch != NULL){
+      itemp  = atoi(pch);
+      if(itemp >= 0 && itemp < LOWFS_N_ZERNIKE){
+	sm_p->lyt_zernike_control[itemp]=0;
+	printf("CMD: Disabling LYT control of Zernike %d\n",itemp);
+      }
+      else{
+	printf("CMD: Invalid Zernike %d\n",itemp);
+      }
+      pch = strtok(NULL," ");
+    }
+    print_lyt_zernikes(sm_p);
+    return CMD_NORMAL;
+  }
+  sprintf(cmd,"lyt zernike enable");
+  if(!strncasecmp(line,cmd,strlen(cmd)) && strlen(line) > strlen(cmd)){
+    pch = strtok(line+strlen(cmd)," ");
+    while(pch != NULL){
+      itemp  = atoi(pch);
+      if(itemp >= 0 && itemp < LOWFS_N_ZERNIKE){
+	sm_p->lyt_zernike_control[itemp]=1;
+	printf("CMD: Enabling LYT control of Zernike %d\n",itemp);
+      }
+      else{
+	printf("CMD: Invalid Zernike %d\n",itemp);
+      }
+      pch = strtok(NULL," ");
+    }
+    print_lyt_zernikes(sm_p);
+    return CMD_NORMAL;
+  }
+
+  //SHK Target Targets
+  sprintf(cmd,"shk target reset");
   if(!strncasecmp(line,cmd,strlen(cmd))){
     printf("CMD: Setting SHK Zernike targets to zero\n");
     for(i=0;i<LOWFS_N_ZERNIKE;i++) sm_p->shk_zernike_target[i]=0;
     return CMD_NORMAL;
   }
 
-  sprintf(cmd,"shk zernike");
+  sprintf(cmd,"shk target");
   if(!strncasecmp(line,cmd,strlen(cmd))){
     pch = strtok(line+strlen(cmd)," ");
     if(pch == NULL){
@@ -1424,21 +1498,21 @@ int handle_command(char *line, sm_t *sm_p){
       printf("CMD: Setting SHK target Z[%d] = %f microns\n",itemp,ftemp);
     }
     else{
-      printf("CMD: Zernike cmd out of bounds\n");
+      printf("CMD: Zernike target out of bounds #[%d,%d] C[%f,%f]\n",0,LOWFS_N_ZERNIKE,ALP_ZERNIKE_MIN,ALP_ZERNIKE_MAX);
       return CMD_NORMAL;
     }
     return CMD_NORMAL;
   }
   
   //LYT Zernike Targets
-  sprintf(cmd,"lyt zernike reset");
+  sprintf(cmd,"lyt target reset");
   if(!strncasecmp(line,cmd,strlen(cmd))){
     printf("CMD: Setting LYT Zernike targets to zero\n");
     for(i=0;i<LOWFS_N_ZERNIKE;i++) sm_p->lyt_zernike_target[i]=0;
     return CMD_NORMAL;
   }
 
-  sprintf(cmd,"lyt zernike");
+  sprintf(cmd,"lyt target");
   if(!strncasecmp(line,cmd,strlen(cmd))){
     pch = strtok(line+strlen(cmd)," ");
     if(pch == NULL){
@@ -1457,7 +1531,7 @@ int handle_command(char *line, sm_t *sm_p){
       printf("CMD: Setting LYT target Z[%d] = %f microns\n",itemp,ftemp);
     }
     else{
-      printf("CMD: Zernike cmd out of bounds\n");
+      printf("CMD: Zernike target out of bounds #[%d,%d] C[%f,%f]\n",0,LOWFS_N_ZERNIKE,ALP_ZERNIKE_MIN,ALP_ZERNIKE_MAX);
       return CMD_NORMAL;
     }
     return CMD_NORMAL;

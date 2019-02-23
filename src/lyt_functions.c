@@ -210,29 +210,29 @@ void lyt_saveref(lytref_t *lytref){
 void lyt_alp_zernpid(lytevent_t *lytevent, double *zernike_delta, int *zernike_switch, int reset){
   static int init = 0;
   static double zint[LOWFS_N_ZERNIKE] = {0};
-  double error;
+  double zerr;
   int i;
-
+  
   //Initialize
   if(!init || reset){
     memset(zint,0,sizeof(zint));
     init=1;
     if(reset) return;
   }
-
+  
   //Run PID
   for(i=0;i<LOWFS_N_ZERNIKE;i++){
     if(zernike_switch[i]){
       //Calculate error
-      error = lytevent->zernike_measured[i] - lytevent->zernike_target[i];
+      zerr = lytevent->zernike_measured[i] - lytevent->zernike_target[i];
       //Calculate integral
-      zint[i] += error;
+      zint[i] += zerr;
       
       if(zint[i] > LYT_ALP_ZERN_INT_MAX) zint[i]=LYT_ALP_ZERN_INT_MAX;
       if(zint[i] < LYT_ALP_ZERN_INT_MIN) zint[i]=LYT_ALP_ZERN_INT_MIN;
       
       //Calculate command
-      zernike_delta[i] = lytevent->gain_alp_zern[i][0] * error + lytevent->gain_alp_zern[i][1] * zint[i];
+      zernike_delta[i] = lytevent->gain_alp_zern[i][0] * zerr + lytevent->gain_alp_zern[i][1] * zint[i];
     }
   }
 }
@@ -435,7 +435,7 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
   //Save gains
   for(i=0;i<LOWFS_N_ZERNIKE;i++)
     for(j=0;j<LOWFS_N_PID;j++)
-      lytevent.gain_alp_zern[i][j] = sm_p->lyt_gain_alp_zern[i][j] * sm_p->zernike_control[i];
+      lytevent.gain_alp_zern[i][j] = sm_p->lyt_gain_alp_zern[i][j] * sm_p->lyt_zernike_control[i];
   
   //Save zernike targets
   memcpy(lytevent.zernike_target,(double *)sm_p->lyt_zernike_target,sizeof(lytevent.zernike_target));
@@ -517,7 +517,7 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
 
     //Check if ALP is controlling any Zernikes
     for(i=0;i<LOWFS_N_ZERNIKE;i++){
-      if(sm_p->zernike_control[i] && (sm_p->state_array[state].lyt.zernike_control[i] == ACTUATOR_ALP)){
+      if(sm_p->lyt_zernike_control[i] && (sm_p->state_array[state].lyt.zernike_control[i] == ACTUATOR_ALP)){
 	zernike_switch[i] = 1;
 	zernike_control = 1;
       }

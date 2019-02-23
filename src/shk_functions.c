@@ -753,7 +753,7 @@ void shk_alp_cellpid(shkevent_t *shkevent, int reset){
 /* SHK_ALP_ZERNPID                                            */
 /*  - Run PID controller on measured Zernikes for ALP         */
 /**************************************************************/
-void shk_alp_zernpid(shkevent_t *shkevent, double *zernike_delta, int reset){
+void shk_alp_zernpid(shkevent_t *shkevent, double *zernike_delta, int *zernike_switch, int reset){
   static int init = 0;
   static double zint[LOWFS_N_ZERNIKE] = {0};
   double zerr;
@@ -768,15 +768,17 @@ void shk_alp_zernpid(shkevent_t *shkevent, double *zernike_delta, int reset){
 
   //Run PID
   for(i=0;i<LOWFS_N_ZERNIKE;i++){
-    //Calculate error
-    zerr = shkevent->zernike_measured[i] - shkevent->zernike_target[i];
-    //Calculate integral
-    zint[i] += zerr;
-    //Fix windup
-    if(zint[i] > SHK_ALP_ZERN_INT_MAX) zint[i]=SHK_ALP_ZERN_INT_MAX;
-    if(zint[i] < SHK_ALP_ZERN_INT_MIN) zint[i]=SHK_ALP_ZERN_INT_MIN;
-    //Calculate command delta
-    zernike_delta[i] = shkevent->gain_alp_zern[i][0] * zerr + shkevent->gain_alp_zern[i][1] * zint[i];
+    if(zernike_switch[i]){
+      //Calculate error
+      zerr = shkevent->zernike_measured[i] - shkevent->zernike_target[i];
+      //Calculate integral
+      zint[i] += zerr;
+      //Fix windup
+      if(zint[i] > SHK_ALP_ZERN_INT_MAX) zint[i]=SHK_ALP_ZERN_INT_MAX;
+      if(zint[i] < SHK_ALP_ZERN_INT_MIN) zint[i]=SHK_ALP_ZERN_INT_MIN;
+      //Calculate command delta
+      zernike_delta[i] = shkevent->gain_alp_zern[i][0] * zerr + shkevent->gain_alp_zern[i][1] * zint[i];
+    }
   }
 }
 
@@ -833,6 +835,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p){
   hex_t hex,hex_try,hex_delta;
   alp_t alp,alp_try,alp_delta;
   int zernike_control=0;
+  int zernike_switch[LOWFS_N_ZERNIKE] = {0};
   uint32_t n_dither=1;
   int reset_zernike=0;
   int sample;
@@ -873,7 +876,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p){
     tgt_calibrate(0,NULL,NULL,SHKID,FUNCTION_RESET);
     //Reset PID controllers
     shk_alp_cellpid(NULL,FUNCTION_RESET);
-    shk_alp_zernpid(NULL,NULL,FUNCTION_RESET);
+    shk_alp_zernpid(NULL,NULL,NULL,FUNCTION_RESET);
     shk_hex_zernpid(NULL,NULL,FUNCTION_RESET);
     //Init ALP calmodes
     for(i=0;i<ALP_NCALMODES;i++)
@@ -926,7 +929,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p){
   memcpy(shkevent.gain_hex_zern,(void *)sm_p->shk_gain_hex_zern,sizeof(shkevent.gain_hex_zern));
   for(i=0;i<LOWFS_N_ZERNIKE;i++)
     for(j=0;j<LOWFS_N_PID;j++)
-      shkevent.gain_alp_zern[i][j] = sm_p->shk_gain_alp_zern[i][j] * sm_p->zernike_control[i];
+      shkevent.gain_alp_zern[i][j] = sm_p->shk_gain_alp_zern[i][j] * sm_p->shk_zernike_control[i];
   
   //Save calmodes
   shkevent.hed.hex_calmode = sm_p->hex_calmode;
@@ -1088,18 +1091,21 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p){
   if((sm_p->state_array[state].alp_commander == SHKID) && sm_p->alp_ready){
     //Check if ALP is controlling any Zernikes
     zernike_control = 0;
-    for(i=0;i<LOWFS_N_ZERNIKE;i++)
-      if(sm_p->state_array[state].shk.zernike_control[i] == ACTUATOR_ALP)
+    for(i=0;i<LOWFS_N_ZERNIKE;i++){
+      if(sm_p->shk_zernike_control[i] && sm_p->state_array[state].shk.zernike_control[i] == ACTUATOR_ALP){
+	zernike_switch[i] = 1;
 	zernike_control = 1;
+      }
+    }
     
     //Run Zernike control
     if(zernike_control){
       // - run Zernike PID
-      shk_alp_zernpid(&shkevent, alp_delta.zcmd, FUNCTION_NO_RESET);
+      shk_alp_zernpid(&shkevent, alp_delta.zcmd, zernike_switch, FUNCTION_NO_RESET);
 
       // - zero out uncontrolled Zernikes
       for(i=0;i<LOWFS_N_ZERNIKE;i++)
-	if(sm_p->state_array[state].shk.zernike_control[i] != ACTUATOR_ALP)
+	if(!zernike_switch[i])
 	  alp_delta.zcmd[i] = 0;
 
       // - convert zernike deltas to actuator deltas
@@ -1107,7 +1113,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p){
 
       // - add Zernike PID output deltas to ALP command
       for(i=0;i<LOWFS_N_ZERNIKE;i++)
-	if(sm_p->state_array[state].shk.zernike_control[i] == ACTUATOR_ALP)
+	if(zernike_switch[i])
 	  alp_try.zcmd[i] += alp_delta.zcmd[i];
 
       // - add actuator deltas to ALP command
