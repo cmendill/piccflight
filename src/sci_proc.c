@@ -82,7 +82,6 @@ void sci_setorigin(scievent_t *sci,uint16_t *img_buffer){
   int imax=0,jmax=0;
   uint16_t pmax=0,p=0;
 
-  printf("SCI: Set new origin:");
   /* Loop through band images, find max pixel */
   for(k=0;k<SCI_NBANDS;k++){
     pmax=0;
@@ -99,6 +98,11 @@ void sci_setorigin(scievent_t *sci,uint16_t *img_buffer){
     //Set new origin
     sci->xorigin[k] += imax - (SCIXS/2);
     sci->yorigin[k] += jmax - (SCIYS/2);
+  }
+  
+  //Print origin
+  printf("SCI: Origin:");
+  for(k=0;k<SCI_NBANDS;k++){
     printf(" (%d,%d)",sci->xorigin[k],sci->yorigin[k]);
   }
   printf("\n");
@@ -115,6 +119,7 @@ void sci_loadorigin(scievent_t *sci){
   uint64 fsize,rsize;
   uint32 xorigin[SCI_NBANDS] = SCI_XORIGIN;
   uint32 yorigin[SCI_NBANDS] = SCI_YORIGIN;
+  int k;
   
   /* Initialize with default origins */
   memcpy(sci->xorigin,xorigin,sizeof(xorigin));
@@ -158,6 +163,13 @@ void sci_loadorigin(scievent_t *sci){
   //Copy origins
   memcpy(sci->xorigin,xorigin,sizeof(xorigin));
   memcpy(sci->yorigin,yorigin,sizeof(yorigin));
+
+  //Print origin
+  printf("SCI: Origin:");
+  for(k=0;k<SCI_NBANDS;k++){
+    printf(" (%d,%d)",sci->xorigin[k],sci->yorigin[k]);
+  }
+  printf("\n");
 }
 
 /***************************************************************/
@@ -170,7 +182,7 @@ void sci_saveorigin(scievent_t *sci){
   static char outfile[MAX_FILENAME];
   char temp[MAX_FILENAME];
   char path[MAX_FILENAME];
-  int i;
+  int k;
 
   /* Open output file */
   //--setup filename
@@ -203,7 +215,13 @@ void sci_saveorigin(scievent_t *sci){
 
   //Close file
   fclose(fd);
-  return;
+
+  //Print origin
+  printf("SCI: Origin:");
+  for(k=0;k<SCI_NBANDS;k++){
+    printf(" (%d,%d)",sci->xorigin[k],sci->yorigin[k]);
+  }
+  printf("\n");
 }
 
 /**************************************************************/
@@ -213,11 +231,18 @@ void sci_saveorigin(scievent_t *sci){
 void sci_revertorigin(scievent_t *sci){
   const uint32 xorigin[SCI_NBANDS] = SCI_XORIGIN;
   const uint32 yorigin[SCI_NBANDS] = SCI_YORIGIN;
+  int k;
   
   /* Copy default origins */
   memcpy(sci->xorigin,xorigin,sizeof(xorigin));
   memcpy(sci->yorigin,yorigin,sizeof(yorigin));
     
+  //Print origin
+  printf("SCI: Origin:");
+  for(k=0;k<SCI_NBANDS;k++){
+    printf(" (%d,%d)",sci->xorigin[k],sci->yorigin[k]);
+  }
+  printf("\n");
 }
 
 /**************************************************************/
