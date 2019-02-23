@@ -139,7 +139,7 @@ void thm_init_heater(int h, htr_t *htr){
   if(h == 11){
     sprintf(htr->name,"ALPC");
     htr->adc      = 1;
-    htr->ch       = 2;
+    htr->ch       = 8;
     htr->maxpower = 50;
     htr->setpoint = 25;
     htr->deadband = 1;
@@ -179,7 +179,7 @@ void thm_init_heater(int h, htr_t *htr){
   if(h == 15){
     sprintf(htr->name,"5CCB");
     htr->adc      = 1;
-    htr->ch       = 8;
+    htr->ch       = 2;
     htr->maxpower = 50;
     htr->setpoint = 25;
     htr->deadband = 1;
