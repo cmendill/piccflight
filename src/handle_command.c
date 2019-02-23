@@ -1415,7 +1415,7 @@ int handle_command(char *line, sm_t *sm_p){
   //LYT Reference Image Commands
   sprintf(cmd,"lyt set ref");
   if(!strncasecmp(line,cmd,strlen(cmd))){
-    printf("CMD: Setting current LYT image as referance\n");
+    printf("CMD: Setting current LYT image as reference\n");
     sm_p->lyt_setref=1;
     return(CMD_NORMAL);
   }
@@ -1436,14 +1436,14 @@ int handle_command(char *line, sm_t *sm_p){
   
   sprintf(cmd,"lyt load ref");
   if(!strncasecmp(line,cmd,strlen(cmd))){
-    printf("CMD: Loading LYT referance image from file\n");
+    printf("CMD: Loading LYT reference image from file\n");
     sm_p->lyt_loadref=1;
     return(CMD_NORMAL);
   }
 
   sprintf(cmd,"lyt save ref");
   if(!strncasecmp(line,cmd,strlen(cmd))){
-    printf("CMD: Saving LYT referance image to file\n");
+    printf("CMD: Saving LYT reference image to file\n");
     sm_p->lyt_saveref=1;
     return(CMD_NORMAL);
   }

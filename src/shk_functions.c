@@ -812,7 +812,7 @@ void shk_hex_zernpid(shkevent_t *shkevent, double *zernike_delta, int reset){
 /* SHK_PROCESS_IMAGE                                          */
 /*  - Main image processing function for SHK                  */
 /**************************************************************/
-void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
+void shk_process_image(stImageBuff *buffer,sm_t *sm_p){
   static shkfull_t shkfull;
   static shkevent_t shkevent;
   static shkpkt_t shkpkt;
@@ -824,6 +824,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   static calmode_t bmccalmodes[BMC_NCALMODES];
   static calmode_t tgtcalmodes[TGT_NCALMODES];
   static struct timespec start,end,delta,last,full_last,hex_last;
+  static uint32 frame_number=0;
   static int init=0;
   double dt;
   int i,j;
@@ -842,9 +843,6 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   //Get state
   state = sm_p->state;
 
-  //Get sample
-  sample = frame_number % SHK_NSAMPLES;
-
   //Check reset
   if(sm_p->w[SHKID].reset){
     init=0;
@@ -857,6 +855,8 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     memset(&shkfull,0,sizeof(shkfull_t));
     memset(&shkevent,0,sizeof(shkevent_t));
     memset(&shkpkt,0,sizeof(shkpkt_t));
+    //Init frame number
+    frame_number=0;
     //Init cells
     shk_init_cells(&shkevent);
     //Load cell origins
@@ -896,7 +896,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     //Debugging
     if(SHK_DEBUG) printf("SHK: Initialized\n");
   }
-
+  
   //Measure exposure time
   if(timespec_subtract(&delta,&start,&last))
     printf("SHK: shk_process_image --> timespec_subtract error!\n");
@@ -904,7 +904,10 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
 
   //Save time
   memcpy(&last,&start,sizeof(struct timespec));
-  
+
+  //Get sample
+  sample = frame_number % SHK_NSAMPLES;
+
   //Fill out event header
   shkevent.hed.version      = PICC_PKT_VERSION;
   shkevent.hed.type         = BUFFER_SHKEVENT;
@@ -914,6 +917,9 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   shkevent.hed.state        = state;
   shkevent.hed.start_sec    = start.tv_sec;
   shkevent.hed.start_nsec   = start.tv_nsec;
+
+  //Save temperature
+  shkevent.ccd_temp         = sm_p->shk_ccd_temp;
 
   //Save gains
   memcpy(shkevent.gain_alp_cell,(void *)sm_p->shk_gain_alp_cell,sizeof(shkevent.gain_alp_cell));
@@ -1222,7 +1228,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
 	shkpkt.hex_acmd[i] = shkevent.hex.acmd[i];
       }
       //Other event items
-      shkpkt.boxsize = shkevent.boxsize;
+      shkpkt.ccd_temp = shkevent.ccd_temp;
       shkpkt.wsp_pcmd = shkevent.wsp.pcmd;
       shkpkt.wsp_ycmd = shkevent.wsp.ycmd;
 
@@ -1286,4 +1292,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
       memcpy(&full_last,&start,sizeof(struct timespec));
     }
   }
+
+  //Increment frame_number
+  frame_number++;
 }

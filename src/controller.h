@@ -751,7 +751,7 @@ typedef struct hum_struct{
 /*************************************************
  * Packet Header
  *************************************************/
-#define PICC_PKT_VERSION     12  //packet version number
+#define PICC_PKT_VERSION     13  //packet version number
 typedef struct pkthed_struct{
   uint16  version;      //packet version number
   uint16  type;         //packet ID word
@@ -806,7 +806,7 @@ typedef struct shkevent_struct{
   pkthed_t  hed;
   shkcell_t cells[SHK_BEAM_NCELLS];
   uint32    boxsize;
-  uint32    padding;
+  float     ccd_temp;
   double    gain_alp_zern[LOWFS_N_ZERNIKE][LOWFS_N_PID];
   double    gain_alp_cell[LOWFS_N_PID];
   double    gain_hex_zern[LOWFS_N_PID];
@@ -839,7 +839,7 @@ typedef struct pktcell_struct{
 typedef struct shkpkt_struct{
   pkthed_t  hed;
   pktcell_t cells[SHK_BEAM_NCELLS];
-  uint32    boxsize;
+  float     ccd_temp;
   float     gain_alp_zern[LOWFS_N_ZERNIKE][LOWFS_N_PID];
   float     gain_alp_cell[LOWFS_N_PID];
   float     gain_hex_zern[LOWFS_N_PID];
@@ -855,6 +855,8 @@ typedef struct shkpkt_struct{
 
 typedef struct lytevent_struct{
   pkthed_t  hed;
+  float     ccd_temp;
+  float     padding;
   double    gain_alp_zern[LOWFS_N_ZERNIKE][LOWFS_N_PID];
   double    zernike_measured[LOWFS_N_ZERNIKE];
   double    zernike_target[LOWFS_N_ZERNIKE];
@@ -865,6 +867,8 @@ typedef struct lytevent_struct{
 
 typedef struct lytpkt_struct{
   pkthed_t  hed;
+  float     ccd_temp;
+  float     padding;
   float     gain_alp_zern[LOWFS_N_ZERNIKE][LOWFS_N_PID];
   float     zernike_target[LOWFS_N_ZERNIKE];
   float     zernike_measured[LOWFS_N_ZERNIKE][LYT_NSAMPLES];
@@ -876,6 +880,7 @@ typedef struct scievent_struct{
   pkthed_t hed;
   float    ccd_temp;
   float    backplane_temp;
+  float    tec_power;
   uint32   xorigin[SCI_NBANDS];
   uint32   yorigin[SCI_NBANDS];
   sci_t    image[SCI_NBANDS];
@@ -1024,12 +1029,16 @@ typedef volatile struct {
   int shk_xshiftorigin;
   int shk_yshiftorigin;
   
-  //LYT Referance Image Commands
+  //LYT Reference Image Commands
   int lyt_setref;
   int lyt_defref;
   int lyt_modref;
   int lyt_saveref;
   int lyt_loadref;
+
+  //SHK & LYT CCD Temperatures
+  float shk_ccd_temp;
+  float lyt_ccd_temp;
   
   //Other Commands
   int hex_getpos;

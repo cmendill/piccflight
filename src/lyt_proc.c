@@ -31,10 +31,9 @@ int lyt_shmfd;
 
 /* Global Variables */
 tHandle lytCamera = 0; /* Camera Handle   */
-uint32 lyt_frame_count=0;
 
 /* Prototypes */
-void lyt_process_image(stImageBuff *buffer,sm_t *sm_p,uint32 frame_number);
+void lyt_process_image(stImageBuff *buffer,sm_t *sm_p);
 float BOBCAT_GetTemp(tHandle hCamera);
 
 /* CTRL-C Function */
@@ -74,15 +73,13 @@ static void lyt_callback( tHandle lytCamera, ui32 dwInterruptMask, void *pvParam
     etStat eStat = PHX_StreamRead( lytCamera, PHX_BUFFER_GET, &stBuffer );
     if ( PHX_OK == eStat ) {
       //Process image
-      lyt_process_image(&stBuffer,aContext->sm_p,lyt_frame_count);
+      lyt_process_image(&stBuffer,aContext->sm_p);
       //Unset DIO bit B1
       #if PICC_DIO_ENABLE
       outb(0x00,PICC_DIO_BASE+PICC_DIO_PORTB);
       #endif
       //Check in with watchdog
       checkin(aContext->sm_p,LYTID);
-      //Increment frame counter
-      lyt_frame_count++;
     }
     PHX_StreamRead( lytCamera, PHX_BUFFER_RELEASE, NULL );
   }
@@ -257,7 +254,10 @@ int lyt_proc(void){
 	camera_running = 0;
 	printf("LYT: Camera stopped\n");
       }
-    
+
+      /* Get CCD temperature */
+      sm_p->lyt_ccd_temp = BOBCAT_GetTemp(lytCamera);
+
       /* Check in with the watchdog */
       if(!camera_running)
 	checkin(sm_p,LYTID);

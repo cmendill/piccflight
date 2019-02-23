@@ -120,7 +120,7 @@ void lyt_initref(lytref_t *lytref){
 
 /**************************************************************/
 /* LYT_LOADREF                                                */
-/*  - Load referance image from file                          */
+/*  - Load reference image from file                          */
 /**************************************************************/
 void lyt_loadref(lytref_t *lytref){
   FILE *fd=NULL;
@@ -330,7 +330,7 @@ void lyt_zernike_fit(lyt_t *image, lytref_t *lytref, double *zernikes, int reset
 /* LYT_PROCESS_IMAGE                                          */
 /*  - Main image processing function for LYT                  */
 /**************************************************************/
-void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
+void lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
   static lytevent_t lytevent;
   static lytpkt_t lytpkt;
   lytevent_t *lytevent_p;
@@ -340,6 +340,7 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   static calmode_t bmccalmodes[BMC_NCALMODES];
   static calmode_t tgtcalmodes[TGT_NCALMODES];
   static struct timespec start,end,delta,last;
+  static uint32 frame_number=0;
   static int init=0;
   static lytref_t lytref;
   double dt;
@@ -359,9 +360,6 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   //Get state
   state = sm_p->state;
 
-  //Get sample
-  sample = frame_number % LYT_NSAMPLES;
-  
   //Check reset
   if(sm_p->w[LYTID].reset){
     init=0;
@@ -373,6 +371,8 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
     //Zero out events & commands
     memset(&lytevent,0,sizeof(lytevent_t));
     memset(&lytpkt,0,sizeof(lytpkt_t));
+    //Init frame number
+    frame_number=0;
     //Reset zern2alp mapping
     alp_zern2alp(NULL,NULL,FUNCTION_RESET);
     //Reset calibration routines
@@ -412,6 +412,9 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   //Save time
   memcpy(&last,&start,sizeof(struct timespec));
 
+  //Get sample
+  sample = frame_number % LYT_NSAMPLES;
+
   //Fill out event header
   lytevent.hed.version      = PICC_PKT_VERSION;
   lytevent.hed.type         = BUFFER_LYTEVENT;
@@ -425,6 +428,9 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
   lytevent.hed.alp_calmode  = sm_p->alp_calmode;
   lytevent.hed.bmc_calmode  = sm_p->bmc_calmode;
   lytevent.hed.tgt_calmode  = sm_p->tgt_calmode;
+
+  //Save temperature
+  lytevent.ccd_temp         = sm_p->lyt_ccd_temp;
  
   //Save gains
   for(i=0;i<LOWFS_N_ZERNIKE;i++)
@@ -594,6 +600,8 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
 	  lytpkt.gain_alp_zern[i][j]     = lytevent.gain_alp_zern[i][j];
 	}
       }
+      //CCD Temp
+      lytpkt.ccd_temp = lytevent.ccd_temp;
 
       //Open LYTPKT circular buffer
       lytpkt_p=(lytpkt_t *)open_buffer(sm_p,BUFFER_LYTPKT);
@@ -610,4 +618,7 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p, uint32 frame_number){
       close_buffer(sm_p,BUFFER_LYTPKT);
     }
   }
+
+  //Increment frame number
+  frame_number++;
 }

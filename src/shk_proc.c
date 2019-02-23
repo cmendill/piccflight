@@ -28,10 +28,9 @@ int shk_shmfd;
 
 /* Global Variables */
 tHandle shkCamera = 0; /* Camera Handle   */
-uint32 shk_frame_count=0;
 
 /* Prototypes */
-void shk_process_image(stImageBuff *buffer,sm_t *sm_p,uint32 frame_number);
+void shk_process_image(stImageBuff *buffer,sm_t *sm_p);
 float BOBCAT_GetTemp(tHandle hCamera);
 
 /* CTRL-C Function */
@@ -71,15 +70,13 @@ static void shk_callback( tHandle shkCamera, ui32 dwInterruptMask, void *pvParam
     etStat eStat = PHX_StreamRead( shkCamera, PHX_BUFFER_GET, &stBuffer );
     if ( PHX_OK == eStat ) {
       //Process image
-      shk_process_image(&stBuffer,aContext->sm_p,shk_frame_count);
+      shk_process_image(&stBuffer,aContext->sm_p);
       //Unset DIO bit C1
       #if PICC_DIO_ENABLE
       outb(0x00,PICC_DIO_BASE+PICC_DIO_PORTC);
       #endif
       //Check in with watchdog
       checkin(aContext->sm_p,SHKID);
-      //Increment frame counter
-      shk_frame_count++;
     }
     PHX_StreamRead( shkCamera, PHX_BUFFER_RELEASE, NULL );
   }
@@ -252,6 +249,9 @@ int shk_proc(void){
 	camera_running = 0;
 	printf("SHK: Camera stopped\n");
       }
+
+      /* Get CCD temperature */
+      sm_p->shk_ccd_temp = BOBCAT_GetTemp(shkCamera);
     
       /* Check in with the watchdog */
       if(!camera_running)
