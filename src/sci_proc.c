@@ -50,6 +50,12 @@ void scictrlC(int sig){
   }else{
     if(SCI_DEBUG) printf("SCI: Exposure stopped\n");
   }
+  /* Disable TEC */
+  if((err = FLISetTemperature(dev, SCI_TEMP_TEC_OFF))){
+    fprintf(stderr, "SCI: Error FLISetTemperature: %s\n", strerror((int)-err));
+  }else{
+    if(SCI_DEBUG) printf("SCI: FLI TEC Disabled\n");
+  }
   /* Close FLI camera */
   if((err = FLIClose(dev))){
     fprintf(stderr, "SCI: Error FLIClose: %s\n", strerror((int)-err));
@@ -460,164 +466,126 @@ void sci_proc(void){
   /* Malloc image buffer */
   img_buffer = (uint16_t *)malloc(SCI_ROI_XSIZE*SCI_ROI_YSIZE*sizeof(uint16_t));
   
-  /* Mark top of the device code */
-  device_top:
-  while(1){
-    /* Check if the camera should run in this state */
-    if(sm_p->state_array[sm_p->state].sci.run_camera){
-
-      /* Create Device List */
-      if((err = FLICreateList(domain))){
-	fprintf(stderr, "SCI: Error FLICreateList: %s\n", strerror((int)-err));
-	scictrlC(0);
-      }else{
-	if(SCI_DEBUG) printf("SCI: FLI list created\n");
+  /* Create Device List */
+  if((err = FLICreateList(domain))){
+    fprintf(stderr, "SCI: Error FLICreateList: %s\n", strerror((int)-err));
+    scictrlC(0);
+  }else{
+    if(SCI_DEBUG) printf("SCI: FLI list created\n");
     
     
-	/* Create Device List */
-	if((err = FLIListFirst(&domain, file, MAX_FILENAME, name, MAX_FILENAME))){
-	  fprintf(stderr, "SCI: Error FLIListFirst: %s\n", strerror((int)-err));
-	  scictrlC(0);
-	}else{
-	  if(SCI_DEBUG) printf("SCI: FLI first device found\n");
-	  FLIDeleteList();
-	}
-      }
-  
-      /* Open Device */
-      if((err = FLIOpen(&dev, file, domain))){
-	fprintf(stderr, "SCI: Error FLIOpen: %s\n", strerror((int)-err));
-	scictrlC(0);
-      }
-    
-      /* ----------------------- Enter Main Loop ----------------------- */
-      while(1){
-      
-	/* Cancel Exposure, put camera in known state */
-	if((err = FLICancelExposure(dev))){
-	  fprintf(stderr, "SCI: Error FLICancelExposure: %s\n", strerror((int)-err));
-	}else{
-	  if(SCI_DEBUG) printf("SCI: Exposure stopped\n");
-	}
-	camera_running = 0;
-      
-	/* Set temperature */
-	if((err = FLISetTemperature(dev, SCI_TEMP_TEC_OFF))){
-	  fprintf(stderr, "SCI: Error FLISetTemperature: %s\n", strerror((int)-err));
-	}else{
-	  if(SCI_DEBUG) printf("SCI: FLI temperature set\n");
-	}
-    
-	/* Set exposure time */
-	exptime = lround(sm_p->sci_exptime * 1000);
-	if((err = FLISetExposureTime(dev, exptime))){
-	  fprintf(stderr, "SCI: Error FLISetExposureTime: %s\n", strerror((int)-err));
-	}else{
-	  if(SCI_DEBUG) printf("SCI: FLI exposure time set\n");
-	}
-
-	/* Set frame type */
-	if((err = FLISetFrameType(dev, FLI_FRAME_TYPE_NORMAL))){
-	  fprintf(stderr, "SCI: Error FLISetFrameType: %s\n", strerror((int)-err));
-	}else{
-	  if(SCI_DEBUG) printf("SCI: FLI frame type set\n");
-	}
-
-	/* Set ROI */
-	if((err = FLISetImageArea(dev, SCI_UL_X, SCI_UL_Y, SCI_LR_X, SCI_LR_Y))){
-	  fprintf(stderr, "SCI: Error FLISetImageArea: %s\n", strerror((int)-err));
-	}else{
-	  if(SCI_DEBUG) printf("SCI: FLI image area set\n");
-	}
-      
-	/* Set horizontal binning */
-	if((err = FLISetHBin(dev, SCI_HBIN))){
-	  fprintf(stderr, "SCI: Error FLISetHBin: %s\n", strerror((int)-err));
-	}else{
-	  if(SCI_DEBUG) printf("SCI: FLI HBin set\n");
-	}
-
-	/* Set vertical binning */
-	if((err = FLISetVBin(dev, SCI_VBIN))){
-	  fprintf(stderr, "SCI: Error FLISetVBin: %s\n", strerror((int)-err));
-	}else{
-	  if(SCI_DEBUG) printf("SCI: FLI VBin set\n");
-	}
-
-	/* Set number of flushes */
-	if((err = FLISetNFlushes(dev, SCI_NFLUSHES))){
-	  fprintf(stderr, "SCI: Error FLISetNFlushes: %s\n", strerror((int)-err));
-	}else{
-	  if(SCI_DEBUG) printf("SCI: FLI NFlushes set\n");
-	}
-	
-	/* ----------------------- Enter Exposure Loop ----------------------- */
-	while(1){
-	  /* Check if we've been asked to exit */
-	  if(sm_p->w[SCIID].die)
-	    scictrlC(0);
-
-	  /* Check if we've been asked to reset the exposure */
-	  if(sm_p->sci_reset_camera){
-	    sm_p->sci_reset_camera = 0;
-	    break;
-	  }
-	  
-	  /* Check if the camera has been disabled in this state */
-	  if(!sm_p->state_array[sm_p->state].sci.run_camera){
-	    /* Cancel Exposure */
-	    if((err = FLICancelExposure(dev))){
-	      fprintf(stderr, "SCI: Error FLICancelExposure: %s\n", strerror((int)-err));
-	    }else{
-	      if(SCI_DEBUG) printf("SCI: Exposure stopped\n");
-	    }
-	    /* Disable TEC */
-	    if((err = FLISetTemperature(dev, SCI_TEMP_TEC_OFF))){
-	      fprintf(stderr, "SCI: Error FLISetTemperature: %s\n", strerror((int)-err));
-	    }else{
-	      if(SCI_DEBUG) printf("SCI: FLI TEC Disabled\n");
-	    }
-	    camera_running=0;
-	    printf("SCI: Camera stopped\n");
-	    /* Go back to the top */
-	    goto device_top;
-	  }
-	  
-	  
-	  /* Check if camera should start */
-	  if(!camera_running && sm_p->state_array[sm_p->state].sci.run_camera){
-	    camera_running = 1;
-	    printf("SCI: Camera started\n");
-	  }
-	  
-	  /* Run Camera */
-	  if(camera_running){
-	    /* Run Exposure */
-	    if(sci_expose(sm_p,dev,img_buffer))
-	      printf("SCI: Exposure failed\n");
-	    else{
-	      /*Process Image*/
-	      sci_process_image(img_buffer,sm_p);
-	    }
-	  }
-	
-	  /* Get CCD Temperature */
-	  sm_p->sci_ccd_temp = sci_get_temp(dev);
-	
-	  /* Sleep */
-	  sleep(sm_p->w[SCIID].per);
-	}
-      }
+    /* Create Device List */
+    if((err = FLIListFirst(&domain, file, MAX_FILENAME, name, MAX_FILENAME))){
+      fprintf(stderr, "SCI: Error FLIListFirst: %s\n", strerror((int)-err));
+      scictrlC(0);
     }else{
-      /* Camera is disabled in this state */
+      if(SCI_DEBUG) printf("SCI: FLI first device found\n");
+      FLIDeleteList();
+    }
+  }
+  
+  /* Open Device */
+  if((err = FLIOpen(&dev, file, domain))){
+    fprintf(stderr, "SCI: Error FLIOpen: %s\n", strerror((int)-err));
+    scictrlC(0);
+  }
     
+  /* ----------------------- Enter Main Loop ----------------------- */
+  while(1){
+
+    /* Check in with the watchdog */
+    checkin(sm_p,SCIID);
+       
+    /* Cancel Exposure, put camera in known state */
+    if((err = FLICancelExposure(dev))){
+      fprintf(stderr, "SCI: Error FLICancelExposure: %s\n", strerror((int)-err));
+    }else{
+      if(SCI_DEBUG) printf("SCI: Exposure stopped\n");
+    }
+    camera_running = 0;
+      
+    /* Set temperature */
+    if((err = FLISetTemperature(dev, SCI_TEMP_TEC_OFF))){
+      fprintf(stderr, "SCI: Error FLISetTemperature: %s\n", strerror((int)-err));
+    }else{
+      if(SCI_DEBUG) printf("SCI: FLI temperature set\n");
+    }
+    
+    /* Set exposure time */
+    exptime = lround(sm_p->sci_exptime * 1000);
+    if((err = FLISetExposureTime(dev, exptime))){
+      fprintf(stderr, "SCI: Error FLISetExposureTime: %s\n", strerror((int)-err));
+    }else{
+      if(SCI_DEBUG) printf("SCI: FLI exposure time set\n");
+    }
+
+    /* Set frame type */
+    if((err = FLISetFrameType(dev, FLI_FRAME_TYPE_NORMAL))){
+      fprintf(stderr, "SCI: Error FLISetFrameType: %s\n", strerror((int)-err));
+    }else{
+      if(SCI_DEBUG) printf("SCI: FLI frame type set\n");
+    }
+
+    /* Set ROI */
+    if((err = FLISetImageArea(dev, SCI_UL_X, SCI_UL_Y, SCI_LR_X, SCI_LR_Y))){
+      fprintf(stderr, "SCI: Error FLISetImageArea: %s\n", strerror((int)-err));
+    }else{
+      if(SCI_DEBUG) printf("SCI: FLI image area set\n");
+    }
+      
+    /* Set horizontal binning */
+    if((err = FLISetHBin(dev, SCI_HBIN))){
+      fprintf(stderr, "SCI: Error FLISetHBin: %s\n", strerror((int)-err));
+    }else{
+      if(SCI_DEBUG) printf("SCI: FLI HBin set\n");
+    }
+
+    /* Set vertical binning */
+    if((err = FLISetVBin(dev, SCI_VBIN))){
+      fprintf(stderr, "SCI: Error FLISetVBin: %s\n", strerror((int)-err));
+    }else{
+      if(SCI_DEBUG) printf("SCI: FLI VBin set\n");
+    }
+
+    /* Set number of flushes */
+    if((err = FLISetNFlushes(dev, SCI_NFLUSHES))){
+      fprintf(stderr, "SCI: Error FLISetNFlushes: %s\n", strerror((int)-err));
+    }else{
+      if(SCI_DEBUG) printf("SCI: FLI NFlushes set\n");
+    }
+	
+    /* ----------------------- Enter Exposure Loop ----------------------- */
+    while(1){
       /* Check if we've been asked to exit */
       if(sm_p->w[SCIID].die)
 	scictrlC(0);
+
+      /* Check if we've been asked to reset the exposure */
+      if(sm_p->sci_reset_camera){
+	sm_p->sci_reset_camera = 0;
+	break;
+      }
       
-      /* Check in with the watchdog */
-      checkin(sm_p,SCIID);
-    
+      /* Check if camera should start */
+      if(!camera_running){
+	camera_running = 1;
+	printf("SCI: Camera started\n");
+      }
+      
+      /* Run Camera */
+      if(camera_running){
+	/* Run Exposure */
+	if(sci_expose(sm_p,dev,img_buffer))
+	  printf("SCI: Exposure failed\n");
+	else{
+	  /*Process Image*/
+	  sci_process_image(img_buffer,sm_p);
+	}
+      }
+      
+      /* Get CCD Temperature */
+      sm_p->sci_ccd_temp = sci_get_temp(dev);
+	
       /* Sleep */
       sleep(sm_p->w[SCIID].per);
     }

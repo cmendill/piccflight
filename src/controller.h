@@ -641,7 +641,6 @@ typedef struct calmode_struct{
  *************************************************/
 // Shack-Hartmann Control (shk_proc.c)
 typedef struct shkctrl_struct{
-  int run_camera;
   int fit_zernikes;
   int zernike_control[LOWFS_N_ZERNIKE];
   int cell_control;
@@ -651,7 +650,6 @@ typedef struct shkctrl_struct{
 
 // Lyot Sensor Control (lyt_proc.c)
 typedef struct lytctrl_struct{
-  int run_camera;
   int fit_zernikes;
   int zernike_control[LOWFS_N_ZERNIKE];
   int act_control;
@@ -661,14 +659,12 @@ typedef struct lytctrl_struct{
 
 // Science Camera Control (sci_proc.c)
 typedef struct scictrl_struct{
-  int run_camera;
   int sensing_bmc;
   int dig_dark_hole;
 } scictrl_t;
 
 // Acquisition Camera Control (acq_proc.c)
 typedef struct acqctrl_struct{
-  int run_camera;
   int locate_led;
   int hex_spiral_search;
   int hex_capture_target;
