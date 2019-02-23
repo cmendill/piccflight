@@ -29,8 +29,8 @@
 #define SCI_LR_X (SCI_UL_X+(SCI_ROI_XSIZE/SCI_HBIN))
 #define SCI_LR_Y (SCI_UL_Y+(SCI_ROI_YSIZE/SCI_VBIN))
 #define SCI_NFLUSHES 4
-#define SCI_XORIGIN {337,837,1333,1829,2313}; //band cutout x centers (relative to the ROI)
-#define SCI_YORIGIN {483,483,711,835,579};    //band cutout y centers (relative to the ROI)
+#define SCI_XORIGIN {334,852,1363,1849,2327}; //band cutout x centers (relative to the ROI)
+#define SCI_YORIGIN {450,502,755,879,610};    //band cutout y centers (relative to the ROI)
 
 /* Process File Descriptor */
 int sci_shmfd;
@@ -81,7 +81,8 @@ void sci_setorigin(scievent_t *sci,uint16_t *img_buffer){
   int i,j,k;
   int imax=0,jmax=0;
   uint16_t pmax=0,p=0;
-  
+
+  printf("SCI: Set new origin:");
   /* Loop through band images, find max pixel */
   for(k=0;k<SCI_NBANDS;k++){
     pmax=0;
@@ -98,7 +99,9 @@ void sci_setorigin(scievent_t *sci,uint16_t *img_buffer){
     //Set new origin
     sci->xorigin[k] += imax - (SCIXS/2);
     sci->yorigin[k] += jmax - (SCIYS/2);
-  }  
+    printf(" (%d,%d)",sci->xorigin[k],sci->yorigin[k]);
+  }
+  printf("\n");
 }
 
 
