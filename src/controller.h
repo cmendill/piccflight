@@ -66,6 +66,15 @@ typedef int8_t int8;
 #define MAX_COMMAND  32
 
 /*************************************************
+ * System Settings & Messages
+ *************************************************/
+#define WARNING   "WARNING...WARNING...WARNING...WARNING\n"
+#define REBOOT    "REBOOT...REBOOT...REBOOT...REBOOT\n"
+#define EXIT_TIMEOUT    25  //procwait exit timeout
+#define PROC_TIMEOUT    5   //procwait process timeout
+#define ERASE_TIMEOUT   25  //Time to wait for TLM to exit on command: erase flight data
+
+/*************************************************
  * Process ID Numbers
  *************************************************/
 enum procids {WATID, SCIID, SHKID, LYTID, TLMID, ACQID, MTRID, THMID, SRVID, DIAID, NCLIENTS};
@@ -204,6 +213,8 @@ enum bmccalmodes {BMC_CALMODE_NONE,
 #define ALP_FLAT_FILE          "output/settings/alp_flat.dat"
 #define SCI_ORIGIN_FILE        "output/settings/sci_origin.dat"
 #define LYT_REFIMG_FILE        "output/settings/lyt_refimg.dat"
+#define CMD_ERASE_FLIGHT_DATA  "rm -r output/flight_data/*"
+#define CMD_ERASE_CAL_DATA     "rm -r output/calibration/*"
 
 /*************************************************
  * Network Addresses & Ports

@@ -257,8 +257,59 @@ int handle_command(char *line, sm_t *sm_p){
     return(CMD_NORMAL);
   }
   
+  //erase flight data
+  sprintf(cmd,"erase flight data");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    printf("CMD: Erasing flight data...\n");
+    printf("CMD: -- Stopping Telemetry\n");
+    sm_p->w[TLMID].run = 0;    
+    for(i=0;i<PROC_TIMEOUT;i++){
+      if((sm_p->w[TLMID].pid == -1)){
+	printf("CMD: -- Erasing data\n");
+	if(system(CMD_ERASE_FLIGHT_DATA)==-1){
+	  printf("CMD: -- Erase command failed\n");
+	  return(CMD_NORMAL);
+	}
+	printf("CMD: -- Starting Telemetry\n");
+	sm_p->w[TLMID].run = 1;
+	break;
+      }
+      sleep(1);
+    }
+    if(i >= PROC_TIMEOUT){
+      printf("CMD: -- timeout!\n");
+    }
+    printf("Flight data erased.\n");
+    return(CMD_NORMAL);
+  }
 
-  /****************************************
+  //erase calibration data
+  sprintf(cmd,"erase cal data");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    printf("CMD: Erasing calibration data...\n");
+    printf("CMD: -- Stopping Telemetry\n");
+    sm_p->w[TLMID].run = 0;    
+    for(i=0;i<PROC_TIMEOUT;i++){
+      if((sm_p->w[TLMID].pid == -1)){
+	printf("CMD: -- Erasing data\n");
+	if(system(CMD_ERASE_CAL_DATA)==-1){
+	  printf("CMD: -- Erase command failed\n");
+	  return(CMD_NORMAL);
+	}
+	printf("CMD: -- Starting Telemetry\n");
+	sm_p->w[TLMID].run = 1;
+	break;
+      }
+      sleep(1);
+    }
+    if(i >= PROC_TIMEOUT){
+      printf("CMD: -- timeout!\n");
+    }
+    printf("Calibration data erased.\n");
+    return(CMD_NORMAL);
+  }
+
+   /****************************************
    * NORMAL COMMANDS
    ***************************************/
   //Process Control
