@@ -320,7 +320,7 @@ void lyt_zernike_fit(lyt_t *image, lytref_t *lytref, double *zernikes, int reset
   num_dgemv(lyt2zern_matrix, lyt_delta, zernikes, LOWFS_N_ZERNIKE, lyt_npix);
 
   //Limit zernikes
-  for(i=0;i<LOWFS_N_ZERNIKES;i++){
+  for(i=0;i<LOWFS_N_ZERNIKE;i++){
     zernikes[i] = zernikes[i] < LYT_ZERNIKE_MIN ? LYT_ZERNIKE_MIN : zernikes[i];
     zernikes[i] = zernikes[i] > LYT_ZERNIKE_MAX ? LYT_ZERNIKE_MAX : zernikes[i];
   }

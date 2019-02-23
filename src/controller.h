@@ -881,6 +881,7 @@ typedef struct scievent_struct{
   float    ccd_temp;
   float    backplane_temp;
   float    tec_power;
+  float    padding;
   uint32   xorigin[SCI_NBANDS];
   uint32   yorigin[SCI_NBANDS];
   sci_t    image[SCI_NBANDS];
