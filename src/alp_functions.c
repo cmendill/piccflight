@@ -250,6 +250,9 @@ int alp_set_bias(sm_t *sm_p, double bias, int proc_id){
   //Set bias
   for(i=0;i<ALP_NACT;i++)
     alp.acmd[i] = bias;
+
+  //Clear zernike commands
+  memset(alp.zcmd,0,sizeof(alp.zcmd));
   
   //Send command
   return(alp_send_command(sm_p,&alp,proc_id,1));
@@ -330,7 +333,7 @@ int alp_revert_flat(sm_t *sm_p, int proc_id){
   alp_t alp;
   const double flat[ALP_NACT] = ALP_OFFSET;
   memset(&alp,0,sizeof(alp_t));
-  memcpy(alp.acmd,flat,sizeof(flat));
+  memcpy(alp.acmd,flat,sizeof(alp.acmd));
   return(alp_send_command(sm_p,&alp,proc_id,1));
 }
 
@@ -348,6 +351,9 @@ int alp_save_flat(sm_t *sm_p){
 
   //Get current command
   alp_get_command(sm_p,&alp);
+
+  //Clear zernike commands
+  memset(alp.zcmd,0,sizeof(alp.zcmd));
 
   //Open output file
   //--setup filename
@@ -413,9 +419,13 @@ int alp_load_flat(sm_t *sm_p,int proc_id){
     fclose(fd);
     return 0;
   }
+
   //Close file
   fclose(fd);
   printf("ALP: Read: %s\n",filename);
+
+  //Clear zernike commands
+  memset(alp.zcmd,0,sizeof(alp.zcmd));
 
   //Send flat to ALP
   return(alp_send_command(sm_p,&alp,proc_id,1));
