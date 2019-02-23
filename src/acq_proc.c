@@ -24,7 +24,10 @@ uvc_device_handle_t *devh;
 int acq_shmfd;
 
 
-/* CTRL-C Function */
+/**************************************************************/
+/* ACQCTRLC                                                   */
+/*  - SIGINT function                                         */
+/**************************************************************/
 void acqctrlC(int sig)
 {
   
@@ -53,12 +56,11 @@ void acqctrlC(int sig)
   exit(sig);
 }
 
-
 /**************************************************************/
 /* ACQ_PROCESS_IMAGE                                          */
 /*  - Process ACQ camera image                                */
 /**************************************************************/
-void acq_process_image(uvc_frame_t *frame, void *ptr) {
+void acq_process_image(uvc_frame_t *frame, sm_t *sm_p) {
   static acqevent_t acqevent;
   static acqfull_t acqfull;
   acqfull_t *acqfull_p;
@@ -67,7 +69,6 @@ void acq_process_image(uvc_frame_t *frame, void *ptr) {
   static int init=0;
   double dt;
   uint16_t fakepx=0;
-  sm_t *sm_p = (sm_t *)ptr;
   int i,j;
   
   //Get time immidiately
@@ -77,7 +78,7 @@ void acq_process_image(uvc_frame_t *frame, void *ptr) {
   if(ACQ_DEBUG) printf("ACQ: Got frame: %d\n",frame->sequence);
 
   //Check in with the watchdog
-  checkin(ptr,ACQID);
+  checkin(sm_p,ACQID);
   
   //Check reset
   if(sm_p->w[ACQID].reset){
@@ -178,7 +179,19 @@ void acq_process_image(uvc_frame_t *frame, void *ptr) {
   }
 }
 
-/* Main Process */
+/**************************************************************/
+/* ACQ_CALLBACK                                               */ 
+/*  - ACQ ISR callback function                               */
+/**************************************************************/
+void acq_callback(uvc_frame_t *frame, void *ptr) {
+  sm_t *sm_p = (sm_t *)ptr;
+  acq_process_image(frame,sm_p);
+}
+
+/**************************************************************/
+/* ACQ_PROC                                                   */
+/*  - Main ACQ camera process                                 */
+/**************************************************************/
 void acq_proc(void){
   uvc_stream_ctrl_t ctrl;
   uvc_error_t res;
@@ -195,73 +208,106 @@ void acq_proc(void){
   /* Set soft interrupt handler */
   sigset(SIGINT, acqctrlC);	/* usually ^C */
 
-  /* Initialize a UVC service context. Libuvc will set up its own libusb
-   * context. Replace NULL with a libusb_context pointer to run libuvc
-   * from an existing libusb context. */
-  if((res = uvc_init(&ctx, NULL))<0){
-    uvc_perror(res, "uvc_init");
-    acqctrlC(0);
-  }
-
-  if(ACQ_DEBUG) printf("ACQ: UVC initialized\n");
-
-  /* Locates the first attached UVC device, stores in dev */
-  if((res = uvc_find_device(ctx, &dev, ACQ_VENDOR_ID, ACQ_PRODUCT_ID, NULL))<0){ /* filter devices: vendor_id, product_id, "serial_num" */
-    uvc_perror(res, "uvc_find_device"); /* no devices found */
-    acqctrlC(0);
-  } 
-  if(ACQ_DEBUG) printf("ACQ: Device found\n");
-  
-  /* Try to open the device: requires exclusive access */
-  if((res = uvc_open(dev, &devh))<0){
-    uvc_perror(res, "uvc_open"); /* unable to open device */
-    acqctrlC(0);
-  }
-  if(ACQ_DEBUG) printf("ACQ: Device opened\n");
-
-  /* Setup stream profile */
-  if((res = uvc_get_stream_ctrl_format_size(devh, &ctrl, UVC_FRAME_FORMAT_GRAY16, ACQXS, ACQYS, fps))<0){
-    uvc_perror(res, "get_mode"); /* device doesn't provide a matching stream */
-    acqctrlC(0);
-  }
-  if(ACQ_DEBUG) printf("ACQ: Stream profile configured\n");
-
-  /* STOP stream, put camera in known state */
-  uvc_stop_streaming(devh);
-  camera_running = 0;
-  if(ACQ_DEBUG) printf("ACQ: Camera stopped\n");
-  
-
-  /* ----------------------- Enter Main Loop ----------------------- */
+  /* Mark top of the device code */
+  device_top:
   while(1){
+    /* Check if the camera should run in this state */
+    if(sm_p->state_array[sm_p->state].acq.run_camera){
     
-    /* Check if camera should start/stop */
-    if(!camera_running && sm_p->state_array[sm_p->state].acq.run_camera){
-      /*START stream*/
-      if((res = uvc_start_streaming(devh, &ctrl, acq_process_image, (void *)sm_p, 0))<0){
-	uvc_perror(res, "start_streaming"); /* unable to start stream */
+      /* Initialize a UVC service context. Libuvc will set up its own libusb
+       * context. Replace NULL with a libusb_context pointer to run libuvc
+       * from an existing libusb context. */
+      if((res = uvc_init(&ctx, NULL))<0){
+	uvc_perror(res, "uvc_init");
 	acqctrlC(0);
       }
-      /* Turn on auto exposure */
-      uvc_set_ae_mode(devh, 1);
-      camera_running = 1;
-      printf("ACQ: Camera started\n");
-    }
-    if(camera_running && !sm_p->state_array[sm_p->state].acq.run_camera){
-      /* STOP stream, put camera in known state */
-      uvc_stop_streaming(devh);
-      camera_running = 0;
-      printf("ACQ: Camera stopped\n");
-    }
-
-    /* Check if we've been asked to exit */
-    if(sm_p->w[ACQID].die)
-      acqctrlC(0);
     
-    /* Sleep */
-    sleep(sm_p->w[ACQID].per);
-  }
+      if(ACQ_DEBUG) printf("ACQ: UVC initialized\n");
+
+      /* Locates the first attached UVC device, stores in dev */
+      if((res = uvc_find_device(ctx, &dev, ACQ_VENDOR_ID, ACQ_PRODUCT_ID, NULL))<0){ /* filter devices: vendor_id, product_id, "serial_num" */
+	uvc_perror(res, "uvc_find_device"); /* no devices found */
+	acqctrlC(0);
+      } 
+      if(ACQ_DEBUG) printf("ACQ: Device found\n");
   
+      /* Try to open the device: requires exclusive access */
+      if((res = uvc_open(dev, &devh))<0){
+	uvc_perror(res, "uvc_open"); /* unable to open device */
+	acqctrlC(0);
+      }
+      if(ACQ_DEBUG) printf("ACQ: Device opened\n");
+
+
+      /* ----------------------- Enter Main Loop ----------------------- */
+      while(1){
+	/* STOP stream, put camera in known state */
+	uvc_stop_streaming(devh);
+	camera_running = 0;
+	if(ACQ_DEBUG) printf("ACQ: Camera stopped\n");
+  
+
+	/* Setup stream profile */
+	if((res = uvc_get_stream_ctrl_format_size(devh, &ctrl, UVC_FRAME_FORMAT_GRAY16, ACQXS, ACQYS, fps))<0){
+	  uvc_perror(res, "get_mode"); /* device doesn't provide a matching stream */
+	  acqctrlC(0);
+	}
+	if(ACQ_DEBUG) printf("ACQ: Stream profile configured\n");
+
+	/* ----------------------- Enter Exposure Loop ----------------------- */
+	while(1){
+	  /* Check if we've been asked to exit */
+	  if(sm_p->w[ACQID].die)
+	    acqctrlC(0);
+    
+	  /* Check if we've been asked to reset the exposure */
+	  if(sm_p->acq_reset_camera){
+	    sm_p->acq_reset_camera = 0;
+	    break;
+	  }
+    
+	  /* Check if the camera has been disabled in this state */
+	  if(!sm_p->state_array[sm_p->state].acq.run_camera){
+	    /* STOP stream */
+	    uvc_stop_streaming(devh);
+	    camera_running = 0;
+	    printf("ACQ: Camera stopped\n");
+	    /* Go back to the top */
+	    goto device_top;
+	  }
+	
+	  /* Check if camera should start */
+	  if(!camera_running && sm_p->state_array[sm_p->state].acq.run_camera){
+	    /*START stream*/
+	    if((res = uvc_start_streaming(devh, &ctrl, acq_callback, (void *)sm_p, 0))<0){
+	      uvc_perror(res, "start_streaming"); /* unable to start stream */
+	      acqctrlC(0);
+	    }
+	    /* Turn on auto exposure */
+	    uvc_set_ae_mode(devh, 1);
+	    camera_running = 1;
+	    printf("ACQ: Camera started\n");
+	  }
+	
+	  /* Sleep */
+	  sleep(sm_p->w[ACQID].per);
+	}
+      }
+    }else{
+      /* Camera is disabled in this state */
+    
+      /* Check if we've been asked to exit */
+      if(sm_p->w[ACQID].die)
+	acqctrlC(0);
+
+      /* Check in with the watchdog */
+      checkin(sm_p,ACQID);
+    
+      /* Sleep */
+      sleep(sm_p->w[ACQID].per);
+    }
+  }
+
   /* Exit */
   acqctrlC(0);
   return;

@@ -1048,9 +1048,12 @@ typedef volatile struct {
   int lyt_saveref;
   int lyt_loadref;
 
-  //SHK & LYT CCD Temperatures
+  //Camera Telemetry
   float shk_ccd_temp;
   float lyt_ccd_temp;
+  float sci_ccd_temp;
+  float sci_backplane_temp;
+  float sci_tec_power;
   
   //Other Commands
   int hex_getpos;
