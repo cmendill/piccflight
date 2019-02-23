@@ -604,6 +604,7 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 typedef struct procinfo_struct{
   int    pid;
   int    run;
+  int    ena;
   int    die;
   int    done;
   int    res;
@@ -676,6 +677,7 @@ typedef struct acqctrl_struct{
 typedef struct state_struct{
   char      name[MAX_COMMAND];
   char      cmd[MAX_COMMAND];
+  int       proc_enable[NCLIENTS];
   int       hex_commander;
   int       alp_commander;
   int       bmc_commander;

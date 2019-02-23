@@ -138,6 +138,7 @@ void wat_proc(void){
   volatile uint32 chk;
   sm_t *sm_p;
   int shmfd;
+  int state;
 
   /**********************************
    *     Open shared memory
@@ -154,6 +155,11 @@ void wat_proc(void){
 
   /* Start Watchdog */
   while(1){
+    /*Set state enable bits*/
+    state = sm_p->state;
+    for(i=0;i<NCLIENTS;i++)
+      sm_p->w[i].ena = sm_p->state_array[state].proc_enable[i];
+    
     /*(SECTION 0): If process has died, reset its pid*/
     for(i=0;i<NCLIENTS;i++)
       if(i != WATID)
@@ -175,7 +181,7 @@ void wat_proc(void){
     /*(SECTION 2): If loop has died or been dead for last LOOP_TIMEOUT checks: KILL */
     for(i=0;i<NCLIENTS;i++)
       if(i != WATID)
-	if(sm_p->w[i].run){
+	if(sm_p->w[i].run && sm_p->w[i].ena){
 	  if((((sm_p->w[i].cnt > sm_p->w[i].tmo) && (sm_p->w[i].tmo > 0)) || sm_p->w[i].die) && sm_p->w[i].pid != -1){
 	    printf("WAT: %s timeout: %d > %d\n",sm_p->w[i].name,sm_p->w[i].cnt,sm_p->w[i].tmo);
 	    kill_proc(sm_p,i);
@@ -185,21 +191,21 @@ void wat_proc(void){
     /*(SECTION 3): If loop is not running and should be: LAUNCH */
     for(i=0;i<NCLIENTS;i++)
       if(i != WATID)
-	if(sm_p->w[i].run)
+	if(sm_p->w[i].run && sm_p->w[i].ena)
 	  if(sm_p->w[i].pid == -1)
 	    launch_proc(sm_p,i);
 
     /*(SECTION 4): If loop is running and shouldn't be: KILL */
     for(i=0;i<NCLIENTS;i++)
       if(i != WATID)
-	if(!sm_p->w[i].run)
+	if(!(sm_p->w[i].run && sm_p->w[i].ena))
 	  if(sm_p->w[i].pid != -1)
 	    kill_proc(sm_p,i);
 
     /*(SECTION 5): If loop returned and needs to be restarted */
     for(i=0;i<NCLIENTS;i++)
       if(i != WATID)
-	if(sm_p->w[i].run)
+	if(sm_p->w[i].run && sm_p->w[i].ena)
 	  if(sm_p->w[i].pid != -1)
 	    if((sm_p->w[i].done == 1 && sm_p->w[i].die == 0) || sm_p->w[i].res == 1){
 	      kill_proc(sm_p,i);
@@ -210,7 +216,7 @@ void wat_proc(void){
     /* Loops will increment chk every time thru*/
     for(i=0;i<NCLIENTS;i++){
       if(i != WATID){
-	if(sm_p->w[i].run){
+	if(sm_p->w[i].run && sm_p->w[i].ena){
 	  chk = sm_p->w[i].chk;
 	  if((chk == sm_p->w[i].rec) && (sm_p->w[i].pid != -1)){
 	    sm_p->w[i].cnt++;
@@ -278,6 +284,7 @@ int main(int argc,char **argv){
   for(i=0;i<NCLIENTS;i++){
     sm_p->w[i].pid  = -1;
     sm_p->w[i].run  =  procrun[i];
+    sm_p->w[i].ena  =  1;
     sm_p->w[i].die  =  0;
     sm_p->w[i].done =  0;
     sm_p->w[i].chk  =  0;

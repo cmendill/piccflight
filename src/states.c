@@ -16,7 +16,7 @@
  *************************************************/
 void init_state(int state_number, state_t *state){
   int i;
-
+   
   //Clear state
   memset(state,0,sizeof(state_t));
 
@@ -27,6 +27,10 @@ void init_state(int state_number, state_t *state){
   state->wsp_commander = -1;
   state->shk.fit_zernikes = 1;
   state->lyt.fit_zernikes = 1;
+
+  //Enable all processes by default
+  for(i=0;i<NCLIENTS;i++)
+    state->proc_enable[i] = 1;
 
   //STATE_STANDBY
   if(state_number == STATE_STANDBY){
@@ -51,6 +55,11 @@ void init_state(int state_number, state_t *state){
     sprintf(state->name,"STATE_LOW_POWER");
     //Set cmd
     sprintf(state->cmd,"lpw");
+    //Disable camera procs
+    state->proc_enable[SHKID] = 0;
+    state->proc_enable[LYTID] = 0;
+    state->proc_enable[SCIID] = 0;
+    state->proc_enable[ACQID] = 0;
     return;
   }
 
