@@ -189,7 +189,7 @@ void print_htr_status(sm_t *sm_p){
   int i;
 
   printf("******************************** Heater Status *********************************\n");
-    printf("%3s%7s%7s%7s%7s%7s%7s%7s%7s%7s%7s\n","#","Name","Enable","Over","Power","Max","ADC","CH","Temp","SetP","DeadB");
+  printf("%3s%7s%7s%7s%7s%7s%7s%7s%7s%7s%7s\n","#","Name","Enable","Over","Power","Max","ADC","CH","Temp","SetP","DeadB");
   for(i=0;i<SSR_NCHAN;i++)
     printf("%3d%7s%7d%7d%7d%7d%7d%7d%7.2f%7.2f%7.2f\n",i,sm_p->htr[i].name,sm_p->htr[i].enable,sm_p->htr[i].override,sm_p->htr[i].power,sm_p->htr[i].maxpower,sm_p->htr[i].adc,sm_p->htr[i].ch,sm_p->htr[i].temp,sm_p->htr[i].setpoint,sm_p->htr[i].deadband);
   printf("********************************************************************************\n");
@@ -1818,8 +1818,9 @@ int handle_command(char *line, sm_t *sm_p){
     if(!strncasecmp(line,cmd,strlen(cmd))){
       printf("CMD: Enabling ALL heaters manual override\n");
       for(i=0;i<SSR_NCHAN;i++){
-	sm_p->htr[i].override = 1;
-	sm_p->htr[i].power    = 0; //zero power to be safe
+	sm_p->htr[i].override  = 1;
+	sm_p->htr[i].power     = 0; //zero power to be safe
+	sm_p->htr[i].overpower = 0; //zero power to be safe
       }
       print_htr_status(sm_p);
       return CMD_NORMAL;
@@ -1828,8 +1829,9 @@ int handle_command(char *line, sm_t *sm_p){
     if(!strncasecmp(line,cmd,strlen(cmd))){
       printf("CMD: Disabling ALL heaters manual override\n");
       for(i=0;i<SSR_NCHAN;i++){
-	sm_p->htr[i].override = 0;
-	sm_p->htr[i].power    = 0; //zero power to be safe
+	sm_p->htr[i].override  = 0;
+	sm_p->htr[i].power     = 0; //zero power to be safe
+	sm_p->htr[i].overpower = 0; //zero power to be safe
       }
       print_htr_status(sm_p);
       return CMD_NORMAL;
@@ -1853,16 +1855,18 @@ int handle_command(char *line, sm_t *sm_p){
       sprintf(cmd,"htr %d override",i);
       if(!strncasecmp(line,cmd,strlen(cmd))){
         printf("CMD: Enabling heater %d manual override\n",i);
-	sm_p->htr[i].override = 1;
-	sm_p->htr[i].power    = 0; //zero power to be safe
+	sm_p->htr[i].override  = 1;
+	sm_p->htr[i].power     = 0; //zero power to be safe
+	sm_p->htr[i].overpower = 0; //zero power to be safe
 	print_htr_status(sm_p);
 	return CMD_NORMAL;
       }
       sprintf(cmd,"htr %d release",i);
       if(!strncasecmp(line,cmd,strlen(cmd))){
         printf("CMD: Disabling heater %d manual override\n",i);
-	sm_p->htr[i].override = 0;
-	sm_p->htr[i].power    = 0; //zero power to be safe
+	sm_p->htr[i].override  = 0;
+	sm_p->htr[i].power     = 0; //zero power to be safe
+	sm_p->htr[i].overpower = 0; //zero power to be safe
 	print_htr_status(sm_p);
 	return CMD_NORMAL;
       }
@@ -1886,8 +1890,11 @@ int handle_command(char *line, sm_t *sm_p){
 	  if(sm_p->htr[i].override){
 	    itemp = atoi(line+strlen(cmd)+1);
 	    if(itemp >= HTR_POWER_MIN && itemp <= sm_p->htr[i].maxpower){
+	      sm_p->htr[i].overpower = itemp;
+	      //we set the power as well so that the printout will show the correct value
+	      //until it is updated by thm_proc
 	      sm_p->htr[i].power = itemp;
-	      printf("CMD: Setting heater %d power to %d percent\n",i,sm_p->htr[i].power);
+	      printf("CMD: Setting heater %d power to %d percent\n",i,sm_p->htr[i].overpower);
 	      print_htr_status(sm_p);
 	      return CMD_NORMAL;
 	    }

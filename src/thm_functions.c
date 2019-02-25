@@ -84,18 +84,8 @@ void thm_init_heater(int h, htr_t *htr){
     htr->deadband = 1;
   }
   
-  //HTR6: HXB1
+  //HTR6: ALB1
   if(h == 6){
-    sprintf(htr->name,"HXB1");
-    htr->adc      = 3;
-    htr->ch       = 31;
-    htr->maxpower = 50;
-    htr->setpoint = 25;
-    htr->deadband = 1;
-  }
-
-  //HTR7: ALB1
-  if(h == 7){
     sprintf(htr->name,"ALB1");
     htr->adc      = 3;
     htr->ch       = 27;
@@ -104,8 +94,8 @@ void thm_init_heater(int h, htr_t *htr){
     htr->deadband = 1;
   }
 
-  //HTR8: ALB2
-  if(h == 8){
+  //HTR7: ALB2
+  if(h == 7){
     sprintf(htr->name,"ALB2");
     htr->adc      = 3;
     htr->ch       = 28;
@@ -114,8 +104,8 @@ void thm_init_heater(int h, htr_t *htr){
     htr->deadband = 1;
   }
 
-  //HTR9: ALB3
-  if(h == 9){
+  //HTR8: ALB3
+  if(h == 8){
     sprintf(htr->name,"ALB3");
     htr->adc      = 3;
     htr->ch       = 29;
@@ -124,11 +114,21 @@ void thm_init_heater(int h, htr_t *htr){
     htr->deadband = 1;
   }
 
-  //HTR10: ALB4
-  if(h == 10){
+  //HTR9: ALB4
+  if(h == 9){
     sprintf(htr->name,"ALB4");
     htr->adc      = 3;
     htr->ch       = 30;
+    htr->maxpower = 50;
+    htr->setpoint = 25;
+    htr->deadband = 1;
+  }
+
+  //HTR10: HXB1
+  if(h == 10){
+    sprintf(htr->name,"HXB1");
+    htr->adc      = 3;
+    htr->ch       = 31;
     htr->maxpower = 50;
     htr->setpoint = 25;
     htr->deadband = 1;

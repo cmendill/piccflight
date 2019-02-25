@@ -739,13 +739,14 @@ typedef struct wsp_struct{
 
 typedef struct htr_struct{
   char   name[MAX_COMMAND]; //Heater name
-  uint8  adc;      //ADC number {1,2,3}
-  uint8  ch;       //ADC channel index
-  uint8  power;    //Heater power [0-100%]
-  uint8  maxpower; //Heater max power [0-100%]
-  uint8  override; //User override flag
-  uint8  enable;   //Heater enable flag
-  uint16 pad1;  
+  uint8  adc;       //ADC number {1,2,3}
+  uint8  ch;        //ADC channel index
+  uint8  power;     //Heater power [0-100%]
+  uint8  maxpower;  //Heater max power [0-100%]
+  uint8  override;  //User override flag
+  uint8  overpower; //User override power
+  uint8  enable;    //Heater enable flag
+  uint8  pad1;   
   uint32 pad2;
   float  temp;     //Sensor temperature [C]
   float  setpoint; //Sensor setpoint [C]
@@ -760,7 +761,7 @@ typedef struct hum_struct{
 /*************************************************
  * Packet Header
  *************************************************/
-#define PICC_PKT_VERSION     13  //packet version number
+#define PICC_PKT_VERSION     14  //packet version number
 typedef struct pkthed_struct{
   uint16  version;      //packet version number
   uint16  type;         //packet ID word

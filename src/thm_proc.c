@@ -400,24 +400,26 @@ void thm_proc(void){
       if(thmevent.htr[i].adc == 1) thmevent.htr[i].temp = thmevent.adc1_temp[thmevent.htr[i].ch];
       if(thmevent.htr[i].adc == 2) thmevent.htr[i].temp = thmevent.adc2_temp[thmevent.htr[i].ch];
       if(thmevent.htr[i].adc == 3) thmevent.htr[i].temp = thmevent.adc3_temp[thmevent.htr[i].ch];
+      //Copy name
+      memcpy(thmevent.htr[i].name,(char *)sm_p->htr[i].name,sizeof(thmevent.htr[i].name));
     }
 	  
     
     /* Run Temperature Control */
     for(i=0;i<SSR_NCHAN;i++){
-      //check for power increase
-      if((thmevent.htr[i].temp < thmevent.htr[i].setpoint - thmevent.htr[i].deadband) && (thmevent.htr[i].power < thmevent.htr[i].maxpower))
-	thmevent.htr[i].power++;
-      //check for power decrease
-      if((thmevent.htr[i].temp > thmevent.htr[i].setpoint + thmevent.htr[i].deadband) && (thmevent.htr[i].power > 0))
-	thmevent.htr[i].power--;
+      if(!thmevent.htr[i].override){
+	//check for power increase
+	if((thmevent.htr[i].temp < thmevent.htr[i].setpoint - thmevent.htr[i].deadband) && (thmevent.htr[i].power < thmevent.htr[i].maxpower))
+	  thmevent.htr[i].power++;
+	//check for power decrease
+	if((thmevent.htr[i].temp > thmevent.htr[i].setpoint + thmevent.htr[i].deadband) && (thmevent.htr[i].power > 0))
+	  thmevent.htr[i].power--;
+      }
+      else{
+	//User override command
+	thmevent.htr[i].power = sm_p->htr[i].overpower;
+      }
     }
-    
-    
-    /* User Override Commands */
-    for(i=0;i<SSR_NCHAN;i++)
-      if(thmevent.htr[i].override)
-	thmevent.htr[i].power = sm_p->htr[i].power;
     
     /* Check Heater Enable */
     for(i=0;i<SSR_NCHAN;i++)
@@ -464,8 +466,7 @@ void thm_proc(void){
     /* Copy values back to shared memory */
     for(i=0;i<SSR_NCHAN;i++){
       sm_p->htr[i].temp  = thmevent.htr[i].temp;
-      if(!thmevent.htr[i].override)
-	sm_p->htr[i].power = thmevent.htr[i].power;
+      sm_p->htr[i].power = thmevent.htr[i].power;
     }
     
     /* Get end timestamp */
