@@ -457,9 +457,9 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 #define ALP_DMAX              0x3FFF
 #define ALP_DMIN              0x0000
 #define ALP_DMID              0x2000
-#define ALP_MAX_POWER         40
-#define ALP_MAX_BIAS          0.642161299 //sqrt(max_power/97)
-#define ALP_MIN_BIAS         -0.642161299 //sqrt(max_power/97)
+#define ALP_MAX_POWER         10
+#define ALP_MAX_BIAS          0.32108065 //sqrt(max_power/97)
+#define ALP_MIN_BIAS         -0.32108065 //sqrt(max_power/97)
 #define ALP_N_CHANNEL         128 // data size for the ALPAO DM controller
 #define ALP_HEADER_LENGTH     2   // leading uint16_ts for the header
 #define ALP_CHECKSUM_LENGTH   1   // trailing uint16_t for the checksum
