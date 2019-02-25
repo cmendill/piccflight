@@ -39,11 +39,6 @@ void tgt_init_calmode(int calmode, calmode_t *tgt){
     sprintf(tgt->name,"TGT_CALMODE_NONE");
     sprintf(tgt->cmd,"none");
   }
-  //TGT_CALMODE_ZERO
-  if(calmode == TGT_CALMODE_ZERO){
-    sprintf(tgt->name,"TGT_CALMODE_ZERO");
-    sprintf(tgt->cmd,"zero");
-  }
   //TGT_CALMODE_ZPOKE
   if(calmode == TGT_CALMODE_ZPOKE){
     sprintf(tgt->name,"TGT_CALMODE_ZPOKE");
@@ -116,17 +111,6 @@ int tgt_calibrate(int calmode, double *zernikes, uint32_t *step, int procid, int
     //Reset counters
     countA = 0;
     countB = 0;
-    return calmode;
-  }
-
-  /* TGT_CALMODE_ZERO: Set all zernikes to 0 */
-  if(calmode==TGT_CALMODE_ZERO){
-    //Reset counters
-    countA = 0;
-    countB = 0;
-    //Set all zernikes to 0
-    for(i=0;i<LOWFS_N_ZERNIKE;i++)
-      zernikes[i]=0;
     return calmode;
   }
 

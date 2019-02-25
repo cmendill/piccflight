@@ -53,18 +53,6 @@ void alp_init_calmode(int calmode, calmode_t *alp){
     sprintf(alp->cmd,"timer");
     alp->shk_boxsize_cmd = SHK_BOXSIZE_CMD_STD;
   }
-  //ALP_CALMODE_ZERO
-  if(calmode == ALP_CALMODE_ZERO){
-    sprintf(alp->name,"ALP_CALMODE_ZERO");
-    sprintf(alp->cmd,"zero");
-    alp->shk_boxsize_cmd = SHK_BOXSIZE_CMD_STD;
-  }
-  //ALP_CALMODE_FLAT
-  if(calmode == ALP_CALMODE_FLAT){
-    sprintf(alp->name,"ALP_CALMODE_FLAT");
-    sprintf(alp->cmd,"flat");
-    alp->shk_boxsize_cmd = SHK_BOXSIZE_CMD_STD;
-  }
   //ALP_CALMODE_POKE
   if(calmode == ALP_CALMODE_POKE){
     sprintf(alp->name,"ALP_CALMODE_POKE");
@@ -453,7 +441,6 @@ int alp_calibrate(int calmode, alp_t *alp, uint32_t *step, int procid, int reset
   double act[ALP_NACT];
   double poke=0,zpoke[LOWFS_N_ZERNIKE]={0};
   int    ncalim=0;
-  const double flat[ALP_NACT] = ALP_OFFSET;
   static int mode_init[ALP_NCALMODES] = {0};
   static alp_t alp_start[ALP_NCALMODES];
   static uint64 countA[ALP_NCALMODES] = {0};
@@ -563,28 +550,6 @@ int alp_calibrate(int calmode, alp_t *alp, uint32_t *step, int procid, int reset
     return calmode;
   }
 
-  /* ALP_CALMODE_ZERO: Set all actuators to 0 */
-  if(calmode==ALP_CALMODE_ZERO){
-    //Reset counters
-    memset(countA,0,sizeof(countA));
-    memset(countB,0,sizeof(countB));
-    //Set all ALP actuators to 0
-    for(i=0;i<ALP_NACT;i++)
-      alp->acmd[i]=0;
-    return calmode;
-  }
-
-  /* ALP_CALMODE_FLAT: Set all actuators to flat map */
-  if(calmode==ALP_CALMODE_FLAT){
-    //Reset counters
-    memset(countA,0,sizeof(countA));
-    memset(countB,0,sizeof(countB));
-    //Set all ALP actuators to flat
-    for(i=0;i<ALP_NACT;i++)
-      alp->acmd[i]=flat[i];
-    return calmode;
-  }
-
   /* ALP_CALMODE_POKE: Scan through acuators poking one at a time.    */
   /*                   Set to starting position in between each poke. */
   if(calmode == ALP_CALMODE_POKE){
@@ -642,7 +607,7 @@ int alp_calibrate(int calmode, alp_t *alp, uint32_t *step, int procid, int reset
       //set step counter
       *step = (countA[calmode]/ncalim);
 
-      //poke one zernike by adding it on top of the flat
+      //poke one zernike by adding it on top of the starting position
       if((countA[calmode]/ncalim) % 2 == 1){
 	z = (countB[calmode]/ncalim) % LOWFS_N_ZERNIKE;
 	alp->zcmd[z] = zpoke[z];
@@ -723,7 +688,7 @@ int alp_calibrate(int calmode, alp_t *alp, uint32_t *step, int procid, int reset
       //set step counter
       *step = (countA[calmode]/ncalim);
 
-      //ramp one zernike by adding it on top of the flat
+      //ramp one zernike by adding it on top of the starting position
       if((countA[calmode]/ncalim) % 2 == 1){
 	z = (countB[calmode]/ncalim) % LOWFS_N_ZERNIKE;
 	alp->zcmd[z] += zpoke[z]/ncalim;

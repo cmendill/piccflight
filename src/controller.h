@@ -107,8 +107,6 @@ enum states { STATE_STANDBY,
  *************************************************/
 enum alpcalmodes {ALP_CALMODE_NONE,
 		  ALP_CALMODE_TIMER,
-		  ALP_CALMODE_ZERO,
-		  ALP_CALMODE_FLAT,
 		  ALP_CALMODE_POKE,
 		  ALP_CALMODE_ZPOKE,
 		  ALP_CALMODE_FLIGHT,
@@ -125,7 +123,6 @@ enum hexcalmodes {HEX_CALMODE_NONE,
 		  HEX_NCALMODES};
 
 enum tgtcalmodes {TGT_CALMODE_NONE,
-		  TGT_CALMODE_ZERO,
 		  TGT_CALMODE_ZPOKE,
 		  TGT_CALMODE_ZRAMP,
 		  TGT_CALMODE_ZRAND,
@@ -761,7 +758,7 @@ typedef struct hum_struct{
 /*************************************************
  * Packet Header
  *************************************************/
-#define PICC_PKT_VERSION     14  //packet version number
+#define PICC_PKT_VERSION     15  //packet version number
 typedef struct pkthed_struct{
   uint16  version;      //packet version number
   uint16  type;         //packet ID word
