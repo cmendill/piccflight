@@ -346,11 +346,11 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
   
   //Check in with the watchdog 
   checkin(sm_p,SCIID);
-
+  
   //Check reset 
-  if(sm_p->w[SCIID].reset){
+  if(sm_p->sci_reset){
    init=0;
-   sm_p->w[SCIID].reset=0;
+   sm_p->sci_reset=0;
   }
 
   //Initialize 

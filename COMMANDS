@@ -11,6 +11,18 @@ cmd: exit
 cmd: packet info
      	prints the sizes of the telemetry packets
 
+cmd: erase flight data
+        erases all data in /output/flight_data/
+
+cmd: erase cal data
+        erases all data in /output/calibration/
+
+cmd: sleep [arg]
+        causes the input console to not accept commands for [arg] seconds
+        usefull if you want to paste a testing command sequence into the console
+        arg = [1-5]
+
+
 ------------- PROCESS CONTROL -------------
 
 cmd: xxx_proc on
@@ -19,7 +31,11 @@ cmd: xxx_proc on
 
 cmd: xxx_proc off
 	turns the xxx process off
-	xxx = sci, shk, lyt, tlm, etc.
+	xxx = 
+
+cmd: xxx_proc restart
+        kills and restarts process xxx 
+        xxx = sci, shk, lyt, tlm, etc.
 
 cmd: proc status
 	prints the current run status of all available processes
@@ -44,6 +60,16 @@ cmd: hex calmode [arg]
 	sets the hexapod calibration mode
 	arg = string command for the calibration mode
 	sending command without the cmd will print the available modes
+
+cmd: bmc calmode [arg]
+	sets the bmc dm calibration mode
+	arg = string command for the calibration mode
+	sending command without the cmd will print the available modes
+	
+cmd: tgt calmode [arg]
+	sets the zernike target calibration mode
+	arg = string command for the calibration mode
+	sending command without the cmd will print the available modes
 	
 ------------------ STATES -----------------
 
@@ -55,16 +81,22 @@ cmd: state [arg]
 -------------- DATA RECORDING -------------
 
 cmd: shk start rec
-	start recording shkevents to disk
+	start recording shk data to disk
 
 cmd: shk stop rec
-	stop recording shkevents to disk
+	stop recording shk data to disk
 
 cmd: lyt start rec
-	start recording lytevents to disk
+	start recording lyt data to disk
 
 cmd: lyt stop rec
-	stop recording lytevents to disk
+	stop recording lyt data to disk
+
+cmd: sci start rec
+	start recording sci data to disk
+
+cmd: sci stop rec
+	stop recording sci data to disk
 
 ------------- HEXAPOD CONTROL -------------
 
@@ -100,6 +132,13 @@ cmd: hex move [arg]
 
 ------------- ALPAO DM CONTROL -------------
 
+cmd: alp bias [arg]
+        set all ALP actuators to the same value
+        arg = floating point actuator value [-1,+1] (power limited)
+
+cmd: alp zero flat
+        set ALP actuators to all zeros
+
 cmd: alp revert flat
         revert ALP to #defined flat pattern
 
@@ -114,6 +153,9 @@ cmd: alp random
 
 cmd: alp zrandom
      	applies a random zernike perturbation to the current ALP command
+
+cmd: alp reset
+        reload the user command ALP-to-Zernike matrix
 
 cmd: alp zernike [arg1] [arg2]
 	add a zernike delta to the current ALP command
@@ -135,9 +177,21 @@ cmd: shk calibrate alp [arg]
         record shk data through one complete cycle of an alp calmode
 	arg = string command for the alp calmode
 
+cmd: shk calibrate tgt [arg]
+        record shk data through one complete cycle of an tgt calmode
+	arg = string command for the tgt calmode
+
 cmd: lyt calibrate alp [arg]
         record lyt data through one complete cycle of an alp calmode
 	arg = string command for the alp calmode
+
+cmd: lyt calibrate tgt [arg]
+        record lyt data through one complete cycle of an tgt calmode
+	arg = string command for the tgt calmode
+
+cmd: sci calibrate bmc [arg]
+        record sci data through one complete cycle of an bmc calmode
+	arg = string command for the bmc calmode
 
 ------------- CAMERA CONTROL -------------
 
@@ -145,13 +199,33 @@ cmd: sci exptime [arg]
         set the sci camera exposure time
 	arg = exposure time in seconds
 
+cmd: sci frmtime [arg]
+        set the sci camera frame time
+	arg = frame time in seconds
+
 cmd: shk exptime [arg]
         set the shk camera exposure time
 	arg = exposure time in seconds
 
+cmd: shk frmtime [arg]
+        set the shk camera frame time
+	arg = frame time in seconds
+
 cmd: lyt exptime [arg]
         set the lyt camera exposure time
 	arg = exposure time in seconds
+
+cmd: lyt frmtime [arg]
+        set the lyt camera frame time
+	arg = frame time in seconds
+
+cmd: acq exptime [arg]
+        set the acq camera exposure time
+	arg = exposure time in seconds
+
+cmd: acq frmtime [arg]
+        set the acq camera frame time
+	arg = frame time in seconds
 
 
 ------------- CAMERA RESET -------------
@@ -173,11 +247,7 @@ cmd: sci reset
 	reloads calibration files
 
 
-------------- SHACK-HARTMANN CONTROL -------------
-
-cmd: shk set cenbox origin
-     	set the center of the centroid boxes to the current spot centers
-	does not set the cell origin, which is the target position
+------------- SHACK-HARTMANN LOWFS SETTINGS -------------
 
 cmd: shk set origin
         set the center of the centroid boxes AND the cell origins to the current spot centers
@@ -187,28 +257,71 @@ cmd: shk revert origin
         revert the cell and centroid box origins to the #defined values
 
 cmd: shk save origin
-        save the current cell and centroid box origins to file (shk_origin.dat)
+        save the current cell and centroid box origins to disk
 
 cmd: shk load origin
-        load the cell and centroid box origins from file (shk_origin.dat)
+        load the cell and centroid box origins from disk
 
 cmd: shk shift origin [arg]
         shift the cell and centroid box origins 1 pixel in the given direction
 	arg = +x, -x, +y, -y
 
-cmd: shk zernike [arg1] [arg2]
-	change the shk zernike target	
+------------- LYOT LOWFS SETTINGS -------------
+
+cmd: lyt shift origin [arg]
+        shift the image origin 1 pixel in the given direction
+	arg = +x, -x, +y, -y
+
+cmd: lyt set ref
+	set current LYT image as the reference image
+
+cmd: lyt mod ref
+ 	set model LYT image as the reference image
+
+cmd: lyt def ref
+	set the default LYT image as the reference image
+
+cmd: lyt save ref
+  	save current reference image to disk
+
+cmd: lyt load ref
+	load current reference image fron disk
+
+
+------------- ZERNIKE TARGETS -------------
+
+cmd: [cam] target [arg1] [arg2]
+	cam = "shk" or "lyt"
+        change the xxx zernike target	
 	arg1 = zernike index [0,1,2,3,...,22]
 	arg2 = zernike wavefront amplitude [microns RMS]
 
-------------- LYT LOWFS CONTROL -------------
-cmd: lyt zernike [arg1] [arg2]
-	change the lyt zernike target	
-	arg1 = zernike index [0,1,2,3,...,22]
-	arg2 = zernike wavefront amplitude [microns RMS]
 
+------------- ZERNIKE CONTROL SWITCHES -------------
 
-------------- CONTROL SYSTEM GAIN -------------
+cmd: [cam] zernike info
+        cam = "shk" or "lyt"
+        print out which zernikes are enabled and which are disabled
+
+cmd: [cam] zernike enable all
+        cam = "shk" or "lyt"
+        enable control of all zernikes
+
+cmd: [cam] zernike enable [arg]
+        cam = "shk" or "lyt"
+        enable control of a single zernike
+	arg = zernike index
+
+cmd: [cam] zernike disable all
+        cam = "shk" or "lyt"
+        disable control of all zernikes
+
+cmd: [cam] zernike disable [arg]
+        cam = "shk" or "lyt"
+        disable control of a single zernike
+	arg = zernike index
+
+------------- GAIN SETTINGS -------------
 
 cmd: shk alp gain [arg]
         change the shk2alp controller PID gains by a factor
@@ -222,22 +335,117 @@ cmd: lyt alp gain [cnd]
         change the lyt2alp controller PID gains by a factor
 	arg = scale factor [0-1] to mutiply by the default gains
 
-------------- ZERNIKE CONTROL SWITCHES -------------
+------------- SCI CAMERA SETTINGS -------------
 
-cmd: zernike info
-        print out which zernikes are enabled and which are disabled
+cmd: sci set origin
+        set brightest pixels in each band as the ROI center
 
-cmd: zernike enable all
-        enable control of all zernikes
+cmd: sci revert origin
+	revert the band ROIs to the #defined centers
 
-cmd: zernike enable [arg]
-        enable control of a single zernike
-	arg = zernike index
+cmd: sci save origin
+        save the current band ROI origins to disk
 
-cmd: zernike disable all
-        disable control of all zernikes
+cmd: sci load origin
+        load the band ROI origins from disk
 
-cmd: zernike disable [arg]
-        disable control of a single zernike
-	arg = zernike index
+cmd: sci shift origin [arg1] [arg2]
+        shift the band [arg1] ROI origins 1 pixel in the given direction [arg2]
+	arg1 = 0,1,2,3,4
+	arg2 = +x, -x, +y, -y
+
+------------- DOOR CONTROL -------------
+
+cmd: open door [arg]
+	open door number [arg]
+	arg = 1,2,3,4
+	
+cmd: close door [arg]
+	close door number [arg]
+	arg = 1,2,3,4
+	
+cmd: stop door [arg]
+	stop door number [arg]
+	arg = 1,2,3,4
+	
+	
+------------- HEATER CONTROL -------------
+
+cmd: htr status
+	print status of all heaters
+
+cmd: htr [arg] enable
+	enable heater [arg]
+	arg = 0-15 OR "all"
+
+cmd: htr [arg] disable
+	disable heater [arg]
+	arg = 0-15 OR "all"
+
+cmd: htr [arg] override
+	put heater [arg] into user override
+	arg = 0-15 OR "all"
+
+cmd: htr [arg] release
+	release heater [arg] from user override
+	arg = 0-15 OR "all"
+
+cmd: htr [arg1] maxpower [arg2]
+	set heater [arg1] maxpower to [arg2]
+	arg1 = 0-15
+	arg2 = 0-100
+
+cmd: htr [arg1] power [arg2]
+	manually set heater [arg1] power to [arg2]
+	arg1 = 0-15
+	arg2 = 0-100
+	heater must be in user override
+
+cmd: htr [arg1] setpoint [arg2]
+	set heater [arg1] temperature setpoint to [arg2]
+	arg1 = 0-15
+	arg2 = deg C
+	
+cmd: htr [arg1] deadband [arg2]
+	set heater [arg1] temperature deadband to [arg2]
+	arg1 = 0-15
+	arg2 = deg C
+	
+cmd: htr [arg1] sensor [arg2] [arg3]
+	set heater [arg1] sensor routing to adc [arg2] channel [arg3]
+	arg1 = 0-15
+	arg2 = 1,2,3
+	arg3 = 0-32
+
+------------- LED CONTROL -------------
+
+cmd: led on [arg]
+	turn led on with voltage [arg] volts
+	arg = 0-5
+
+cmd: led off
+	turn led off
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

@@ -81,9 +81,9 @@ void acq_process_image(uvc_frame_t *frame, sm_t *sm_p) {
   checkin(sm_p,ACQID);
   
   //Check reset
-  if(sm_p->w[ACQID].reset){
+  if(sm_p->acq_reset){
     init=0;
-    sm_p->w[ACQID].reset=0;
+    sm_p->acq_reset=0;
   }
   
   //Initialize

@@ -361,9 +361,9 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
   state = sm_p->state;
 
   //Check reset
-  if(sm_p->w[LYTID].reset){
+  if(sm_p->lyt_reset){
     init=0;
-    sm_p->w[LYTID].reset=0;
+    sm_p->lyt_reset=0;
   }
 
   //Initialize

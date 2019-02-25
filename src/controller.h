@@ -204,6 +204,7 @@ enum bmccalmodes {BMC_CALMODE_NONE,
 #define SHK_ALP_CALFILE        "output/calibration/shk_alp_%s_%s_%s_caldata.dat"
 #define SHK_TGT_CALFILE        "output/calibration/shk_tgt_%s_%s_%s_caldata.dat"
 #define LYT_ALP_CALFILE        "output/calibration/lyt_alp_%s_%s_%s_caldata.dat"
+#define LYT_TGT_CALFILE        "output/calibration/lyt_tgt_%s_%s_%s_caldata.dat"
 #define SCI_BMC_CALFILE        "output/calibration/sci_bmc_%s_%s_%s_caldata.dat"
 #define SHKCEL2SHKZER_OUTFILE  "output/calibration/shkcel2shkzer_flight_output.dat"
 #define SHKZER2SHKCEL_OUTFILE  "output/calibration/shkzer2shkcel_flight_output.dat"
@@ -602,23 +603,21 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
  * Config Structure
  *************************************************/
 typedef struct procinfo_struct{
-  int    pid;
-  int    run;
-  int    ena;
-  int    die;
-  int    done;
-  int    res;
+  //Settings (watchdog.h)
+  int    run;  //Run switch
+  int    ask;  //Tell watchdog to ask process to exit with "die" command
+  int    tmo;  //# process timeout (seconds)
+  char  *name; //Process name
+  int    per;  //Process checkin period
+  //Runtime
+  int    pid; //PID # of process
+  int    ena; //Enable switch
+  int    die; //Ask process to exit switch
+  int    res; //Restart process
   uint32 chk; //# checkins
   uint32 rec; //# recipts of checkin
-  int    cnt;
-  int    tmo;
-  int    ask;
-  int    per;
-  int    pri;
-  int    fakemode;
-  int    reset; 
-  char   *name;
-  char   *mod;
+  int    cnt; //# missed checkins 
+  int    fakemode; //Process fake mode
   void (*launch)(void);
 } procinfo_t;
 
@@ -1017,12 +1016,18 @@ typedef volatile struct {
   int    lyt_xorigin;                                      //LYT ROI bottom-left X
   int    lyt_yorigin;                                      //LYT ROI bottom-left Y
   
-  //Camera Reset Commands
+  //Camera Process Reset Commands
+  int shk_reset;
+  int acq_reset;
+  int sci_reset;
+  int lyt_reset;
+
+  //Camera Exposure Reset Commands
   int shk_reset_camera;
   int acq_reset_camera;
   int sci_reset_camera;
   int lyt_reset_camera;
-
+  
   //SCI Origin Commands
   int sci_setorigin;
   int sci_revertorigin;

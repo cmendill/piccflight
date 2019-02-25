@@ -56,21 +56,22 @@ void kill_proc(sm_t *sm_p,int id){
   if(WAT_DEBUG) printf("WAT: killing: %s\n",sm_p->w[id].name);
   keep_going=1;
   if(sm_p->w[id].ask){
-    //wait for process to kill itself
+    //ask process to die
     sm_p->w[id].die=1;
+    //wait for process to exit
     if(!procwait(sm_p->w[id].pid,PROC_TIMEOUT)){
       if(WAT_DEBUG) printf("WAT: unloaded: %s\n",sm_p->w[id].name);
       keep_going=0;
     }
   }
   if(keep_going){
-    //ask process to die
+    //interrupt process with SIGINT
     kill(sm_p->w[id].pid,SIGINT);
-    //wait for process to die
+    //wait for process to exit
     if(procwait(sm_p->w[id].pid,PROC_TIMEOUT)){
-      //kill process
+      //kill process with SIGKILL
       kill(sm_p->w[id].pid,SIGKILL);
-      //wait for process to die
+      //wait for process to exit
       if(procwait(sm_p->w[id].pid,PROC_TIMEOUT)){
 	printf(WARNING);
 	printf("WAT: could not kill %s!\n",sm_p->w[id].name);
@@ -99,7 +100,6 @@ void launch_proc(sm_t *sm_p,int id){
   launch = sm_p->w[id].launch;
   //reset values
   sm_p->w[id].die  =  0;
-  sm_p->w[id].done =  0;
   sm_p->w[id].res  =  0;
   sm_p->w[id].chk  =  0;
   sm_p->w[id].rec  =  0;
@@ -207,7 +207,7 @@ void wat_proc(void){
       if(i != WATID)
 	if(sm_p->w[i].run && sm_p->w[i].ena)
 	  if(sm_p->w[i].pid != -1)
-	    if((sm_p->w[i].done == 1 && sm_p->w[i].die == 0) || sm_p->w[i].res == 1){
+	    if(sm_p->w[i].res == 1){
 	      kill_proc(sm_p,i);
 	      launch_proc(sm_p,i);
 	    }
@@ -278,7 +278,6 @@ int main(int argc,char **argv){
   uint8 procask[NCLIENTS]  = PROCASK;
   uint8 procrun[NCLIENTS]  = PROCRUN;
   char *procnam[NCLIENTS]  = PROCNAM;
-  char *procmod[NCLIENTS]  = PROCMOD;
   uint8 procper[NCLIENTS]  = PROCPER;
   uint8 procpri[NCLIENTS]  = PROCPRI;
   for(i=0;i<NCLIENTS;i++){
@@ -286,16 +285,13 @@ int main(int argc,char **argv){
     sm_p->w[i].run  =  procrun[i];
     sm_p->w[i].ena  =  1;
     sm_p->w[i].die  =  0;
-    sm_p->w[i].done =  0;
     sm_p->w[i].chk  =  0;
     sm_p->w[i].rec  =  0;
     sm_p->w[i].cnt  =  0;
     sm_p->w[i].tmo  =  proctmo[i];
     sm_p->w[i].ask  =  procask[i];
     sm_p->w[i].per  =  procper[i];
-    sm_p->w[i].pri  =  procpri[i];
     sm_p->w[i].name =  procnam[i];
-    sm_p->w[i].mod  =  procmod[i];
     sm_p->w[i].reset    = 0;
     sm_p->w[i].fakemode = FAKEMODE_NONE;
 

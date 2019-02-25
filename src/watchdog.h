@@ -11,8 +11,6 @@
 #define PROCASK {    0,     0,     0,     0,     0,     0,     0,     0,     0,     1}
 #define PROCTMO {   10,    10,    10,    10,    10,    10,    10,    10,    10,    10}
 #define PROCNAM {"WAT", "SCI", "SHK", "LYT", "TLM", "ACQ", "MTR", "THM", "SRV", "DIA"}
-#define PROCMOD {   "",    "",    "",    "",    "",    "",    "",    "",    "",    ""}
-#define PROCPRI {    1,     1,     1,     1,     1,     1,     1,     1,     1,     1}
 #define PROCPER {    1,     1,     1,     1,     1,     1,     1,     1,     1,     1}
 
 
