@@ -229,6 +229,9 @@ int lyt_proc(void){
     sm_p->lyt_frmtime = (double)frmcmd / ONE_MILLION;
     printf("LYT: Set frm = %d | exp = %d\n",frmcmd,expcmd);
     
+    //Get CCD temperature
+    sm_p->lyt_ccd_temp = BOBCAT_GetTemp(lytCamera);
+    
     /* ----------------------- Enter Exposure Loop ----------------------- */
     while(1){
       /* Check if we've been asked to exit */
@@ -251,10 +254,7 @@ int lyt_proc(void){
 	camera_running = 1;
 	printf("LYT: Camera started\n");
       }
-      
-      /* Get CCD temperature */
-      sm_p->lyt_ccd_temp = BOBCAT_GetTemp(lytCamera);
-      
+            
       /* Sleep */
       sleep(sm_p->w[LYTID].per);
     }

@@ -229,6 +229,10 @@ int shk_proc(void){
     sm_p->shk_frmtime = (double)frmcmd / ONE_MILLION;
     printf("SHK: Set frm = %d | exp = %d\n",frmcmd,expcmd);
     
+    // Get CCD temperature
+    // We only do this once now because it fails often
+    sm_p->shk_ccd_temp = BOBCAT_GetTemp(shkCamera);
+
     /* ----------------------- Enter Exposure Loop ----------------------- */
     while(1){
       /* Check if we've been asked to exit */
@@ -252,8 +256,6 @@ int shk_proc(void){
 	printf("SHK: Camera started\n");
       }
       
-      /* Get CCD temperature */
-      sm_p->shk_ccd_temp = BOBCAT_GetTemp(shkCamera);
       
       /* Sleep */
       sleep(sm_p->w[SHKID].per);
