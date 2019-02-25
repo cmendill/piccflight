@@ -178,7 +178,7 @@ int shk_proc(void){
   /* ----------------------- Enter Main Loop ----------------------- */
   while(1){
     /* Check in with watchdog */
-    checkin(aContext->sm_p,SHKID);
+    checkin(sm_p,SHKID);
 
     /* STOP Capture to put camera in known state */
     eStat = PHX_StreamRead( shkCamera, PHX_STOP, (void*)shk_callback );

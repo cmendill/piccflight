@@ -178,7 +178,7 @@ int lyt_proc(void){
   /* ----------------------- Enter Main Loop ----------------------- */
   while(1){
     /* Check in with watchdog */
-    checkin(aContext->sm_p,LYTID);
+    checkin(sm_p,LYTID);
 
     /* STOP Capture to put camera in known state */
     eStat = PHX_StreamRead( lytCamera, PHX_STOP, (void*)lyt_callback );

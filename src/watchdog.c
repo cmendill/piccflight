@@ -279,7 +279,6 @@ int main(int argc,char **argv){
   uint8 procrun[NCLIENTS]  = PROCRUN;
   char *procnam[NCLIENTS]  = PROCNAM;
   uint8 procper[NCLIENTS]  = PROCPER;
-  uint8 procpri[NCLIENTS]  = PROCPRI;
   for(i=0;i<NCLIENTS;i++){
     sm_p->w[i].pid  = -1;
     sm_p->w[i].run  =  procrun[i];
@@ -292,7 +291,6 @@ int main(int argc,char **argv){
     sm_p->w[i].ask  =  procask[i];
     sm_p->w[i].per  =  procper[i];
     sm_p->w[i].name =  procnam[i];
-    sm_p->w[i].reset    = 0;
     sm_p->w[i].fakemode = FAKEMODE_NONE;
 
 
