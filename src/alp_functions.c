@@ -419,87 +419,88 @@ int alp_load_flat(sm_t *sm_p,int proc_id){
   return(alp_send_command(sm_p,&alp,proc_id,1));
 }
 
+
+/**************************************************************/
+/* ALP_INIT_CALIBRATION                                       */
+/* - Initialize calibration structure                         */
+/**************************************************************/
+void alp_init_calibration(sm_t *sm_p){
+  int i;
+  FILE *fd=NULL;
+  char filename[MAX_FILENAME];
+
+  //Zero out calibration struct
+  memset(sm_p->alpcal,0,sizeof(sm_p->alpcal));
+
+  /* Open zernike errors file */
+  //--setup filename
+  sprintf(filename,ZERNIKE_ERRORS_FILE);
+  //--open file
+  if((fd = fopen(filename,"r")) == NULL){
+    perror("ALP: Zernike errors file: fopen");
+    
+  }else{
+    //--check file size
+    fseek(fd, 0L, SEEK_END);
+    if(ftell(fd) != sizeof(zernike_errors)){
+      printf("ALP: incorrect zernike_errors file size (%lu) != expected (%lu)\n",ftell(fd),sizeof(zernike_errors));
+    }else{
+      rewind(fd);
+      //--read data
+      if(fread(sm_p->alpcal.zernike_errors,sizeof(sm_p->alpcal.zernike_errors),1,fd) != 1){
+	perror("ALP: zernike_errors fread");
+      }else{    
+	printf("ALP: Read %s\n",filename);
+      }
+    }
+  }
+  
+  //--close file
+  fclose(fd);
+
+  /* Initialize other elements */
+  sm_p->alpcal.time_length = CALMODE_TIMER_SEC;
+  sm_p->alpcal.multiplier  = 1;
+  
+  
+}
+
 /**************************************************************/
 /* ALP_CALIBRATE                                              */
 /* - Run calibration routines for ALPAO DM                    */
 /**************************************************************/
-int alp_calibrate(int calmode, alp_t *alp, uint32_t *step, int procid, int reset){
+int alp_calibrate(sm_t *sm_p, int calmode, alp_t *alp, uint32_t *step, int procid, int reset){
   uint64_t i,j,z,index;
-  static struct timespec start,this,last,delta;
-  static double zernike_errors[LOWFS_N_ZERNIKE][ZERNIKE_ERRORS_NUMBER]={{0}};
+  static struct timespec this,delta;
   const double zernike_timestep = ZERNIKE_ERRORS_PERIOD;
-  static int init=0,quick_init=0;
+  static int init=0;
+  static double zrand[LOWFS_N_ZERNIKE]={0};
+  static double arand[ALP_NACT]={0};
   time_t trand;
-  FILE *fileptr=NULL;
-  char filename[MAX_FILENAME];
   double dt=0;
-  static double dt0=0;
   double step_fraction=0;
   double dz[LOWFS_N_ZERNIKE]={0};
   double this_zernike[LOWFS_N_ZERNIKE]={0};
-  static double last_zernike[LOWFS_N_ZERNIKE]={0};
   double act[ALP_NACT];
   double poke=0,zpoke[LOWFS_N_ZERNIKE]={0};
   int    ncalim=0;
-  static int mode_init[ALP_NCALMODES] = {0};
-  static alp_t alp_start[ALP_NCALMODES];
-  static uint64 countA[ALP_NCALMODES] = {0};
-  static uint64 countB[ALP_NCALMODES] = {0};
-  static calmode_t alpcalmodes[ALP_NCALMODES];
-  static double zrand[LOWFS_N_ZERNIKE]={0};
-  static double arand[ALP_NACT]={0};
 
   /* Reset & Quick Init*/
-  if(reset || !quick_init){
-    memset(countA,0,sizeof(countA));
-    memset(countB,0,sizeof(countB));
-    memset(mode_init,0,sizeof(mode_init));
-    memset(alp_start,0,sizeof(alp_start));
-    memset(last_zernike,0,sizeof(last_zernike));
+  if(reset || !init){
+    //Reset counters
+    memset(sm_p->alpcal.countA,0,sizeof(sm_p->alpcal.countA));
+    memset(sm_p->alpcal.countB,0,sizeof(sm_p->alpcal.countB));
+    //Reset random numbers
+    srand((unsigned) time(&trand));
     for(i=0;i<LOWFS_N_ZERNIKE;i++) zrand[i] = (2*(rand() / (double) RAND_MAX) - 1);
     for(i=0;i<ALP_NACT;i++) arand[i] = (2*(rand() / (double) RAND_MAX) - 1);
-    clock_gettime(CLOCK_REALTIME, &start);
-    quick_init = 1;
-    if(reset) return calmode;
-  }
-  
-  /* Initialize (slow) */
-  if(!init){
     //Init ALP calmodes
     for(i=0;i<ALP_NCALMODES;i++)
       alp_init_calmode(i,&alpcalmodes[i]);
-
-    /* Open zernike errors file */
-    //--setup filename
-    sprintf(filename,ZERNIKE_ERRORS_FILE);
-    //--open file
-    if((fileptr = fopen(filename,"r")) == NULL){
-      perror("ALP: Zernike errors file: fopen");
-      goto endofinit;
-    }
-    //--check file size
-    fseek(fileptr, 0L, SEEK_END);
-    if(ftell(fileptr) != sizeof(zernike_errors)){
-      printf("ALP: incorrect zernike_errors file size (%lu) != expected (%lu)\n",ftell(fileptr),sizeof(zernike_errors));
-      goto endofinit;
-    }
-    rewind(fileptr);
-    //--read data
-    if(fread(zernike_errors,sizeof(zernike_errors),1,fileptr) != 1){
-      perror("ALP: zernike_errors fread");
-      goto endofinit;
-    }    
-    printf("ALP: Read for PROC %d: %s\n",procid,filename);
-  endofinit:
-    //--close file
-    if(fileptr != NULL){
-      fclose(fileptr);
-    }
-
-    //Set init flag
-    init=1;
+    init = 1;
+    if(reset) return calmode;
   }
-
+  
   /* Set calibration parameters */
   if(procid == SHKID){
     poke   = alpcalmodes[calmode].shk_poke;
@@ -512,283 +513,276 @@ int alp_calibrate(int calmode, alp_t *alp, uint32_t *step, int procid, int reset
     ncalim = alpcalmodes[calmode].lyt_ncalim;
   }
   
-  /* Calculate times */
+  /* Get time */
   clock_gettime(CLOCK_REALTIME, &this);
-  if(timespec_subtract(&delta,&this,&start))
-    printf("ALP: alp_calibrate --> timespec_subtract error!\n");
-  ts2double(&delta,&dt);
 
-  /* Init random numbers */
-  srand((unsigned) time(&trand));
-
-  /* ALP_CALMODE_NONE: Do nothing. Just reset counters.            */
+  /* Init times and ALP commands */
+  if((calmode != ALP_CALMODE_NONE) && (sm_p->alpcal.countA[calmode] == 0)){
+    //Get start time
+    clock_gettime(CLOCK_REALTIME, &sm_p->alpcal.start[calmode]);
+    //Save alp starting position
+    memcpy(&sm_p->alpcal.alp_start[calmode],alp,sizeof(alp_t));
+  }
+  
+  /* ALP_CALMODE_NONE: Do nothing. Just reset counters.*/
   if(calmode==ALP_CALMODE_NONE){
-    memset(countA,0,sizeof(countA));
-    memset(countB,0,sizeof(countB));
+    //Reset counters
+    memset(sm_p->alpcal.countA,0,sizeof(sm_p->alpcal.countA));
+    memset(sm_p->alpcal.countB,0,sizeof(sm_p->alpcal.countB));
+
+    //Return calmode
     return calmode;
   }
-
+  
   /* ALP_CALMODE_TIMER: Do nothing. End after a defined amount of time     */
   if(calmode==ALP_CALMODE_TIMER){
-    //set start time
-    if(countA[calmode] == 0)
-      dt0 = dt;
+    //Get time delta
+    if(timespec_subtract(&delta,&this,&sm_p->alpcal.start[calmode]))
+      printf("ALP: alp_calibrate --> timespec_subtract error!\n");
+    ts2double(&delta,&dt);
     
-    //set step counter
-    *step = countA[calmode];
-
-    if(dt-dt0 > CALMODE_TIMER_SEC){
+    //Set step counter
+    *step = sm_p->alpcal.countA[calmode];
+    
+    if(dt > sm_p->alpcal.time_length){
       //Turn off calibration
       printf("ALP: Stopping ALP calmode ALP_CALMODE_TIMER\n");
       calmode = ALP_CALMODE_NONE;
-      quick_init = 0;
+      init = 0;
     }
-
-    //Increment counter
-    countA[calmode]++;
     
+    //Increment counter
+    sm_p->alpcal.countA[calmode]++;
+    
+    //Return calmode
     return calmode;
   }
-
+  
   /* ALP_CALMODE_POKE: Scan through acuators poking one at a time.    */
   /*                   Set to starting position in between each poke. */
-  if(calmode == ALP_CALMODE_POKE){
-    //Save alp starting position
-    if(!mode_init[calmode]){
-      memcpy(&alp_start[calmode],alp,sizeof(alp_t));
-      mode_init[calmode]=1;
-    }
+  if(calmode==ALP_CALMODE_POKE){
     //Check counters
-    if(countA[calmode] >= 0 && countA[calmode] < (2*ALP_NACT*ncalim)){
+    if(sm_p->alpcal.countA[calmode] >= 0 && sm_p->alpcal.countA[calmode] < (2*ALP_NACT*ncalim)){
       //set all ALP actuators to starting position
       for(i=0;i<ALP_NACT;i++)
-	alp->acmd[i]=alp_start[calmode].acmd[i];
-
+	alp->acmd[i]=sm_p->alpcal.alp_start[calmode].acmd[i];
+      
       //set step counter
-      *step = (countA[calmode]/ncalim);
-
+      *step = (sm_p->alpcal.countA[calmode]/ncalim);
+      
       //poke one actuator
-      if((countA[calmode]/ncalim) % 2 == 1){
-	alp->acmd[(countB[calmode]/ncalim) % ALP_NACT] += poke;
-	countB[calmode]++;
+      if((sm_p->alpcal.countA[calmode]/ncalim) % 2 == 1){
+	alp->acmd[(sm_p->alpcal.countB[calmode]/ncalim) % ALP_NACT] += poke;
+	sm_p->alpcal.countB[calmode]++;
       }
-      countA[calmode]++;
     }else{
       //Set alp back to starting position
-      memcpy(alp,&alp_start[calmode],sizeof(alp_t));
+      memcpy(alp,&sm_p->alpcal.alp_start[calmode],sizeof(alp_t));
       mode_init[calmode]=0;
       //Turn off calibration
       printf("ALP: Stopping ALP calmode ALP_CALMODE_POKE\n");
       calmode = ALP_CALMODE_NONE;
-      quick_init = 0;
+      init = 0;
     }
+    
+    //Increment counter
+    sm_p->alpcal.countA[calmode]++;
+    
+    //Return calmode
     return calmode;
-
+    
   }
-
+  
   /* ALP_CALMODE_ZPOKE: Poke Zernikes one at a time                    */
   /*                    Set to starting position in between each poke. */
   if(calmode == ALP_CALMODE_ZPOKE){
-    //Save alp starting position
-    if(!mode_init[calmode]){
-      memcpy(&alp_start[calmode],alp,sizeof(alp_t));
-      mode_init[calmode]=1;
-    }
     //Check counters
-    if(countA[calmode] >= 0 && countA[calmode] < (2*LOWFS_N_ZERNIKE*ncalim)){
+    if(sm_p->alpcal.countA[calmode] >= 0 && sm_p->alpcal.countA[calmode] < (2*LOWFS_N_ZERNIKE*ncalim)){
       //set all Zernikes to zero
       for(i=0;i<LOWFS_N_ZERNIKE;i++)
 	alp->zcmd[i] = 0.0;
 
       //set all ALP actuators to starting position
       for(i=0;i<ALP_NACT;i++)
-	alp->acmd[i]=alp_start[calmode].acmd[i];
+	alp->acmd[i]=sm_p->alpcal.alp_start[calmode].acmd[i];
 
       //set step counter
-      *step = (countA[calmode]/ncalim);
+      *step = (sm_p->alpcal.countA[calmode]/ncalim);
 
       //poke one zernike by adding it on top of the starting position
-      if((countA[calmode]/ncalim) % 2 == 1){
-	z = (countB[calmode]/ncalim) % LOWFS_N_ZERNIKE;
+      if((sm_p->alpcal.countA[calmode]/ncalim) % 2 == 1){
+	z = (sm_p->alpcal.countB[calmode]/ncalim) % LOWFS_N_ZERNIKE;
 	alp->zcmd[z] = zpoke[z];
 	alp_zern2alp(alp->zcmd,act,FUNCTION_NO_RESET);
 	for(i=0; i<ALP_NACT; i++)
 	  alp->acmd[i] += act[i];
-	countB[calmode]++;
+	sm_p->alpcal.countB[calmode]++;
       }
-      countA[calmode]++;
     }else{
       //Set alp back to starting position
-      memcpy(alp,&alp_start[calmode],sizeof(alp_t));
+      memcpy(alp,&sm_p->alpcal.alp_start[calmode],sizeof(alp_t));
       mode_init[calmode]=0;
       //Turn off calibration
       printf("ALP: Stopping calmode ALP_CALMODE_ZPOKE\n");
       calmode = ALP_CALMODE_NONE;
-      quick_init = 0;
+      init = 0;
     }
+
+    //Increment counter
+    sm_p->alpcal.countA[calmode]++;
+    
+    //Return calmode
     return calmode;
   }
 
   /* ALP_CALMODE_RAMP: Scan through acuators ramping one at a time.    */
   /*                   Set to starting position in between each ramp. */
   if(calmode == ALP_CALMODE_RAMP){
-    //Save alp starting position
-    if(!mode_init[calmode]){
-      memcpy(&alp_start[calmode],alp,sizeof(alp_t));
-      mode_init[calmode]=1;
-    }
     //Check counters
-    if(countA[calmode] >= 0 && countA[calmode] < (2*ALP_NACT*ncalim)){
+    if(sm_p->alpcal.countA[calmode] >= 0 && sm_p->alpcal.countA[calmode] < (2*ALP_NACT*ncalim)){
       //set all ALP actuators to starting position -- only the first interation
-      if((countB[calmode] % ncalim) == 0)
+      if((sm_p->alpcal.countB[calmode] % ncalim) == 0)
 	for(i=0;i<ALP_NACT;i++)
-	  alp->acmd[i]=alp_start[calmode].acmd[i];
+	  alp->acmd[i]=sm_p->alpcal.alp_start[calmode].acmd[i];
 
       //set step counter
-      *step = (countA[calmode]/ncalim);
+      *step = (sm_p->alpcal.countA[calmode]/ncalim);
 
       //ramp one actuator
-      if((countA[calmode]/ncalim) % 2 == 1){
-	alp->acmd[(countB[calmode]/ncalim) % ALP_NACT] += 5*poke/ncalim;
-	countB[calmode]++;
+      if((sm_p->alpcal.countA[calmode]/ncalim) % 2 == 1){
+	alp->acmd[(sm_p->alpcal.countB[calmode]/ncalim) % ALP_NACT] += 5*poke/ncalim;
+	sm_p->alpcal.countB[calmode]++;
       }
-      countA[calmode]++;
     }else{
       //Set alp back to starting position
-      memcpy(alp,&alp_start[calmode],sizeof(alp_t));
+      memcpy(alp,&sm_p->alpcal.alp_start[calmode],sizeof(alp_t));
       mode_init[calmode]=0;
       //Turn off calibration
       printf("ALP: Stopping ALP calmode ALP_CALMODE_RAMP\n");
       calmode = ALP_CALMODE_NONE;
-      quick_init = 0;
+      init = 0;
     }
-    return calmode;
 
+    //Increment counter
+    sm_p->alpcal.countA[calmode]++;
+    
+    //Return calmode
+    return calmode;
   }
 
   /* ALP_CALMODE_ZRAMP: Ramp Zernikes one at a time                    */
   /*                    Set to starting position in between each ramp. */
   if(calmode == ALP_CALMODE_ZRAMP){
-    //Save alp starting position
-    if(!mode_init[calmode]){
-      memcpy(&alp_start[calmode],alp,sizeof(alp_t));
-      mode_init[calmode]=1;
-    }
     //Check counters
-    if(countA[calmode] >= 0 && countA[calmode] < (2*LOWFS_N_ZERNIKE*ncalim)){
+    if(sm_p->alpcal.countA[calmode] >= 0 && sm_p->alpcal.countA[calmode] < (2*LOWFS_N_ZERNIKE*ncalim)){
       //set all Zernikes to zero -- only the first interation
-      if((countB[calmode] % ncalim) == 0)
+      if((sm_p->alpcal.countB[calmode] % ncalim) == 0)
 	for(i=0;i<LOWFS_N_ZERNIKE;i++)
 	  alp->zcmd[i] = 0.0;
 
       //set all ALP actuators to starting position
       for(i=0;i<ALP_NACT;i++)
-	alp->acmd[i]=alp_start[calmode].acmd[i];
+	alp->acmd[i]=sm_p->alpcal.alp_start[calmode].acmd[i];
 
       //set step counter
-      *step = (countA[calmode]/ncalim);
+      *step = (sm_p->alpcal.countA[calmode]/ncalim);
 
       //ramp one zernike by adding it on top of the starting position
-      if((countA[calmode]/ncalim) % 2 == 1){
-	z = (countB[calmode]/ncalim) % LOWFS_N_ZERNIKE;
+      if((sm_p->alpcal.countA[calmode]/ncalim) % 2 == 1){
+	z = (sm_p->alpcal.countB[calmode]/ncalim) % LOWFS_N_ZERNIKE;
 	alp->zcmd[z] += zpoke[z]/ncalim;
 	alp_zern2alp(alp->zcmd,act,FUNCTION_NO_RESET);
 	for(i=0; i<ALP_NACT; i++)
 	  alp->acmd[i] += act[i];
-	countB[calmode]++;
+	sm_p->alpcal.countB[calmode]++;
       }
-      countA[calmode]++;
     }else{
       //Set alp back to starting position
-      memcpy(alp,&alp_start[calmode],sizeof(alp_t));
+      memcpy(alp,&sm_p->alpcal.alp_start[calmode],sizeof(alp_t));
       mode_init[calmode]=0;
       //Turn off calibration
       printf("ALP: Stopping calmode ALP_CALMODE_ZRAMP\n");
       calmode = ALP_CALMODE_NONE;
-      quick_init = 0;
+      init = 0;
     }
+ 
+    //Increment counter
+    sm_p->alpcal.countA[calmode]++;
+
+    //Return calmode
     return calmode;
   }
   
   /* ALP_CALMODE_RAND: Poke all actuators by a random amount           */
   if(calmode == ALP_CALMODE_RAND){
-    //Save alp starting position
-    if(!mode_init[calmode]){
-      memcpy(&alp_start[calmode],alp,sizeof(alp_t));
-      mode_init[calmode]=1;
-    }
-    
     //Set step counter
-    *step = (countA[calmode]/ncalim);
+    *step = (sm_p->alpcal.countA[calmode]/ncalim);
     
     //Check counters
-    if(countA[calmode] >= 0 && countA[calmode] < (2*ncalim)){
+    if(sm_p->alpcal.countA[calmode] >= 0 && sm_p->alpcal.countA[calmode] < (2*ncalim)){
       //Poke all actuators by random amount (just once)
-      if(countA[calmode] == ncalim){
+      if(sm_p->alpcal.countA[calmode] == ncalim){
 	for(i=0; i<ALP_NACT; i++)
-	  alp->acmd[i] = alp_start[calmode].acmd[i] + poke * arand[i];
+	  alp->acmd[i] = sm_p->alpcal.alp_start[calmode].acmd[i] + poke * arand[i];
       }
-      countA[calmode]++;
     }else{
       //Set alp back to starting position
-      memcpy(alp,&alp_start[calmode],sizeof(alp_t));
+      memcpy(alp,&sm_p->alpcal.alp_start[calmode],sizeof(alp_t));
       mode_init[calmode]=0;
       //Turn off calibration
       printf("ALP: Stopping calmode ALP_CALMODE_RAND\n");
       calmode = ALP_CALMODE_NONE;
-      quick_init = 0;
+      init = 0;
     }
+
+    //Increment counter
+    sm_p->alpcal.countA[calmode]++;
+
+    //Return calmode
     return calmode;
   }
 
   /* ALP_CALMODE_ZRAND: Poke all zernikes by a random amount           */
   if(calmode == ALP_CALMODE_ZRAND){
-    //Save alp starting position
-    if(!mode_init[calmode]){
-      memcpy(&alp_start[calmode],alp,sizeof(alp_t));
-      mode_init[calmode]=1;
-    }
-    
     //Check counters
-    if(countA[calmode] >= 0 && countA[calmode] < (2*ncalim)){
+    if(sm_p->alpcal.countA[calmode] >= 0 && sm_p->alpcal.countA[calmode] < (2*ncalim)){
       //Set step counter
-      *step = (countA[calmode]/ncalim);
+      *step = (sm_p->alpcal.countA[calmode]/ncalim);
       //Set all Zernikes to zero
       for(i=0;i<LOWFS_N_ZERNIKE;i++)
 	alp->zcmd[i] = 0.0;
       //Poke all zernikes by random amount (just once)
-      if(countA[calmode] >= ncalim){
+      if(sm_p->alpcal.countA[calmode] >= ncalim){
 	for(i=0; i<LOWFS_N_ZERNIKE; i++)
 	  alp->zcmd[i] = zpoke[i]*zrand[i];
 	alp_zern2alp(alp->zcmd,act,FUNCTION_NO_RESET);
 	for(i=0; i<ALP_NACT; i++)
-	  alp->acmd[i] = alp_start[calmode].acmd[i]+act[i];
+	  alp->acmd[i] = sm_p->alpcal.alp_start[calmode].acmd[i]+act[i];
       }
-      countA[calmode]++;
     }else{
       //Set alp back to starting position
-      memcpy(alp,&alp_start[calmode],sizeof(alp_t));
+      memcpy(alp,&sm_p->alpcal.alp_start[calmode],sizeof(alp_t));
       mode_init[calmode]=0;
       //Turn off calibration
       printf("ALP: Stopping calmode ALP_CALMODE_ZRAND\n");
       calmode = ALP_CALMODE_NONE;
-      quick_init = 0;
+      init = 0;
     }
+
+    //Increment counter
+    sm_p->alpcal.countA[calmode]++;
+
+    //Return calmode
     return calmode;
   }
 
   /* ALP_CALMODE_FLIGHT: Flight Simulator */
   if(calmode == ALP_CALMODE_FLIGHT){
-    //Save alp starting position
-    if(!mode_init[calmode]){
-      memcpy(&alp_start[calmode],alp,sizeof(alp_t));
-      mode_init[calmode]=1;
-    }
     //Setup counters
-    if(countA[calmode] == 0)
+    if(sm_p->alpcal.countA[calmode] == 0)
       dt0 = dt;
     //Set step counter
-    *step = countA[calmode];
+    *step = sm_p->alpcal.countA[calmode];
     //Set data index
     index = (uint64_t)((dt-dt0)/zernike_timestep);
     if(index < ZERNIKE_ERRORS_NUMBER-1){
@@ -797,10 +791,10 @@ int alp_calibrate(int calmode, alp_t *alp, uint32_t *step, int procid, int reset
       for(i=0;i<LOWFS_N_ZERNIKE;i++){
 	this_zernike[i] = (1-step_fraction)*zernike_errors[i][index] + step_fraction*zernike_errors[i][index+1];
 	//Convert from [Microns RMS Wavefront] to [Microns RMS Surface]
-	dz[i] = 0.5*(this_zernike[i] - last_zernike[i]);
+	dz[i] = 0.5*(this_zernike[i] - sm_p->alpcal.last_zernike[i]);
       }
       //Wait for the 2nd iteration to move the mirror to prevent large deltas
-      if(countA[calmode] > 0){
+      if(sm_p->alpcal.countA[calmode] > 0){
 	//Add zernike deltas to ALP command
 	for(i=0;i<LOWFS_N_ZERNIKE;i++)
 	  alp->zcmd[i] += dz[i];
@@ -811,20 +805,21 @@ int alp_calibrate(int calmode, alp_t *alp, uint32_t *step, int procid, int reset
 	  alp->acmd[i] += act[i];
       }
       //Save zernikes
-      memcpy(last_zernike,this_zernike,sizeof(last_zernike));
-      //Increment counter
-      countA[calmode]++;
+      memcpy(sm_p->alpcal.last_zernike,this_zernike,sizeof(sm_p->alpcal.last_zernike));
     }else{
       //Set alp back to starting position
-      memcpy(alp,&alp_start[calmode],sizeof(alp_t));
+      memcpy(alp,&sm_p->alpcal.alp_start[calmode],sizeof(alp_t));
       mode_init[calmode]=0;
       //Turn off calibration
       printf("ALP: Stopping ALP calmode ALP_CALMODE_FLIGHT\n");
       calmode = ALP_CALMODE_NONE;
-      quick_init = 0;
-      return calmode;
+      init = 0;
     }
   }
+
+  //Increment counter
+  sm_p->alpcal.countA[calmode]++;
+
   //Return calmode
   return calmode;
 }

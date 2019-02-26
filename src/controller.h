@@ -620,7 +620,7 @@ typedef struct procinfo_struct{
 } procinfo_t;
 
 /*************************************************
- * Calmode Structure
+ * Calmode Structures
  *************************************************/
 typedef struct calmode_struct{
   char   name[MAX_COMMAND];
@@ -633,6 +633,17 @@ typedef struct calmode_struct{
   double lyt_poke;
   double lyt_zpoke[LOWFS_N_ZERNIKE];
 } calmode_t;
+
+typedef struct alpcal_struct{
+  uint64 countA[ALP_NCALMODES];
+  uint64 countB[ALP_NCALMODES];
+  alp_t  alp_start[ALP_NCALMODES];
+  struct timespec start[ALP_NCALMODES];
+  double last_zernike[LOWFS_N_ZERNIKE];
+  double zernike_errors[LOWFS_N_ZERNIKE][ZERNIKE_ERRORS_NUMBER];
+  double multiplier;
+  double time_length;
+} alpcal_t;
 
 /*************************************************
  * State Control Structures
@@ -1000,6 +1011,9 @@ typedef volatile struct {
   int hex_calmode;
   int bmc_calmode;
   int tgt_calmode;
+
+  //ALP Calibration Structure
+  alpcal_t alpcal;
 
   //Calibration file name
   char calfile[MAX_FILENAME];

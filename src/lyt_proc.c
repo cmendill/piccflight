@@ -18,7 +18,6 @@
 #include "common_functions.h"
 #include "phx_config.h"
 #include "../drivers/phxdrv/picc_dio.h"
-#include "alp_functions.h"
 
 /* LYT board number */
 #define LYT_BOARD_NUMBER PHX_BOARD_NUMBER_2
@@ -102,8 +101,6 @@ int lyt_proc(void){
   ui64 dwParamValue;
   etParamValue roiWidth, roiHeight, bufferWidth, bufferHeight;
   int camera_running = 0;
-  alp_t alp;     //dummy to init alp_calibrate
-  uint32_t step; //dummy to init alp_calibrate
   
   /* Open Shared Memory */
   sm_t *sm_p;
@@ -114,9 +111,6 @@ int lyt_proc(void){
 
   /* Set soft interrupt handler */
   sigset(SIGINT, lytctrlC);	/* usually ^C */
-
-  /* Init alp_calibrate */
-  alp_calibrate(ALP_CALMODE_NONE,&alp,&step,LYTID,FUNCTION_NO_RESET);
 
   /* Set up context for callback */
   memset( &lytContext, 0, sizeof( tContext ) );
