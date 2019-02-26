@@ -1,4 +1,4 @@
 #!/bin/bash
 
 #get generated settings files
-rsync -avz --update picture@picture:piccflight/bin/output/settings/* bin/output/settings/
+rsync -acvz --update picture@picture:piccflight/bin/output/settings/* bin/output/settings/
