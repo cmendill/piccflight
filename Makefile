@@ -7,9 +7,9 @@ MKLOPTS = -I$(MKL_INCLUDE_DIR)
 #COMPILER OPTIONS
 CC = gcc
 
-INCLUDE_FLAGS = -Ilib/libfli -Ilib/libphx/include -Ilib/librtd/include -Ilib/libhex/include -Ilib/libuvc/build/include -Ilib/libdsc
+INCLUDE_FLAGS = -Ilib/libfli -Ilib/libbmc -Ilib/libphx/include -Ilib/librtd/include -Ilib/libhex/include -Ilib/libuvc/build/include -Ilib/libdsc
 CFLAGS = -Wall -Wno-unused -O6 -m64 -D_PHX_LINUX $(MKLOPTS) $(INCLUDE_FLAGS) 
-LFLAGS = -L/usr/local/lib -Llib/libhex -Llib/libphx -Llib/librtd -Llib/libfli -Llib/libuvc/build -Llib/libdsc -lphx -lpfw -lpbu -lfli -lm -lpthread -lrt -lrtd-dm7820 -lpi_pi_gcs2 -luvc -lusb-1.0 -ldscud-7.0.0_64 $(MKLLINKLINE) -Wl,-rpath $(shell pwd)/lib/libhex -Wl,-rpath $(shell pwd)/lib/libuvc/build
+LFLAGS = -L/usr/local/lib -Llib/libhex -Llib/libphx -Llib/librtd -Llib/libbmc -Llib/libfli -Llib/libuvc/build -Llib/libdsc -lphx -lpfw -lpbu -lfli -lbmc -lm -lpthread -lrt -lrtd-dm7820 -lpi_pi_gcs2 -luvc -lusb-1.0 -ldscud-7.0.0_64 $(MKLLINKLINE) -Wl,-rpath $(shell pwd)/lib/libhex -Wl,-rpath $(shell pwd)/lib/libuvc/build
 
 #DEPENDANCIES
 COMDEP  = Makefile $(wildcard ./src/*.h) drivers/phxdrv/picc_dio.h
@@ -30,12 +30,14 @@ $(TARGET)watchdog: $(OBJECT)
 	$(CC) $(CFLAGS) -o $@ -c $<
 
 #LIBRARIES
-libs: libfli librtd libuvc
+libs: libfli librtd libbmc libuvc
 
 libfli:
 	make -C lib/libfli
 librtd:
 	make -C lib/librtd
+libbmc:
+	make -C lib/libbmc
 libuvc:
 	cd lib/libuvc/build && cmake ../ && make
 	cp lib/libuvc/include/libuvc/libuvc.h lib/libuvc/build/include/

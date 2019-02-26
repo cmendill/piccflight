@@ -18,3 +18,4 @@ lib/libfli/*.a
 lib/libnum/*.a
 lib/libalp/*.a
 lib/librtd/*.a
+lib/libbmc/*.a
