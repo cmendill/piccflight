@@ -620,32 +620,6 @@ typedef struct procinfo_struct{
 } procinfo_t;
 
 /*************************************************
- * Calmode Structures
- *************************************************/
-typedef struct calmode_struct{
-  char   name[MAX_COMMAND];
-  char   cmd[MAX_COMMAND];
-  int    shk_boxsize_cmd;
-  int    shk_ncalim;
-  int    lyt_ncalim;
-  double shk_poke;
-  double shk_zpoke[LOWFS_N_ZERNIKE];
-  double lyt_poke;
-  double lyt_zpoke[LOWFS_N_ZERNIKE];
-} calmode_t;
-
-typedef struct alpcal_struct{
-  uint64 countA[ALP_NCALMODES];
-  uint64 countB[ALP_NCALMODES];
-  alp_t  alp_start[ALP_NCALMODES];
-  struct timespec start[ALP_NCALMODES];
-  double last_zernike[LOWFS_N_ZERNIKE];
-  double zernike_errors[LOWFS_N_ZERNIKE][ZERNIKE_ERRORS_NUMBER];
-  double multiplier;
-  double time_length;
-} alpcal_t;
-
-/*************************************************
  * State Control Structures
  *************************************************/
 // Shack-Hartmann Control (shk_proc.c)
@@ -765,6 +739,32 @@ typedef struct hum_struct{
   float humidity;
   float temp;
 } hum_t; 
+
+/*************************************************
+ * Calmode Structures
+ *************************************************/
+typedef struct calmode_struct{
+  char   name[MAX_COMMAND];
+  char   cmd[MAX_COMMAND];
+  int    shk_boxsize_cmd;
+  int    shk_ncalim;
+  int    lyt_ncalim;
+  double shk_poke;
+  double shk_zpoke[LOWFS_N_ZERNIKE];
+  double lyt_poke;
+  double lyt_zpoke[LOWFS_N_ZERNIKE];
+} calmode_t;
+
+typedef struct alpcal_struct{
+  uint64 countA[ALP_NCALMODES];
+  uint64 countB[ALP_NCALMODES];
+  alp_t  alp_start[ALP_NCALMODES];
+  struct timespec start[ALP_NCALMODES];
+  double last_zernike[LOWFS_N_ZERNIKE];
+  double zernike_errors[LOWFS_N_ZERNIKE][ZERNIKE_ERRORS_NUMBER];
+  double multiplier;
+  double time_length;
+} alpcal_t;
 
 /*************************************************
  * Packet Header

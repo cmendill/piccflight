@@ -871,7 +871,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p){
     //Reset zern2alp mapping
     alp_zern2alp(NULL,NULL,FUNCTION_RESET);
     //Reset calibration routines
-    alp_calibrate(0,NULL,NULL,SHKID,FUNCTION_RESET);
+    alp_calibrate(sm_p,0,NULL,NULL,SHKID,FUNCTION_RESET);
     hex_calibrate(0,NULL,NULL,SHKID,FUNCTION_RESET);
     tgt_calibrate(0,NULL,NULL,SHKID,FUNCTION_RESET);
     //Reset PID controllers
@@ -1136,7 +1136,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p){
 
     //Calibrate ALP
     if(shkevent.hed.alp_calmode != ALP_CALMODE_NONE)
-      sm_p->alp_calmode = alp_calibrate(shkevent.hed.alp_calmode,&alp_try,&shkevent.hed.alp_calstep,SHKID,FUNCTION_NO_RESET);
+      sm_p->alp_calmode = alp_calibrate(sm_p,shkevent.hed.alp_calmode,&alp_try,&shkevent.hed.alp_calstep,SHKID,FUNCTION_NO_RESET);
     
     //Send command to ALP
     if(alp_send_command(sm_p,&alp_try,SHKID,n_dither)){
