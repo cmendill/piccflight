@@ -86,6 +86,7 @@ void alp_init_calmode(int calmode, calmode_t *alp){
       alp->shk_zpoke[i]  = shk_zramp[i];
       alp->lyt_zpoke[i]  = lyt_zramp[i];
     }
+    alp->shk_ncalim = 100;
   }
   //ALP_CALMODE_RAND
   if(calmode == ALP_CALMODE_RAND){
@@ -459,8 +460,7 @@ void alp_init_calibration(sm_t *sm_p){
   fclose(fd);
 
   /* Initialize other elements */
-  sm_p->alpcal.time_length = CALMODE_TIMER_SEC;
-  sm_p->alpcal.multiplier  = 1;
+  sm_p->alpcal.timer_length = CALMODE_TIMER_SEC;
   
   
 }
@@ -541,7 +541,7 @@ int alp_calibrate(sm_t *sm_p, int calmode, alp_t *alp, uint32_t *step, int proci
       printf("ALP: alp_calibrate --> timespec_subtract error!\n");
     ts2double(&delta,&dt);
     
-    if(dt > sm_p->alpcal.time_length){
+    if(dt > sm_p->alpcal.timer_length){
       //Turn off calibration
       printf("ALP: Stopping ALP calmode ALP_CALMODE_TIMER\n");
       calmode = ALP_CALMODE_NONE;
@@ -684,7 +684,9 @@ int alp_calibrate(sm_t *sm_p, int calmode, alp_t *alp, uint32_t *step, int proci
       //Ramp one zernike by adding it on top of the starting position
       if((sm_p->alpcal.countA[calmode]/ncalim) % 2 == 1){
 	z = (sm_p->alpcal.countB[calmode]/ncalim) % LOWFS_N_ZERNIKE;
-	alp->zcmd[z] += zpoke[z]/ncalim;
+	//Set starting position as negative full ramp amplitude
+	if(sm_p->alpcal.countB[calmode] % ncalim == 0) alp->zcmd[z] = -zpoke[z];
+	alp->zcmd[z] += 2*zpoke[z]/ncalim;
 	alp_zern2alp(alp->zcmd,act,FUNCTION_NO_RESET);
 	for(i=0; i<ALP_NACT; i++)
 	  alp->acmd[i] += act[i];
@@ -779,7 +781,7 @@ int alp_calibrate(sm_t *sm_p, int calmode, alp_t *alp, uint32_t *step, int proci
     ts2double(&delta,&dt);
     //Set data index
     index = (uint64_t)(dt/zernike_timestep);
-    if((index < ZERNIKE_ERRORS_NUMBER-1) && (dt <= sm_p->alpcal.time_length)){
+    if((index < ZERNIKE_ERRORS_NUMBER-1) && (dt <= sm_p->alpcal.timer_length)){
       //Interpolate between steps, calc zernike deltas
       step_fraction = fmod(dt,zernike_timestep)/zernike_timestep;
       for(i=0;i<LOWFS_N_ZERNIKE;i++){

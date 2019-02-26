@@ -425,7 +425,7 @@ int handle_command(char *line, sm_t *sm_p){
     
     return(CMD_NORMAL);
   }
-  
+    
   //HEX Calmodes
   sprintf(cmd,"hex calmode");
   if(!strncasecmp(line,cmd,strlen(cmd))){
@@ -477,6 +477,23 @@ int handle_command(char *line, sm_t *sm_p){
     return(CMD_NORMAL);
   }
 
+  /****************************************
+   * CALIBRATION MODES
+   ***************************************/
+
+  //ALP timer length
+  sprintf(cmd,"alp timer length");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    ftemp = atof(line+strlen(cmd)+1);
+    if(ftemp > 0 && ftemp <= CALMODE_TIMER_MAX){
+      sm_p->alpcal.timer_length = ftemp;
+      printf("CMD: Changed ALP calibration timer length to %f seconds\n",sm_p->alpcal.timer_length);
+    }else{
+      printf("CMD: ALP calibration timer out of bounds [%d,%d]\n",0,CALMODE_TIMER_MAX);
+    }
+    return(CMD_NORMAL);
+  }
+  
   /****************************************
    * STATES
    ***************************************/

@@ -280,9 +280,9 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
  * Zernike Errors
  *************************************************/
 #define ZERNIKE_ERRORS_FILE   "config/zernike_errors.dat"
-#define ZERNIKE_ERRORS_NUMBER 15000
+#define ZERNIKE_ERRORS_NUMBER 150000
 #define ZERNIKE_ERRORS_PERIOD 0.00200000
-#define ZERNIKE_ERRORS_LENGTH 30
+#define ZERNIKE_ERRORS_LENGTH 300
 
 /*************************************************
  * Camera Settings -- Keep sizes divisible by 4 (packets)
@@ -454,9 +454,9 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 #define ALP_DMAX              0x3FFF
 #define ALP_DMIN              0x0000
 #define ALP_DMID              0x2000
-#define ALP_MAX_POWER         10
-#define ALP_MAX_BIAS          0.32108065 //sqrt(max_power/97)
-#define ALP_MIN_BIAS         -0.32108065 //sqrt(max_power/97)
+#define ALP_MAX_POWER         40
+#define ALP_MAX_BIAS          0.642161299 //sqrt(max_power/97)
+#define ALP_MIN_BIAS         -0.642161299 //sqrt(max_power/97)
 #define ALP_N_CHANNEL         128 // data size for the ALPAO DM controller
 #define ALP_HEADER_LENGTH     2   // leading uint16_ts for the header
 #define ALP_CHECKSUM_LENGTH   1   // trailing uint16_t for the checksum
@@ -592,7 +592,8 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 /*************************************************
  * Other Parameters
  *************************************************/
-#define CALMODE_TIMER_SEC       30 //length of calmode_timer
+#define CALMODE_TIMER_SEC       30 //default length of calmode_timer
+#define CALMODE_TIMER_MAX      300 //max length of calmode_timer
 #define CPU_AFFINITY_PHX0        1 //cpu bit mask
 #define CPU_AFFINITY_PHX1        2 //cpu bit mask
 #define CPU_AFFINITY_XHCI_HCD    1 //cpu bit mask
@@ -762,8 +763,7 @@ typedef struct alpcal_struct{
   struct timespec start[ALP_NCALMODES];
   double last_zernike[LOWFS_N_ZERNIKE];
   double zernike_errors[LOWFS_N_ZERNIKE][ZERNIKE_ERRORS_NUMBER];
-  double multiplier;
-  double time_length;
+  double timer_length;
 } alpcal_t;
 
 /*************************************************
