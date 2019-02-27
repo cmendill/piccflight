@@ -311,7 +311,6 @@ int main(int argc,char **argv){
 
   /* Set Runtime Defaults */
   /* All shmem numbers are ZERO unless defined here */
-  sm_p->memlock            = 0;
   sm_p->die                = 0;
   sm_p->state              = STATE_STANDBY;
   sm_p->sci_exptime        = SCI_EXPTIME_DEFAULT;

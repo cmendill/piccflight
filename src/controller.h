@@ -167,16 +167,6 @@ enum bmccalmodes {BMC_CALMODE_NONE,
 #define ACTUATOR_MTR 7
 
 /*************************************************
- * LOWFS Status
- *************************************************/
-#define LOWFS_NOT_LOCKED  0
-#define LOWFS_LOCKED      1
-#define LOWFS_NO_DATA     2
-#define LOWFS_OVERRIDE    3
-#define LOWFS_OFF         4
-#define LOWFS_FAKE        5
-
-/*************************************************
  * Files
  *************************************************/
 #define DARKFILE_SCI           "config/darkframe.sci.%3.3d.%3.3d.%2.2dC.dat"
@@ -964,7 +954,6 @@ typedef struct circbuf_struct{
 typedef volatile struct {
 
   //Runtime switches
-  int memlock;        //Shared memory locking bit
   int die;            //Kill all processes
 
   //Process information
