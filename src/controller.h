@@ -586,10 +586,11 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 /*************************************************
  * Humidity Sensors
  *************************************************/
+#define HUM_DEVICE       "/dev/i2c-5"
 #define HUM_NSENSORS     3
 #define HUM1_ADDR        0x40
 #define HUM2_ADDR        0x41
-#define HUM3_ADDR        0x42
+#define HUM3_ADDR        0x43
 
 /*************************************************
  * Other Parameters

@@ -6,6 +6,7 @@ data.sh
 .gitignore
 *~
 *.o
+*.a
 *.ko
 bin/watchdog
 bin/output/calibration
@@ -13,9 +14,3 @@ bin/output/flight_data
 lib/libuvc/build/*
 lib/libuvc/CMakeFiles
 doc
-test/*/bin
-lib/libfli/*.a
-lib/libnum/*.a
-lib/libalp/*.a
-lib/librtd/*.a
-lib/libbmc/*.a

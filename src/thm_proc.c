@@ -16,6 +16,7 @@
 #include "common_functions.h"
 #include "dscud.h"
 #include "../drivers/phxdrv/picc_dio.h"
+#include <libhdc.h>
 
 /* settings */
 #define MAX_AD_OFFSET  2
@@ -36,8 +37,9 @@
 #define RTD_ALPHA       0.00385 //ohms/ohms/degC
 #define RTD_OHMS        100.0   //ohms
 
-/* Process File Descriptor */
+/* Process File Descriptors */
 int thm_shmfd;
+int thm_humfd;
 
 /* CTRL-C Function */
 void thmctrlC(int sig)
@@ -45,6 +47,9 @@ void thmctrlC(int sig)
   //turn off all heaters
   outb(0xFF,SSR_BASE+0);
   outb(0xFF,SSR_BASE+4);
+  //cleanup humidity sensors
+  hdc_cleanup(thm_humfd);
+  //close shared memory
   close(thm_shmfd);
 #if MSG_CTRLC
   printf("THM: exiting\n");
@@ -68,6 +73,10 @@ void thm_proc(void){
   int i, j, k, iavg;
   static int pulse_index[HTR_NSTEPS];
   int htr_pulse[SSR_NCHAN][HTR_NSTEPS];
+
+  //Humidity sensors
+  hdc_config config;
+  hdc_device_t hum[HUM_NSENSORS] = {HUM1_ADDR,HUM2_ADDR,HUM3_ADDR};
   
   //DSCUD Variables
   BYTE result;                    // returned error code
@@ -102,7 +111,18 @@ void thm_proc(void){
 
   /* Set soft interrupt handler */
   sigset(SIGINT, thmctrlC);	/* usually ^C */
- 
+
+  /* Init humidity sensors */
+  if((thm_humfd=hdc_open(HUM_DEVICE)) >= 0){
+    for(i=0;i<HUM_NSENSORS;i++){
+      hdc_init(thm_humfd, &hum[i]);
+      hdc_write_config(thm_humfd, &hum[i], &config);
+      if(THM_DEBUG) hdc_get_info(thm_humfd, &hum[i]);
+    }
+  }else{
+    printf("THM: hdc_open failed\n");
+  }
+  
   /* Define structures containing board settings */
   DSCCB dsccb1 = {
     .base_address = ADC1_BASE,
@@ -383,6 +403,14 @@ void thm_proc(void){
 	resistance = (voltage * ADC3_R1) / (ADC3_VREF - voltage);
 	if(iavg == 0) thmevent.adc3_temp[i] = 0; //reset temp to zero for averaging
 	thmevent.adc3_temp[i] += ((resistance - RTD_OHMS)/(RTD_ALPHA * RTD_OHMS)) / ADC_NAVG;
+      }
+    }
+
+    /* Read humidity sensors */
+    if(thm_humfd >= 0){
+      for(i=0;i<HUM_NSENSORS;i++){
+	hdc_get_t(thm_humfd, &hum[i], &thmevent.hum[i].temp);
+	hdc_get_rh(thm_humfd, &hum[i], &thmevent.hum[i].humidity);
       }
     }
     
