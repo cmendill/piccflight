@@ -328,6 +328,8 @@ int main(int argc,char **argv){
   sm_p->alp_proc_id        = -1;
   sm_p->lyt_xorigin        = LYT_XORIGIN_DEFAULT;
   sm_p->lyt_yorigin        = LYT_YORIGIN_DEFAULT;
+  sm_p->sci_tec_enable     = 0;
+  sm_p->sci_tec_setpoint   = SCI_TEC_SETPOINT_MAX;
   
   //Enable control of all zernikes by default
   for(i=0;i<LOWFS_N_ZERNIKE;i++){

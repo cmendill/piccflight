@@ -294,7 +294,7 @@ int handle_command(char *line, sm_t *sm_p){
     if(i >= PROC_TIMEOUT){
       printf("CMD: -- timeout!\n");
     }
-    printf("Flight data erased.\n");
+    printf("Flight data erased\n");
     return(CMD_NORMAL);
   }
 
@@ -320,7 +320,7 @@ int handle_command(char *line, sm_t *sm_p){
     if(i >= PROC_TIMEOUT){
       printf("CMD: -- timeout!\n");
     }
-    printf("Calibration data erased.\n");
+    printf("Calibration data erased\n");
     return(CMD_NORMAL);
   }
 
@@ -487,7 +487,7 @@ int handle_command(char *line, sm_t *sm_p){
     ftemp = atof(line+strlen(cmd)+1);
     if(ftemp > 0 && ftemp <= CALMODE_TIMER_MAX){
       sm_p->alpcal.timer_length = ftemp;
-      printf("CMD: Changed ALP calibration timer length to %f seconds\n",sm_p->alpcal.timer_length);
+      printf("CMD: Changed ALP calibration timer length to %.1f seconds\n",sm_p->alpcal.timer_length);
     }else{
       printf("CMD: ALP calibration timer out of bounds [%d,%d]\n",0,CALMODE_TIMER_MAX);
     }
@@ -721,7 +721,7 @@ int handle_command(char *line, sm_t *sm_p){
 	  hex_axis = HEX_AXIS_W;
 	  goto move_hex;
 	}
-	printf("CMD: Bad hex move command.\n");
+	printf("CMD: Bad hex move command\n");
 	return(CMD_NORMAL);
       move_hex:
 	printf("CMD: Moving hexapod axis %s by %f %s\n",hex_str_axes[hex_axis],hex_poke,hex_str_unit[hex_axis]);
@@ -734,7 +734,7 @@ int handle_command(char *line, sm_t *sm_p){
 
     }
     else{
-      printf("CMD: Manual hexapod control disabled in this state.\n");
+      printf("CMD: Manual hexapod control disabled in this state\n");
       return(CMD_NORMAL);
     }
   }
@@ -758,7 +758,7 @@ int handle_command(char *line, sm_t *sm_p){
 	printf("CMD: ALP bias must be between %f and %f \n",ALP_MIN_BIAS,ALP_MAX_BIAS);
     }
     else
-      printf("CMD: Manual ALPAO DM control disabled in this state.\n");
+      printf("CMD: Manual ALPAO DM control disabled in this state\n");
     return(CMD_NORMAL);
   }
 
@@ -772,7 +772,7 @@ int handle_command(char *line, sm_t *sm_p){
 	  printf("CMD: ERROR: alp_revert_flat failed!\n");
     }
     else
-      printf("CMD: Manual ALPAO DM control disabled in this state.\n");
+      printf("CMD: Manual ALPAO DM control disabled in this state\n");
     return(CMD_NORMAL);
   }
   
@@ -786,7 +786,7 @@ int handle_command(char *line, sm_t *sm_p){
 	  printf("CMD: ERROR: alp_revert_flat failed!\n");
     }
     else
-      printf("CMD: Manual ALPAO DM control disabled in this state.\n");
+      printf("CMD: Manual ALPAO DM control disabled in this state\n");
     return(CMD_NORMAL);
   }
 
@@ -800,7 +800,7 @@ int handle_command(char *line, sm_t *sm_p){
 	  printf("CMD: ERROR: alp_save_flat failed!\n");
     }
     else
-      printf("CMD: Manual ALPAO DM control disabled in this state.\n");
+      printf("CMD: Manual ALPAO DM control disabled in this state\n");
     return(CMD_NORMAL);
   }
 
@@ -814,7 +814,7 @@ int handle_command(char *line, sm_t *sm_p){
 	  printf("CMD: ERROR: alp_load_flat failed!\n");
     }
     else
-      printf("CMD: Manual ALPAO DM control disabled in this state.\n");
+      printf("CMD: Manual ALPAO DM control disabled in this state\n");
     return(CMD_NORMAL);
   }
 
@@ -828,7 +828,7 @@ int handle_command(char *line, sm_t *sm_p){
 	  printf("CMD: ERROR: alp_set_random failed!\n");
     }
     else
-      printf("CMD: Manual ALPAO DM control disabled in this state.\n");
+      printf("CMD: Manual ALPAO DM control disabled in this state\n");
     return(CMD_NORMAL);
   }
 
@@ -842,7 +842,7 @@ int handle_command(char *line, sm_t *sm_p){
 	  printf("CMD: ERROR: alp_set_zrandom failed!\n");
     }
     else
-      printf("CMD: Manual ALPAO DM control disabled in this state.\n");
+      printf("CMD: Manual ALPAO DM control disabled in this state\n");
     return(CMD_NORMAL);
   }
 
@@ -859,13 +859,13 @@ int handle_command(char *line, sm_t *sm_p){
     if(sm_p->state_array[sm_p->state].alp_commander == WATID){
       pch = strtok(line+strlen(cmd)," ");
       if(pch == NULL){
-	printf("CMD: Bad command format.\n");
+	printf("CMD: Bad command format\n");
 	return CMD_NORMAL;
       }
       itemp  = atoi(pch);
       pch = strtok(NULL," ");
       if(pch == NULL){
-	printf("CMD: Bad command format.\n");
+	printf("CMD: Bad command format\n");
 	return CMD_NORMAL;
       }
       ftemp  = atof(pch);
@@ -902,7 +902,7 @@ int handle_command(char *line, sm_t *sm_p){
       }
     }
     else
-      printf("CMD: Manual ALPAO DM control disabled in this state.\n");
+      printf("CMD: Manual ALPAO DM control disabled in this state\n");
     return CMD_NORMAL;
   }
 
@@ -912,13 +912,13 @@ int handle_command(char *line, sm_t *sm_p){
     if(sm_p->state_array[sm_p->state].alp_commander == WATID){
       pch = strtok(line+strlen(cmd)," ");
       if(pch == NULL){
-	printf("CMD: Bad command format.\n");
+	printf("CMD: Bad command format\n");
 	return CMD_NORMAL;
       }
       itemp  = atoi(pch);
       pch = strtok(NULL," ");
       if(pch == NULL){
-	printf("CMD: Bad command format.\n");
+	printf("CMD: Bad command format\n");
 	return CMD_NORMAL;
       }
       ftemp  = atof(pch);
@@ -946,7 +946,7 @@ int handle_command(char *line, sm_t *sm_p){
       }
     }
     else
-      printf("CMD: Manual ALPAO DM control disabled in this state.\n");
+      printf("CMD: Manual ALPAO DM control disabled in this state\n");
     return CMD_NORMAL;
   }
   
@@ -1517,13 +1517,13 @@ int handle_command(char *line, sm_t *sm_p){
   if(!strncasecmp(line,cmd,strlen(cmd))){
     pch = strtok(line+strlen(cmd)," ");
     if(pch == NULL){
-      printf("CMD: Bad command format.\n");
+      printf("CMD: Bad command format\n");
       return CMD_NORMAL;
     }
     itemp  = atoi(pch);
     pch = strtok(NULL," ");
     if(pch == NULL){
-      printf("CMD: Bad command format.\n");
+      printf("CMD: Bad command format\n");
       return CMD_NORMAL;
     }
     ftemp  = atof(pch);
@@ -1550,13 +1550,13 @@ int handle_command(char *line, sm_t *sm_p){
   if(!strncasecmp(line,cmd,strlen(cmd))){
     pch = strtok(line+strlen(cmd)," ");
     if(pch == NULL){
-      printf("CMD: Bad command format.\n");
+      printf("CMD: Bad command format\n");
       return CMD_NORMAL;
     }
     itemp  = atoi(pch);
     pch = strtok(NULL," ");
     if(pch == NULL){
-      printf("CMD: Bad command format.\n");
+      printf("CMD: Bad command format\n");
       return CMD_NORMAL;
     }
     ftemp  = atof(pch);
@@ -1775,6 +1775,41 @@ int handle_command(char *line, sm_t *sm_p){
     return(CMD_NORMAL);
   }
 
+  //TEC control
+  sprintf(cmd,"sci tec enable");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    printf("CMD: Enabling SCI TEC\n");
+    printf("CMD: -- WARNING -- Only operate TEC at vacuum\n");
+    sm_p->sci_tec_enable=1;
+    sm_p->sci_reset_camera=1;
+    return(CMD_NORMAL);
+  }
+
+  sprintf(cmd,"sci tec disable");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    printf("CMD: Disabling SCI TEC\n");
+    sm_p->sci_tec_enable=0;
+    sm_p->sci_reset_camera=1;
+    return(CMD_NORMAL);
+  }
+  
+  sprintf(cmd,"sci tec setpoint");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    if(sm_p->sci_tec_enable){
+      itemp = atoi(line+strlen(cmd)+1);
+      if(itemp > SCI_TEC_SETPOINT_MIN && itemp <= SCI_TEC_SETPOINT_MAX){
+	sm_p->sci_tec_setpoint = itemp;
+	sm_p->sci_reset_camera=1;
+	printf("CMD: Changed SCI TEC setpoint to %d C\n",sm_p->sci_tec_setpoint);
+      }else{
+	printf("CMD: SCI TEC setpoint out of bounds [%d,%d]\n",SCI_TEC_SETPOINT_MIN,SCI_TEC_SETPOINT_MAX);
+      }
+    }else{
+      printf("CMD: SCI TEC disabled\n");
+    }
+    return(CMD_NORMAL);
+  }
+  
   /****************************************
    * DOOR CONTROL
    **************************************/

@@ -19,7 +19,6 @@
 #include "common_functions.h"
 #include "fakemodes.h"
 
-#define SCI_TEMP_TEC_OFF 20 //Degrees C
 #define SCI_ROI_XSIZE 2840
 #define SCI_ROI_YSIZE 2224
 #define SCI_HBIN 1
@@ -51,7 +50,7 @@ void scictrlC(int sig){
     if(SCI_DEBUG) printf("SCI: Exposure stopped\n");
   }
   /* Disable TEC */
-  if((err = FLISetTemperature(dev, SCI_TEMP_TEC_OFF))){
+  if((err = FLISetTemperature(dev, SCI_TEC_SETPOINT_MAX))){
     fprintf(stderr, "SCI: Error FLISetTemperature: %s\n", strerror((int)-err));
   }else{
     if(SCI_DEBUG) printf("SCI: FLI TEC Disabled\n");
@@ -405,6 +404,8 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
   scievent.ccd_temp         = sm_p->sci_ccd_temp;
   scievent.backplane_temp   = sm_p->sci_backplane_temp;
   scievent.tec_power        = sm_p->sci_tec_power;
+  scievent.tec_setpoint     = sm_p->sci_tec_setpoint;
+  scievent.tec_enable       = sm_p->sci_tec_enable;
   
   //Fake data
   if(sm_p->w[SCIID].fakemode != FAKEMODE_NONE){
@@ -505,10 +506,12 @@ void sci_proc(void){
     camera_running = 0;
       
     /* Set temperature */
-    if((err = FLISetTemperature(dev, SCI_TEMP_TEC_OFF))){
-      fprintf(stderr, "SCI: Error FLISetTemperature: %s\n", strerror((int)-err));
-    }else{
-      if(SCI_DEBUG) printf("SCI: FLI temperature set\n");
+    if(sm_p->sci_tec_enable){
+      if((err = FLISetTemperature(dev, sm_p->sci_tec_setpoint))){
+	fprintf(stderr, "SCI: Error FLISetTemperature: %s\n", strerror((int)-err));
+      }else{
+	if(SCI_DEBUG) printf("SCI: FLI temperature set to %d\n",sm_p->sci_tec_setpoint);
+      }
     }
     
     /* Set exposure time */

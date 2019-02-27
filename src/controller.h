@@ -427,6 +427,8 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
  *************************************************/
 #define SCI_NBANDS              5 //number of bands on a single SCI camera image
 #define SCI_NSAMPLES            1 //number of scievents to save in a single packet
+#define SCI_TEC_SETPOINT_MIN  -40 //C
+#define SCI_TEC_SETPOINT_MAX   40 //C
 
 /*************************************************
  * BMC DM Parameters
@@ -769,7 +771,7 @@ typedef struct alpcal_struct{
 /*************************************************
  * Packet Header
  *************************************************/
-#define PICC_PKT_VERSION     15  //packet version number
+#define PICC_PKT_VERSION     16  //packet version number
 typedef struct pkthed_struct{
   uint16  version;      //packet version number
   uint16  type;         //packet ID word
@@ -899,7 +901,8 @@ typedef struct scievent_struct{
   float    ccd_temp;
   float    backplane_temp;
   float    tec_power;
-  float    padding;
+  int16    tec_setpoint;
+  uint16   tec_enable;  
   uint32   xorigin[SCI_NBANDS];
   uint32   yorigin[SCI_NBANDS];
   sci_t    image[SCI_NBANDS];
@@ -1070,6 +1073,8 @@ typedef volatile struct {
   float sci_ccd_temp;
   float sci_backplane_temp;
   float sci_tec_power;
+  int   sci_tec_setpoint;
+  int   sci_tec_enable;
   
   //Other Commands
   int hex_getpos;

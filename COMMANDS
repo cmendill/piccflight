@@ -361,6 +361,16 @@ cmd: sci shift origin [arg1] [arg2]
 	arg1 = 0,1,2,3,4
 	arg2 = +x, -x, +y, -y
 
+cmd: sci tec enable
+        enables the sci tec
+
+cmd: sci tec disable
+        disables the sci tec
+
+cmd: sci tec setpoint [arg]
+        sets the sci tec setpoint to [arg] degrees C
+	arg = signed integer degrees C
+
 ------------- DOOR CONTROL -------------
 
 cmd: open door [arg]
