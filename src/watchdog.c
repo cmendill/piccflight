@@ -258,6 +258,10 @@ int main(int argc,char **argv){
   DM7820_Board_Descriptor* p_rtd_board;
   int hexfd;
   int irq;
+  struct timeval timeout;
+  fd_set readset;
+  int fdcmd;
+  
   
   /* Open Shared Memory */
   sm_t *sm_p;
@@ -513,9 +517,45 @@ int main(int argc,char **argv){
       launch_proc(sm_p,WATID);
     }
   }
+  
+  /* Open Command Uplink */
+  if ((fdcmd = open(UPLINK_DEVICE,O_RDONLY))<0) {
+    printf("WAT: Cannot open %s\n",UPLINK_DEVICE);
+  }
 
+
+  /* Configure Command Interface */
+  timeout.tv_sec  =1;
+  timeout.tv_usec =0;
+  tcgetattr(fdcmd,&t);
+  t.c_iflag = 0;
+  t.c_oflag = 0;
+  t.c_cflag = CS8 | CREAD | CLOCAL  ;
+  t.c_lflag = 0;
+  t.c_line = 0;
+  cfsetospeed(&t,B1200);
+  cfsetispeed(&t,B1200);
+  tcsetattr(fdcmd,TCSANOW,&t);
+  FD_ZERO(&readset);
+  FD_SET(fdcmd,&readset);
+  FD_SET(stdin,&readset);
+
+  
   /* Enter foreground loop and wait for kill signal */
   while(1){
+    
+    if (select(stdin+1,&readset,0,0,&timeout)== -1){
+      perror("select");
+      ctrlC(1);
+    }
+    
+    if (FD_ISSET(fdcmd,&readset)) {
+      
+    }
+    if (FD_ISSET(stdin,&readset)) {
+      
+    }
+    
     /* The foreground will now wait for an input from the console */
     retval=CMD_NORMAL;
     if(fgets(line,CMD_MAX_LENGTH,stdin) != NULL)
