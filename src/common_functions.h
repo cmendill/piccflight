@@ -29,6 +29,7 @@ int getirq(char *driver);
 int setirq_affinity(int irq, int proc);
 void timestamp(char *ts);
 int ditherfill(int *index, int length);
+int read_uplink(char *cmd, int max, int fd);
 
 #endif
 
