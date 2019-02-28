@@ -139,6 +139,8 @@ INSTALL PACKAGES
      sudo ln -s /usr/include/libusb-1.0/libusb.h /usr/include/libusb.h	
  - setserial
      sudo apt-get install setserial
+ - i2c-tools
+     sudo apt-get install i2c-tools
  - mkl 
      Download Intel MKL library (l_mkl_2018.3.222.tgz)
      Transfer to flight computer
@@ -162,6 +164,7 @@ AUTO MODULE LOADING
     phddrv
     rtd_dm7820
     fliusb
+    i2c-dev
    
 SERIAL PORT SETUP (EMM-4M-XT)
  - After installing setserial, check available devices with:

@@ -27,6 +27,9 @@
 #include "thm_functions.h"
 #include "fakemodes.h"
 
+/* STDIN file descriptor */
+#define STDIN 0
+
 /* Prototypes */
 int handle_command(char *line, sm_t *sm_p);
 void init_state(int state_number, state_t *state);
@@ -257,6 +260,7 @@ int main(int argc,char **argv){
   int irq;
   fd_set readset;
   int fdcmd;
+  struct termios t;
   
   
   /* Open Shared Memory */
@@ -525,8 +529,8 @@ int main(int argc,char **argv){
   
   /* Configure readset */
   FD_ZERO(&readset);
+  FD_SET(STDIN,&readset); //console input
   FD_SET(fdcmd,&readset); //command uplink
-  FD_SET(stdin,&readset); //console input
   
   /* Launch Watchdog */
   if(sm_p->w[WATID].run){
@@ -538,6 +542,8 @@ int main(int argc,char **argv){
   
   /* Enter foreground loop and wait for commands */
   while(1){
+    //Init retval
+    retval = CMD_NORMAL;
     
     //Select on readset with no timeout (blocking)
     if(select(FD_SETSIZE,&readset,NULL,NULL,NULL) < 0){
@@ -545,15 +551,15 @@ int main(int argc,char **argv){
     }
     for(i=0;i<FD_SETSIZE;i++){
       if(FD_ISSET(i,&readset)){
-	if(i == fdcmd){
-	  //Process uplink command
-	  if(read_uplink(line,CMD_MAX_LENGTH,fdcmd) > 0)
+	if(i == STDIN){
+	  //Process standard command
+	  if(fgets(line,CMD_MAX_LENGTH,stdin) != NULL)
 	    retval = handle_command(line,sm_p);
 	  break;
 	}
-	if(i == stdin){
-	  //Process standard command
-	  if(fgets(line,CMD_MAX_LENGTH,stdin) != NULL)
+	if(i == fdcmd){
+	  //Process uplink command
+	  if(read_uplink(line,CMD_MAX_LENGTH,fdcmd) > 0)
 	    retval = handle_command(line,sm_p);
 	  break;
 	}

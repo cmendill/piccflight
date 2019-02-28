@@ -26,6 +26,7 @@
 #define HTR_NSTEPS     100  //Heater resolution (0-100%)
 #define HTR_NCYCLES    10   //Number of heater output cycles
 #define ADC_NAVG       10   //Number of temperature reads to average
+#define ADC_REF_SENSOR 14
 
 /* temperature conversion */
 #define ADC1_VREF       4.71    //volts
@@ -67,6 +68,7 @@ void thm_proc(void){
   static int init = 0;
   static unsigned long count=0;
   double resistance;              // calculated RTD resistance
+  double v_ref;                   // calculated using the reference resistor RTD_OHMS
   uint16_t htr_command;           // heater command word
   unsigned char htr_lsb=0,htr_msb=0;
   const long htr_sleep = ONE_MILLION / HTR_NSTEPS / HTR_NCYCLES; //us
@@ -77,6 +79,7 @@ void thm_proc(void){
   //Humidity sensors
   hdc_config config;
   hdc_device_t hum[HUM_NSENSORS] = {HUM1_ADDR,HUM2_ADDR,HUM3_ADDR};
+  int hum_ready[HUM_NSENSORS] = {0};
   
   //DSCUD Variables
   BYTE result;                    // returned error code
@@ -115,9 +118,12 @@ void thm_proc(void){
   /* Init humidity sensors */
   if((thm_humfd=hdc_open(HUM_DEVICE)) >= 0){
     for(i=0;i<HUM_NSENSORS;i++){
-      hdc_init(thm_humfd, &hum[i]);
-      hdc_write_config(thm_humfd, &hum[i], &config);
+      if(hdc_init(thm_humfd, &hum[i]))
+	continue;
+      if(hdc_write_config(thm_humfd, &hum[i], &config))
+	continue;
       if(THM_DEBUG) hdc_get_info(thm_humfd, &hum[i]);
+      hum_ready[i]=1;
     }
   }else{
     printf("THM: hdc_open failed\n");
@@ -356,6 +362,14 @@ void thm_proc(void){
 	fprintf(stderr, "THM: Board 1 dscADScan error: %s %s\n", dscGetErrorString(errorParams.ErrCode), errorParams.errstring);
 	thmctrlC(0);
       }
+      //Get reference voltage
+      if(dscADCodeToVoltage(board1, dscadsettings1, dscadscan1.sample_values[ADC_REF_SENSOR], &voltage) != DE_NONE) {
+	dscGetLastError(&errorParams);
+	fprintf(stderr, "THM: Board 1 dscADCodeToVoltage error: %s %s\n", dscGetErrorString(errorParams.ErrCode), errorParams.errstring);
+	  fprintf(stderr, "THM: Gain = %d\n",dscadsettings1.gain);
+	  thmctrlC(0);
+      }
+      v_ref = voltage*(ADC1_R1+RTD_OHMS)/RTD_OHMS;
       for(i = 0; i < ADC1_NCHAN; i++){
 	if(dscADCodeToVoltage(board1, dscadsettings1, dscadscan1.sample_values[i], &voltage) != DE_NONE) {
 	  dscGetLastError(&errorParams);
@@ -363,9 +377,12 @@ void thm_proc(void){
 	  fprintf(stderr, "THM: Gain = %d\n",dscadsettings1.gain);
 	  thmctrlC(0);
 	}
-	resistance = (voltage * ADC1_R1) / (ADC1_VREF - voltage);
+	resistance = (voltage * ADC1_R1) / (v_ref - voltage);
 	if(iavg == 0) thmevent.adc1_temp[i] = 0; //reset temp to zero for averaging
-	thmevent.adc1_temp[i] += ((resistance - RTD_OHMS)/(RTD_ALPHA * RTD_OHMS)) / ADC_NAVG;
+	if(i == ADC_REF_SENSOR)
+	  thmevent.adc1_temp[i] = v_ref;
+	else
+	  thmevent.adc1_temp[i] += ((resistance - RTD_OHMS)/(RTD_ALPHA * RTD_OHMS)) / ADC_NAVG;
       }
       #endif
     
@@ -409,8 +426,10 @@ void thm_proc(void){
     /* Read humidity sensors */
     if(thm_humfd >= 0){
       for(i=0;i<HUM_NSENSORS;i++){
-	hdc_get_t(thm_humfd, &hum[i], &thmevent.hum[i].temp);
-	hdc_get_rh(thm_humfd, &hum[i], &thmevent.hum[i].humidity);
+	if(hum_ready[i]){
+	  hdc_get_t(thm_humfd, &hum[i], &thmevent.hum[i].temp);
+	  hdc_get_rh(thm_humfd, &hum[i], &thmevent.hum[i].humidity);
+	}
       }
     }
     

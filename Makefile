@@ -30,7 +30,7 @@ $(TARGET)watchdog: $(OBJECT)
 	$(CC) $(CFLAGS) -o $@ -c $<
 
 #LIBRARIES
-libs: libfli librtd libbmc libuvc
+libs: libfli librtd libbmc libhdc libuvc
 
 libfli:
 	make -C lib/libfli
