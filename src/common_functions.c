@@ -149,12 +149,38 @@ void checkin(sm_t *sm_p,int id){
   return;
 }    
 
+/******************************************************************************
+ CIRCULAR BUFFER NOTES
+  read_from_buffer reads at read_offset and then increments read_offset
+  write_to_buffer writes at write_offset and then increments write_offset
+  No data is when read_offset == write_offset
+  We start with read_offset == write_offset == 0
+  Then we write to write_offset == 0 and increment to write_offset == 1
+  Then we read at read_offset == 0 and increment to read_offset == 1
+  A read won't start until write_offset > read_offset
+  Reads happen until read_offset == write_offset
+  If writes are happening more often than reads, write_offset will go around
+  the circular buffer and come up behind read_offset
+  Before writing at write_offset == N, write checks if read_offset == N+1
+  If so, write increments read_offset to N+2, writes at N, and increments
+  write_offset to N+1.
+  write_offset will never lap read_offset or become equal to read_offset
+  This always keeps read_offset ahead of write_offset and prevents reading and 
+  writing to the same address at the same time (since we are using a buffer of 1
+  between read_offset and write_offset).
+  Since we are not using locks, the only issue is when read has already begun at
+  N and write wants to write at N-1. In this case you may get a double increment
+  of read_offset, one from write and one from read (after it is done reading).
+  This is not a huge problem, you may loose an extra packet, but you were losing
+  packets anyway. This saves us from the extra overhead of using locks.
+  But, it does impose a different minimum buffer size of 3 instead of 2.
+******************************************************************************/
 
 /******************************************************************************
         CHECK A CIRCULAR BUFFER FOR DATA
 ******************************************************************************/
 int check_buffer(sm_t *sm_p, int buf, int id){
-  return(sm_p->circbuf[buf].write_offset - sm_p->circbuf[buf].read_offsets[id]);
+  return(sm_p->circbuf[buf].write_offset != sm_p->circbuf[buf].read_offsets[id]);
 }
 
 /******************************************************************************
