@@ -27,9 +27,6 @@
 #include "thm_functions.h"
 #include "fakemodes.h"
 
-/* Constants */
-#define STDIN 0  // file descriptor for standard input
-
 /* Prototypes */
 int handle_command(char *line, sm_t *sm_p);
 void init_state(int state_number, state_t *state);
@@ -258,7 +255,6 @@ int main(int argc,char **argv){
   DM7820_Board_Descriptor* p_rtd_board;
   int hexfd;
   int irq;
-  struct timeval timeout;
   fd_set readset;
   int fdcmd;
   
@@ -510,23 +506,13 @@ int main(int argc,char **argv){
     }
   }
 
-  /* Launch Watchdog */
-  if(sm_p->w[WATID].run){
-    if(sm_p->w[WATID].pid == -1){
-      //launch process
-      launch_proc(sm_p,WATID);
-    }
-  }
   
-  /* Open Command Uplink */
+  /* Open command uplink */
   if ((fdcmd = open(UPLINK_DEVICE,O_RDONLY))<0) {
     printf("WAT: Cannot open %s\n",UPLINK_DEVICE);
   }
 
-
-  /* Configure Command Interface */
-  timeout.tv_sec  =1;
-  timeout.tv_usec =0;
+  /* Configure command uplink interface */
   tcgetattr(fdcmd,&t);
   t.c_iflag = 0;
   t.c_oflag = 0;
@@ -536,31 +522,44 @@ int main(int argc,char **argv){
   cfsetospeed(&t,B1200);
   cfsetispeed(&t,B1200);
   tcsetattr(fdcmd,TCSANOW,&t);
-  FD_ZERO(&readset);
-  FD_SET(fdcmd,&readset);
-  FD_SET(stdin,&readset);
-
   
-  /* Enter foreground loop and wait for kill signal */
+  /* Configure readset */
+  FD_ZERO(&readset);
+  FD_SET(fdcmd,&readset); //command uplink
+  FD_SET(stdin,&readset); //console input
+  
+  /* Launch Watchdog */
+  if(sm_p->w[WATID].run){
+    if(sm_p->w[WATID].pid == -1){
+      //launch process
+      launch_proc(sm_p,WATID);
+    }
+  }
+  
+  /* Enter foreground loop and wait for commands */
   while(1){
     
-    if (select(stdin+1,&readset,0,0,&timeout)== -1){
+    //Select on readset with no timeout (blocking)
+    if(select(FD_SETSIZE,&readset,NULL,NULL,NULL) < 0){
       perror("select");
-      ctrlC(1);
+    }
+    for(i=0;i<FD_SETSIZE;i++){
+      if(FD_ISSET(i,&readset)){
+	if(i == fdcmd){
+	  //Process uplink command
+	  if(read_uplink(line,CMD_MAX_LENGTH,fdcmd) > 0)
+	    retval = handle_command(line,sm_p);
+	  break;
+	}
+	if(i == stdin){
+	  //Process standard command
+	  if(fgets(line,CMD_MAX_LENGTH,stdin) != NULL)
+	    retval = handle_command(line,sm_p);
+	  break;
+	}
+      }
     }
     
-    if (FD_ISSET(fdcmd,&readset)) {
-      
-    }
-    if (FD_ISSET(stdin,&readset)) {
-      
-    }
-    
-    /* The foreground will now wait for an input from the console */
-    retval=CMD_NORMAL;
-    if(fgets(line,CMD_MAX_LENGTH,stdin) != NULL)
-      retval = handle_command(line,sm_p);
-
     /* Check return value */
     if(retval == CMD_NORMAL){
       //Normal command -- do nothing

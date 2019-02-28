@@ -624,3 +624,70 @@ int ditherfill(int *index, int length){
 
   return 0;
 }
+
+/**************************************************************/
+/* READ_UPLINK                                                */
+/* - Read and parse command uplink packets                    */
+/**************************************************************/
+int read_uplink(char *cmd, int max, int fd){
+  //ascii.dle, ID Byte, length, data, ascii.etx
+  //ascii.dle = 0x10
+  //ascii.etx = 0x03
+  //  ID Byte = 0x14
+  char dle;
+  char id;
+  char length;
+  char data[255];
+  char etx;
+  int  num;
+
+  //Read DLE (presync)
+  if(read(fd,&dle,1) != 1){
+    printf("CMD: Bad DLE read\n");
+    return -1;
+  }
+  if(dle != 0x10){
+    printf("CMD: Wrong DLE value 0x%x\n",dle);
+    return -1;
+  }
+
+  //Read packet ID
+  if(read(fd,&id,1) != 1){
+    printf("CMD: Bad ID read\n");
+    return -1;
+  }
+  if(id != 0x14){
+    printf("CMD: Wrong ID value 0x%x\n",id);
+    return -1;
+  }
+
+  //Read data length
+  if(read(fd,&length,1) != 1){
+    printf("CMD: Bad LENGTH read\n");
+    return -1;
+  }
+
+  //Read data
+  if(read(fd,&data,length) != length){
+    printf("CMD: Bad DATA read\n");
+    return -1;
+  }
+
+  //Read ETX (postsync)
+  if(read(fd,&etx,1) != 1){
+    printf("CMD: Bad ETX read\n");
+    return -1;
+  }
+  if(etx != 0x03){
+    printf("CMD: Wrong ETX value 0x%x\n",etx);
+    return -1;
+  }
+
+  //Copy data
+  num = (length > max) ? max : length;
+  memcpy(cmd,data,num);
+
+  //Return number of bytes read up to max allowed
+  return num;
+  
+}
