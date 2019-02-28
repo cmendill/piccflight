@@ -22,7 +22,6 @@ volatile int clientfd=-1;
 volatile int srv_send[NCIRCBUF]; //switches to turn sending on and off
 pthread_t listener_thread;
 int srv_shmfd;    // shared memory file desciptor
-uint32 srv_packet_count=0;
 
 /* Prototypes */
 void *srv_listen(void *t);
@@ -121,7 +120,7 @@ void srv_proc(void) {
 	  ts2double(&delta,&dt);
 	  //Read data if enough time has elapsed since last packet
 	  if(dt > bufdt[i]){
-	    if(read_from_buffer(sm_p, buffer, i, SRVID)){
+	    if(read_newest_buffer(sm_p, buffer, i, SRVID)){
 	      //write data to socket
 	      if(SRV_DEBUG) printf("SRV: Writing Packet %d\n",i);
 	      nbytes=write_to_socket(clientfd,buffer,sm_p->circbuf[i].nbytes);
@@ -144,19 +143,20 @@ void srv_proc(void) {
 		
 		printf("SRV: Client hung up\n");
 	      }
-	      //increment packet counter
-	      srv_packet_count++;
+	      //set data_sent flag
+	      data_sent=1;
 	      //save time
 	      memcpy(&last[i],&now,sizeof(struct timespec));
-	      //check in with watchdog -- make this slower
-	      checkin(sm_p,SRVID);
 	    }
 	  }
 	}
       }
       //sleep if no data was sent
       if(!data_sent) usleep(100000);
+      //check in with watchdog
+      checkin(sm_p,SRVID);
     }else{
+      //waiting for a client
       //sleep
       sleep(sm_p->w[SRVID].per);
       //check in with watchdog
