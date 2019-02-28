@@ -60,6 +60,10 @@ void init_state(int state_number, state_t *state){
     state->proc_enable[LYTID] = 0;
     state->proc_enable[SCIID] = 0;
     state->proc_enable[ACQID] = 0;
+    //HEX Commander
+    state->hex_commander = WATID;
+    //ALP Commander
+    state->alp_commander = WATID;
     return;
   }
 
