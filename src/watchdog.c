@@ -543,7 +543,7 @@ int main(int argc,char **argv){
   /* Enter foreground loop and wait for commands */
   while(1){
     //Init retval
-    retval = CMD_NORMAL;
+    retval = CMD_NOT_FOUND;
     
     //Select on readset with no timeout (blocking)
     if(select(FD_SETSIZE,&readset,NULL,NULL,NULL) < 0){
