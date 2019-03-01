@@ -5,9 +5,12 @@
 ------------- SYSTEM COMMANDS -------------
 
 cmd: exit
-  	exits the watchdog
+  	exit the watchdog
 	on the flight system the watchdog will restart automatically
 
+cmd: shutdown
+        exit the watchdog and shut down the computer
+ 
 cmd: packet info
      	prints the sizes of the telemetry packets
 

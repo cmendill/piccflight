@@ -259,6 +259,12 @@ int handle_command(char *line, sm_t *sm_p){
     return(CMD_EXIT_WATCHDOG);
   }
   
+  //shutdown: exit watchdog and shutdown computer
+  sprintf(cmd,"shutdown");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    return(CMD_SHUTDOWN);
+  }
+
   //print packet info
   sprintf(cmd,"packet info");
   if(!strncasecmp(line,cmd,strlen(cmd))){
@@ -267,8 +273,12 @@ int handle_command(char *line, sm_t *sm_p){
     printf("CMD: shkevent = %lu bytes\n",sizeof(shkevent_t));
     printf("CMD: lytevent = %lu bytes\n",sizeof(lytevent_t));
     printf("CMD: acqevent = %lu bytes\n",sizeof(acqevent_t));
+    printf("CMD: thmevent = %lu bytes\n",sizeof(thmevent_t));
+    printf("CMD: mtrevent = %lu bytes\n",sizeof(mtrevent_t));
     printf("CMD: shkpkt   = %lu bytes\n",sizeof(shkpkt_t));
     printf("CMD: lytpkt   = %lu bytes\n",sizeof(lytpkt_t));
+    printf("CMD: shkfull  = %lu bytes\n",sizeof(shkfull_t));
+    printf("CMD: acqfull  = %lu bytes\n",sizeof(acqfull_t));
     return(CMD_NORMAL);
   }
   
