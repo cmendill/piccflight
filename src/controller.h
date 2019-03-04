@@ -762,7 +762,7 @@ typedef struct alpcal_struct{
 /*************************************************
  * Packet Header
  *************************************************/
-#define PICC_PKT_VERSION     16  //packet version number
+#define PICC_PKT_VERSION     17  //packet version number
 typedef struct pkthed_struct{
   uint16  version;      //packet version number
   uint16  type;         //packet ID word
@@ -897,6 +897,7 @@ typedef struct scievent_struct{
   uint32   xorigin[SCI_NBANDS];
   uint32   yorigin[SCI_NBANDS];
   sci_t    image[SCI_NBANDS];
+  bmc_t    bmc;
 } scievent_t;
 
 typedef struct acqevent_struct{
