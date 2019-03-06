@@ -311,11 +311,15 @@ void lyt_zernike_fit(lyt_t *image, lytref_t *lytref, double *zernikes, int reset
       }
     }
   }
-  for(i=0;i<LYTXS;i++)
-    for(j=0;j<LYTYS;j++)
-      if(lytref->pxmask[i][j])
-	lyt_delta[count++]  = ((double)image->data[i][j])/img_total - lytref->refimg[i][j]/ref_total;
 
+  //Fill out pixel delta array
+  if(img_total > 0 && ref_total > 0){
+    for(i=0;i<LYTXS;i++)
+      for(j=0;j<LYTYS;j++)
+	if(lytref->pxmask[i][j])
+	  lyt_delta[count++]  = ((double)image->data[i][j])/img_total - lytref->refimg[i][j]/ref_total;
+  }
+  
   //Do matrix multiply
   num_dgemv(lyt2zern_matrix, lyt_delta, zernikes, LOWFS_N_ZERNIKE, lyt_npix);
 
