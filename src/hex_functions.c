@@ -21,6 +21,9 @@
 #define HEX_TCOR_DUDY  0.1
 #define HEX_TCOR_DUDZ -0.021214635
 
+/* Error messages */
+#define PI_ERR_LENGTH 128
+
 /**************************************************************/
 /* HEX_INIT_CALMODE                                           */
 /*  - Initialize HEX calmode structure                        */
@@ -78,6 +81,7 @@ void hex_disconnect(int id){
 int hex_init(int *hexfd){
   int bFlag,i;
   double pivot[3]   = {HEX_PIVOT_X,HEX_PIVOT_Y,HEX_PIVOT_Z};
+  char msg[PI_ERR_LENGTH];
   
   /* Connect to Hexapod */
   if((*hexfd=hex_connect()) < 0){
@@ -88,6 +92,7 @@ int hex_init(int *hexfd){
   /* Reference Hexapod */
   if(hex_reference(*hexfd, 0)){
     printf("HEX: hex_reference error!\n");
+    hex_disconnect(*hexfd);
     return 1;
   }
   
@@ -95,7 +100,9 @@ int hex_init(int *hexfd){
   for(i=0;i<HEX_REF_TIMEOUT;i++){
     bFlag = 0;
     if(!PI_IsControllerReady(*hexfd, &bFlag)){
-      printf("HEX: PI_IsControllerReady error!\n");
+      PI_TranslateError(PI_GetError(*hexfd),msg,PI_ERR_LENGTH);
+      printf("HEX: PI_IsControllerReady error: %s\n",msg);
+      hex_disconnect(*hexfd);
       return 1;
     }
     if(bFlag) break;
@@ -104,6 +111,7 @@ int hex_init(int *hexfd){
   }
   if(i==HEX_REF_TIMEOUT){
     printf("HEX: Referencing timeout!!\n");
+    hex_disconnect(*hexfd);
     return 1;
   }else{
     printf("HEX: Referencing complete after %d seconds\n",i);
@@ -112,6 +120,7 @@ int hex_init(int *hexfd){
   /* Set Pivot Point*/
   if(hex_setpivot(*hexfd, pivot)){
     printf("HEX: hex_setpivot error!\n");
+    hex_disconnect(*hexfd);
     return 1;
   }
   
@@ -225,10 +234,12 @@ int hex_move(int id, double *pos){
   const char axes_all[13] = HEX_AXES_ALL;
   char *chkaxis=""; //will check all axes
   int bIsMoving=0;
-
+  char msg[PI_ERR_LENGTH];
+  
   //Check if hexapod is moving
   if(!PI_IsMoving(id,chkaxis, &bIsMoving)){
-    printf("HEX: PI_IsMoving error!\n");
+    PI_TranslateError(PI_GetError(id),msg,PI_ERR_LENGTH);
+    printf("HEX: PI_IsMoving error: %s\n",msg);
     return 1;
   }
   if(bIsMoving)
@@ -239,7 +250,8 @@ int hex_move(int id, double *pos){
 
   //Send command to move hexapod
   if(!PI_MOV(id, axes_all, result)){
-    printf("HEX: (hex_move) Error: %i\r\n", PI_GetError(0));
+    PI_TranslateError(PI_GetError(id),msg,PI_ERR_LENGTH);
+    printf("HEX: PI_MOV error: %s\n",msg);
     return 1;
   }
 
@@ -252,16 +264,22 @@ int hex_move(int id, double *pos){
 /*  - Reference hexapod, if needed                            */
 /**************************************************************/
 int hex_reference(int id, int force){
-  int bReferenced;
+  int bReferenced=0;
   char axis[] = "X";
-  if(!PI_qFRF(id, axis, &bReferenced)){
-    printf("HEX: PI_qFRF error!\n");
-    return 1;
+  char msg[PI_ERR_LENGTH];
+  
+  if(!force){
+    if(!PI_qFRF(id, axis, &bReferenced)){
+      PI_TranslateError(PI_GetError(id),msg,PI_ERR_LENGTH);
+      printf("HEX: PI_qFRF error: %s\n",msg);
+      return 1;
+    }
   }
-  if(!bReferenced || force){
-    printf("HEX: Referencing axis %s...\n\r",axis);
+  else{
+    printf("HEX: Force referencing axis %s...\n\r",axis);
     if(!PI_FRF(id, axis)){
-      printf("HEX: PI_FRF error!\n");
+      PI_TranslateError(PI_GetError(id),msg,PI_ERR_LENGTH);
+      printf("HEX: PI_FRF error: %s\n",msg);
       return 1;
     }
   }
@@ -274,9 +292,12 @@ int hex_reference(int id, int force){
 /**************************************************************/
 int hex_getpos(int id, double *pos){
   const char axes_all[13] = HEX_AXES_ALL;
+  char msg[PI_ERR_LENGTH];
+  
   if (!PI_qPOS(id,axes_all, pos))
     {
-      printf("HEX: PI_qPOS error!\n");
+      PI_TranslateError(PI_GetError(id),msg,PI_ERR_LENGTH);
+      printf("HEX: PI_qPOS error: %s\n",msg);
       return 1;
     }
   
@@ -315,9 +336,11 @@ int hex_printpos(int id){
 /**************************************************************/
 int hex_setpivot(int id, double *pivot){
   const char axes_piv[7] = "R S T";
-
+  char msg[PI_ERR_LENGTH];
+  
   if(!PI_SPI(id, axes_piv, pivot)){
-    printf("HEX: PI_SPI error %d\n", PI_GetError(0));
+    PI_TranslateError(PI_GetError(id),msg,PI_ERR_LENGTH);
+    printf("HEX: PI_SPI error %s\n",msg);
     return 1;
   }
   return 0;

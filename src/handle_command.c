@@ -207,6 +207,7 @@ int handle_command(char *line, sm_t *sm_p){
   char   cmd[CMD_MAX_LENGTH];
   int    cmdfound=0;
   int    i=0,j=0,hex_axis=0;
+  int hexfd;
   double hex_poke=0;
   int    calmode=0;
   uint16_t led;
@@ -607,17 +608,39 @@ int handle_command(char *line, sm_t *sm_p){
   sprintf(cmd,"hex");
   if(!strncasecmp(line,cmd,strlen(cmd))){
     if(sm_p->state_array[sm_p->state].hex_commander == WATID){
+      //Initialize hexapod
+      sprintf(cmd,"hex init");
+      if(!strncasecmp(line,cmd,strlen(cmd))){
+	if(HEX_ENABLE){
+	  printf("CMD: Opening HEX driver\n");
+	  if(hex_init(&hexfd)){
+	    printf("CMD: ERROR: HEX init failed!\n");
+	  }
+	  else{
+	    sm_p->hexfd = hexfd;
+	    sm_p->hex_ready = 1;
+	    printf("CMD: HEX ready\n");
+	  }
+	}
+	else{
+	  printf("CMD: HEX disabled\n");
+	}
+	return(CMD_NORMAL);
+      }
+
       //Turn ON tilt correction
       sprintf(cmd,"hex tcor on");
       if(!strncasecmp(line,cmd,strlen(cmd))){
 	printf("CMD: Turning HEX tilt correction ON\n");
 	sm_p->hex_tilt_correct = 1;
+ 	return(CMD_NORMAL);
       }
       //Turn OFF tilt correction
       sprintf(cmd,"hex tcor off");
       if(!strncasecmp(line,cmd,strlen(cmd))){
 	printf("CMD: Turning HEX tilt correction OFF\n");
 	sm_p->hex_tilt_correct = 0;
+	return(CMD_NORMAL);
       }
       //Increase step size
       sprintf(cmd,"hex inc step");

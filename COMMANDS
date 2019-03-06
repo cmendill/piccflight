@@ -110,6 +110,9 @@ cmd: sci stop rec
 
 ------------- HEXAPOD CONTROL -------------
 
+cmd: hex init
+        re-initialize the hexapod
+
 cmd: hex tcor on (NON-FUNCTIONAL)
 	enables hexapod automatic tilt correction for decenter
 	tilt induced by decenter commands will be corrected automatically
