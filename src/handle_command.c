@@ -653,6 +653,10 @@ int handle_command(char *line, sm_t *sm_p){
       //Go to HOME position
       sprintf(cmd,"hex gohome");
       if(!strncasecmp(line,cmd,strlen(cmd))){
+	if(!sm_p->hex_ready){
+	  printf("CMD: HEX not ready\n");
+	  return(CMD_NORMAL);
+	}
 	printf("CMD: Moving hexapod to home positon\n");
 	memcpy(hexcmd.acmd,hexhome,sizeof(hexhome));
 	if(!hex_send_command(sm_p,&hexcmd,WATID))
@@ -662,6 +666,10 @@ int handle_command(char *line, sm_t *sm_p){
       //Go to DEFAULT position
       sprintf(cmd,"hex godef");
       if(!strncasecmp(line,cmd,strlen(cmd))){
+	if(!sm_p->hex_ready){
+	  printf("CMD: HEX not ready\n");
+	  return(CMD_NORMAL);
+	}
 	printf("CMD: Moving hexapod to default positon\n");
 	memcpy(hexcmd.acmd,hexdef,sizeof(hexdef));
 	if(!hex_send_command(sm_p,&hexcmd,WATID))
@@ -734,6 +742,10 @@ int handle_command(char *line, sm_t *sm_p){
 	printf("CMD: Bad hex move command\n");
 	return(CMD_NORMAL);
       move_hex:
+	if(!sm_p->hex_ready){
+	  printf("CMD: HEX not ready\n");
+	  return(CMD_NORMAL);
+	}
 	printf("CMD: Moving hexapod axis %s by %f %s\n",hex_str_axes[hex_axis],hex_poke,hex_str_unit[hex_axis]);
 	hex_get_command(sm_p,&hexcmd);
 	hexcmd.acmd[hex_axis] += hex_poke;
