@@ -46,8 +46,10 @@ int thm_humfd;
 void thmctrlC(int sig)
 {
   //turn off all heaters
-  outb(0xFF,SSR_BASE+0);
-  outb(0xFF,SSR_BASE+4);
+  if(HTR_ENABLE){
+    outb(0xFF,SSR_BASE+0);
+    outb(0xFF,SSR_BASE+4);
+  }
   //cleanup humidity sensors
   hdc_cleanup(thm_humfd);
   //close shared memory
@@ -487,29 +489,31 @@ void thm_proc(void){
 	htr_pulse[i][pulse_index[j]] = 1;
 	
     /* Command Heaters */
-    for(i=0;i<HTR_NCYCLES;i++){
-      for(j=0;j<HTR_NSTEPS;j++){
-	htr_command = 0;
-	for(k=0;k<SSR_NCHAN;k++){
-	  htr_command |= htr_pulse[k][j] << k;
+    if(HTR_ENABLE){
+      for(i=0;i<HTR_NCYCLES;i++){
+	for(j=0;j<HTR_NSTEPS;j++){
+	  htr_command = 0;
+	  for(k=0;k<SSR_NCHAN;k++){
+	    htr_command |= htr_pulse[k][j] << k;
+	  }
+	
+	  //htr_command: 1 = ON,  0 = OFF
+	  //SRR Board:   1 = OFF, 0 = ON
+	  //Take ones complement of htr_command
+	  //Seperate LSB and MSB
+	  //Send to board
+	  htr_lsb = ~htr_command & 0x00FF;
+	  htr_msb = (~htr_command & 0xFF00) >> 8;
+	  outb(htr_lsb,SSR_BASE+0);
+	  outb(htr_msb,SSR_BASE+4);
+	
+	  //sleep
+	  usleep(htr_sleep);
 	}
-	
-	//htr_command: 1 = ON,  0 = OFF
-	//SRR Board:   1 = OFF, 0 = ON
-	//Take ones complement of htr_command
-	//Seperate LSB and MSB
-	//Send to board
-	htr_lsb = ~htr_command & 0x00FF;
-	htr_msb = (~htr_command & 0xFF00) >> 8;
-	outb(htr_lsb,SSR_BASE+0);
-	outb(htr_msb,SSR_BASE+4);
-	
-	//sleep
-	usleep(htr_sleep);
       }
+      if(THM_DEBUG) printf("THM: MSB: 0x%2.2x  LSB: 0x%2.2x\n",htr_msb,htr_lsb);
     }
-    if(THM_DEBUG) printf("THM: MSB: 0x%2.2x  LSB: 0x%2.2x\n",htr_msb,htr_lsb);
-
+    
     /* Copy values back to shared memory */
     for(i=0;i<SSR_NCHAN;i++){
       sm_p->htr[i].temp  = thmevent.htr[i].temp;

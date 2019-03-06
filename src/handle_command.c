@@ -2088,23 +2088,31 @@ int handle_command(char *line, sm_t *sm_p){
   //LED commands
   sprintf(cmd,"led on");
   if(!strncasecmp(line,cmd,strlen(cmd))){
-    ftemp = atof(line+strlen(cmd)+1);
-    if(ftemp >= 0 && ftemp <= 5){
-      printf("CMD: Turning LED ON %f volts \n",ftemp);
-      led = (ftemp/5.0) * 2048 + 2048;
-      outb((led & 0x00FF),ADC1_BASE+4);
-      outb(((led & 0xFF00) >> 8),ADC1_BASE+5);
+    if(LED_ENABLE){
+      ftemp = atof(line+strlen(cmd)+1);
+      if(ftemp >= 0 && ftemp <= 5){
+	printf("CMD: Turning LED ON %f volts \n",ftemp);
+	led = (ftemp/5.0) * 2048 + 2048;
+	outb((led & 0x00FF),ADC1_BASE+4);
+	outb(((led & 0xFF00) >> 8),ADC1_BASE+5);
+      }else{
+	printf("CMD: LED voltage range = [0,5]\n");
+      }
     }else{
-      printf("CMD: LED voltage range = [0,5]\n");
+      printf("CMD: LED Disabled\n");
     }
     return CMD_NORMAL;
   }
   sprintf(cmd,"led off");
   if(!strncasecmp(line,cmd,strlen(cmd))){
-    printf("CMD: Turning LED OFF\n");
-    led = (0.0/5.0) * 2048 + 2048;
-    outb((led & 0x00FF),ADC1_BASE+4);
-    outb(((led & 0xFF00) >> 8),ADC1_BASE+5);
+    if(LED_ENABLE){
+      printf("CMD: Turning LED OFF\n");
+      led = (0.0/5.0) * 2048 + 2048;
+      outb((led & 0x00FF),ADC1_BASE+4);
+      outb(((led & 0xFF00) >> 8),ADC1_BASE+5);
+    }else{
+      printf("CMD: LED Disabled\n");
+    }
     return CMD_NORMAL;
   }
   

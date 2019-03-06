@@ -252,8 +252,8 @@ void shk_centroid_cell(uint8 *image, shkcell_t *cell, int cmd_boxsize){
       intensity += image[px];
       if(image[px] > maxval){
 	maxval = image[px];
-	xcentroid = (x + 0.5)*SHKBIN; //unbinned coordinates
-	ycentroid = (y + 0.5)*SHKBIN; //unbinned coordinates
+	xcentroid = ((double)x + 0.5)*SHKBIN; //unbinned coordinates
+	ycentroid = ((double)y + 0.5)*SHKBIN; //unbinned coordinates
       }
     }
   }
@@ -267,8 +267,8 @@ void shk_centroid_cell(uint8 *image, shkcell_t *cell, int cmd_boxsize){
     //Reset values
     cell->spot_found=0;
     cell->spot_captured=0;
-    cell->xcentroid = 0;
-    cell->ycentroid = 0;
+    cell->xcentroid = cell->xtarget;
+    cell->ycentroid = cell->ytarget;
     cell->xtarget_deviation = 0;
     cell->ytarget_deviation = 0;
     cell->xorigin_deviation = 0;
@@ -354,9 +354,11 @@ void shk_centroid_cell(uint8 *image, shkcell_t *cell, int cmd_boxsize){
     */
     
     //Calculate centroid
-    xcentroid = (xnum/total) * SHKBIN; //unbinned coordinates
-    ycentroid = (ynum/total) * SHKBIN; //unbinned coordinates
-
+    if(total > 0){
+      xcentroid = (xnum/total) * SHKBIN; //unbinned coordinates
+      ycentroid = (ynum/total) * SHKBIN; //unbinned coordinates
+    }
+    
     //Save centroids
     cell->xcentroid = xcentroid;
     cell->ycentroid = ycentroid;
@@ -418,11 +420,17 @@ void shk_centroid(uint8 *image, shkevent_t *shkevent){
     }
   }
   background /= npix;
+
+  //Init # spot found and captured
+  shkevent->nspot_found = 0;
+  shkevent->nspot_captured = 0;
   
   //Centroid cells
   for(i=0;i<SHK_BEAM_NCELLS;i++){
     shkevent->cells[i].background = background;
     shk_centroid_cell(image,&shkevent->cells[i],shkevent->boxsize);
+    shkevent->nspot_found    += shkevent->cells[i].spot_found;
+    shkevent->nspot_captured += shkevent->cells[i].spot_captured;
   }
 }
 
@@ -633,11 +641,19 @@ void shk_zernike_ops(shkevent_t *shkevent, int fit_zernikes, int set_targets, in
   if(fit_zernikes){
     //Format displacement array (from origin for zernike fitting)
     for(i=0;i<SHK_BEAM_NCELLS;i++){
-      shk_xydev[2*i + 0] = shkevent->cells[i].xorigin_deviation;
-      shk_xydev[2*i + 1] = shkevent->cells[i].yorigin_deviation;
+      if(shkevent->cells[i].spot_found){
+	shk_xydev[2*i + 0] = shkevent->cells[i].xorigin_deviation;
+	shk_xydev[2*i + 1] = shkevent->cells[i].yorigin_deviation;
+      }
     }
     //Do Zernike fit matrix multiply
-    num_dgemv(shk2zern, shk_xydev, shkevent->zernike_measured, LOWFS_N_ZERNIKE, 2*SHK_BEAM_NCELLS);
+    if(shkevent->nspot_found >= SHK_ZFIT_MIN_CELLS){
+      num_dgemv(shk2zern, shk_xydev, shkevent->zernike_measured, LOWFS_N_ZERNIKE, 2*SHK_BEAM_NCELLS);
+    }else{
+      //Zero out fit values
+      for(i=0;i<LOWFS_N_ZERNIKE;i++)
+	shkevent->zernike_measured[i]=0;
+    }
   }
   
   /* Set Targets */
@@ -746,6 +762,13 @@ void shk_alp_cellpid(shkevent_t *shkevent, int reset){
     //Calculate command delta
     shkevent->cells[i].xcommand = shkevent->gain_alp_cell[0] * shkevent->cells[i].xtarget_deviation + shkevent->gain_alp_cell[1] * xint[i];
     shkevent->cells[i].ycommand = shkevent->gain_alp_cell[0] * shkevent->cells[i].ytarget_deviation + shkevent->gain_alp_cell[1] * yint[i];
+    //Zero command and integrators if spot not found
+    if(!shkevent->cells[i].spot_found){
+      shkevent->cells[i].xcommand = 0;
+      shkevent->cells[i].ycommand = 0;
+      xint[i] = 0;
+      yint[i] = 0;
+    }
   }
 }
 
@@ -757,7 +780,7 @@ void shk_alp_zernpid(shkevent_t *shkevent, double *zernike_delta, int *zernike_s
   static int init = 0;
   static double zint[LOWFS_N_ZERNIKE] = {0};
   double zerr;
-  int i;
+  int i,nfound=0;
 
   //Initialize
   if(!init || reset){
@@ -765,19 +788,27 @@ void shk_alp_zernpid(shkevent_t *shkevent, double *zernike_delta, int *zernike_s
     init=1;
     if(reset) return;
   }
-
+   
   //Run PID
-  for(i=0;i<LOWFS_N_ZERNIKE;i++){
-    if(zernike_switch[i]){
-      //Calculate error
-      zerr = shkevent->zernike_measured[i] - shkevent->zernike_target[i];
-      //Calculate integral
-      zint[i] += zerr;
-      //Fix windup
-      if(zint[i] > SHK_ALP_ZERN_INT_MAX) zint[i]=SHK_ALP_ZERN_INT_MAX;
-      if(zint[i] < SHK_ALP_ZERN_INT_MIN) zint[i]=SHK_ALP_ZERN_INT_MIN;
-      //Calculate command delta
-      zernike_delta[i] = shkevent->gain_alp_zern[i][0] * zerr + shkevent->gain_alp_zern[i][1] * zint[i];
+  if(shkevent->nspot_found >= SHK_ZFIT_MIN_CELLS){
+    for(i=0;i<LOWFS_N_ZERNIKE;i++){
+      if(zernike_switch[i]){
+	//Calculate error
+	zerr = shkevent->zernike_measured[i] - shkevent->zernike_target[i];
+	//Calculate integral
+	zint[i] += zerr;
+	//Fix windup
+	if(zint[i] > SHK_ALP_ZERN_INT_MAX) zint[i]=SHK_ALP_ZERN_INT_MAX;
+	if(zint[i] < SHK_ALP_ZERN_INT_MIN) zint[i]=SHK_ALP_ZERN_INT_MIN;
+	//Calculate command delta
+	zernike_delta[i] = shkevent->gain_alp_zern[i][0] * zerr + shkevent->gain_alp_zern[i][1] * zint[i];
+      }
+    }
+  }else{
+    //Clear integrators and deltas
+    for(i=0;i<LOWFS_N_ZERNIKE;i++){
+      zernike_delta[i] = 0;
+      zint[i] = 0;
     }
   }
 }

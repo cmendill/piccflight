@@ -485,7 +485,6 @@ int main(int argc,char **argv){
   if(HEX_ENABLE){
     printf("WAT: Opening HEX driver\n");
     if(hex_init(&hexfd)){
-      perror("hex_init");
       printf("WAT: ERROR: HEX init failed!\n");
     }
     else{

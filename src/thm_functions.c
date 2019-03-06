@@ -30,7 +30,7 @@ void thm_init_heater(int h, htr_t *htr){
     htr->adc      = 1;
     htr->ch       = 1; //check
     htr->maxpower = 50;
-    htr->setpoint = 25;
+    htr->setpoint = 20;
     htr->deadband = 1;
   }
 
@@ -40,7 +40,7 @@ void thm_init_heater(int h, htr_t *htr){
     htr->adc      = 1;
     htr->ch       = 3; //check
     htr->maxpower = 50;
-    htr->setpoint = 25;
+    htr->setpoint = 20;
     htr->deadband = 1;
   }
 
@@ -50,7 +50,7 @@ void thm_init_heater(int h, htr_t *htr){
     htr->adc      = 1;
     htr->ch       = 5; //check
     htr->maxpower = 50;
-    htr->setpoint = 25;
+    htr->setpoint = 20;
     htr->deadband = 1;
   }
 
@@ -60,7 +60,7 @@ void thm_init_heater(int h, htr_t *htr){
     htr->adc      = 1;
     htr->ch       = 7; //check
     htr->maxpower = 50;
-    htr->setpoint = 25;
+    htr->setpoint = 20;
     htr->deadband = 1;
   }
 
@@ -70,7 +70,7 @@ void thm_init_heater(int h, htr_t *htr){
     htr->adc      = 1;
     htr->ch       = 9; //check
     htr->maxpower = 50;
-    htr->setpoint = 25;
+    htr->setpoint = 20;
     htr->deadband = 1;
   }
 
@@ -80,7 +80,7 @@ void thm_init_heater(int h, htr_t *htr){
     htr->adc      = 1;
     htr->ch       = 11; //check
     htr->maxpower = 50;
-    htr->setpoint = 25;
+    htr->setpoint = 20;
     htr->deadband = 1;
   }
   
@@ -90,7 +90,7 @@ void thm_init_heater(int h, htr_t *htr){
     htr->adc      = 3;
     htr->ch       = 27;
     htr->maxpower = 50;
-    htr->setpoint = 25;
+    htr->setpoint = 20;
     htr->deadband = 1;
   }
 
@@ -100,7 +100,7 @@ void thm_init_heater(int h, htr_t *htr){
     htr->adc      = 3;
     htr->ch       = 28;
     htr->maxpower = 50;
-    htr->setpoint = 25;
+    htr->setpoint = 20;
     htr->deadband = 1;
   }
 
@@ -110,7 +110,7 @@ void thm_init_heater(int h, htr_t *htr){
     htr->adc      = 3;
     htr->ch       = 29;
     htr->maxpower = 50;
-    htr->setpoint = 25;
+    htr->setpoint = 20;
     htr->deadband = 1;
   }
 
@@ -120,7 +120,7 @@ void thm_init_heater(int h, htr_t *htr){
     htr->adc      = 3;
     htr->ch       = 30;
     htr->maxpower = 50;
-    htr->setpoint = 25;
+    htr->setpoint = 20;
     htr->deadband = 1;
   }
 
@@ -130,7 +130,7 @@ void thm_init_heater(int h, htr_t *htr){
     htr->adc      = 3;
     htr->ch       = 31;
     htr->maxpower = 50;
-    htr->setpoint = 25;
+    htr->setpoint = 20;
     htr->deadband = 1;
   }
 
@@ -141,7 +141,7 @@ void thm_init_heater(int h, htr_t *htr){
     htr->adc      = 1;
     htr->ch       = 8;
     htr->maxpower = 50;
-    htr->setpoint = 25;
+    htr->setpoint = 20;
     htr->deadband = 1;
   }
 
@@ -151,7 +151,7 @@ void thm_init_heater(int h, htr_t *htr){
     htr->adc      = 1;
     htr->ch       = 0;
     htr->maxpower = 50;
-    htr->setpoint = 25;
+    htr->setpoint = 20;
     htr->deadband = 1;
   }
 
@@ -161,7 +161,7 @@ void thm_init_heater(int h, htr_t *htr){
     htr->adc      = 1;
     htr->ch       = 4;
     htr->maxpower = 50;
-    htr->setpoint = 25;
+    htr->setpoint = 20;
     htr->deadband = 1;
   }
 
@@ -171,7 +171,7 @@ void thm_init_heater(int h, htr_t *htr){
     htr->adc      = 1;
     htr->ch       = 6;
     htr->maxpower = 50;
-    htr->setpoint = 25;
+    htr->setpoint = 20;
     htr->deadband = 1;
   }
 
@@ -181,7 +181,7 @@ void thm_init_heater(int h, htr_t *htr){
     htr->adc      = 1;
     htr->ch       = 2;
     htr->maxpower = 50;
-    htr->setpoint = 25;
+    htr->setpoint = 20;
     htr->deadband = 1;
   }
 

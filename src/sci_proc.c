@@ -30,6 +30,7 @@
 #define SCI_NFLUSHES 4
 #define SCI_XORIGIN {334,852,1363,1849,2327}; //band cutout x centers (relative to the ROI)
 #define SCI_YORIGIN {450,502,755,879,610};    //band cutout y centers (relative to the ROI)
+#define SCI_SEARCH   200                      //px search radius to find star in each band
 
 /* Process File Descriptor */
 int sci_shmfd;
@@ -86,13 +87,16 @@ void sci_setorigin(scievent_t *sci,uint16_t *img_buffer){
   int i,j,k;
   int imax=0,jmax=0;
   uint16_t pmax=0,p=0;
-
+  int64_t  index;
   /* Loop through band images, find max pixel */
   for(k=0;k<SCI_NBANDS;k++){
     pmax=0;
-    for(i=0;i<SCIXS;i++){
-      for(j=0;j<SCIYS;j++){
-	p = img_buffer[sci_xy2index(sci->xorigin[k]-(SCIXS/2)+i,sci->yorigin[k]-(SCIYS/2)+j)];
+    for(i=0;i<SCI_SEARCH;i++){
+      for(j=0;j<SCI_SEARCH;j++){
+	index = sci_xy2index(sci->xorigin[k]-(SCI_SEARCH/2)+i,sci->yorigin[k]-(SCI_SEARCH/2)+j);
+	index = index < 0 ? 0 : index;
+	index = index > (SCI_ROI_XSIZE*SCI_ROI_YSIZE - 1) ? (SCI_ROI_XSIZE*SCI_ROI_YSIZE - 1) : index;
+	p = img_buffer[index];
 	if(p > pmax){
 	  pmax = p;
 	  imax = i;
@@ -101,8 +105,8 @@ void sci_setorigin(scievent_t *sci,uint16_t *img_buffer){
       }
     }
     //Set new origin
-    sci->xorigin[k] += imax - (SCIXS/2);
-    sci->yorigin[k] += jmax - (SCIYS/2);
+    sci->xorigin[k] += imax - (SCI_SEARCH/2);
+    sci->yorigin[k] += jmax - (SCI_SEARCH/2);
   }
   
   //Print origin

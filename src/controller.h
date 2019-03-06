@@ -144,15 +144,15 @@ enum bmccalmodes {BMC_CALMODE_NONE,
 #define INSTRUMENT_INPUT_TYPE    INPUT_TYPE_SINGLE_PASS
 
 /*************************************************
-* Enable Switches
+* Master Enable Switches
 *************************************************/
 #define ALP_ENABLE      1 // ALPAO DM
 #define BMC_ENABLE      0 // BMC DM
-#define HEX_ENABLE      0 // Hexapod
+#define HEX_ENABLE      1 // Hexapod
 #define WSP_ENABLE      0 // WASP
-#define LED_ENABLE      0 // LED
-#define HTR_ENABLE      0 // Heaters
-#define MTR_ENABLE      0 // Motors
+#define LED_ENABLE      1 // LED
+#define HTR_ENABLE      1 // Heaters
+#define MTR_ENABLE      1 // Motors
 #define TLM_ENABLE      1 // Telemetry
 
 /*************************************************
@@ -397,6 +397,7 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
       0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,		\
       0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
 #define SHK_BEAM_NCELLS 148
+#define SHK_ZFIT_MIN_CELLS 10
 
 /*************************************************
  * Lyot-LOWFS Parameters
@@ -818,6 +819,8 @@ typedef struct shkevent_struct{
   shkcell_t cells[SHK_BEAM_NCELLS];
   uint32    boxsize;
   float     ccd_temp;
+  uint32    nspot_found;
+  uint32    nspot_captured;
   double    gain_alp_zern[LOWFS_N_ZERNIKE][LOWFS_N_PID];
   double    gain_alp_cell[LOWFS_N_PID];
   double    gain_hex_zern[LOWFS_N_PID];
