@@ -268,21 +268,23 @@ int hex_reference(int id, int force){
   char axis[] = "X";
   char msg[PI_ERR_LENGTH];
   
-  if(!force){
-    if(!PI_qFRF(id, axis, &bReferenced)){
-      PI_TranslateError(PI_GetError(id),msg,PI_ERR_LENGTH);
-      printf("HEX: PI_qFRF error: %s\n",msg);
-      return 1;
-    }
+  //Check if HEX is already referenced
+  if(!PI_qFRF(id, axis, &bReferenced)){
+    PI_TranslateError(PI_GetError(id),msg,PI_ERR_LENGTH);
+    printf("HEX: PI_qFRF error: %s\n",msg);
+    return 1;
   }
-  else{
-    printf("HEX: Force referencing axis %s...\n\r",axis);
+  
+  //Reference
+  if(!bReferenced || force){
+    printf("HEX: Referencing axis %s...\n\r",axis);
     if(!PI_FRF(id, axis)){
       PI_TranslateError(PI_GetError(id),msg,PI_ERR_LENGTH);
       printf("HEX: PI_FRF error: %s\n",msg);
       return 1;
     }
   }
+  
   return 0;
 }
 
