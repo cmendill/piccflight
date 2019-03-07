@@ -947,6 +947,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p){
   shkevent.hed.type         = BUFFER_SHKEVENT;
   shkevent.hed.frame_number = frame_number;
   shkevent.hed.exptime      = sm_p->shk_exptime;
+  shkevent.hed.frmtime      = sm_p->shk_frmtime;
   shkevent.hed.ontime       = dt;
   shkevent.hed.state        = state;
   shkevent.hed.start_sec    = start.tv_sec;
@@ -1234,6 +1235,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p){
     if(sample == SHK_NSAMPLES-1){
       //Header
       memcpy(&shkpkt.hed,&shkevent.hed,sizeof(pkthed_t));
+      shkpkt.hed.type = BUFFER_SHKPKT;
       //Cells
       for(i=0;i<SHK_BEAM_NCELLS;i++){
 	shkpkt.cells[i].spot_found              = shkevent.cells[i].spot_found;

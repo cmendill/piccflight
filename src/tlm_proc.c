@@ -15,10 +15,8 @@
 #include "controller.h"
 #include "common_functions.h"
 #include "rtd_functions.h"
-#include "tlm_proc.h"
 #include "fakemodes.h"
 
-#define SLEEP_TIME 10000
 #define NFAKE 100000
 #define FAKEMAX 65536
 
@@ -33,44 +31,7 @@ void *tlm_listen(void *t);
 pthread_t listener_thread;
 
 
-/******************************************************************************
-        Data Checking Functions
-******************************************************************************/
-int checkdata(sm_t *sm_p){
-  static int s,k,l,a;
-  /*Check in with watchdog*/
-  checkin(sm_p,TLMID);
-  s = check_buffer(sm_p, BUFFER_SCIEVENT, TLMID);
-  k = check_buffer(sm_p, BUFFER_SHKEVENT, TLMID);
-  l = check_buffer(sm_p, BUFFER_LYTEVENT, TLMID);
-  a = check_buffer(sm_p, BUFFER_ACQEVENT, TLMID);
-  
-  return(s || k || l || a);
-}
-
-int checksci(sm_t *sm_p){
-  /*Check in with watchdog*/
-  checkin(sm_p,TLMID);
-  return(check_buffer(sm_p, BUFFER_SCIEVENT, TLMID));
-}
-int checkshk(sm_t *sm_p){
-  /*Check in with watchdog*/
-  checkin(sm_p,TLMID);
-  return(check_buffer(sm_p, BUFFER_SHKEVENT, TLMID));
-}
-int checklyt(sm_t *sm_p){
-  /*Check in with watchdog*/
-  checkin(sm_p,TLMID);
-  return(check_buffer(sm_p, BUFFER_LYTEVENT, TLMID));
-}
-int checkacq(sm_t *sm_p){
-  /*Check in with watchdog*/
-  checkin(sm_p,TLMID);
-  return(check_buffer(sm_p, BUFFER_ACQEVENT, TLMID));
-}
-
-
-
+/* CTRL-C Function */
 void tlmctrlC(int sig){
   close(tlm_shmfd);
   close(ethfd);
@@ -80,6 +41,7 @@ void tlmctrlC(int sig){
   exit(sig);
 }
 
+/* Send data over TM*/
 void write_block(DM7820_Board_Descriptor* p_rtd_board, char *buf, uint32 num){
   static uint32 presync  = TLM_PRESYNC;
   static uint32 postsync = TLM_POSTSYNC;
@@ -131,9 +93,10 @@ void save_data(void *buf, uint32 num, char *tag, uint32 framenumber, uint32 fold
     return;
   }
   /*Write buffer to file */
-  if(write(fd,buf,num))
-    printf("TLM: save_data failed to write data!\n");
-  
+  if(write(fd,buf,num)<0){
+    printf("TLM: save_data failed to write data to %s\n",filename);
+    perror("TLM: write");
+  }
   /*Close file*/
   close(fd);
 #if MSG_SAVEDATA
@@ -141,10 +104,10 @@ void save_data(void *buf, uint32 num, char *tag, uint32 framenumber, uint32 fold
 #endif 
 }
 
+/* Main tlm_proc */
 void tlm_proc(void){
   uint32 i,j;
   unsigned long count=0;
-  char tag[3];
   uint32 folderindex=0;
   char datpath[200];
   char pathcmd[200];
@@ -152,11 +115,11 @@ void tlm_proc(void){
   uint16_t emptybuf[TLM_BUFFER_LENGTH];
   static uint32 ilast=0;
   struct stat st;
-  static scievent_t sci;
-  static shkevent_t shk;
-  static lytevent_t lyt;
-  static acqevent_t acq;
-  
+  char *buffer;
+  int maxsize=0;
+  int savedata=0;
+  int sentdata=0;
+  uint32 savecount[NCIRCBUF]={0};
   
   /* Open Shared Memory */
   sm_t *sm_p;
@@ -179,10 +142,24 @@ void tlm_proc(void){
   /* Fill out empty buffer*/
   for(i=0;i<TLM_BUFFER_LENGTH;i++)
     emptybuf[i]=TLM_EMPTY_CODE;
+
+  /* Allocate packet buffer */
+  for(i=0;i<NCIRCBUF;i++)
+    if(sm_p->circbuf[i].nbytes > maxsize)
+      maxsize = sm_p->circbuf[i].nbytes;
+  if((buffer = malloc(maxsize)) == NULL){
+    printf("TLM: buffer malloc failed!\n");
+    tlmctrlC(0);
+  }
+
   
-  
+  /* Check if we are saving any data */
+  for(i=0;i<NCIRCBUF;i++)
+    if(sm_p->circbuf[i].save)
+      savedata=1;
+
   /* Create folder for saved data */
-  if(SAVE_SCI || SAVE_SHK || SAVE_LYT || SAVE_ACQ){
+  if(savedata){
     while(1){
       sprintf(datpath,DATAPATH,folderindex);
       if(stat(datpath,&st))
@@ -190,12 +167,16 @@ void tlm_proc(void){
       folderindex++;
     }
     recursive_mkdir(datpath, 0777);
-    if(MSG_SAVEDATA)
-      printf("TLM: Saving data in: %s\n",datpath);
+
+    printf("TLM: Saving data to: %s\n",datpath);
   }
+  
+  /*****************************************************/
+  /* MAIN LOOP *****************************************/
+  /*****************************************************/
   while(1){
     
-    //check if we want to fake the TM data
+    /* Check if we want to fake the TM data */
     if(sm_p->w[TLMID].fakemode != FAKEMODE_NONE){
       if(sm_p->w[TLMID].fakemode == FAKEMODE_TEST_PATTERN){
 	for(i=0;i<NFAKE;i++){
@@ -207,10 +188,15 @@ void tlm_proc(void){
 	  }
 	}
 	ilast%=FAKEMAX;
+
+	//Check if we've been asked to exit
+	if(sm_p->w[TLMID].die)
+	  tlmctrlC(0);
 	
+	//Check in with watchdog
 	checkin(sm_p,TLMID);
 	
-	/*Write Data*/
+ 	/*Write Data*/
 	if(ethfd >= 0){
 	  write_to_socket(ethfd,fakeword,sizeof(uint16)*NFAKE);
 	  //sleep (time @ 250000 Wps)
@@ -225,95 +211,42 @@ void tlm_proc(void){
 	  }
 	}
       }
+      continue;
     }
-    else{
-      //Check if we've been asked to exit
-      if(sm_p->w[TLMID].die)
-	tlmctrlC(0);
-      
-      //Check for new data
-      if(!checkdata(sm_p)){
-	usleep(100000);
-      }
-      else{
-	
-	/*Get SCI data*/
-	if(read_from_buffer(sm_p, &sci, BUFFER_SCIEVENT, TLMID)){
-	  /*Check in with watchdog*/
-	  checkin(sm_p,TLMID);
-	  //save science data 
-	  if(SAVE_SCI){
-	    sprintf(tag,"sci");
-	      save_data(&sci, sizeof(sci),tag,sci.hed.frame_number,folderindex);
-	  }
-	  if(SEND_SCI){
-	    //write data
-	    if(sm_p->tlm_ready){
-	      write_block(sm_p->p_rtd_board,(char *)&sci, sizeof(sci));
-	      if(TLM_DEBUG)
-		printf("TLM: Frame %d - SCI\n",sci.hed.frame_number);
-	    }
-	  }
-	}
 
-	/*Get SHK data*/
-	if(read_from_buffer(sm_p, &shk, BUFFER_SHKEVENT, TLMID)){
-	  //check in with watchdog
-	  checkin(sm_p,TLMID);
-	  //save shk data 
-	  if(SAVE_SHK){
-	    sprintf(tag,"shk");
-	      save_data(&shk, sizeof(shk),tag,shk.hed.frame_number,folderindex);
-	  }
-	  //send shk data
-	  if(SEND_SHK){
+    /* Send real TM data */
+    sentdata=0;
+    
+    //Check if we've been asked to exit
+    if(sm_p->w[TLMID].die)
+      tlmctrlC(0);
+
+    //Loop over circular buffers
+    for(i=0;i<NCIRCBUF;i++){
+      if(sm_p->circbuf[i].send || sm_p->circbuf[i].save){
+	//Read data
+	if(read_from_buffer(sm_p, buffer, i, TLMID)){
+	  //Send data
+	  if(sm_p->circbuf[i].send){
 	    if(sm_p->tlm_ready){
-	      write_block(sm_p->p_rtd_board,(char *)&shk, sizeof(shk));
-	      if(TLM_DEBUG)
-		printf("TLM: Frame %d - SHK\n",shk.hed.frame_number);
+	      write_block(sm_p->p_rtd_board,buffer,sm_p->circbuf[i].nbytes);
 	    }
 	  }
-	}
-	
-	/*Get LYT data*/
-	if(read_from_buffer(sm_p, &lyt, BUFFER_LYTEVENT, TLMID)){
-	  //check in with watchdog
-	  checkin(sm_p,TLMID);
-	  //save lyt data 
-	  if(SAVE_LYT){
-	    sprintf(tag,"lyt");
-	      save_data(&lyt, sizeof(lyt),tag,lyt.hed.frame_number,folderindex);
+	  //Save data
+	  if(sm_p->circbuf[i].save){
+	    save_data(buffer, sm_p->circbuf[i].nbytes,(char *)sm_p->circbuf[i].name,savecount[i]++,folderindex);
 	  }
-	  //send lyt data
-	  if(SEND_LYT){
-	    if(sm_p->tlm_ready){
-	      write_block(sm_p->p_rtd_board,(char *)&lyt, sizeof(lyt));
-	      if(TLM_DEBUG)
-		printf("TLM: Frame %d - LYT\n",lyt.hed.frame_number);
-	    }
-	  }
-	}
-	
-	/*Get ACQ data*/
-	if(read_from_buffer(sm_p, &acq, BUFFER_ACQEVENT, TLMID)){
-	  //check in with watchdog
-	  checkin(sm_p,TLMID);
-	  //save acq data 
-	  if(SAVE_ACQ){
-	    sprintf(tag,"acq");
-	      save_data(&acq, sizeof(acq),tag,acq.hed.frame_number,folderindex);
-	  }
-	  //send acq data
-	  if(SEND_ACQ){
-	    if(sm_p->tlm_ready){
-	      write_block(sm_p->p_rtd_board,(char *)&acq, sizeof(acq));
-	      if(TLM_DEBUG)
-		printf("TLM: Frame %d - ACQ\n",acq.hed.frame_number);
-	    }
-	  }
+	  sentdata=1;
 	}
       }
     }
+
+    //Checkin with watchdog
+    checkin(sm_p,TLMID);
+
+    //Sleep if no data
+    if(!sentdata)
+      usleep(10000);
   }
       
   tlmctrlC(0);

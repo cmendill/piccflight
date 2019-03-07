@@ -548,6 +548,8 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 #define TLM_DATA_RATE      250000                //Words per second = 4Mbps = 4us/word
 #define TLM_EMPTY_CODE     0xFADE                //Code to send when there is no data
 #define TLM_REPLACE_CODE   0xFFFF                //Code to replace empty codes with in data
+#define TLM_PRESYNC        0x12345678            //TLM packet pre sync word
+#define TLM_POSTSYNC       0xDEADBEEF            //TLM packet post sync word
 #define TLM_BUFFER_LENGTH  (TLM_DATA_RATE/10)    //TLM DMA buffer length (10 updates/sec)
 #define TLM_BUFFER_SIZE    (TLM_BUFFER_LENGTH*2) //TLM DMA buffer size
 
@@ -771,7 +773,7 @@ typedef struct pkthed_struct{
 
   uint32  state;        //system state
   float   exptime;      //commanded exposure time
-  float   frametime;    //commanded frame time
+  float   frmtime;      //commanded frame time
   float   ontime;       //measured frame time
   
   uint16  hex_calmode;  //hex calmode
@@ -949,6 +951,9 @@ typedef struct circbuf_struct{
   uint32 write_offset; //last entry written
   uint32 nbytes;   //number of bytes in structure
   uint32 bufsize;  //number of structures in circular buffer
+  int    write;    //switch to enable writing to buffer
+  int    send;     //switch to enable TLM sending buffer
+  int    save;     //switch to enable TLM saving buffer
   char name[128];  //name of buffer
 } circbuf_t;
 

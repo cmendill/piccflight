@@ -400,6 +400,7 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
   scievent.hed.type         = BUFFER_SCIEVENT;
   scievent.hed.frame_number = frame_number++;
   scievent.hed.exptime      = sm_p->sci_exptime;
+  scievent.hed.frmtime      = sm_p->sci_frmtime;
   scievent.hed.ontime       = dt;
   scievent.hed.start_sec    = start.tv_sec;
   scievent.hed.start_nsec   = start.tv_nsec;

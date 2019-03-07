@@ -424,6 +424,7 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
   lytevent.hed.type         = BUFFER_LYTEVENT;
   lytevent.hed.frame_number = frame_number;
   lytevent.hed.exptime      = sm_p->lyt_exptime;
+  lytevent.hed.frmtime      = sm_p->lyt_frmtime;
   lytevent.hed.ontime       = dt;
   lytevent.hed.state        = state;
   lytevent.hed.start_sec    = start.tv_sec;
@@ -595,6 +596,7 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
     if(sample == LYT_NSAMPLES-1){
       //Header
       memcpy(&lytpkt.hed,&lytevent.hed,sizeof(pkthed_t));
+      lytpkt.hed.type = BUFFER_LYTPKT;
       //Image
       memcpy(&lytpkt.image,&lytevent.image,sizeof(lyt_t));
       //Zernike gains and targets

@@ -109,7 +109,8 @@ void acq_process_image(uvc_frame_t *frame, sm_t *sm_p) {
   acqevent.hed.version      = PICC_PKT_VERSION;
   acqevent.hed.type         = BUFFER_ACQEVENT;
   acqevent.hed.frame_number = frame->sequence;
-  acqevent.hed.exptime      = 0;
+  acqevent.hed.exptime      = sm_p->acq_exptime;
+  acqevent.hed.frmtime      = sm_p->acq_frmtime;
   acqevent.hed.ontime       = dt;
   acqevent.hed.start_sec    = start.tv_sec;
   acqevent.hed.start_nsec   = start.tv_nsec;
