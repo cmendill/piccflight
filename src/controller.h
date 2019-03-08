@@ -524,6 +524,7 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 #define COS_Z             cos(THETA_Z)
 #define SIN_Z             sin(THETA_Z)
 #define HEX_REF_TIMEOUT   20  //seconds
+#define HEX_MOVE_TIMEOUT  5   //seconds
 #define HEX_PERIOD        0.5 //seconds, time between commands
 
 /*************************************************

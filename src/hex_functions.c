@@ -75,25 +75,41 @@ void hex_disconnect(int id){
 }
 
 /**************************************************************/
+/* HEX_GET_ERROR                                              */
+/*  - Get PI error code and statement                         */
+/**************************************************************/
+void hex_get_error(int id){
+  char msg[PI_ERR_LENGTH];
+  PI_TranslateError(PI_GetError(id),msg,PI_ERR_LENGTH);
+  printf("HEX: Error: %s\n",msg);
+}
+
+/**************************************************************/
 /* HEX_INIT                                                   */
 /*  - Initialize Hexapod                                      */
 /**************************************************************/
 int hex_init(int *hexfd){
   int bFlag,i;
-  double pivot[3]   = {HEX_PIVOT_X,HEX_PIVOT_Y,HEX_PIVOT_Z};
   char msg[PI_ERR_LENGTH];
-  
+  double hexzero[HEX_NAXES] = {0,0,0,0,0,0};
+  double pivot[3]  = {HEX_PIVOT_X,HEX_PIVOT_Y,HEX_PIVOT_Z};
+  char *chkaxis=""; //will check all axes
+  int bIsMoving=0;
+
   /* Connect to Hexapod */
   if((*hexfd=hex_connect()) < 0){
     printf("HEX: hex_connect error!\n");
     return 1;
   }
-  
+
+  /* Clear Error State */
+  PI_TranslateError(PI_GetError(*hexfd),msg,PI_ERR_LENGTH);
+  printf("HEX: Initial error state: %s\n",msg);
+   
   /* Reference Hexapod */
   if(hex_reference(*hexfd, 0)){
     printf("HEX: hex_reference error!\n");
-    hex_disconnect(*hexfd);
-    return 1;
+    return 0;
   }
   
   /* Wait for Referencing to Finish */
@@ -102,8 +118,7 @@ int hex_init(int *hexfd){
     if(!PI_IsControllerReady(*hexfd, &bFlag)){
       PI_TranslateError(PI_GetError(*hexfd),msg,PI_ERR_LENGTH);
       printf("HEX: PI_IsControllerReady error: %s\n",msg);
-      hex_disconnect(*hexfd);
-      return 1;
+      return 0;
     }
     if(bFlag) break;
     //Sleep 1 second
@@ -111,18 +126,39 @@ int hex_init(int *hexfd){
   }
   if(i==HEX_REF_TIMEOUT){
     printf("HEX: Referencing timeout!!\n");
-    hex_disconnect(*hexfd);
-    return 1;
+    return 0;
   }else{
     printf("HEX: Referencing complete after %d seconds\n",i);
   }
+
+  /* Go to home (all zeros) position */
+  if(hex_move(*hexfd, hexzero)){
+    PI_TranslateError(PI_GetError(*hexfd),msg,PI_ERR_LENGTH);
+    printf("HEX: hex_move error: %s\n",msg);
+    return 0;
+  }
+
+  /* Wait for hexapod to stop moving */
+  for(i=0;i<HEX_MOVE_TIMEOUT;i++){
+    printf("HEX: Waiting for hexapod to stop moving...\n");
+    if(!PI_IsMoving(*hexfd,chkaxis, &bIsMoving)){
+      PI_TranslateError(PI_GetError(*hexfd),msg,PI_ERR_LENGTH);
+      printf("HEX: PI_IsMoving error: %s\n",msg);
+      return 0;
+    }
+    if(!bIsMoving) break;
+    sleep(1);
+  }
+  if(i==HEX_MOVE_TIMEOUT)
+    printf("HEX: Wait for hexapod to stop moving timeout\n");
+  printf("HEX: Stopped\n");
   
   /* Set Pivot Point*/
   if(hex_setpivot(*hexfd, pivot)){
     printf("HEX: hex_setpivot error!\n");
-    hex_disconnect(*hexfd);
-    return 1;
+    return 0;
   }
+  printf("HEX: Pivot point set\n");
   
   return 0;
 }

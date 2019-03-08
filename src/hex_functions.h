@@ -5,6 +5,7 @@
 void hex_init_calmode(int calmode, calmode_t *hex);
 int  hex_connect(void);
 void hex_disconnect(int id);
+void hex_get_error(int id);
 int  hex_init(int *hexfd);
 void hex_get_command(sm_t *sm_p, hex_t *cmd);
 int  hex_send_command(sm_t *sm_p, hex_t *cmd, int proc_id);

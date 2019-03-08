@@ -608,6 +608,15 @@ int handle_command(char *line, sm_t *sm_p){
   sprintf(cmd,"hex");
   if(!strncasecmp(line,cmd,strlen(cmd))){
     if(sm_p->state_array[sm_p->state].hex_commander == WATID){
+      //Get hex error
+      sprintf(cmd,"hex get error");
+      if(!strncasecmp(line,cmd,strlen(cmd))){
+	if(sm_p->hex_ready)
+	  hex_get_error(sm_p->hexfd);
+	else
+	  printf("CMD: HEX not ready\n");
+	return(CMD_NORMAL);
+      }
       //Initialize hexapod
       sprintf(cmd,"hex init");
       if(!strncasecmp(line,cmd,strlen(cmd))){
@@ -669,6 +678,10 @@ int handle_command(char *line, sm_t *sm_p){
       //Query current position
       sprintf(cmd,"hex getpos");
       if(!strncasecmp(line,cmd,strlen(cmd))){
+	if(!sm_p->hex_ready){
+	  printf("CMD: HEX not ready\n");
+	  return(CMD_NORMAL);
+	}
 	printf("CMD: Getting hexapod position\n");
 	hex_printpos(sm_p->hexfd);
 	return(CMD_NORMAL);
@@ -774,16 +787,18 @@ int handle_command(char *line, sm_t *sm_p){
 	hexcmd.acmd[hex_axis] += hex_poke;
 	if(!hex_send_command(sm_p,&hexcmd,WATID))
 	  printf("CMD: Hexapod command failed\n");
+	return(CMD_NORMAL);
       }
-      return(CMD_NORMAL);
-
     }
     else{
       printf("CMD: Manual hexapod control disabled in this state\n");
       return(CMD_NORMAL);
     }
+    //No hex command found
+    printf("CMD: Bad hex command format\n");
+    return(CMD_NORMAL);
   }
-
+  
   /****************************************
    * ALPAO DM CONTROL
    ***************************************/
