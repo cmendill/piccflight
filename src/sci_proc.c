@@ -30,7 +30,7 @@
 #define SCI_NFLUSHES 4
 #define SCI_XORIGIN {334,852,1363,1849,2327}; //band cutout x centers (relative to the ROI)
 #define SCI_YORIGIN {450,502,755,879,610};    //band cutout y centers (relative to the ROI)
-#define SCI_SEARCH   200                      //px search radius to find star in each band
+#define SCI_SEARCH   400                      //px search diameter to find star in each band
 
 /* Process File Descriptor */
 int sci_shmfd;
