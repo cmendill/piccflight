@@ -21,8 +21,8 @@
 
 #define SCI_ROI_XSIZE 2840
 #define SCI_ROI_YSIZE 2224
-#define SCI_HBIN 1
-#define SCI_VBIN 1
+#define SCI_HBIN 1 //do not change, will break code below
+#define SCI_VBIN 1 //do not change, will break code below
 #define SCI_UL_X 0
 #define SCI_UL_Y 0
 #define SCI_LR_X (SCI_UL_X+(SCI_ROI_XSIZE/SCI_HBIN))
@@ -75,7 +75,7 @@ void scictrlC(int sig){
 /* SCI_XY2INDEX                                               */
 /*  - Convert image (x,y) to image buffer index               */
 /**************************************************************/
-uint32_t sci_xy2index(int x,int y){
+uint64_t sci_xy2index(int x,int y){
   return y*SCI_ROI_XSIZE + x;
 }
 
@@ -117,7 +117,48 @@ void sci_setorigin(scievent_t *sci,uint16_t *img_buffer){
   printf("\n");
 }
 
+/***************************************************************/
+/* SCI_FINDORIGIN                                              */
+/*  - Set band origins from current image                      */
+/*  - Run a search over the full image                         */
+/***************************************************************/
+void sci_findorigin(scievent_t *sci,uint16_t *img_buffer){
+  int i,j,x,y;
+  uint8_t  mask[SCI_ROI_XSIZE][SCI_ROI_YSIZE]={0};
+  uint16_t maxval;
+  uint16_t thresh=100;
+  int      boxsize = 40;
+  int      xorigin[SCI_NBANDS]={0};
+  int      yorigin[SCI_NBANDS]={0};
+  int      k=0;
+  
+  //Loop over entire image
+  for(i=0;i<SCI_ROI_XSIZE;i++){
+    for(j=0;j<SCI_ROI_YSIZE;j++){
+      if(!mask[i][j] && (img_buffer[sci_xy2index(i,j)] > thresh)){
+	//Spot found, find maximum pixel over boxsize search region
+	maxval = 0;
+	for(x=i-boxsize/2;x<i+boxsize/2;x++){
+	  for(y=j-boxsize/2;y<j+boxsize/2;y++){
+	    if(x >= 0 && y >= 0 && x < SCI_ROI_XSIZE && y < SCI_ROI_YSIZE){
+	      if(!mask[x][y] && (img_buffer[sci_xy2index(x,y)] > maxval)){
+		maxval = img_buffer[sci_xy2index(x,y)];
+		xorigin[k] = x;
+		yorigin[k] = y;
+	      }
+	      //Mark pixel used
+	      mask[x][y] = 1;
+	    }
+	  }
+	}
+	//Increment spot counter
+	k++;
+      }
+    }
+  }
 
+  //Sort spots by x coordinate
+}
 /**************************************************************/
 /* SCI_LOADORIGIN                                             */
 /*  - Load band origins from file                             */
