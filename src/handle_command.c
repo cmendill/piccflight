@@ -1815,6 +1815,27 @@ int handle_command(char *line, sm_t *sm_p){
     return(CMD_NORMAL);
   }
 
+  sprintf(cmd,"sci find origin");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    printf("CMD: Finding SCI origin\n");
+    sm_p->sci_findorigin=1;
+    return(CMD_NORMAL);
+  }
+
+  sprintf(cmd,"sci track origin on");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    printf("CMD: Turning SCI origin tracking ON\n");
+    sm_p->sci_trackorigin=1;
+    return(CMD_NORMAL);
+  }
+
+  sprintf(cmd,"sci track origin off");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    printf("CMD: Turning SCI origin tracking OFF\n");
+    sm_p->sci_trackorigin=0;
+    return(CMD_NORMAL);
+  }
+
   sprintf(cmd,"sci revert origin");
   if(!strncasecmp(line,cmd,strlen(cmd))){
     printf("CMD: Reverting SCI origin\n");

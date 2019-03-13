@@ -108,13 +108,6 @@ void sci_setorigin(scievent_t *sci,uint16_t *img_buffer){
     sci->xorigin[k] += imax - (SCI_SEARCH/2);
     sci->yorigin[k] += jmax - (SCI_SEARCH/2);
   }
-  
-  //Print origin
-  printf("SCI: Origin:");
-  for(k=0;k<SCI_NBANDS;k++){
-    printf(" (%d,%d)",sci->xorigin[k],sci->yorigin[k]);
-  }
-  printf("\n");
 }
 
 /***************************************************************/
@@ -130,7 +123,7 @@ void sci_findorigin(scievent_t *sci,uint16_t *img_buffer){
   int      boxsize = 40;
   int      xorigin[SCI_NBANDS]={0};
   int      yorigin[SCI_NBANDS]={0};
-  int      k=0;
+  int      k=0,imin=0,xmin=0;
   
   //Loop over entire image
   for(i=0;i<SCI_ROI_XSIZE;i++){
@@ -153,12 +146,29 @@ void sci_findorigin(scievent_t *sci,uint16_t *img_buffer){
 	}
 	//Increment spot counter
 	k++;
+	if(k==SCI_NBANDS) goto sort_spots;
       }
     }
   }
-
+  
+ sort_spots:
   //Sort spots by x coordinate
+  for(k=0;k<SCI_NBANDS;k++){
+    xmin = SCI_ROI_XSIZE;
+    for(i=0;i<SCI_NBANDS;i++){
+      if(xorigin[i] < xmin){
+	imin = i;
+	xmin = xorigin[imin];
+      }
+    }
+    //Save Kth origin
+    sci->xorigin[k] = xorigin[imin];
+    sci->yorigin[k] = yorigin[imin];
+    //Max out xorigin so we skip it next time
+    xorigin[imin] = SCI_ROI_XSIZE;
+  }
 }
+
 /**************************************************************/
 /* SCI_LOADORIGIN                                             */
 /*  - Load band origins from file                             */
@@ -213,13 +223,6 @@ void sci_loadorigin(scievent_t *sci){
   //Copy origins
   memcpy(sci->xorigin,xorigin,sizeof(xorigin));
   memcpy(sci->yorigin,yorigin,sizeof(yorigin));
-
-  //Print origin
-  printf("SCI: Origin:");
-  for(k=0;k<SCI_NBANDS;k++){
-    printf(" (%d,%d)",sci->xorigin[k],sci->yorigin[k]);
-  }
-  printf("\n");
 }
 
 /***************************************************************/
@@ -265,13 +268,6 @@ void sci_saveorigin(scievent_t *sci){
 
   //Close file
   fclose(fd);
-
-  //Print origin
-  printf("SCI: Origin:");
-  for(k=0;k<SCI_NBANDS;k++){
-    printf(" (%d,%d)",sci->xorigin[k],sci->yorigin[k]);
-  }
-  printf("\n");
 }
 
 /**************************************************************/
@@ -286,13 +282,6 @@ void sci_revertorigin(scievent_t *sci){
   /* Copy default origins */
   memcpy(sci->xorigin,xorigin,sizeof(xorigin));
   memcpy(sci->yorigin,yorigin,sizeof(yorigin));
-    
-  //Print origin
-  printf("SCI: Origin:");
-  for(k=0;k<SCI_NBANDS;k++){
-    printf(" (%d,%d)",sci->xorigin[k],sci->yorigin[k]);
-  }
-  printf("\n");
 }
 
 /**************************************************************/
@@ -381,7 +370,8 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
   uint16 fakepx=0;
   uint32 i,j,k;
   static unsigned long frame_number=0;
-
+  int print_origin=0;
+  
   //Get time immidiately
   clock_gettime(CLOCK_REALTIME,&start);
   
@@ -419,21 +409,44 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
   if(sm_p->sci_setorigin){
     sci_setorigin(&scievent,img_buffer);
     sm_p->sci_setorigin=0;
+    print_origin=1;
+  }
+  //Command: sci_findorigin 
+  if(sm_p->sci_findorigin){
+    sci_findorigin(&scievent,img_buffer);
+    sm_p->sci_findorigin=0;
+    print_origin=1;
+  }
+  //Command: sci_trackorigin 
+  if(sm_p->sci_trackorigin){
+    //--set origin every time, user must disable
+    sci_setorigin(&scievent,img_buffer);
   }
   //Command: sci_saveorigin 
   if(sm_p->sci_saveorigin){
     sci_saveorigin(&scievent);
     sm_p->sci_saveorigin=0;
+    print_origin=1;
   }
   //Command: sci_loadorigin 
   if(sm_p->sci_loadorigin){
     sci_loadorigin(&scievent);
     sm_p->sci_loadorigin=0;
+    print_origin=1;
   }
   //Command: sci_revertorigin 
   if(sm_p->sci_revertorigin){
     sci_revertorigin(&scievent);
     sm_p->sci_revertorigin=0;
+    print_origin=1;
+  }
+  //Print origin
+  if(print_origin){
+    printf("SCI: Origin:");
+    for(k=0;k<SCI_NBANDS;k++){
+      printf(" (%d,%d)",scievent.xorigin[k],scievent.yorigin[k]);
+    }
+    printf("\n");
   }
 
   //Fill out event header 

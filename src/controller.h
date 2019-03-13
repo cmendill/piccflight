@@ -1045,6 +1045,8 @@ typedef volatile struct {
   
   //SCI Origin Commands
   int sci_setorigin;
+  int sci_findorigin;
+  int sci_trackorigin;
   int sci_revertorigin;
   int sci_saveorigin;
   int sci_loadorigin;

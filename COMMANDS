@@ -356,6 +356,16 @@ cmd: lyt alp gain [cnd]
 cmd: sci set origin
         set brightest pixels in each band as the ROI center
 
+cmd: sci find origin
+        set brightest pixels in each band as the ROI center
+        search the entire image
+
+cmd: sci track origin on
+        continually set brightest pixels in each band as the ROI center
+
+cmd: sci track origin off
+        turn off brightest pixel tracking
+	
 cmd: sci revert origin
 	revert the band ROIs to the #defined centers
 
