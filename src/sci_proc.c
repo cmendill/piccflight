@@ -117,7 +117,7 @@ void sci_setorigin(scievent_t *sci,uint16_t *img_buffer){
 /***************************************************************/
 void sci_findorigin(scievent_t *sci,uint16_t *img_buffer){
   int i,j,x,y;
-  uint8_t  mask[SCI_ROI_XSIZE][SCI_ROI_YSIZE]={0};
+  uint8_t  mask[SCI_ROI_XSIZE][SCI_ROI_YSIZE]={{0}};
   uint16_t maxval;
   uint16_t thresh=100;
   int      boxsize = 40;
