@@ -9,6 +9,23 @@
 
 /* piccflight headers */
 #include "controller.h"
+#include "watchdog.h"
+
+/*************************************************
+ * CHANGE_STATE
+ *  - Change state and setup system settings
+ *************************************************/
+void change_state(sm_t *sm_p, int state){
+  int i;
+  uint8 procrun[NCLIENTS] = PROCRUN;
+  
+  //Set process run flags -- do not override defaults
+  for(i=0;i<NCLIENTS;i++)
+    sm_p->w[i].run = procrun[i] && sm_p->state_array[state].proc_run[i];
+  
+  //Change state
+  sm_p->state = state;
+}
 
 /*************************************************
  * INIT_STATE
@@ -27,10 +44,10 @@ void init_state(int state_number, state_t *state){
   state->wsp_commander = -1;
   state->shk.fit_zernikes = 1;
   state->lyt.fit_zernikes = 1;
-
+  
   //Enable all processes by default
   for(i=0;i<NCLIENTS;i++)
-    state->proc_enable[i] = 1;
+    state->proc_run[i] = 1;
 
   //STATE_STANDBY
   if(state_number == STATE_STANDBY){
@@ -56,10 +73,10 @@ void init_state(int state_number, state_t *state){
     //Set cmd
     sprintf(state->cmd,"lpw");
     //Disable camera procs
-    state->proc_enable[SHKID] = 0;
-    state->proc_enable[LYTID] = 0;
-    state->proc_enable[SCIID] = 0;
-    state->proc_enable[ACQID] = 0;
+    state->proc_run[SHKID] = 0;
+    state->proc_run[LYTID] = 0;
+    state->proc_run[SCIID] = 0;
+    state->proc_run[ACQID] = 0;
     //HEX Commander
     state->hex_commander = WATID;
     //ALP Commander

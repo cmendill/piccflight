@@ -25,6 +25,7 @@ void getshk_proc(void); //get shkevents
 void getlyt_proc(void); //get lytevents
 void getsci_proc(void); //get scievents
 void init_fakemode(int fakemode, calmode_t *fake);
+void change_state(sm_t *sm_p, int state);
 
 /**************************************************************/
 /* PRINT_PROCSTATUS                                           */
@@ -48,15 +49,15 @@ void print_procstatus(sm_t *sm_p){
 /* PRINT_STATES                                               */
 /*  - Print out available states                              */
 /**************************************************************/
-void print_states(sm_t *sm_p, int current){
+void print_states(state_t *state, int current){
   int i;
   printf("************ Available States ************\n");
   printf("#    Command    Name\n");
   for(i=0;i<NSTATES;i++){
     if(current == i)
-      printf("%02d   %-6s    *%s\n",i,sm_p->state_array[i].cmd,sm_p->state_array[i].name);
+      printf("%02d   %-6s    *%s\n",i,state[i].cmd,state[i].name);
     else
-      printf("%02d   %-6s     %s\n",i,sm_p->state_array[i].cmd,sm_p->state_array[i].name);
+      printf("%02d   %-6s     %s\n",i,state[i].cmd,state[i].name);
   }
   printf("******************************************\n");
 
@@ -515,12 +516,12 @@ int handle_command(char *line, sm_t *sm_p){
     cmdfound=0;
     for(i=0;i<NSTATES;i++){
       if(!strncasecmp(line+strlen(cmd)+1,(char *)sm_p->state_array[i].cmd,strlen((char *)sm_p->state_array[i].cmd))){
-	sm_p->state = i;
+	change_state(sm_p,i);
 	printf("CMD: Changing state to %s\n",sm_p->state_array[i].name);
 	cmdfound = 1;
       }
     }
-    if(!cmdfound) print_states(sm_p,sm_p->state);
+    if(!cmdfound) print_states(sm_p->state_array,sm_p->state);
     return(CMD_NORMAL);
   }
   

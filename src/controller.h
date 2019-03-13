@@ -607,7 +607,6 @@ typedef struct procinfo_struct{
   int    per;  //Process checkin period
   //Runtime
   int    pid; //PID # of process
-  int    ena; //Enable switch
   int    die; //Ask process to exit switch
   int    res; //Restart process
   uint32 chk; //# checkins
@@ -657,7 +656,7 @@ typedef struct acqctrl_struct{
 typedef struct state_struct{
   char      name[MAX_COMMAND];
   char      cmd[MAX_COMMAND];
-  int       proc_enable[NCLIENTS];
+  int       proc_run[NCLIENTS];
   int       hex_commander;
   int       alp_commander;
   int       bmc_commander;

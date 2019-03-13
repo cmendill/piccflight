@@ -33,6 +33,7 @@
 /* Prototypes */
 int handle_command(char *line, sm_t *sm_p);
 void init_state(int state_number, state_t *state);
+void change_state(sm_t *sm_p, int state);
 int getirq(char *driver);
 int setirq_affinity(int irq, int proc);
 
@@ -155,11 +156,6 @@ void wat_proc(void){
 
   /* Start Watchdog */
   while(1){
-    /*Set state enable bits*/
-    state = sm_p->state;
-    for(i=0;i<NCLIENTS;i++)
-      sm_p->w[i].ena = sm_p->state_array[state].proc_enable[i];
-    
     /*(SECTION 0): If process has died, reset its pid*/
     for(i=0;i<NCLIENTS;i++)
       if(i != WATID)
@@ -181,7 +177,7 @@ void wat_proc(void){
     /*(SECTION 2): If loop has died or been dead for last LOOP_TIMEOUT checks: KILL */
     for(i=0;i<NCLIENTS;i++)
       if(i != WATID)
-	if(sm_p->w[i].run && sm_p->w[i].ena){
+	if(sm_p->w[i].run){
 	  if((((sm_p->w[i].cnt > sm_p->w[i].tmo) && (sm_p->w[i].tmo > 0)) || sm_p->w[i].die) && sm_p->w[i].pid != -1){
 	    printf("WAT: %s timeout: %d > %d\n",sm_p->w[i].name,sm_p->w[i].cnt,sm_p->w[i].tmo);
 	    kill_proc(sm_p,i);
@@ -191,21 +187,21 @@ void wat_proc(void){
     /*(SECTION 3): If loop is not running and should be: LAUNCH */
     for(i=0;i<NCLIENTS;i++)
       if(i != WATID)
-	if(sm_p->w[i].run && sm_p->w[i].ena)
+	if(sm_p->w[i].run)
 	  if(sm_p->w[i].pid == -1)
 	    launch_proc(sm_p,i);
 
     /*(SECTION 4): If loop is running and shouldn't be: KILL */
     for(i=0;i<NCLIENTS;i++)
       if(i != WATID)
-	if(!(sm_p->w[i].run && sm_p->w[i].ena))
+	if(!sm_p->w[i].run)
 	  if(sm_p->w[i].pid != -1)
 	    kill_proc(sm_p,i);
 
     /*(SECTION 5): If loop returned and needs to be restarted */
     for(i=0;i<NCLIENTS;i++)
       if(i != WATID)
-	if(sm_p->w[i].run && sm_p->w[i].ena)
+	if(sm_p->w[i].run)
 	  if(sm_p->w[i].pid != -1)
 	    if(sm_p->w[i].res == 1){
 	      kill_proc(sm_p,i);
@@ -216,7 +212,7 @@ void wat_proc(void){
     /* Loops will increment chk every time thru*/
     for(i=0;i<NCLIENTS;i++){
       if(i != WATID){
-	if(sm_p->w[i].run && sm_p->w[i].ena){
+	if(sm_p->w[i].run){
 	  chk = sm_p->w[i].chk;
 	  if((chk == sm_p->w[i].rec) && (sm_p->w[i].pid != -1)){
 	    sm_p->w[i].cnt++;
@@ -286,7 +282,6 @@ int main(int argc,char **argv){
   for(i=0;i<NCLIENTS;i++){
     sm_p->w[i].pid  = -1;
     sm_p->w[i].run  =  procrun[i];
-    sm_p->w[i].ena  =  1;
     sm_p->w[i].die  =  0;
     sm_p->w[i].chk  =  0;
     sm_p->w[i].rec  =  0;
@@ -316,7 +311,6 @@ int main(int argc,char **argv){
   /* Set Runtime Defaults */
   /* All shmem numbers are ZERO unless defined here */
   sm_p->die                = 0;
-  sm_p->state              = STATE_LOW_POWER;
   sm_p->sci_exptime        = SCI_EXPTIME_DEFAULT;
   sm_p->sci_frmtime        = SCI_FRMTIME_DEFAULT;
   sm_p->shk_exptime        = SHK_EXPTIME_DEFAULT;
@@ -333,6 +327,9 @@ int main(int argc,char **argv){
   sm_p->lyt_yorigin        = LYT_YORIGIN_DEFAULT;
   sm_p->sci_tec_enable     = 0;
   sm_p->sci_tec_setpoint   = SCI_TEC_SETPOINT_MAX;
+
+  //Set initial state
+  change_state(sm_p,STATE_LOW_POWER);
   
   //Enable control of all zernikes by default
   for(i=0;i<LOWFS_N_ZERNIKE;i++){
