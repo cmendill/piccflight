@@ -148,7 +148,7 @@ enum bmccalmodes {BMC_CALMODE_NONE,
 *************************************************/
 #define ALP_ENABLE      1 // ALPAO DM
 #define BMC_ENABLE      0 // BMC DM
-#define HEX_ENABLE      1 // Hexapod
+#define HEX_ENABLE      0 // Hexapod
 #define WSP_ENABLE      0 // WASP
 #define LED_ENABLE      1 // LED
 #define HTR_ENABLE      1 // Heaters
@@ -288,7 +288,7 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 #define LYTREADYS       48 
 #define ACQXS           1280
 #define ACQYS           960
-
+#define ACQBIN          2
 
 /*************************************************
  * Camera Full Image Times
@@ -420,6 +420,11 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 #define SCI_NSAMPLES            1 //number of scievents to save in a single packet
 #define SCI_TEC_SETPOINT_MIN  -40 //C
 #define SCI_TEC_SETPOINT_MAX   40 //C
+
+/*************************************************
+ * ACQ Camera Parameters
+ *************************************************/
+#define ACQ_MAX_GIF_SIZE       10000 //bytes
 
 /*************************************************
  * BMC DM Parameters
@@ -690,7 +695,7 @@ typedef struct lytref_struct{
 } lytref_t;
 
 typedef struct acq_struct{
-  uint16 data[ACQXS][ACQYS];
+  uint8 data[ACQXS][ACQYS];
 } acq_t;
 
 
@@ -765,7 +770,7 @@ typedef struct alpcal_struct{
 /*************************************************
  * Packet Header
  *************************************************/
-#define PICC_PKT_VERSION     17  //packet version number
+#define PICC_PKT_VERSION     18  //packet version number
 typedef struct pkthed_struct{
   uint16  version;      //packet version number
   uint16  type;         //packet ID word
@@ -907,6 +912,10 @@ typedef struct scievent_struct{
 
 typedef struct acqevent_struct{
   pkthed_t  hed;
+  uint16    xcen;
+  uint16    ycen;
+  uint32    gif_nbytes;
+  uint8     gif[ACQ_MAX_GIF_SIZE];
   hex_t     hex;
   wsp_t     wsp;
 } acqevent_t;

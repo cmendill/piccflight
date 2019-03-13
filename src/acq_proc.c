@@ -10,6 +10,7 @@
 #include <ctype.h>
 #include <libusb.h>
 #include <libuvc.h>
+#include <libbmp.h>
 
 /* piccflight headers */
 #include "controller.h"
@@ -57,6 +58,26 @@ void acqctrlC(int sig)
 }
 
 /**************************************************************/
+/* ACQ_BUILD_GIF                                              */
+/*  - Function to compress an image using GIF                 */
+/**************************************************************/
+void acq_build_gif(unsigned char *input, unsigned char *build_output, int *build_size){
+  uint64_t i;
+  
+  //Create bitmap structure and populate as grayscale
+  Bitmap *b = bm_create(ACQXS/ACQBIN, ACQYS/ACQBIN);
+  for(i=0;i<(ACQXS/ACQBIN)*(ACQYS/ACQBIN);i++){
+    b->data[4*i+0]=input[i];    //Blue
+    b->data[4*i+1]=input[i];    //Green
+    b->data[4*i+2]=input[i];    //Red
+    b->data[4*i+3]=0;           //Alpha
+  }
+
+  bm_save_gif(b, build_output, build_size);
+  bm_free(b);
+}
+
+/**************************************************************/
 /* ACQ_PROCESS_IMAGE                                          */
 /*  - Process ACQ camera image                                */
 /**************************************************************/
@@ -70,6 +91,12 @@ void acq_process_image(uvc_frame_t *frame, sm_t *sm_p) {
   double dt;
   uint16_t fakepx=0;
   int i,j;
+  uint8_t  full_image[ACQYS][ACQXS];
+  uint16_t binned_image16[ACQYS/ACQBIN][ACQXS/ACQBIN]={{0}};
+  uint8_t  binned_image8[ACQYS/ACQBIN][ACQXS/ACQBIN]={{0}};
+  uint8_t  gif_data[(ACQXS/ACQBIN)*(ACQYS/ACQBIN)];
+  int      gif_nbytes = 0;
+  const uint8_t thresh = 5;
   
   //Get time immidiately
   clock_gettime(CLOCK_REALTIME,&start);
@@ -114,6 +141,37 @@ void acq_process_image(uvc_frame_t *frame, sm_t *sm_p) {
   acqevent.hed.ontime       = dt;
   acqevent.hed.start_sec    = start.tv_sec;
   acqevent.hed.start_nsec   = start.tv_nsec;
+
+  //Copy full image
+  memcpy(&full_image[0][0],frame->data,sizeof(full_image));
+
+  //Bin image
+  for(i=0;i<ACQYS;i++){
+    for(j=0;j<ACQXS;j++){
+      binned_image16[i/ACQBIN][j/ACQBIN] += (uint16_t)full_image[i][j];
+    }
+  }
+
+  //Average bins
+  for(i=0;i<ACQYS/ACQBIN;i++){
+    for(j=0;j<ACQXS/ACQBIN;j++){
+      binned_image8[i][j] = binned_image16[i][j] / (ACQBIN*ACQBIN);
+      //Threshold
+      if(binned_image8[i][j] < thresh) binned_image8[i][j] = 0;
+    }
+  }
+  
+  //Compress image
+  acq_build_gif(&binned_image8[0][0], gif_data, &gif_nbytes);
+  
+  //Write gif data to event
+  if(gif_nbytes <= ACQ_MAX_GIF_SIZE){
+    memcpy(acqevent.gif,gif_data,gif_nbytes);
+    acqevent.gif_nbytes = gif_nbytes;
+  }
+  else{
+    printf("ACQ: Compressed image too large %d\n",gif_nbytes);
+  }
 
   //Write ACQEVENT to circular buffer 
   if(sm_p->write_circbuf[BUFFER_ACQEVENT]){
@@ -246,7 +304,7 @@ void acq_proc(void){
   
 
     /* Setup stream profile */
-    if((res = uvc_get_stream_ctrl_format_size(devh, &ctrl, UVC_FRAME_FORMAT_GRAY16, ACQXS, ACQYS, fps))<0){
+    if((res = uvc_get_stream_ctrl_format_size(devh, &ctrl, UVC_FRAME_FORMAT_GRAY8, ACQXS, ACQYS, fps))<0){
       uvc_perror(res, "get_mode"); /* device doesn't provide a matching stream */
       acqctrlC(0);
     }
