@@ -521,7 +521,7 @@ int handle_command(char *line, sm_t *sm_p){
 	cmdfound = 1;
       }
     }
-    if(!cmdfound) print_states(sm_p->state_array,sm_p->state);
+    if(!cmdfound) print_states((state_t *)sm_p->state_array,sm_p->state);
     return(CMD_NORMAL);
   }
   
