@@ -328,15 +328,12 @@ int main(int argc,char **argv){
   sm_p->sci_tec_enable     = 0;
   sm_p->sci_tec_setpoint   = SCI_TEC_SETPOINT_MAX;
 
-  //Set initial state
-  change_state(sm_p,STATE_LOW_POWER);
-  
   //Enable control of all zernikes by default
   for(i=0;i<LOWFS_N_ZERNIKE;i++){
     sm_p->shk_zernike_control[i] = 1;
     sm_p->lyt_zernike_control[i] = 1;
   }
-
+  
   //SHK PID Gains
   double shk_gain_alp_zern[LOWFS_N_ZERNIKE][LOWFS_N_PID] = SHK_GAIN_ALP_ZERN_DEFAULT;
   memcpy((double *)&sm_p->shk_gain_alp_zern[0][0],&shk_gain_alp_zern[0][0],sizeof(shk_gain_alp_zern));
@@ -353,6 +350,9 @@ int main(int argc,char **argv){
   for(i=0;i<NSTATES;i++)
     init_state(i,(state_t *)&sm_p->state_array[i]);
 
+  /* Set startup state */
+  change_state(sm_p,STATE_LOW_POWER);
+  
   /* Configure Circular Buffers */
   //-- Event buffers
   sm_p->circbuf[BUFFER_SCIEVENT].buffer  = (void *)sm_p->scievent;
