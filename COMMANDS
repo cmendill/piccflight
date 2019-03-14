@@ -390,6 +390,12 @@ cmd: sci tec setpoint [arg]
         sets the sci tec setpoint to [arg] degrees C
 	arg = signed integer degrees C
 
+------------- ACQ CAMERA SETTINGS -------------
+
+cmd: acq thresh [arg]
+	set acq image minimum pixel value threshold to [arg]
+	arg = 0-255 ADU
+
 ------------- DOOR CONTROL -------------
 
 cmd: open door [arg]
@@ -452,6 +458,13 @@ cmd: htr [arg1] sensor [arg2] [arg3]
 	arg1 = 0-15
 	arg2 = 1,2,3
 	arg3 = 0-32
+
+------------- THERMAL CONTROL -------------
+cmd: thm vref enable
+	enable auto calibration of temperature sensors using the vref measurement
+
+cmd: thm vref disable
+	disable auto calibration of temperature sensors using the vref measurement
 
 ------------- LED CONTROL -------------
 

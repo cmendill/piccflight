@@ -1893,6 +1893,21 @@ int handle_command(char *line, sm_t *sm_p){
   }
   
   /****************************************
+   * ACQ CAMERA SETTINGS
+   **************************************/
+  sprintf(cmd,"acq thresh");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    itemp = atoi(line+strlen(cmd)+1);
+    if(itemp >= 0 && itemp <= ACQ_THRESH_MAX){
+      sm_p->acq_thresh = itemp;
+      printf("CMD: Changed ACQ threshold to %d\n",sm_p->acq_thresh);
+    }else{
+      printf("CMD: ACQ threshold out of bounds [%d,%d]\n",0,ACQ_THRESH_MAX);
+    }
+    return(CMD_NORMAL);
+  }
+  
+  /****************************************
    * DOOR CONTROL
    **************************************/
 
@@ -2152,6 +2167,23 @@ int handle_command(char *line, sm_t *sm_p){
     printf("CMD: Bad heater command format\n");
     return CMD_NORMAL;
   }
+
+  /****************************************
+   * THERMAL CONTROL 
+   **************************************/
+  sprintf(cmd,"thm vref enable");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    printf("CMD: Enabling THM VREF calibration\n");
+    sm_p->thm_enable_vref = 1;
+    return(CMD_NORMAL);
+  }
+  sprintf(cmd,"thm vref disable");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    printf("CMD: Disabling THM VREF calibration\n");
+    sm_p->thm_enable_vref = 0;
+    return(CMD_NORMAL);
+  }
+
 
   /****************************************
    * LED CONTROL

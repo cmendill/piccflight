@@ -96,8 +96,7 @@ void acq_process_image(uvc_frame_t *frame, sm_t *sm_p) {
   uint8_t  binned_image8[ACQYS/ACQBIN][ACQXS/ACQBIN]={{0}};
   uint8_t  gif_data[(ACQXS/ACQBIN)*(ACQYS/ACQBIN)];
   int      gif_nbytes = 0;
-  const uint8_t thresh = 5;
-  
+   
   //Get time immidiately
   clock_gettime(CLOCK_REALTIME,&start);
   
@@ -157,7 +156,7 @@ void acq_process_image(uvc_frame_t *frame, sm_t *sm_p) {
     for(j=0;j<ACQXS/ACQBIN;j++){
       binned_image8[i][j] = binned_image16[i][j] / (ACQBIN*ACQBIN);
       //Threshold
-      if(binned_image8[i][j] < thresh) binned_image8[i][j] = 0;
+      if(binned_image8[i][j] < sm_p->acq_thresh) binned_image8[i][j] = 0;
     }
   }
   

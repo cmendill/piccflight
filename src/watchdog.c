@@ -327,6 +327,8 @@ int main(int argc,char **argv){
   sm_p->lyt_yorigin        = LYT_YORIGIN_DEFAULT;
   sm_p->sci_tec_enable     = 0;
   sm_p->sci_tec_setpoint   = SCI_TEC_SETPOINT_MAX;
+  sm_p->acq_thresh         = ACQ_THRESH_DEFAULT;
+  sm_p->thm_enable_vref    = THM_ENABLE_VREF_DEFAULT;
 
   //Enable control of all zernikes by default
   for(i=0;i<LOWFS_N_ZERNIKE;i++){

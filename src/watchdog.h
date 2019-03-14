@@ -128,4 +128,10 @@
 //Hexapod Settings
 #define HEX_TILT_CORRECT_DEFAULT  1
 
+//ACQ Settings
+#define ACQ_THRESH_DEFAULT  5
+
+//THM Settings
+#define THM_ENABLE_VREF 1
+
 #endif

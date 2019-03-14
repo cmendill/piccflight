@@ -370,7 +370,8 @@ void thm_proc(void){
 	fprintf(stderr, "THM: Gain = %d\n",dscadsettings1.gain);
 	thmctrlC(0);
       }
-      vref = voltage*(ADC1_R1+RTD_OHMS)/RTD_OHMS;
+      if(sm_p->thm_enable_vref) vref = voltage*(ADC1_R1+RTD_OHMS)/RTD_OHMS;
+      
       for(i = 0; i < ADC1_NCHAN; i++){
 	if(dscADCodeToVoltage(board1, dscadsettings1, dscadscan1.sample_values[i], &voltage) != DE_NONE) {
 	  dscGetLastError(&errorParams);

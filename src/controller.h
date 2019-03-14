@@ -425,6 +425,7 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
  * ACQ Camera Parameters
  *************************************************/
 #define ACQ_MAX_GIF_SIZE       10000 //bytes
+#define ACQ_THRESH_MAX         255
 
 /*************************************************
  * BMC DM Parameters
@@ -1089,6 +1090,8 @@ typedef volatile struct {
   //Other Commands
   int hex_getpos;
   int hex_tilt_correct;
+  int acq_thresh;
+  int thm_enable_vref;
 
   //Door Commands
   int open_door[MTR_NDOORS];
