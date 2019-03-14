@@ -119,6 +119,7 @@ void tlm_proc(void){
   int maxsize=0;
   int savedata=0;
   int sentdata=0;
+  int readdata=0;
   uint32 savecount[NCIRCBUF]={0};
   
   /* Open Shared Memory */
@@ -225,7 +226,16 @@ void tlm_proc(void){
     for(i=0;i<NCIRCBUF;i++){
       if(sm_p->circbuf[i].send || sm_p->circbuf[i].save){
 	//Read data
-	if(read_from_buffer(sm_p, buffer, i, TLMID)){
+	readdata=0;
+	if(sm_p->circbuf[i].send == 1)
+	  if(read_from_buffer(sm_p, buffer, i, TLMID))
+	    readdata=1;
+	if(sm_p->circbuf[i].send == 2)
+	  if(read_newest_buffer(sm_p, buffer, i, TLMID))
+	    readdata=1;
+	
+	//Send & save data
+	if(readdata){
 	  //Send data
 	  if(sm_p->circbuf[i].send){
 	    if(sm_p->tlm_ready){

@@ -33,7 +33,7 @@
 #define SEND_SCIEVENT_DEFAULT      1
 #define SEND_SHKEVENT_DEFAULT      0
 #define SEND_LYTEVENT_DEFAULT      0
-#define SEND_ACQEVENT_DEFAULT      1
+#define SEND_ACQEVENT_DEFAULT      2 //2 means always send newest data
 #define SEND_THMEVENT_DEFAULT      1
 #define SEND_MTREVENT_DEFAULT      1
 #define SEND_SHKPKT_DEFAULT        1
@@ -129,9 +129,9 @@
 #define HEX_TILT_CORRECT_DEFAULT  1
 
 //ACQ Settings
-#define ACQ_THRESH_DEFAULT  5
+#define ACQ_THRESH_DEFAULT        5
 
 //THM Settings
-#define THM_ENABLE_VREF 1
+#define THM_ENABLE_VREF_DEFAULT   1
 
 #endif
