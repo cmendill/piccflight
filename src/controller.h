@@ -84,12 +84,7 @@ enum procids {WATID, SCIID, SHKID, LYTID, TLMID, ACQID, MTRID, THMID, SRVID, DIA
  *************************************************/
 enum states { STATE_STANDBY,
 	      STATE_LOW_POWER,
-	      STATE_LED_LOCATE,
-	      STATE_HEX_MANUAL_CONTROL,
-	      STATE_HEX_DEFAULT_HOME,
-	      STATE_HEX_THERMAL_HOME,
-	      STATE_HEX_SPIRAL_SEARCH,
-	      STATE_HEX_CAPTURE_TARGET,
+	      STATE_ACQUIRE_TARGET,
 	      STATE_M2_ALIGN,
 	      STATE_SHK_HEX_CALIBRATE,
 	      STATE_SHK_ALP_CALIBRATE,
@@ -148,7 +143,7 @@ enum bmccalmodes {BMC_CALMODE_NONE,
 *************************************************/
 #define ALP_ENABLE      1 // ALPAO DM
 #define BMC_ENABLE      0 // BMC DM
-#define HEX_ENABLE      0 // Hexapod
+#define HEX_ENABLE      1 // Hexapod
 #define WSP_ENABLE      0 // WASP
 #define LED_ENABLE      1 // LED
 #define HTR_ENABLE      1 // Heaters

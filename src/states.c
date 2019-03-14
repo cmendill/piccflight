@@ -49,6 +49,9 @@ void init_state(int state_number, state_t *state){
   for(i=0;i<NCLIENTS;i++)
     state->proc_run[i] = 1;
 
+  //Turn off ACQ camera by default
+  state->proc_run[ACQID] = 0;
+
   //STATE_STANDBY
   if(state_number == STATE_STANDBY){
     //Set name
@@ -83,84 +86,26 @@ void init_state(int state_number, state_t *state){
     state->alp_commander = WATID;
     return;
   }
-
-  //STATE_LED_LOCATE
-  if(state_number == STATE_LED_LOCATE){
+  
+  //STATE_ACQUIRE_TARGET
+  if(state_number == STATE_ACQUIRE_TARGET){
     //Set name
-    sprintf(state->name,"STATE_LED_LOCATE");
+    sprintf(state->name,"STATE_ACQUIRE_TARGET");
     //Set cmd
-    sprintf(state->cmd,"led");
-    //Tell ACQ to locate LED
-    state->acq.locate_led = 1;
-    return;
-  }
-
-  //STATE_HEX_MANUAL_CONTROL
-  if(state_number == STATE_HEX_MANUAL_CONTROL){
-    //Set name
-    sprintf(state->name,"STATE_HEX_MANUAL_CONTROL");
-    //Set cmd
-    sprintf(state->cmd,"hmc");
-    //Set WATID as hex commander
+    sprintf(state->cmd,"acq");
+    //HEX Commander
     state->hex_commander = WATID;
-    //Enable SHK zernike fitting
-    state->shk.fit_zernikes = 1;
+    //ALP Commander
+    state->alp_commander = WATID;
+    //Configure Cameras
+    state->proc_run[SHKID] = 0;
+    state->proc_run[LYTID] = 0;
+    state->proc_run[SCIID] = 0;
+    state->proc_run[ACQID] = 1;
     return;
   }
 
-  //STATE_HEX_DEFAULT_HOME
-  if(state_number == STATE_HEX_DEFAULT_HOME){
-    //Set name
-    sprintf(state->name,"STATE_HEX_DEFAULT_HOME");
-    //Set cmd
-    sprintf(state->cmd,"hdh");
-    //Set ACQID as hex commander
-    state->hex_commander = ACQID;
-    //Tell ACQ to set hex to default home
-    state->acq.hex_default_home = 1;
-
-    return;
-  }
-
-  //STATE_HEX_THERMAL_HOME
-  if(state_number == STATE_HEX_THERMAL_HOME){
-    //Set name
-    sprintf(state->name,"STATE_HEX_THERMAL_HOME");
-    //Set cmd
-    sprintf(state->cmd,"hth");
-    //Set ACQID as hex commander
-    state->hex_commander = ACQID;
-    //Tell ACQ to set hex to thermal home
-    state->acq.hex_thermal_home = 1;
-    return;
-  }
-
-  //STATE_HEX_SPIRAL_SEARCH
-  if(state_number == STATE_HEX_SPIRAL_SEARCH){
-    //Set name
-    sprintf(state->name,"STATE_HEX_SPIRAL_SEARCH");
-    //Set cmd
-    sprintf(state->cmd,"hss");
-    //Set ACQID as hex commander
-    state->hex_commander = ACQID;
-    //Tell ACQ to run hex spiral search
-    state->acq.hex_spiral_search = 1;
-    return;
-  }
-
-  //STATE_HEX_CAPTURE_TARGET
-  if(state_number == STATE_HEX_CAPTURE_TARGET){
-    //Set name
-    sprintf(state->name,"STATE_HEX_CAPTURE_TARGET");
-    //Set cmd
-    sprintf(state->cmd,"hct");
-    //Define ACQID as hex controller
-    state->hex_commander = ACQID;
-    //Tell ACQ to capture target
-    state->acq.hex_capture_target = 1;
-    return;
-  }
-
+  
   //STATE_M2_ALIGN
   if(state_number == STATE_M2_ALIGN){
     //Set name
