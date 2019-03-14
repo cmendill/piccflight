@@ -28,7 +28,7 @@ void thm_init_heater(int h, htr_t *htr){
   if(h == 0){
     sprintf(htr->name,"HEX1");
     htr->adc      = 1;
-    htr->ch       = 1; //check
+    htr->ch       = 5;
     htr->maxpower = 50;
     htr->setpoint = 20;
     htr->deadband = 1;
@@ -38,7 +38,7 @@ void thm_init_heater(int h, htr_t *htr){
   if(h == 1){
     sprintf(htr->name,"HEX2");
     htr->adc      = 1;
-    htr->ch       = 3; //check
+    htr->ch       = 9; 
     htr->maxpower = 50;
     htr->setpoint = 20;
     htr->deadband = 1;
@@ -48,7 +48,7 @@ void thm_init_heater(int h, htr_t *htr){
   if(h == 2){
     sprintf(htr->name,"HEX3");
     htr->adc      = 1;
-    htr->ch       = 5; //check
+    htr->ch       = 11;
     htr->maxpower = 50;
     htr->setpoint = 20;
     htr->deadband = 1;
@@ -58,7 +58,7 @@ void thm_init_heater(int h, htr_t *htr){
   if(h == 3){
     sprintf(htr->name,"HEX4");
     htr->adc      = 1;
-    htr->ch       = 7; //check
+    htr->ch       = 3; 
     htr->maxpower = 50;
     htr->setpoint = 20;
     htr->deadband = 1;
@@ -68,7 +68,7 @@ void thm_init_heater(int h, htr_t *htr){
   if(h == 4){
     sprintf(htr->name,"HEX5");
     htr->adc      = 1;
-    htr->ch       = 9; //check
+    htr->ch       = 7; 
     htr->maxpower = 50;
     htr->setpoint = 20;
     htr->deadband = 1;
@@ -78,7 +78,7 @@ void thm_init_heater(int h, htr_t *htr){
   if(h == 5){
     sprintf(htr->name,"HEX6");
     htr->adc      = 1;
-    htr->ch       = 11; //check
+    htr->ch       = 13;
     htr->maxpower = 50;
     htr->setpoint = 20;
     htr->deadband = 1;

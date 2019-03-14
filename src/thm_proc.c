@@ -26,12 +26,10 @@
 #define HTR_NSTEPS     100  //Heater resolution (0-100%)
 #define HTR_NCYCLES    10   //Number of heater output cycles
 #define ADC_NAVG       10   //Number of temperature reads to average
-#define ADC_REF_SENSOR 14
+#define ADC_REF_SENSOR 15
 
 /* temperature conversion */
-#define ADC1_VREF       4.71    //volts
-#define ADC2_VREF       4.71    //volts
-#define ADC3_VREF       4.71    //volts
+#define DEFAULT_VREF    5.0     //volts
 #define ADC1_R1         1000.0  //ohms
 #define ADC2_R1         2000.0  //ohms
 #define ADC3_R1         2000.0  //ohms
@@ -70,7 +68,7 @@ void thm_proc(void){
   static int init = 0;
   static unsigned long count=0;
   double resistance;              // calculated RTD resistance
-  double v_ref;                   // calculated using the reference resistor RTD_OHMS
+  double vref = DEFAULT_VREF;     // calculated using the reference resistor RTD_OHMS
   uint16_t htr_command;           // heater command word
   unsigned char htr_lsb=0,htr_msb=0;
   const long htr_sleep = ONE_MILLION / HTR_NSTEPS / HTR_NCYCLES; //us
@@ -354,72 +352,73 @@ void thm_proc(void){
     // and then plug it into one of the formulas located in the manual for
     // your board (under "A/D Conversion Formulas"). 
     //=========================================================================
-
+    
     //Run through averaging loop
     for(iavg=0;iavg<ADC_NAVG;iavg++){
-      //Board 1 ADC
+      //Board ADC1
       #if PICC_DIO_ENABLE == 0
       if((result = dscADScan(board1, &dscadscan1, samples1 )) != DE_NONE){
 	dscGetLastError(&errorParams);
-	fprintf(stderr, "THM: Board 1 dscADScan error: %s %s\n", dscGetErrorString(errorParams.ErrCode), errorParams.errstring);
+	fprintf(stderr, "THM: Board ADC1 dscADScan error: %s %s\n", dscGetErrorString(errorParams.ErrCode), errorParams.errstring);
 	thmctrlC(0);
       }
+      
       //Get reference voltage
       if(dscADCodeToVoltage(board1, dscadsettings1, dscadscan1.sample_values[ADC_REF_SENSOR], &voltage) != DE_NONE) {
 	dscGetLastError(&errorParams);
-	fprintf(stderr, "THM: Board 1 dscADCodeToVoltage error: %s %s\n", dscGetErrorString(errorParams.ErrCode), errorParams.errstring);
-	  fprintf(stderr, "THM: Gain = %d\n",dscadsettings1.gain);
-	  thmctrlC(0);
+	fprintf(stderr, "THM: Board ADC1 dscADCodeToVoltage error: %s %s\n", dscGetErrorString(errorParams.ErrCode), errorParams.errstring);
+	fprintf(stderr, "THM: Gain = %d\n",dscadsettings1.gain);
+	thmctrlC(0);
       }
-      v_ref = voltage*(ADC1_R1+RTD_OHMS)/RTD_OHMS;
+      vref = voltage*(ADC1_R1+RTD_OHMS)/RTD_OHMS;
       for(i = 0; i < ADC1_NCHAN; i++){
 	if(dscADCodeToVoltage(board1, dscadsettings1, dscadscan1.sample_values[i], &voltage) != DE_NONE) {
 	  dscGetLastError(&errorParams);
-	  fprintf(stderr, "THM: Board 1 dscADCodeToVoltage error: %s %s\n", dscGetErrorString(errorParams.ErrCode), errorParams.errstring);
+	  fprintf(stderr, "THM: Board ADC1 dscADCodeToVoltage error: %s %s\n", dscGetErrorString(errorParams.ErrCode), errorParams.errstring);
 	  fprintf(stderr, "THM: Gain = %d\n",dscadsettings1.gain);
 	  thmctrlC(0);
 	}
-	resistance = (voltage * ADC1_R1) / (v_ref - voltage);
+	resistance = (voltage * ADC1_R1) / (vref - voltage);
 	if(iavg == 0) thmevent.adc1_temp[i] = 0; //reset temp to zero for averaging
 	if(i == ADC_REF_SENSOR)
-	  thmevent.adc1_temp[i] = v_ref;
+	  thmevent.adc1_temp[i] = vref;
 	else
 	  thmevent.adc1_temp[i] += ((resistance - RTD_OHMS)/(RTD_ALPHA * RTD_OHMS)) / ADC_NAVG;
       }
       #endif
     
-      //Board 2 ADC
+      //Board ADC2
       if((result = dscADScan(board2, &dscadscan2, samples2 )) != DE_NONE){
 	dscGetLastError(&errorParams);
-	fprintf(stderr, "THM: Board 2 dscADScan error: %s %s\n", dscGetErrorString(errorParams.ErrCode), errorParams.errstring);
+	fprintf(stderr, "THM: Board ADC2 dscADScan error: %s %s\n", dscGetErrorString(errorParams.ErrCode), errorParams.errstring);
 	thmctrlC(0);
       }
       for(i = 0; i < ADC2_NCHAN; i++){
 	if(dscADCodeToVoltage(board2, dscadsettings2, dscadscan2.sample_values[i], &voltage) != DE_NONE) {
 	  dscGetLastError(&errorParams);
-	  fprintf(stderr, "THM: Board 2 dscADCodeToVoltage error: %s %s\n", dscGetErrorString(errorParams.ErrCode), errorParams.errstring);
+	  fprintf(stderr, "THM: Board ADC2 dscADCodeToVoltage error: %s %s\n", dscGetErrorString(errorParams.ErrCode), errorParams.errstring);
 	  fprintf(stderr, "THM: Gain = %d\n",dscadsettings2.gain);
 	  thmctrlC(0);
 	}
-	resistance = (voltage * ADC2_R1) / (ADC2_VREF - voltage);
+	resistance = (voltage * ADC2_R1) / (vref - voltage);
 	if(iavg == 0) thmevent.adc2_temp[i] = 0; //reset temp to zero for averaging
 	thmevent.adc2_temp[i] += ((resistance - RTD_OHMS)/(RTD_ALPHA * RTD_OHMS)) / ADC_NAVG;
       }
 
-      //Board 3 ADC
+      //Board ADC3
       if((result = dscADScan(board3, &dscadscan3, samples3 )) != DE_NONE){
 	dscGetLastError(&errorParams);
-	fprintf(stderr, "THM: Board 3 dscADScan error: %s %s\n", dscGetErrorString(errorParams.ErrCode), errorParams.errstring);
+	fprintf(stderr, "THM: Board ADC3 dscADScan error: %s %s\n", dscGetErrorString(errorParams.ErrCode), errorParams.errstring);
 	thmctrlC(0);
       }
       for(i = 0; i < ADC3_NCHAN; i++){
 	if(dscADCodeToVoltage(board3, dscadsettings3, dscadscan3.sample_values[i], &voltage) != DE_NONE) {
 	  dscGetLastError(&errorParams);
-	  fprintf(stderr, "THM: Board 3 dscADCodeToVoltage error: %s %s\n", dscGetErrorString(errorParams.ErrCode), errorParams.errstring);
+	  fprintf(stderr, "THM: Board ADC3 dscADCodeToVoltage error: %s %s\n", dscGetErrorString(errorParams.ErrCode), errorParams.errstring);
 	  fprintf(stderr, "THM: Gain = %d\n",dscadsettings3.gain);
 	  thmctrlC(0);
 	}
-	resistance = (voltage * ADC3_R1) / (ADC3_VREF - voltage);
+	resistance = (voltage * ADC3_R1) / (vref - voltage);
 	if(iavg == 0) thmevent.adc3_temp[i] = 0; //reset temp to zero for averaging
 	thmevent.adc3_temp[i] += ((resistance - RTD_OHMS)/(RTD_ALPHA * RTD_OHMS)) / ADC_NAVG;
       }
