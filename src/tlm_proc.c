@@ -121,7 +121,9 @@ void tlm_proc(void){
   int sentdata=0;
   int readdata=0;
   uint32 savecount[NCIRCBUF]={0};
-  
+  struct timespec now,delta,last[NCIRCBUF];
+  double dt;
+
   /* Open Shared Memory */
   sm_t *sm_p;
   if((sm_p = openshm(&tlm_shmfd)) == NULL){
@@ -171,6 +173,10 @@ void tlm_proc(void){
 
     printf("TLM: Saving data to: %s\n",datpath);
   }
+
+  /* Init start times */
+  for(i=0;i<NCIRCBUF;i++)
+    clock_gettime(CLOCK_REALTIME,&last[i]);
   
   /*****************************************************/
   /* MAIN LOOP *****************************************/
@@ -225,6 +231,11 @@ void tlm_proc(void){
     //Loop over circular buffers
     for(i=0;i<NCIRCBUF;i++){
       if(sm_p->circbuf[i].send || sm_p->circbuf[i].save){
+	//Get time
+	clock_gettime(CLOCK_REALTIME,&now);
+	if(timespec_subtract(&delta,&now,&last[i]))
+	  printf("SRV: timespec_subtract error!\n");
+	ts2double(&delta,&dt);
 	//Read data
 	readdata=0;
 	if(sm_p->circbuf[i].send == 1)
@@ -247,6 +258,8 @@ void tlm_proc(void){
 	    save_data(buffer, sm_p->circbuf[i].nbytes,(char *)sm_p->circbuf[i].name,savecount[i]++,folderindex);
 	  }
 	  sentdata=1;
+	  //save time
+	  memcpy(&last[i],&now,sizeof(struct timespec));
 	}
       }
     }
@@ -255,8 +268,9 @@ void tlm_proc(void){
     checkin(sm_p,TLMID);
 
     //Sleep if no data
-    if(!sentdata)
+    if(!sentdata){
       usleep(10000);
+    }
   }
       
   tlmctrlC(0);
