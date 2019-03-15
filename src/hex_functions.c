@@ -449,14 +449,14 @@ void hex_zern2hex_alt(double *zernikes, double *axes){
   double dX=0,dY=0,dZ=0,dU=0,dV=0,dW=0;
 
   //Calibration
-  double dVdZ0 = -0.000532325;
-  double dUdZ1 =  0.000566154;
-  double dXdZ4 =  0.64/0.3;
-  double dYdZ3 = -0.64/0.2;
-  double dZdZ2 =  0.1;
-  double dVdX  = -0.1;
-  double dUdY  =  0.1; 
-  double dZdZ1 = 0.0277399; //mm/zern micron
+  double dVdZ0 =  0.000532325; //+V --> +Z0
+  double dUdZ1 =  0.000566154; //+U --> +Z1
+  double dXdZ4 = -0.64/0.3;    //+X --> -Z4 (after correct with -V)
+  double dYdZ3 = -0.64/0.2;    //+Y --> -Z3 (after correct with +U)
+  double dZdZ2 =  0.1;         //+Z --> +Z2
+  double dZdZ1 =  0.0277399;   //+Z --> +Z1
+  double dVdX  = -0.1; //+X == +V, Move V opposite X to fix
+  double dUdY  =  0.1; //+Y == -U, Move U same as Y to fix
   double dUdZ  = -dUdZ1 / dZdZ1;
   
   //Convert astig to HEX dX & dY
