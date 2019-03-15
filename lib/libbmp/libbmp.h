@@ -328,6 +328,7 @@ Bitmap *bm_from_stb(int w, int h, unsigned char *data);
  */
 int bm_save(Bitmap *b, const char *fname, unsigned char *p_save, int *p_save_size);
 int bm_save_gif(Bitmap *b, unsigned char *p_savegif, int *p_savegif_size);
+int bm_encode_gif(Bitmap *b, unsigned char *p_gif, int *p_gif_size);
 /**
  * ### Binding Functions
  * These functions are used to bind a `Bitmap` structure to

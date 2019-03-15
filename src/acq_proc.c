@@ -73,7 +73,10 @@ void acq_build_gif(unsigned char *input, unsigned char *build_output, int *build
     b->data[4*i+3]=0;           //Alpha
   }
 
-  bm_save_gif(b, build_output, build_size);
+  //Encode gif
+  bm_encode_gif(b, build_output, build_size);
+
+  //Free bitmap structure
   bm_free(b);
 }
 

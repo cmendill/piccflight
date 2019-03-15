@@ -2470,6 +2470,207 @@ int bm_save_gif(Bitmap *b, unsigned char *p_savegif, int *p_savegif_size) {
     return 0;
 }
 
+int bm_encode_gif(Bitmap *b, unsigned char *p_gif, int *p_gif_size) {
+  GIF gif;
+  int nc, sgct, bg;
+  struct rgb_triplet gct[256];
+  Bitmap *bo = b;
+  unsigned char code_size = 0x08;
+  int len, x, y, p;
+  unsigned char *bytes, *pixels;
+
+  //START OF HEADER / LOGICAL SCREEN DATA
+  memcpy(gif.header.signature, "GIF", 3);
+  memcpy(gif.header.version, "89a", 3);
+  gif.version = gif_89a;
+  gif.lsd.width = b->w;
+  gif.lsd.height = b->h;
+  gif.lsd.background = 0;
+  gif.lsd.par = 0;
+
+  /* Using global color table, color resolution = 8-bits */
+  gif.lsd.fields = 0xF0;
+  
+  nc = count_colors_build_palette(b, gct);
+  if(nc < 0) {
+    unsigned int palette[256];
+    int q;
+    
+    /* Too many colors */
+    sgct = 256;
+    gif.lsd.fields |= 0x07;
+
+    /* color quantization - see bm_save_pcx() */
+    /* FIXME: The color quantization shouldn't depend on rand() :( */
+    nc = 0;
+    for(nc = 0; nc < 256; nc++) {
+      int c = bm_get(b, rand()%b->w, rand()%b->h);
+      gct[nc].r = (c >> 16) & 0xFF;
+      gct[nc].g = (c >> 8) & 0xFF;
+      gct[nc].b = (c >> 0) & 0xFF;
+    }
+    qsort(gct, nc, sizeof gct[0], comp_rgb);
+    for(q = 0; q < nc; q++) {
+      palette[q] = (gct[q].r << 16) | (gct[q].g << 8) | gct[q].b;
+    }
+    /* Copy the image and dither it to match the palette */
+    b = bm_copy(b);
+    bm_reduce_palette(b, palette, nc);
+  } else {
+    if(nc > 128) {
+      sgct = 256;
+      gif.lsd.fields |= 0x07;
+    } else if(nc > 64) {
+      sgct = 128;
+      gif.lsd.fields |= 0x06;
+      code_size = 7;
+    } else if(nc > 32) {
+      sgct = 64;
+      gif.lsd.fields |= 0x05;
+      code_size = 6;
+    } else if(nc > 16) {
+      sgct = 32;
+      gif.lsd.fields |= 0x04;
+      code_size = 5;
+    } else if(nc > 8) {
+      sgct = 16;
+      gif.lsd.fields |= 0x03;
+      code_size = 4;
+    } else {
+      sgct = 8;
+      gif.lsd.fields |= 0x02;
+      code_size = 3;
+    }
+  }
+
+  /* See if we can find the background color in the palette */
+  #ifndef IGNORE_ALPHA
+  bg = b->color & 0x00FFFFFF;
+  #else
+  bg = b->color;
+  #endif
+  bg = bsrch_palette_lookup(gct, bg, 0, nc - 1);
+  if(bg >= 0) {
+    gif.lsd.background = bg;
+  }
+
+  /* Map the pixels in the image to their palette indices */
+  pixels = malloc(b->w * b->h);
+  for(y = 0, p = 0; y < b->h; y++) {
+    for(x = 0; x < b->w; x++) {
+      int i, c = bm_get(b, x, y);
+      i = bsrch_palette_lookup(gct, c, 0, nc - 1);
+      /* At this point in time, the color MUST be in the palette */
+      assert(i >= 0);
+      assert(i < sgct);
+      pixels[p++] = i;
+    }
+  }
+
+  /* Make sure p is at the end of the image */
+  assert(p == b->w * b->h);
+
+  /* Perform the LZW compression */
+  bytes = lzw_encode_bytes(pixels, b->w * b->h, code_size, &len);
+
+  /* Free pixel buffer */
+  free(pixels);
+
+  /* Free the new bitmap buffer if bm_copy was run above */
+  if(bo != b)
+    bm_free(b);
+	
+  //END OF GIF DATA
+  //GIF Stream Format
+  char sig[3] = "GIF";
+  char ver[3] = "89a";
+  short x_size = 640;
+  short y_size = 480;
+  char gctf = gif.lsd.fields;
+  char bci = gif.lsd.background;
+  char par = 0;
+  char gce_intro = 0x21;
+  char gce_label = 0xf9;
+  char gce_block_size = 4;
+  char gce_fields = 0;
+  short gce_delay = 0;
+  char tci = 0;
+  char terminator = 0x00;
+  char img_intro = 0x2c;
+  short left = 0;
+  short top = 0;
+  short width = 640;
+  short height = 480;
+  char im_field = 0;
+  char lzw_min_code = code_size;
+  char length_byte = 0xFF;
+  char trailer = 0x3b;
+
+  //Fill out top of header
+  memcpy(p_gif+0, sig, 3);
+  memcpy(p_gif+3, ver, 3);
+  memcpy(p_gif+6, &x_size, 2);
+  memcpy(p_gif+8, &y_size, 2);
+  memcpy(p_gif+10, &gctf, 1);
+  memcpy(p_gif+11, &bci, sizeof bci);
+  memcpy(p_gif+12, &par, 1);
+  memcpy(p_gif+13, &gct, sizeof(*gct)*sgct);
+
+  short gce_offset = 0+13+sizeof(*gct)*sgct;
+
+  //Fill out control extension block
+  memcpy(p_gif+gce_offset+0, &gce_intro, 1);
+  memcpy(p_gif+gce_offset+1, &gce_label, 1);
+  memcpy(p_gif+gce_offset+2, &gce_block_size, 1);
+  memcpy(p_gif+gce_offset+3, &gce_fields, 1);
+  memcpy(p_gif+gce_offset+4, &gce_delay, 2);
+  memcpy(p_gif+gce_offset+6, &tci, 1);
+  memcpy(p_gif+gce_offset+7, &terminator, 1);
+
+  short img_offset = gce_offset + 8;
+
+  //Fill out image block
+  memcpy(p_gif+img_offset+0, &img_intro, 1);
+  memcpy(p_gif+img_offset+1, &left, 2);
+  memcpy(p_gif+img_offset+3, &top, 2);
+  memcpy(p_gif+img_offset+5, &width, 2);
+  memcpy(p_gif+img_offset+7, &height, 2);
+  memcpy(p_gif+img_offset+9, &im_field, 1);
+  memcpy(p_gif+img_offset+10, &lzw_min_code, 1);
+
+  short bytes_offset = img_offset+11;
+
+  int newb = 0;
+  char len_p;
+  for(p=0;p<len;p++){
+    if(p % 0xFF == 0) {
+      /* beginning of a new block; lzw_emit_code the length byte */
+      if(len - p >= 0xFF) {
+	memcpy(p_gif+bytes_offset+p+newb, &length_byte, sizeof length_byte);
+      } else {
+	len_p = len-p;
+	memcpy(p_gif+bytes_offset+p+newb, &len_p, sizeof len_p);
+      }
+      newb += 1;
+    }
+    memcpy(p_gif+bytes_offset+p+newb, &bytes[p], 1);
+
+  }
+  int after_bytes = bytes_offset + len + newb;
+
+  //Fill out trailer block
+  memcpy(p_gif+after_bytes+0, &terminator, 1);
+  memcpy(p_gif+after_bytes+1, &trailer, 1);
+
+  //Set final size
+  *p_gif_size = after_bytes+2;
+  
+  //Free bytes buffer
+  free(bytes);
+ 
+  return 0;
+}
+
 /* PCX support
 http://web.archive.org/web/20100206055706/http://www.qzx.com/pc-gpe/pcx.txt
 http://www.shikadi.net/moddingwiki/PCX_Format
