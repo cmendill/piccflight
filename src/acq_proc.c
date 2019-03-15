@@ -122,7 +122,7 @@ void acq_process_image(uvc_frame_t *frame, sm_t *sm_p) {
     if(ACQ_DEBUG) printf("ACQ: Initialized\n");
   }
 
-
+  
   //Measure exposure time
   if(timespec_subtract(&delta,&start,&last))
     printf("ACQ: call back --> timespec_subtract error!\n");
@@ -141,52 +141,55 @@ void acq_process_image(uvc_frame_t *frame, sm_t *sm_p) {
   acqevent.hed.start_sec    = start.tv_sec;
   acqevent.hed.start_nsec   = start.tv_nsec;
 
-  //Copy full image
-  memcpy(&full_image[0][0],frame->data,sizeof(full_image));
+  //Compress and send every other image
+  if(acqevent.hed.frame_number % 2 == 0){
+    //Copy full image
+    memcpy(&full_image[0][0],frame->data,sizeof(full_image));
 
-  //Bin image
-  for(i=0;i<ACQYS;i++){
-    for(j=0;j<ACQXS;j++){
-      binned_image16[i/ACQBIN][j/ACQBIN] += (uint16_t)full_image[i][j];
+    //Bin image
+    for(i=0;i<ACQYS;i++){
+      for(j=0;j<ACQXS;j++){
+	binned_image16[i/ACQBIN][j/ACQBIN] += (uint16_t)full_image[i][j];
+      }
     }
-  }
 
-  //Average bins
-  for(i=0;i<ACQYS/ACQBIN;i++){
-    for(j=0;j<ACQXS/ACQBIN;j++){
-      binned_image8[i][j] = binned_image16[i][j] / (ACQBIN*ACQBIN);
-      //Threshold
-      if(binned_image8[i][j] < sm_p->acq_thresh) binned_image8[i][j] = 0;
+    //Average bins
+    for(i=0;i<ACQYS/ACQBIN;i++){
+      for(j=0;j<ACQXS/ACQBIN;j++){
+	binned_image8[i][j] = binned_image16[i][j] / (ACQBIN*ACQBIN);
+	//Threshold
+	if(binned_image8[i][j] < sm_p->acq_thresh) binned_image8[i][j] = 0;
+      }
     }
-  }
   
-  //Compress image
-  acq_build_gif(&binned_image8[0][0], gif_data, &gif_nbytes);
+    //Compress image
+    acq_build_gif(&binned_image8[0][0], gif_data, &gif_nbytes);
   
-  //Write gif data to event
-  if(gif_nbytes <= ACQ_MAX_GIF_SIZE){
-    memcpy(acqevent.gif,gif_data,gif_nbytes);
-    acqevent.gif_nbytes = gif_nbytes;
-  }
-  else{
-    printf("ACQ: Compressed image too large %d\n",gif_nbytes);
-  }
+    //Write gif data to event
+    if(gif_nbytes <= ACQ_MAX_GIF_SIZE){
+      memcpy(acqevent.gif,gif_data,gif_nbytes);
+      acqevent.gif_nbytes = gif_nbytes;
+    }
+    else{
+      printf("ACQ: Compressed image too large %d\n",gif_nbytes);
+    }
 
-  //Write ACQEVENT to circular buffer 
-  if(sm_p->write_circbuf[BUFFER_ACQEVENT]){
-    //Open circular buffer
-    acqevent_p=(acqevent_t *)open_buffer(sm_p,BUFFER_ACQEVENT);
+    //Write ACQEVENT to circular buffer 
+    if(sm_p->write_circbuf[BUFFER_ACQEVENT]){
+      //Open circular buffer
+      acqevent_p=(acqevent_t *)open_buffer(sm_p,BUFFER_ACQEVENT);
 
-    //Copy acqevent
-    memcpy(acqevent_p,&acqevent,sizeof(acqevent_t));;
+      //Copy acqevent
+      memcpy(acqevent_p,&acqevent,sizeof(acqevent_t));;
 
-    //Get final timestamp
-    clock_gettime(CLOCK_REALTIME,&end);
-    acqevent_p->hed.end_sec = end.tv_sec;
-    acqevent_p->hed.end_nsec = end.tv_nsec;
+      //Get final timestamp
+      clock_gettime(CLOCK_REALTIME,&end);
+      acqevent_p->hed.end_sec = end.tv_sec;
+      acqevent_p->hed.end_nsec = end.tv_nsec;
 
-    //Close buffer
-    close_buffer(sm_p,BUFFER_ACQEVENT);
+      //Close buffer
+      close_buffer(sm_p,BUFFER_ACQEVENT);
+    }
   }
   
   /*************************************************************/
