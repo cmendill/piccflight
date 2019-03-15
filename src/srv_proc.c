@@ -122,7 +122,7 @@ void srv_proc(void) {
 	  if(dt > bufdt[i]){
 	    if(read_newest_buffer(sm_p, buffer, i, SRVID)){
 	      //write data to socket
-	      if(SRV_DEBUG) printf("SRV: Writing Packet %d\n",i);
+	      if(SRV_DEBUG) printf("SRV: Writing Packet %d after %f\n",i,dt);
 	      nbytes=write_to_socket(clientfd,buffer,sm_p->circbuf[i].nbytes);
 	      if(nbytes <=0){
 		close(clientfd);
