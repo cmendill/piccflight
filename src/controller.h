@@ -323,7 +323,7 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 #define MTR_DEBUG       0 // print mtr messages
 #define THM_DEBUG       0 // print thm messages
 #define SRV_DEBUG       0 // print srv messages
-#define HEX_DEBUG       1 // print hex messages
+#define HEX_DEBUG       0 // print hex messages
 #define DIA_DEBUG       0 // print dia messages
 
 /*************************************************
@@ -414,7 +414,7 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 #define SCI_NBANDS              5 //number of bands on a single SCI camera image
 #define SCI_NSAMPLES            1 //number of scievents to save in a single packet
 #define SCI_TEC_SETPOINT_MIN  -40 //C
-#define SCI_TEC_SETPOINT_MAX   40 //C
+#define SCI_TEC_SETPOINT_MAX   35 //C
 
 /*************************************************
  * ACQ Camera Parameters
