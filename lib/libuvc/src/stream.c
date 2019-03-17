@@ -414,12 +414,14 @@ uvc_error_t uvc_get_stream_ctrl_format_size(
             ctrl->dwFrameInterval = interval_100ns;
 
             goto found;
-          }
-        }
+          } else{
+	    printf("libuvc: Iset:%d Ioff:%d Imin:%d Imax:%d Istp:%d\n",interval_100ns,interval_offset,frame->dwMinFrameInterval,frame->dwMaxFrameInterval,frame->dwFrameIntervalStep);
+	  }
+	}
       }
     }
   }
-
+  
   return UVC_ERROR_INVALID_MODE;
 
 found:
