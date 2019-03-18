@@ -264,7 +264,7 @@ static void rtd_alp_build_dither_block(double *cmd) {
     //Insert frame header
     rtd_alp_dma_buffer[imain+0] = ALP_START_WORD;
     rtd_alp_dma_buffer[imain+1] = ALP_INIT_COUNTER;
-    
+
     //Choose the dither bits for this frame
     for(iact=0;iact<ALP_NACT;iact++){
       isub = imain+mapping[iact]+ALP_HEADER_LENGTH;
@@ -296,12 +296,12 @@ static DM7820_Error rtd_alp_write_dma_fifo(DM7820_Board_Descriptor* p_rtd_board)
   DM7820_Error dm7820_status=0,dm7820_return=0;
   uint8_t fifo_status;
   static int fifo_warn = 1;
-  
-  //Sleep until current DMA transfer is done (PREVIOUS DMA MUST BE DONE, WARN IF IT ISN'T)
+  uint32_t count=0;
+
+  //PREVIOUS DMA MUST BE DONE, EXIT IF IT ISN'T
   if(DM7820_General_Check_DMA_0_Transfer(p_rtd_board) == 0){
     printf("RTD: ALP DMA NOT DONE!\n");
-    while(DM7820_General_Check_DMA_0_Transfer(p_rtd_board) == 0)
-      usleep(10);
+    return -1;
   }
   
   //Sleep until fifo is empty (FIFO MUST BE EMPTY, WARN IF IT ISN'T)
@@ -313,12 +313,19 @@ static DM7820_Error rtd_alp_write_dma_fifo(DM7820_Board_Descriptor* p_rtd_board)
       printf("RTD: ALP FIFO NOT EMPTY! (Suppressing additional warnings)\n");
       fifo_warn=0;
     }
+    count=0;
     while(!fifo_status){
       usleep(10);
       if((dm7820_status = DM7820_FIFO_Get_Status(p_rtd_board,DM7820_FIFO_QUEUE_0,DM7820_FIFO_STATUS_EMPTY,&fifo_status)))
 	perror("DM7820_FIFO_Get_Status");
       dm7820_return |= dm7820_status;
+      if(count++ > 100000){
+	//One second timeout
+	printf("RTD: rtd_alp_write_dma_fifo FIFO TIMEOUT\n");
+	return -1;
+      }
     }
+    printf("RTD: fifo cleared after %d loops\n",count);
   }
   
   //Write data to driver's DMA buffer
@@ -345,13 +352,21 @@ static DM7820_Error rtd_tlm_write_dma_fifo(DM7820_Board_Descriptor* p_rtd_board)
   uint32_t count=0;
   
   //Sleep until current DMA transfer is done
-  while(DM7820_General_Check_DMA_1_Transfer(p_rtd_board) == 0)
-    usleep(10);
+  count=0;
+  while(DM7820_General_Check_DMA_1_Transfer(p_rtd_board) == 0){
+    usleep(100);
+    if(count++ > 10000){
+      //One second timeout
+      printf("RTD: rtd_tlm_write_dma_fifo DMA TIMEOUT\n");
+      return 1;
+    }
+  }
   
   //Sleep until fifo is ready
   if((dm7820_status = DM7820_FIFO_Get_Status(p_rtd_board,DM7820_FIFO_QUEUE_1,DM7820_FIFO_STATUS_READ_REQUEST,&fifo_status)))
     perror("DM7820_FIFO_Get_Status");
   dm7820_return |= dm7820_status;
+  count=0;
   while(fifo_status){
     //READ_REQUEST returns 1 when there is at least 256 words in the fifo
     //READ_REQUEST returns 0 when the data in the fifo drops below 128 words --> wait for this 
@@ -360,8 +375,8 @@ static DM7820_Error rtd_tlm_write_dma_fifo(DM7820_Board_Descriptor* p_rtd_board)
       perror("DM7820_FIFO_Get_Status");
     dm7820_return |= dm7820_status;
     if(count++ > 10000){
-      printf("RTD: rtd_tlm_write_dma_fifo TIMEOUT\n");
       //One second timeout
+      printf("RTD: rtd_tlm_write_dma_fifo FIFO TIMEOUT\n");
       return 1;
     }
   }

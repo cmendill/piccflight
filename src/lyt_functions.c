@@ -334,7 +334,7 @@ void lyt_zernike_fit(lyt_t *image, lytref_t *lytref, double *zernikes, int reset
 /* LYT_PROCESS_IMAGE                                          */
 /*  - Main image processing function for LYT                  */
 /**************************************************************/
-void lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
+int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
   static lytevent_t lytevent;
   static lytpkt_t lytpkt;
   lytevent_t *lytevent_p;
@@ -357,6 +357,7 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
   uint32_t n_dither=1;
   int sample;
   uint16_t lytread[LYTREADXS][LYTREADYS];
+  int cmd_status;
   
   //Get time immidiately
   clock_gettime(CLOCK_REALTIME,&start);
@@ -555,10 +556,15 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
       sm_p->alp_calmode = alp_calibrate(sm_p,lytevent.hed.alp_calmode,&alp_try,&lytevent.hed.alp_calstep,LYTID,FUNCTION_NO_RESET);
     
     //Send command to ALP
-    if(alp_send_command(sm_p,&alp_try,LYTID,n_dither)){
-      
+    if((cmd_status = alp_send_command(sm_p,&alp_try,LYTID,n_dither))==1){
       // - copy command to current position
       memcpy(&alp,&alp_try,sizeof(alp_t));
+    }else{
+      if(cmd_status == -1){
+	//Command failed in a way that we need to reset
+	printf("LYT: alp_send_command error!\n");
+	return 1;
+      }
     }
   }
 
@@ -627,4 +633,6 @@ void lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
 
   //Increment frame number
   frame_number++;
+
+  return 0;
 }

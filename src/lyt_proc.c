@@ -29,7 +29,7 @@ int lyt_shmfd;
 tHandle lytCamera = 0; /* Camera Handle   */
 
 /* Prototypes */
-void lyt_process_image(stImageBuff *buffer,sm_t *sm_p);
+int lyt_process_image(stImageBuff *buffer,sm_t *sm_p);
 float BOBCAT_GetTemp(tHandle hCamera);
 
 /**************************************************************/
@@ -75,7 +75,12 @@ static void lyt_callback( tHandle lytCamera, ui32 dwInterruptMask, void *pvParam
     etStat eStat = PHX_StreamRead( lytCamera, PHX_BUFFER_GET, &stBuffer );
     if ( PHX_OK == eStat ) {
       //Process image
-      lyt_process_image(&stBuffer,aContext->sm_p);
+      if(lyt_process_image(&stBuffer,aContext->sm_p)){
+	printf("LYT: lyt_process_image error!\n");
+	//can't call lytctrlC from here. ask to be restarted.
+	aContext->sm_p->w[LYTID].res=1;
+	sleep(5);
+      }
       //Unset DIO bit B1
       #if PICC_DIO_ENABLE
       outb(0x00,PICC_DIO_BASE+PICC_DIO_PORTB);

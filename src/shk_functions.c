@@ -845,7 +845,7 @@ void shk_hex_zernpid(shkevent_t *shkevent, double *zernike_delta, int reset){
 /* SHK_PROCESS_IMAGE                                          */
 /*  - Main image processing function for SHK                  */
 /**************************************************************/
-void shk_process_image(stImageBuff *buffer,sm_t *sm_p){
+int shk_process_image(stImageBuff *buffer,sm_t *sm_p){
   static shkfull_t shkfull;
   static shkevent_t shkevent;
   static shkpkt_t shkpkt;
@@ -870,6 +870,7 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p){
   uint32_t n_dither=1;
   int reset_zernike=0;
   int sample;
+  int cmd_status;
   
   //Get time immidiately
   clock_gettime(CLOCK_REALTIME,&start);
@@ -1171,9 +1172,15 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p){
       sm_p->alp_calmode = alp_calibrate(sm_p,shkevent.hed.alp_calmode,&alp_try,&shkevent.hed.alp_calstep,SHKID,FUNCTION_NO_RESET);
     
     //Send command to ALP
-    if(alp_send_command(sm_p,&alp_try,SHKID,n_dither)){
+    if((cmd_status = alp_send_command(sm_p,&alp_try,SHKID,n_dither))==1){
       // - copy command to current position
       memcpy(&alp,&alp_try,sizeof(alp_t));
+    }else{
+      if(cmd_status == -1){
+	//Command failed in a way that we need to reset
+	printf("SHK: alp_send_command error!\n");
+	return 1;
+      }
     }
   }
   
@@ -1334,4 +1341,6 @@ void shk_process_image(stImageBuff *buffer,sm_t *sm_p){
 
   //Increment frame_number
   frame_number++;
+
+  return 0;
 }

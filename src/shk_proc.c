@@ -29,7 +29,7 @@ int shk_shmfd;
 tHandle shkCamera = 0; /* Camera Handle   */
 
 /* Prototypes */
-void shk_process_image(stImageBuff *buffer,sm_t *sm_p);
+int shk_process_image(stImageBuff *buffer,sm_t *sm_p);
 float BOBCAT_GetTemp(tHandle hCamera);
 
 /**************************************************************/
@@ -75,7 +75,12 @@ static void shk_callback( tHandle shkCamera, ui32 dwInterruptMask, void *pvParam
     etStat eStat = PHX_StreamRead( shkCamera, PHX_BUFFER_GET, &stBuffer );
     if ( PHX_OK == eStat ) {
       //Process image
-      shk_process_image(&stBuffer,aContext->sm_p);
+      if(shk_process_image(&stBuffer,aContext->sm_p)){
+	printf("SHK: shk_process_image error!\n");
+	//can't call shkctrlC from here. ask to be restarted.
+	aContext->sm_p->w[SHKID].res=1;
+	sleep(5);
+      }
       //Unset DIO bit C1
       #if PICC_DIO_ENABLE
       outb(0x00,PICC_DIO_BASE+PICC_DIO_PORTC);

@@ -181,6 +181,7 @@ void alp_get_command(sm_t *sm_p, alp_t *cmd){
 /**************************************************************/
 int alp_send_command(sm_t *sm_p, alp_t *cmd, int proc_id, int n_dither){
   int retval=0;
+  int status=0;
 
   //Atomically test and set ALP command lock using GCC built-in function
   if(__sync_lock_test_and_set(&sm_p->alp_command_lock,1)==0){
@@ -206,13 +207,18 @@ int alp_send_command(sm_t *sm_p, alp_t *cmd, int proc_id, int n_dither){
       }
 
       //Send the command
-      if(rtd_send_alp(sm_p->p_rtd_board,cmd->acmd) == 0){
+      if((status=rtd_send_alp(sm_p->p_rtd_board,cmd->acmd)) == 0){
 	//Copy command to current position
 	memcpy((alp_t *)&sm_p->alp_command,cmd,sizeof(alp_t));
  	//Set return value
 	retval=1;
+      }else{
+	if(status == -1){
+	  retval = -1;
+	  printf("ALP: alp_send_command --> rtd_send_alp error!\n");
+	}
       }
-
+      
       //Unset DIO bit A0
       #if PICC_DIO_ENABLE
       outb(0x00,PICC_DIO_BASE+PICC_DIO_PORTA);
