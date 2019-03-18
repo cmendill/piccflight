@@ -279,8 +279,8 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 #define SHKBIN          2
 #define LYTXS           32
 #define LYTYS           32
-#define LYTREADXS       48   
-#define LYTREADYS       48 
+#define LYTREADXS       64   
+#define LYTREADYS       64 
 #define ACQXS           1280
 #define ACQYS           960
 #define ACQBIN          2
@@ -540,7 +540,7 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
  * RTD Parameters
  *************************************************/
 #define RTD_BOARD_MINOR                0 // Minor device number of the RTD board
-#define RTD_PRGCLK_0_DIVISOR           8 // Programmable clock frequency = 25/RTD_PRGCLK_0_DIVISOR [MHz]
+#define RTD_PRGCLK_0_DIVISOR          16 // Programmable clock frequency = 25/RTD_PRGCLK_0_DIVISOR [MHz]
 #define RTD_TIMER_A0_DIVISOR           2 // Output clock frequency = (25/RTD_PRGCLK_0_DIVISOR)/RTD_TIMER_A0_DIVISOR [MHz]
 #define RTD_CLK_FREQUENCY              ((25000000.0/RTD_PRGCLK_0_DIVISOR)/RTD_TIMER_A0_DIVISOR) //[Hz]
 

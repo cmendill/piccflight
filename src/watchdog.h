@@ -63,8 +63,8 @@
 #define ACQ_FRMTIME_DEFAULT 0.200
 
 //LYT ROI Settings
-#define LYT_XORIGIN_DEFAULT 8
-#define LYT_YORIGIN_DEFAULT 8
+#define LYT_XORIGIN_DEFAULT 16
+#define LYT_YORIGIN_DEFAULT 16
 
 //Shack-Hartmann Settings
 #define SHK_BOXSIZE_DEFAULT        7
