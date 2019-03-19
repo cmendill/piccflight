@@ -309,8 +309,8 @@ static DM7820_Error rtd_alp_write_dma_fifo(DM7820_Board_Descriptor* p_rtd_board)
     printf("RTD: ALP DMA NOT DONE!\n");
     return -1;
   }
-  
-  //Sleep until fifo is empty (FIFO MUST BE EMPTY, WARN IF IT ISN'T)
+    
+  //Sleep until fifo is empty (FIFO SHOULD BE EMPTY, WARN IF IT ISN'T)
   if((dm7820_status = DM7820_FIFO_Get_Status(p_rtd_board,DM7820_FIFO_QUEUE_0,DM7820_FIFO_STATUS_EMPTY,&fifo_status)))
     perror("DM7820_FIFO_Get_Status");
   dm7820_return |= dm7820_status;
@@ -331,7 +331,6 @@ static DM7820_Error rtd_alp_write_dma_fifo(DM7820_Board_Descriptor* p_rtd_board)
 	return -1;
       }
     }
-    printf("RTD: fifo cleared after %d loops\n",count);
   }
   
   //Write data to driver's DMA buffer
