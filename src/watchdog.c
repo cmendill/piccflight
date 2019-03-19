@@ -330,12 +330,14 @@ int main(int argc,char **argv){
   sm_p->acq_thresh         = ACQ_THRESH_DEFAULT;
   sm_p->thm_enable_vref    = THM_ENABLE_VREF_DEFAULT;
 
-  //Enable control of all zernikes by default
-  for(i=0;i<LOWFS_N_ZERNIKE;i++){
+  //Zernike control defaults
+  //--SHK
+  for(i=0;i<LOWFS_N_ZERNIKE;i++)
     sm_p->shk_zernike_control[i] = 1;
-    sm_p->lyt_zernike_control[i] = 1;
-  }
-  
+  //--LYT
+  sm_p->lyt_zernike_control[0] = 1;
+  sm_p->lyt_zernike_control[1] = 1;
+
   //SHK PID Gains
   double shk_gain_alp_zern[LOWFS_N_ZERNIKE][LOWFS_N_PID] = SHK_GAIN_ALP_ZERN_DEFAULT;
   memcpy((double *)&sm_p->shk_gain_alp_zern[0][0],&shk_gain_alp_zern[0][0],sizeof(shk_gain_alp_zern));
