@@ -191,6 +191,10 @@ static uint8_t rtd_alp_checksum(uint16_t *frame) {
 /*   fraction and frame index                                 */
 /**************************************************************/
 static uint16_t rtd_alp_dither_bit(int frame_index, double fraction) {
+  //fix until we use dither
+  return 0;
+
+  
   uint16_t on, off;
   if (fraction == 1.0) {
     return 0;
@@ -207,7 +211,9 @@ static uint16_t rtd_alp_dither_bit(int frame_index, double fraction) {
     on = 1;
     off = 0;
   }
-  return ( (((frame_index+1)%((int16_t)(1.0/fraction))) == 0)?on:off );
+  
+  //potential overflow or divide by zero
+  return ( (((frame_index+1)%((int16_t)(1.0/fraction))) == 0) ? on:off );
 }
 
 /**************************************************************/
@@ -344,7 +350,7 @@ static DM7820_Error rtd_alp_write_dma_fifo(DM7820_Board_Descriptor* p_rtd_board)
 
 /**************************************************************/
 /* RTD_TLM_WRITE_DMA_FIFO                                     */
-/* - Write data to the TLM FIFO via DMA                     */
+/* - Write data to the TLM FIFO via DMA                       */
 /**************************************************************/
 static DM7820_Error rtd_tlm_write_dma_fifo(DM7820_Board_Descriptor* p_rtd_board) {
   DM7820_Error dm7820_status=0,dm7820_return=0;
