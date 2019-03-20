@@ -20,7 +20,7 @@
 #include "../drivers/phxdrv/picc_dio.h"
 
 /* LYT board number */
-#define LYT_BOARD_NUMBER PHX_BOARD_NUMBER_2
+#define LYT_BOARD_NUMBER PHX_BOARD_NUMBER_1
 
 /* Process File Descriptor */
 int lyt_shmfd;

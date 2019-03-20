@@ -539,7 +539,8 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 /*************************************************
  * RTD Parameters
  *************************************************/
-#define RTD_BOARD_MINOR                0 // Minor device number of the RTD board
+#define RTD_ALP_BOARD_MINOR            0 // Minor device number of the ALP RTD board
+#define RTD_TLM_BOARD_MINOR            1 // Minor device number of the TLM RTD board
 #define RTD_PRGCLK_0_DIVISOR           8 // Programmable clock frequency = 25/RTD_PRGCLK_0_DIVISOR [MHz]
 #define RTD_TIMER_A0_DIVISOR           2 // Output clock frequency = (25/RTD_PRGCLK_0_DIVISOR)/RTD_TIMER_A0_DIVISOR [MHz]
 #define RTD_CLK_FREQUENCY              ((25000000.0/RTD_PRGCLK_0_DIVISOR)/RTD_TIMER_A0_DIVISOR) //[Hz]
@@ -552,7 +553,7 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 #define TLM_REPLACE_CODE   0xFFFF                //Code to replace empty codes with in data
 #define TLM_PRESYNC        0x12345678            //TLM packet pre sync word
 #define TLM_POSTSYNC       0xDEADBEEF            //TLM packet post sync word
-#define TLM_BUFFER_LENGTH  (TLM_DATA_RATE/10)    //TLM DMA buffer length (10 updates/sec)
+#define TLM_BUFFER_LENGTH  (TLM_DATA_RATE/5)    //TLM DMA buffer length (10 updates/sec)
 #define TLM_BUFFER_SIZE    (TLM_BUFFER_LENGTH*2) //TLM DMA buffer size
 
 /*************************************************
@@ -980,7 +981,8 @@ typedef volatile struct {
   int tlm_ready;
   
   //RTD board descriptor
-  DM7820_Board_Descriptor* p_rtd_board;
+  DM7820_Board_Descriptor* p_rtd_alp_board;
+  DM7820_Board_Descriptor* p_rtd_tlm_board;
 
   //Hexapod file descriptor
   int hexfd;

@@ -198,7 +198,7 @@ int alp_send_command(sm_t *sm_p, alp_t *cmd, int proc_id, int n_dither){
       if((proc_id != sm_p->alp_proc_id) || (n_dither != sm_p->alp_n_dither)){
 	//Init ALPAO RTD interface
 	printf("ALP: Initializing RTD board for %s with %d dither steps\n",sm_p->w[proc_id].name,n_dither);
-	if(rtd_init_alp(sm_p->p_rtd_board,n_dither))
+	if(rtd_init_alp(sm_p->p_rtd_alp_board,n_dither))
 	  perror("ALP: rtd_init_alp");
 	else{
 	  sm_p->alp_proc_id = proc_id;
@@ -207,7 +207,7 @@ int alp_send_command(sm_t *sm_p, alp_t *cmd, int proc_id, int n_dither){
       }
 
       //Send the command
-      if((status=rtd_send_alp(sm_p->p_rtd_board,cmd->acmd)) == 0){
+      if((status=rtd_send_alp(sm_p->p_rtd_alp_board,cmd->acmd)) == 0){
 	//Copy command to current position
 	memcpy((alp_t *)&sm_p->alp_command,cmd,sizeof(alp_t));
  	//Set return value

@@ -140,7 +140,7 @@ void tlm_proc(void){
 
   /* Init RTD */
   if(sm_p->tlm_ready)
-    rtd_init_tlm(sm_p->p_rtd_board,TLM_BUFFER_SIZE);
+    rtd_init_tlm(sm_p->p_rtd_tlm_board,TLM_BUFFER_SIZE);
    
   /* Fill out empty buffer*/
   for(i=0;i<TLM_BUFFER_LENGTH;i++)
@@ -212,7 +212,7 @@ void tlm_proc(void){
 	}else{
 	  //RTD write fake data
 	  if(sm_p->tlm_ready){
-	    if(rtd_send_tlm(sm_p->p_rtd_board,(char *)fakeword,sizeof(uint16)*NFAKE))
+	    if(rtd_send_tlm(sm_p->p_rtd_tlm_board,(char *)fakeword,sizeof(uint16)*NFAKE))
 	      printf("TLM: rtd_send_tlm failed!\n");
 	    usleep(50000);
 	  }
@@ -250,7 +250,7 @@ void tlm_proc(void){
 	  //Send data
 	  if(sm_p->circbuf[i].send){
 	    if(sm_p->tlm_ready){
-	      write_block(sm_p->p_rtd_board,buffer,sm_p->circbuf[i].nbytes);
+	      write_block(sm_p->p_rtd_tlm_board,buffer,sm_p->circbuf[i].nbytes);
 	    }
 	  }
 	  //Save data
