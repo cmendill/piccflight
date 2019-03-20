@@ -250,7 +250,6 @@ int main(int argc,char **argv){
   int i;
   int retval;
   int shutdown=0;
-  DM7820_Error dm7820_status;
   DM7820_Board_Descriptor* p_rtd_alp_board;
   DM7820_Board_Descriptor* p_rtd_tlm_board;
   int hexfd;
@@ -483,14 +482,14 @@ int main(int argc,char **argv){
   if(ALP_ENABLE){
     printf("WAT: Opening RTD ALP driver\n");
     //Open driver
-    if((dm7820_status = rtd_open(RTD_ALP_BOARD_MINOR, &p_rtd_alp_board))){
+    if(rtd_open(RTD_ALP_BOARD_MINOR, &p_rtd_alp_board)){
       rtd_close(p_rtd_alp_board);
       perror("WAT: rtd_open (ALP)");
       printf("WAT: ERROR: RTD ALP init failed!\n");
     }
     else{
       //Reset board
-      if((dm7820_status = rtd_reset(p_rtd_alp_board))){
+      if(rtd_reset(p_rtd_alp_board)){
 	rtd_close(p_rtd_alp_board);
 	perror("WAT: rtd_reset (ALP)");
 	printf("WAT: ERROR: RTD ALP init failed!\n");
@@ -516,14 +515,14 @@ int main(int argc,char **argv){
     }
     else{
       //Open driver
-      if((dm7820_status = rtd_open(RTD_TLM_BOARD_MINOR, &p_rtd_tlm_board))){
+      if(rtd_open(RTD_TLM_BOARD_MINOR, &p_rtd_tlm_board)){
 	rtd_close(p_rtd_tlm_board);
 	perror("WAT: rtd_open (TLM)");
 	printf("WAT: ERROR: RTD TLM init failed!\n");
       }
       else{
 	//Reset board
-	if((dm7820_status = rtd_reset(p_rtd_tlm_board))){
+	if(rtd_reset(p_rtd_tlm_board)){
 	  rtd_close(p_rtd_tlm_board);
 	  perror("WAT: rtd_reset (TLM)");
 	  printf("WAT: ERROR: RTD TLM init failed!\n");
@@ -553,8 +552,8 @@ int main(int argc,char **argv){
   
   /* Set initial ALP position */
   if(sm_p->alp_ready){
-    if(alp_load_flat(sm_p,WATID)==0){
-      if(alp_revert_flat(sm_p,WATID)==0){
+    if(alp_load_flat(sm_p,WATID)){
+      if(alp_revert_flat(sm_p,WATID)){
 	printf("WAT: ERROR: alp_load_flat & alp_revert_flat failed!\n");
       }
       else{
@@ -565,7 +564,7 @@ int main(int argc,char **argv){
       printf("WAT: Loaded ALP flat from file\n");
     }
   }
-
+  
   
   /* Open command uplink */
   if ((fdcmd = open(UPLINK_DEVICE,O_RDONLY))<0) {
@@ -674,19 +673,19 @@ int main(int argc,char **argv){
 
   //Cleanup RTD ALP
   if(sm_p->alp_ready){
-    if((dm7820_status = rtd_alp_cleanup(p_rtd_alp_board)))
+    if(rtd_alp_cleanup(p_rtd_alp_board))
       perror("rtd_alp_cleanup");
   }
   
   //Cleanup RTD TLM
   if(sm_p->tlm_ready){
-    if((dm7820_status = rtd_tlm_cleanup(p_rtd_tlm_board)))
+    if(rtd_tlm_cleanup(p_rtd_tlm_board))
       perror("rtd_tlm_cleanup");
   }
   
   //Close RTD ALP driver
   if(sm_p->alp_ready){
-    if((dm7820_status = rtd_close(p_rtd_alp_board)))
+    if(rtd_close(p_rtd_alp_board))
       perror("rtd_close");
     else
       printf("WAT: RTD ALP closed\n");
@@ -698,7 +697,7 @@ int main(int argc,char **argv){
       //Using a single RTD board and it was already closed by ALP
       printf("WAT: RTD TLM closed\n");
     }else{
-      if((dm7820_status = rtd_close(p_rtd_tlm_board)))
+      if(rtd_close(p_rtd_tlm_board))
 	perror("rtd_close");
       else
 	printf("WAT: RTD TLM closed\n");

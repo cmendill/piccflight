@@ -183,10 +183,9 @@ void hex_get_command(sm_t *sm_p, hex_t *cmd){
 /* - Function to command the HEX                              */
 /* - Use atomic operations to prevent two processes from      */
 /*   sending commands at the same time                        */
-/* - Return 1 if the command was sent and 0 if it wasn't      */
+/* - Return 0 if the command was sent and 1 if it wasn't      */
 /**************************************************************/
 int hex_send_command(sm_t *sm_p, hex_t *cmd, int proc_id){
-  int retval=0;
 
   //Atomically test and set HEX command lock using GCC built-in function
   if(__sync_lock_test_and_set(&sm_p->hex_command_lock,1)==0){
@@ -195,20 +194,21 @@ int hex_send_command(sm_t *sm_p, hex_t *cmd, int proc_id){
     if(proc_id == sm_p->state_array[sm_p->state].hex_commander){
       
       //Send the command
-      if(hex_move(sm_p->hexfd,cmd->acmd) == 0){
+      if(hex_move(sm_p->hexfd,cmd->acmd)){
+	printf("HEX: hex_move error!\n");
+	return 1;
+      }else{
 	//Copy command to current position
 	memcpy((hex_t *)&sm_p->hex_command,cmd,sizeof(hex_t));
-	//Set return value
-	retval = 1;
       }
     }  
-
+    
     //Release lock
     __sync_lock_release(&sm_p->hex_command_lock);
   }
   
-  //Return
-  return retval;
+  //Return 0 on good write
+  return 0;
 }
 
 /**************************************************************/

@@ -177,18 +177,16 @@ void alp_get_command(sm_t *sm_p, alp_t *cmd){
 /* - Function to command the ALPAO DM                         */
 /* - Use atomic operations to prevent two processes from      */
 /*   sending commands at the same time                        */
-/* - Return 1 if the command was sent and 0 if it wasn't      */
+/* - Return 0 if the command was sent and 1 if it wasn't      */
 /**************************************************************/
 int alp_send_command(sm_t *sm_p, alp_t *cmd, int proc_id, int n_dither){
-  int retval=0;
-  int status=0;
-
+  
   //Atomically test and set ALP command lock using GCC built-in function
   if(__sync_lock_test_and_set(&sm_p->alp_command_lock,1)==0){
-
+    
     //Check if the commanding process is the ALP commander
     if(proc_id == sm_p->state_array[sm_p->state].alp_commander){
-
+      
       //Set DIO bit A0
       #if PICC_DIO_ENABLE
       outb(0x01,PICC_DIO_BASE+PICC_DIO_PORTA);
@@ -198,25 +196,24 @@ int alp_send_command(sm_t *sm_p, alp_t *cmd, int proc_id, int n_dither){
       if((proc_id != sm_p->alp_proc_id) || (n_dither != sm_p->alp_n_dither)){
 	//Init ALPAO RTD interface
 	printf("ALP: Initializing RTD board for %s with %d dither steps\n",sm_p->w[proc_id].name,n_dither);
-	if(rtd_init_alp(sm_p->p_rtd_alp_board,n_dither))
+	if(rtd_init_alp(sm_p->p_rtd_alp_board,n_dither)){
 	  perror("ALP: rtd_init_alp");
+	  return 1;
+	}
 	else{
 	  sm_p->alp_proc_id = proc_id;
 	  sm_p->alp_n_dither = n_dither;
 	}
       }
-
+      
       //Send the command
-      if((status=rtd_send_alp(sm_p->p_rtd_alp_board,cmd->acmd)) == 0){
+      if(rtd_send_alp(sm_p->p_rtd_alp_board,cmd->acmd)){
+	//Bad command
+	return 1;
+      }
+      else{
 	//Copy command to current position
 	memcpy((alp_t *)&sm_p->alp_command,cmd,sizeof(alp_t));
- 	//Set return value
-	retval=1;
-      }else{
-	if(status == -1){
-	  retval = -1;
-	  printf("ALP: alp_send_command --> rtd_send_alp error!\n");
-	}
       }
       
       //Unset DIO bit A0
@@ -229,8 +226,8 @@ int alp_send_command(sm_t *sm_p, alp_t *cmd, int proc_id, int n_dither){
     __sync_lock_release(&sm_p->alp_command_lock);
   }
 
-  //Return
-  return retval;
+  //Return 0 on good write
+  return 0;
 }
 
 

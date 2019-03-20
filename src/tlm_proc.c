@@ -62,12 +62,21 @@ void write_block(DM7820_Board_Descriptor* p_rtd_board, char *buf, uint32 num){
   else{
     /*Send TM over RTD*/
     if(p_rtd_board != NULL){
-      /*Write presync to dma */
-      rtd_send_tlm(p_rtd_board, (char *)&presync,sizeof(presync));
-      /*Write buffer to dma */
-      rtd_send_tlm(p_rtd_board, buf,num);
-      /*Write postsync to dma */
-      rtd_send_tlm(p_rtd_board, (char *)&postsync,sizeof(postsync));
+      /*Write presync to RTD FPGA*/
+      if(rtd_send_tlm(p_rtd_board, (char *)&presync,sizeof(presync))){
+	printf("TLM: rtd_send_tlm failed!\n");
+	tlmctrlC(0);
+      }
+      /*Write buffer to RTD FPGA*/
+      if(rtd_send_tlm(p_rtd_board, buf,num)){
+	printf("TLM: rtd_send_tlm failed!\n");
+	tlmctrlC(0);
+      }
+      /*Write postsync to RTD FPGA*/
+      if(rtd_send_tlm(p_rtd_board, (char *)&postsync,sizeof(postsync))){
+	printf("TLM: rtd_send_tlm failed!\n");
+	tlmctrlC(0);
+      }
       
 #if TLM_DEBUG
       printf("TLM: write_block sent over RTD\n");
@@ -139,9 +148,13 @@ void tlm_proc(void){
   pthread_create(&listener_thread,NULL,tlm_listen,(void *)0);
 
   /* Init RTD */
-  if(sm_p->tlm_ready)
-    rtd_init_tlm(sm_p->p_rtd_tlm_board,TLM_BUFFER_SIZE);
-   
+  if(sm_p->tlm_ready){
+    if(rtd_init_tlm(sm_p->p_rtd_tlm_board,TLM_BUFFER_SIZE)){
+      printf("TLM: rtd_init_tlm failed!\n");
+      tlmctrlC(0);
+    }
+  }
+  
   /* Fill out empty buffer*/
   for(i=0;i<TLM_BUFFER_LENGTH;i++)
     emptybuf[i]=TLM_EMPTY_CODE;
@@ -212,8 +225,10 @@ void tlm_proc(void){
 	}else{
 	  //RTD write fake data
 	  if(sm_p->tlm_ready){
-	    if(rtd_send_tlm(sm_p->p_rtd_tlm_board,(char *)fakeword,sizeof(uint16)*NFAKE))
+	    if(rtd_send_tlm(sm_p->p_rtd_tlm_board,(char *)fakeword,sizeof(uint16)*NFAKE)){
 	      printf("TLM: rtd_send_tlm failed!\n");
+	      tlmctrlC(0);
+	    }
 	    usleep(50000);
 	  }
 	}

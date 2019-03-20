@@ -696,7 +696,7 @@ int handle_command(char *line, sm_t *sm_p){
 	}
 	printf("CMD: Moving hexapod to home positon\n");
 	memcpy(hexcmd.acmd,hexhome,sizeof(hexhome));
-	if(!hex_send_command(sm_p,&hexcmd,WATID))
+	if(hex_send_command(sm_p,&hexcmd,WATID))
 	  printf("CMD: Hexapod command failed\n");
 	return(CMD_NORMAL);
       }
@@ -709,7 +709,7 @@ int handle_command(char *line, sm_t *sm_p){
 	}
 	printf("CMD: Moving hexapod to default positon\n");
 	memcpy(hexcmd.acmd,hexdef,sizeof(hexdef));
-	if(!hex_send_command(sm_p,&hexcmd,WATID))
+	if(hex_send_command(sm_p,&hexcmd,WATID))
 	  printf("CMD: Hexapod command failed\n");
 	return(CMD_NORMAL);
       }
@@ -786,7 +786,7 @@ int handle_command(char *line, sm_t *sm_p){
 	printf("CMD: Moving hexapod axis %s by %f %s\n",hex_str_axes[hex_axis],hex_poke,hex_str_unit[hex_axis]);
 	hex_get_command(sm_p,&hexcmd);
 	hexcmd.acmd[hex_axis] += hex_poke;
-	if(!hex_send_command(sm_p,&hexcmd,WATID))
+	if(hex_send_command(sm_p,&hexcmd,WATID))
 	  printf("CMD: Hexapod command failed\n");
 	return(CMD_NORMAL);
       }
@@ -812,7 +812,7 @@ int handle_command(char *line, sm_t *sm_p){
       if((ftemp >= ALP_MIN_BIAS) && (ftemp <= ALP_MAX_BIAS)){
 	printf("CMD: Setting ALP bias = %f\n",ftemp);
 	if(sm_p->alp_ready)
-	  if(alp_set_bias(sm_p,ftemp,WATID)==0)
+	  if(alp_set_bias(sm_p,ftemp,WATID))
 	    printf("CMD: ERROR: alp_set_random failed!\n");
       }
       else
@@ -829,7 +829,7 @@ int handle_command(char *line, sm_t *sm_p){
     if(sm_p->state_array[sm_p->state].alp_commander == WATID){
       printf("CMD: Setting ALP to all zeros\n");
       if(sm_p->alp_ready)
-	if(alp_zero_flat(sm_p,WATID)==0)
+	if(alp_zero_flat(sm_p,WATID))
 	  printf("CMD: ERROR: alp_revert_flat failed!\n");
     }
     else
@@ -843,7 +843,7 @@ int handle_command(char *line, sm_t *sm_p){
     if(sm_p->state_array[sm_p->state].alp_commander == WATID){
       printf("CMD: Reverting ALP flat to default\n");
       if(sm_p->alp_ready)
-	if(alp_revert_flat(sm_p,WATID)==0)
+	if(alp_revert_flat(sm_p,WATID))
 	  printf("CMD: ERROR: alp_revert_flat failed!\n");
     }
     else
@@ -871,7 +871,7 @@ int handle_command(char *line, sm_t *sm_p){
     if(sm_p->state_array[sm_p->state].alp_commander == WATID){
       printf("CMD: Loading ALP flat from file\n");
       if(sm_p->alp_ready)
-	if(alp_load_flat(sm_p,WATID)==0)
+	if(alp_load_flat(sm_p,WATID))
 	  printf("CMD: ERROR: alp_load_flat failed!\n");
     }
     else
@@ -885,7 +885,7 @@ int handle_command(char *line, sm_t *sm_p){
     if(sm_p->state_array[sm_p->state].alp_commander == WATID){
       printf("CMD: Sending random actuator pattern to ALP DM\n");
       if(sm_p->alp_ready)
-	if(alp_set_random(sm_p,WATID)==0)
+	if(alp_set_random(sm_p,WATID))
 	  printf("CMD: ERROR: alp_set_random failed!\n");
     }
     else
@@ -899,7 +899,7 @@ int handle_command(char *line, sm_t *sm_p){
     if(sm_p->state_array[sm_p->state].alp_commander == WATID){
       printf("CMD: Sending random Zernike pattern to ALP DM\n");
       if(sm_p->alp_ready)
-	if(alp_set_zrandom(sm_p,WATID)==0)
+	if(alp_set_zrandom(sm_p,WATID))
 	  printf("CMD: ERROR: alp_set_zrandom failed!\n");
     }
     else
@@ -946,14 +946,14 @@ int handle_command(char *line, sm_t *sm_p){
 	  alp.zcmd[i] += dz[i]; 
 	for(i=0;i<ALP_NACT;i++)
 	  alp.acmd[i] += da[i]; 
-
+	
 	//Send command
 	if(alp_send_command(sm_p,&alp,WATID,1)){
-	  printf("CMD: Changed Z[%d] by %f microns\n",itemp,ftemp);
+	  printf("CMD: alp_send_command failed\n");
 	  return CMD_NORMAL;
 	}
 	else{
-	  printf("CMD: alp_send_command failed\n");
+	  printf("CMD: Changed Z[%d] by %f microns\n",itemp,ftemp);
 	  return CMD_NORMAL;
 	}	  
       }
@@ -993,11 +993,11 @@ int handle_command(char *line, sm_t *sm_p){
 
 	//Send command
 	if(alp_send_command(sm_p,&alp,WATID,1)){
-	  printf("CMD: Changed A[%d] by %f microns\n",itemp,ftemp);
+	  printf("CMD: alp_send_command failed\n");
 	  return CMD_NORMAL;
 	}
 	else{
-	  printf("CMD: alp_send_command failed\n");
+	  printf("CMD: Changed A[%d] by %f microns\n",itemp,ftemp);
 	  return CMD_NORMAL;
 	}	  
       }

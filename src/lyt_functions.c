@@ -357,7 +357,6 @@ int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
   uint32_t n_dither=1;
   int sample;
   uint16_t lytread[LYTREADXS][LYTREADYS];
-  int cmd_status;
   
   //Get time immidiately
   clock_gettime(CLOCK_REALTIME,&start);
@@ -556,18 +555,15 @@ int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
       sm_p->alp_calmode = alp_calibrate(sm_p,lytevent.hed.alp_calmode,&alp_try,&lytevent.hed.alp_calstep,LYTID,FUNCTION_NO_RESET);
     
     //Send command to ALP
-    if((cmd_status = alp_send_command(sm_p,&alp_try,LYTID,n_dither))==1){
+    if(alp_send_command(sm_p,&alp_try,LYTID,n_dither)){
+      // - command failed
+      // - do nothing for now
+    }else{
       // - copy command to current position
       memcpy(&alp,&alp_try,sizeof(alp_t));
-    }else{
-      if(cmd_status == -1){
-	//Command failed in a way that we need to reset
-	printf("LYT: alp_send_command error!\n");
-	return 1;
-      }
     }
   }
-
+  
   //Copy ALP command to lytevent
   memcpy(&lytevent.alp,&alp,sizeof(alp_t));
   

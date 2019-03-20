@@ -870,8 +870,7 @@ int shk_process_image(stImageBuff *buffer,sm_t *sm_p){
   uint32_t n_dither=1;
   int reset_zernike=0;
   int sample;
-  int cmd_status;
-  
+    
   //Get time immidiately
   clock_gettime(CLOCK_REALTIME,&start);
 
@@ -1103,10 +1102,13 @@ int shk_process_image(stImageBuff *buffer,sm_t *sm_p){
  
     //Send command to HEX
     if(hex_send_command(sm_p,&hex_try,SHKID)){
+      // - command failed
+      // - do nothing for now
+    }else{
       // - copy command to current position
       memcpy(&hex,&hex_try,sizeof(hex_t));
     }
-
+    
     //Reset time
     memcpy(&hex_last,&start,sizeof(struct timespec));
   }
@@ -1172,15 +1174,12 @@ int shk_process_image(stImageBuff *buffer,sm_t *sm_p){
       sm_p->alp_calmode = alp_calibrate(sm_p,shkevent.hed.alp_calmode,&alp_try,&shkevent.hed.alp_calstep,SHKID,FUNCTION_NO_RESET);
     
     //Send command to ALP
-    if((cmd_status = alp_send_command(sm_p,&alp_try,SHKID,n_dither))==1){
+    if(alp_send_command(sm_p,&alp_try,SHKID,n_dither)){
+      // - command failed
+      // - do nothing for now
+    }else{
       // - copy command to current position
       memcpy(&alp,&alp_try,sizeof(alp_t));
-    }else{
-      if(cmd_status == -1){
-	//Command failed in a way that we need to reset
-	printf("SHK: alp_send_command error!\n");
-	return 1;
-      }
     }
   }
   
