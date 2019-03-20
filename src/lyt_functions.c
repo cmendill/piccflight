@@ -420,19 +420,22 @@ int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
   sample = frame_number % LYT_NSAMPLES;
 
   //Fill out event header
-  lytevent.hed.version      = PICC_PKT_VERSION;
-  lytevent.hed.type         = BUFFER_LYTEVENT;
-  lytevent.hed.frame_number = frame_number;
-  lytevent.hed.exptime      = sm_p->lyt_exptime;
-  lytevent.hed.frmtime      = sm_p->lyt_frmtime;
-  lytevent.hed.ontime       = dt;
-  lytevent.hed.state        = state;
-  lytevent.hed.start_sec    = start.tv_sec;
-  lytevent.hed.start_nsec   = start.tv_nsec;
-  lytevent.hed.hex_calmode  = sm_p->hex_calmode;
-  lytevent.hed.alp_calmode  = sm_p->alp_calmode;
-  lytevent.hed.bmc_calmode  = sm_p->bmc_calmode;
-  lytevent.hed.tgt_calmode  = sm_p->tgt_calmode;
+  lytevent.hed.version       = PICC_PKT_VERSION;
+  lytevent.hed.type          = BUFFER_LYTEVENT;
+  lytevent.hed.frame_number  = frame_number;
+  lytevent.hed.exptime       = sm_p->lyt_exptime;
+  lytevent.hed.frmtime       = sm_p->lyt_frmtime;
+  lytevent.hed.ontime        = dt;
+  lytevent.hed.state         = state;
+  lytevent.hed.alp_commander = sm_p->state_array[state].alp_commander;
+  lytevent.hed.hex_commander = sm_p->state_array[state].hex_commander;
+  lytevent.hed.bmc_commander = sm_p->state_array[state].bmc_commander;
+  lytevent.hed.start_sec     = start.tv_sec;
+  lytevent.hed.start_nsec    = start.tv_nsec;
+  lytevent.hed.hex_calmode   = sm_p->hex_calmode;
+  lytevent.hed.alp_calmode   = sm_p->alp_calmode;
+  lytevent.hed.bmc_calmode   = sm_p->bmc_calmode;
+  lytevent.hed.tgt_calmode   = sm_p->tgt_calmode;
 
   //Save temperature
   lytevent.ccd_temp         = sm_p->lyt_ccd_temp;
@@ -513,12 +516,12 @@ int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
   /*******************  ALPAO DM Control Code  *****************/
   /*************************************************************/
 
-  //Get last ALP command
-  alp_get_command(sm_p,&alp);
-  memcpy(&alp_try,&alp,sizeof(alp_t));
-
   //Check if we will send a command
   if((sm_p->state_array[state].alp_commander == LYTID) && sm_p->alp_ready){
+
+    //Get last ALP command
+    alp_get_command(sm_p,&alp);
+    memcpy(&alp_try,&alp,sizeof(alp_t));
 
     //Check if ALP is controlling any Zernikes
     for(i=0;i<LOWFS_N_ZERNIKE;i++){

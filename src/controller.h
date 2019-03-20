@@ -144,7 +144,6 @@ enum bmccalmodes {BMC_CALMODE_NONE,
 #define ALP_ENABLE      1 // ALPAO DM
 #define BMC_ENABLE      0 // BMC DM
 #define HEX_ENABLE      1 // Hexapod
-#define WSP_ENABLE      0 // WASP
 #define LED_ENABLE      1 // LED
 #define HTR_ENABLE      1 // Heaters
 #define MTR_ENABLE      1 // Motors
@@ -156,10 +155,9 @@ enum bmccalmodes {BMC_CALMODE_NONE,
 #define ACTUATOR_ALP 1
 #define ACTUATOR_HEX 2
 #define ACTUATOR_BMC 3
-#define ACTUATOR_WSP 4
-#define ACTUATOR_LED 5
-#define ACTUATOR_HTR 6
-#define ACTUATOR_MTR 7
+#define ACTUATOR_LED 4
+#define ACTUATOR_HTR 5
+#define ACTUATOR_MTR 6
 
 /*************************************************
  * Files
@@ -662,7 +660,6 @@ typedef struct state_struct{
   int       hex_commander;
   int       alp_commander;
   int       bmc_commander;
-  int       wsp_commander;
   shkctrl_t shk;
   lytctrl_t lyt;
   scictrl_t sci;
@@ -713,11 +710,6 @@ typedef struct bmc_struct{
   uint16 acmd[BMC_NACT];
 } bmc_t;
 
-typedef struct wsp_struct{
-  double pcmd;
-  double ycmd;
-} wsp_t;
-
 typedef struct htr_struct{
   char   name[MAX_COMMAND]; //Heater name
   uint8  adc;       //ADC number {1,2,3}
@@ -767,31 +759,34 @@ typedef struct alpcal_struct{
 /*************************************************
  * Packet Header
  *************************************************/
-#define PICC_PKT_VERSION     18  //packet version number
+#define PICC_PKT_VERSION     19  //packet version number
 typedef struct pkthed_struct{
-  uint16  version;      //packet version number
-  uint16  type;         //packet ID word
-  uint32  frame_number; //image counter
+  uint16  version;       //packet version number
+  uint16  type;          //packet ID word
+  uint32  frame_number;  //image counter
 
-  uint32  state;        //system state
-  float   exptime;      //commanded exposure time
-  float   frmtime;      //commanded frame time
-  float   ontime;       //measured frame time
+  uint8   state;         //system state
+  uint8   alp_commander; //alp commander client id
+  uint8   hex_commander; //hex commander client id
+  uint8   bmc_commander; //bmc commander client id
+  float   exptime;       //commanded exposure time
+  float   frmtime;       //commanded frame time
+  float   ontime;        //measured frame time
   
-  uint16  hex_calmode;  //hex calmode
-  uint16  alp_calmode;  //alp calmode
-  uint16  bmc_calmode;  //bmc calmode
-  uint16  tgt_calmode;  //tgt calmode
+  uint16  hex_calmode;   //hex calmode
+  uint16  alp_calmode;   //alp calmode
+  uint16  bmc_calmode;   //bmc calmode
+  uint16  tgt_calmode;   //tgt calmode
   
-  uint32  hex_calstep;  //hex calstep
-  uint32  alp_calstep;  //alp calstep
-  uint32  bmc_calstep;  //bmc calstep
-  uint32  tgt_calstep;  //tgt calstep
+  uint32  hex_calstep;   //hex calstep
+  uint32  alp_calstep;   //alp calstep
+  uint32  bmc_calstep;   //bmc calstep
+  uint32  tgt_calstep;   //tgt calstep
 
-  int64   start_sec;    //event start time
-  int64   start_nsec;   //event start time
-  int64   end_sec;      //event end time
-  int64   end_nsec;     //event end time
+  int64   start_sec;     //event start time
+  int64   start_nsec;    //event start time
+  int64   end_sec;       //event end time
+  int64   end_nsec;      //event end time
 } pkthed_t;
 
 /*************************************************
@@ -832,7 +827,6 @@ typedef struct shkevent_struct{
   double    zernike_measured[LOWFS_N_ZERNIKE];
   alp_t     alp;
   hex_t     hex;
-  wsp_t     wsp;
 } shkevent_t;
 
 typedef struct pktcell_struct{
@@ -867,8 +861,6 @@ typedef struct shkpkt_struct{
   float     alp_zcmd[LOWFS_N_ZERNIKE][SHK_NSAMPLES];
   float     hex_acmd[HEX_NAXES];
   float     hex_zcmd[LOWFS_N_ZERNIKE];
-  float     wsp_pcmd;
-  float     wsp_ycmd;
 } shkpkt_t;
 
 typedef struct lytevent_struct{
@@ -914,7 +906,6 @@ typedef struct acqevent_struct{
   uint32    gif_nbytes;
   uint8     gif[ACQ_MAX_GIF_SIZE];
   hex_t     hex;
-  wsp_t     wsp;
 } acqevent_t;
 
 typedef struct thmevent_struct{

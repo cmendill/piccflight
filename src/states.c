@@ -41,7 +41,6 @@ void init_state(int state_number, state_t *state){
   state->hex_commander = -1;
   state->alp_commander = -1;
   state->bmc_commander = -1;
-  state->wsp_commander = -1;
   state->shk.fit_zernikes = 1;
   state->lyt.fit_zernikes = 1;
   

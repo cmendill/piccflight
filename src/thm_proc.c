@@ -75,7 +75,8 @@ void thm_proc(void){
   int i, j, k, iavg;
   static int pulse_index[HTR_NSTEPS];
   int htr_pulse[SSR_NCHAN][HTR_NSTEPS];
-
+  int state;
+  
   //Humidity sensors
   hdc_config config;
   hdc_device_t hum[HUM_NSENSORS] = {HUM1_ADDR,HUM2_ADDR,HUM3_ADDR};
@@ -328,22 +329,29 @@ void thm_proc(void){
   // BEGIN MAIN LOOP
   //=========================================================================
   while(1){
-    /* Get start timestamp */
+    //Get start timestamp
     clock_gettime(CLOCK_REALTIME,&start);
 
-    /* Check if we've been asked to exit */
+    //Get state
+    state = sm_p->state;
+    
+    //Check if we've been asked to exit 
     if(sm_p->w[THMID].die)
       thmctrlC(0);
     
-    /* Check in with the watchdog */
+    //Check in with the watchdog
     checkin(sm_p,THMID);
     
     /* Fill out event header */
-    thmevent.hed.version      = PICC_PKT_VERSION;
-    thmevent.hed.type         = BUFFER_THMEVENT;
-    thmevent.hed.frame_number = count++;
-    thmevent.hed.start_sec    = start.tv_sec;
-    thmevent.hed.start_nsec   = start.tv_nsec;
+    thmevent.hed.version       = PICC_PKT_VERSION;
+    thmevent.hed.type          = BUFFER_THMEVENT;
+    thmevent.hed.frame_number  = count++;
+    thmevent.hed.state         = state;
+    thmevent.hed.alp_commander = sm_p->state_array[state].alp_commander;
+    thmevent.hed.hex_commander = sm_p->state_array[state].hex_commander;
+    thmevent.hed.bmc_commander = sm_p->state_array[state].bmc_commander;
+    thmevent.hed.start_sec     = start.tv_sec;
+    thmevent.hed.start_nsec    = start.tv_nsec;
 
     //=========================================================================
     // SCANNING AND OUTPUT

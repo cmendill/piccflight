@@ -85,6 +85,7 @@ void mtr_proc(void){
   static int door_close_count[MTR_NDOORS] = {0};
   const  int door_timeout[MTR_NDOORS] = DOOR_TIMEOUT;
   int i;
+  int state;
   
   /* Setup relays */
   uint16_t door_open_relays[MTR_NDOORS] = {0};
@@ -122,6 +123,9 @@ void mtr_proc(void){
     /* Get start time */
     clock_gettime(CLOCK_REALTIME,&start);
 
+    //Get state
+    state = sm_p->state;
+    
     /* Check if we've been asked to exit */
     if(sm_p->w[MTRID].die)
       mtrctrlC(0);
@@ -130,11 +134,15 @@ void mtr_proc(void){
     checkin(sm_p,MTRID);
 
     /* Fill out event header */
-    mtrevent.hed.version      = PICC_PKT_VERSION;
-    mtrevent.hed.type         = BUFFER_MTREVENT;
-    mtrevent.hed.frame_number = count++;
-    mtrevent.hed.start_sec    = start.tv_sec;
-    mtrevent.hed.start_nsec   = start.tv_nsec;
+    mtrevent.hed.version       = PICC_PKT_VERSION;
+    mtrevent.hed.type          = BUFFER_MTREVENT;
+    mtrevent.hed.frame_number  = count++;
+    mtrevent.hed.state         = state;
+    mtrevent.hed.alp_commander = sm_p->state_array[state].alp_commander;
+    mtrevent.hed.hex_commander = sm_p->state_array[state].hex_commander;
+    mtrevent.hed.bmc_commander = sm_p->state_array[state].bmc_commander;
+    mtrevent.hed.start_sec     = start.tv_sec;
+    mtrevent.hed.start_nsec    = start.tv_nsec;
 
     /* Get door status */
     mtr_get_status(&mtrevent);

@@ -943,16 +943,19 @@ int shk_process_image(stImageBuff *buffer,sm_t *sm_p){
   sample = frame_number % SHK_NSAMPLES;
 
   //Fill out event header
-  shkevent.hed.version      = PICC_PKT_VERSION;
-  shkevent.hed.type         = BUFFER_SHKEVENT;
-  shkevent.hed.frame_number = frame_number;
-  shkevent.hed.exptime      = sm_p->shk_exptime;
-  shkevent.hed.frmtime      = sm_p->shk_frmtime;
-  shkevent.hed.ontime       = dt;
-  shkevent.hed.state        = state;
-  shkevent.hed.start_sec    = start.tv_sec;
-  shkevent.hed.start_nsec   = start.tv_nsec;
-
+  shkevent.hed.version       = PICC_PKT_VERSION;
+  shkevent.hed.type          = BUFFER_SHKEVENT;
+  shkevent.hed.frame_number  = frame_number;
+  shkevent.hed.exptime       = sm_p->shk_exptime;
+  shkevent.hed.frmtime       = sm_p->shk_frmtime;
+  shkevent.hed.ontime        = dt;
+  shkevent.hed.state         = state;
+  shkevent.hed.alp_commander = sm_p->state_array[state].alp_commander;
+  shkevent.hed.hex_commander = sm_p->state_array[state].hex_commander;
+  shkevent.hed.bmc_commander = sm_p->state_array[state].bmc_commander;
+  shkevent.hed.start_sec     = start.tv_sec;
+  shkevent.hed.start_nsec    = start.tv_nsec;
+  
   //Save temperature
   shkevent.ccd_temp         = sm_p->shk_ccd_temp;
 
@@ -1060,12 +1063,16 @@ int shk_process_image(stImageBuff *buffer,sm_t *sm_p){
     printf("SHK: shk_process_image --> timespec_subtract error!\n");
   ts2double(&delta,&dt);
   
-  //Get last HEX command
-  hex_get_command(sm_p,&hex);
-  memcpy(&hex_try,&hex,sizeof(hex_t));
-  
+  //Get HEX command for user control
+  if(sm_p->state_array[state].hex_commander == WATID)
+    hex_get_command(sm_p,&hex);
+
   //Check if we will send a command
   if((sm_p->state_array[state].hex_commander == SHKID) && sm_p->hex_ready && (dt > HEX_PERIOD)){
+    
+    //Get last HEX command
+    hex_get_command(sm_p,&hex);
+    memcpy(&hex_try,&hex,sizeof(hex_t));
     
     //Check if HEX is controlling any Zernikes
     zernike_control = 0;
@@ -1118,12 +1125,17 @@ int shk_process_image(stImageBuff *buffer,sm_t *sm_p){
   /*******************  ALPAO DM Control Code  *****************/
   /*************************************************************/
   
-  //Get last ALP command
-  alp_get_command(sm_p,&alp);
-  memcpy(&alp_try,&alp,sizeof(alp_t));
-
+  //Get ALP command for user control
+  if(sm_p->state_array[state].alp_commander == WATID)
+    alp_get_command(sm_p,&alp);
+     
   //Check if we will send a command
   if((sm_p->state_array[state].alp_commander == SHKID) && sm_p->alp_ready){
+
+    //Get last ALP command
+    alp_get_command(sm_p,&alp);
+    memcpy(&alp_try,&alp,sizeof(alp_t));
+
     //Check if ALP is controlling any Zernikes
     zernike_control = 0;
     for(i=0;i<LOWFS_N_ZERNIKE;i++){
@@ -1274,9 +1286,7 @@ int shk_process_image(stImageBuff *buffer,sm_t *sm_p){
       }
       //Other event items
       shkpkt.ccd_temp = shkevent.ccd_temp;
-      shkpkt.wsp_pcmd = shkevent.wsp.pcmd;
-      shkpkt.wsp_ycmd = shkevent.wsp.ycmd;
-
+   
       //Open SHKPKT circular buffer
       shkpkt_p=(shkpkt_t *)open_buffer(sm_p,BUFFER_SHKPKT);
 

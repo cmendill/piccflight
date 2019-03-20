@@ -99,10 +99,14 @@ void acq_process_image(uvc_frame_t *frame, sm_t *sm_p) {
   uint8_t  binned_image8[ACQYS/ACQBIN][ACQXS/ACQBIN]={{0}};
   uint8_t  gif_data[(ACQXS/ACQBIN)*(ACQYS/ACQBIN)];
   int      gif_nbytes = 0;
-   
+  int      state;
+  
   //Get time immidiately
   clock_gettime(CLOCK_REALTIME,&start);
   
+  //Get state
+  state = sm_p->state;
+
   //Debugging
   if(ACQ_DEBUG) printf("ACQ: Got frame: %d\n",frame->sequence);
 
@@ -141,6 +145,10 @@ void acq_process_image(uvc_frame_t *frame, sm_t *sm_p) {
   acqevent.hed.exptime      = sm_p->acq_exptime;
   acqevent.hed.frmtime      = sm_p->acq_frmtime;
   acqevent.hed.ontime       = dt;
+  acqevent.hed.state         = state;
+  acqevent.hed.alp_commander = sm_p->state_array[state].alp_commander;
+  acqevent.hed.hex_commander = sm_p->state_array[state].hex_commander;
+  acqevent.hed.bmc_commander = sm_p->state_array[state].bmc_commander;
   acqevent.hed.start_sec    = start.tv_sec;
   acqevent.hed.start_nsec   = start.tv_nsec;
 
