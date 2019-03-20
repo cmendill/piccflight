@@ -806,8 +806,7 @@ int alp_calibrate(sm_t *sm_p, int calmode, alp_t *alp, uint32_t *step, int proci
       //Save zernikes
       memcpy((double *)sm_p->alpcal.last_zernike,this_zernike,sizeof(sm_p->alpcal.last_zernike));
     }else{
-      //Set alp back to starting position
-      memcpy(alp,(alp_t *)&sm_p->alpcal.alp_start[calmode],sizeof(alp_t));
+      //Don't set alp back to starting position since we are probably in closed loop
       //Turn off calibration
       printf("ALP: Stopping ALP calmode ALP_CALMODE_FLIGHT\n");
       calmode = ALP_CALMODE_NONE;
