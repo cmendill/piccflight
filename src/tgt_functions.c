@@ -52,7 +52,7 @@ void tgt_init_calmode(int calmode, calmode_t *tgt){
   if(calmode == TGT_CALMODE_ZRAMP){
     sprintf(tgt->name,"TGT_CALMODE_ZRAMP");
     sprintf(tgt->cmd,"zramp");
-    tgt->shk_ncalim = 40;
+    tgt->shk_ncalim = 100;
     for(i=0;i<LOWFS_N_ZERNIKE;i++){
       tgt->shk_zpoke[i]  = shk_zramp[i];
       tgt->lyt_zpoke[i]  = 0.01*shk_zramp[i];
