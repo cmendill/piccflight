@@ -253,7 +253,8 @@ void lyt_zernike_fit(lyt_t *image, lytref_t *lytref, double *zernikes, int reset
   double img_total;
   double ref_total;
   int    i,j,count;
-
+  uint16 maxpix;
+  
   /* Initialize Fitting Matrix */
   if(!init || reset){
 
@@ -302,32 +303,44 @@ void lyt_zernike_fit(lyt_t *image, lytref_t *lytref, double *zernikes, int reset
   //Normalize image pixels & subtract reference image
   img_total=0;
   ref_total=0;
+  maxpix=0;
   count=0;
   for(i=0;i<LYTXS;i++){
     for(j=0;j<LYTYS;j++){
       if(lytref->pxmask[i][j]){
+	if(image->data[i][j] > maxpix) maxpix = image->data[i][j];
 	img_total += (double)image->data[i][j];
 	ref_total += lytref->refimg[i][j];
       }
     }
   }
 
-  //Fill out pixel delta array
-  if(img_total > 0 && ref_total > 0){
-    for(i=0;i<LYTXS;i++)
-      for(j=0;j<LYTYS;j++)
-	if(lytref->pxmask[i][j])
-	  lyt_delta[count++]  = ((double)image->data[i][j])/img_total - lytref->refimg[i][j]/ref_total;
-  }
-  
-  //Do matrix multiply
-  num_dgemv(lyt2zern_matrix, lyt_delta, zernikes, LOWFS_N_ZERNIKE, lyt_npix);
+  //Fit zernikes if above pixel threshold
+  if(maxpix > LYT_PIXEL_THRESH){
+    
+    //Fill out pixel delta array
+    if(img_total > 0 && ref_total > 0){
+      for(i=0;i<LYTXS;i++)
+	for(j=0;j<LYTYS;j++)
+	  if(lytref->pxmask[i][j])
+	    lyt_delta[count++]  = ((double)image->data[i][j])/img_total - lytref->refimg[i][j]/ref_total;
+    }
+    
+    //Do matrix multiply
+    num_dgemv(lyt2zern_matrix, lyt_delta, zernikes, LOWFS_N_ZERNIKE, lyt_npix);
 
-  //Limit zernikes
-  for(i=0;i<LOWFS_N_ZERNIKE;i++){
-    zernikes[i] = zernikes[i] < LYT_ZERNIKE_MIN ? LYT_ZERNIKE_MIN : zernikes[i];
-    zernikes[i] = zernikes[i] > LYT_ZERNIKE_MAX ? LYT_ZERNIKE_MAX : zernikes[i];
+    //Limit zernikes
+    for(i=0;i<LOWFS_N_ZERNIKE;i++){
+      zernikes[i] = zernikes[i] < LYT_ZERNIKE_MIN ? LYT_ZERNIKE_MIN : zernikes[i];
+      zernikes[i] = zernikes[i] > LYT_ZERNIKE_MAX ? LYT_ZERNIKE_MAX : zernikes[i];
+    }
+
+  }else{
+    //Zero out zernikes
+    for(i=0;i<LOWFS_N_ZERNIKE;i++)
+      zernikes[i] = 0;
   }
+    
 }
 
 /**************************************************************/

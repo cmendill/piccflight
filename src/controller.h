@@ -405,7 +405,7 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 #define LYT_XORIGIN_MAX       (LYTREADYS-LYTYS) //origins are transposed
 #define LYT_YORIGIN_MIN       0
 #define LYT_YORIGIN_MAX       (LYTREADXS-LYTXS) //origins are transposed
-
+#define LYT_PIXEL_THRESH      200 //ADU
 /*************************************************
  * SCI Camera Parameters
  *************************************************/
