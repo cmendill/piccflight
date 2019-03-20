@@ -479,49 +479,61 @@ int main(int argc,char **argv){
       printf("WAT: xhci_hcd on IRQ: %d CPU: %d\n",irq,CPU_AFFINITY_XHCI_HCD);
   }
   
-  /* Init RTD Driver */
+  /* Init RTD Driver for ALP */
   if(ALP_ENABLE){
     printf("WAT: Opening RTD ALP driver\n");
     //Open driver
     if((dm7820_status = rtd_open(RTD_ALP_BOARD_MINOR, &p_rtd_alp_board))){
-      perror("WAT: rtd_open");
-      printf("WAT: ERROR: RTD init failed!\n");
+      rtd_close(p_rtd_alp_board);
+      perror("WAT: rtd_open (ALP)");
+      printf("WAT: ERROR: RTD ALP init failed!\n");
     }
     else{
       //Reset board
       if((dm7820_status = rtd_reset(p_rtd_alp_board))){
-	perror("WAT: rtd_reset");
-	printf("WAT: ERROR: RTD init failed!\n");
+	rtd_close(p_rtd_alp_board);
+	perror("WAT: rtd_reset (ALP)");
+	printf("WAT: ERROR: RTD ALP init failed!\n");
       }
       else{
 	//Set device handle
 	sm_p->p_rtd_alp_board = p_rtd_alp_board;
-	if(ALP_ENABLE) sm_p->alp_ready = 1;
+	sm_p->alp_ready = 1;
 	printf("WAT: RTD ALP ready\n");
       }
     }
   }
-
-  /* Init RTD Driver */
+  
+  /* Init RTD Driver for TLM */
   if(TLM_ENABLE){
     printf("WAT: Opening RTD TLM driver\n");
-    //Open driver
-    if((dm7820_status = rtd_open(RTD_TLM_BOARD_MINOR, &p_rtd_tlm_board))){
-      perror("WAT: rtd_open");
-      printf("WAT: ERROR: RTD init failed!\n");
+    if(RTD_TLM_BOARD_MINOR == RTD_ALP_BOARD_MINOR && sm_p->alp_ready){
+      //Using a single RTD board and it was already opened by ALP
+      p_rtd_tlm_board = p_rtd_alp_board;
+      sm_p->p_rtd_tlm_board = p_rtd_tlm_board;
+      sm_p->tlm_ready = 1;
+      printf("WAT: RTD TLM ready\n");
     }
     else{
-      //Reset board
-      if((dm7820_status = rtd_reset(p_rtd_tlm_board))){
-	perror("WAT: rtd_reset");
-	printf("WAT: ERROR: RTD init failed!\n");
+      //Open driver
+      if((dm7820_status = rtd_open(RTD_TLM_BOARD_MINOR, &p_rtd_tlm_board))){
+	rtd_close(p_rtd_tlm_board);
+	perror("WAT: rtd_open (TLM)");
+	printf("WAT: ERROR: RTD TLM init failed!\n");
       }
       else{
-	//Set device handle
-	sm_p->p_rtd_tlm_board = p_rtd_tlm_board;
-	if(ALP_ENABLE) sm_p->alp_ready = 1;
-	if(TLM_ENABLE) sm_p->tlm_ready = 1;
-	printf("WAT: RTD TLM ready\n");
+	//Reset board
+	if((dm7820_status = rtd_reset(p_rtd_tlm_board))){
+	  rtd_close(p_rtd_tlm_board);
+	  perror("WAT: rtd_reset (TLM)");
+	  printf("WAT: ERROR: RTD TLM init failed!\n");
+	}
+	else{
+	  //Set device handle
+	  sm_p->p_rtd_tlm_board = p_rtd_tlm_board;
+	  sm_p->tlm_ready = 1;
+	  printf("WAT: RTD TLM ready\n");
+	}
       }
     }
   }
@@ -660,29 +672,39 @@ int main(int argc,char **argv){
     perror("WAT: ADC3 ioperm()");
   }
 
-  //Cleanup RTD
-  if(ALP_ENABLE){
+  //Cleanup RTD ALP
+  if(sm_p->alp_ready){
     if((dm7820_status = rtd_alp_cleanup(p_rtd_alp_board)))
       perror("rtd_alp_cleanup");
-    
-    //Close RTD driver
+  }
+  
+  //Cleanup RTD TLM
+  if(sm_p->tlm_ready){
+    if((dm7820_status = rtd_tlm_cleanup(p_rtd_tlm_board)))
+      perror("rtd_tlm_cleanup");
+  }
+  
+  //Close RTD ALP driver
+  if(sm_p->alp_ready){
     if((dm7820_status = rtd_close(p_rtd_alp_board)))
       perror("rtd_close");
     else
       printf("WAT: RTD ALP closed\n");
   }
-  if(TLM_ENABLE){
-    if((dm7820_status = rtd_tlm_cleanup(p_rtd_tlm_board)))
-      perror("rtd_tlm_cleanup");
-    
-    //Close RTD driver
-    if((dm7820_status = rtd_close(p_rtd_tlm_board)))
-      perror("rtd_close");
-    else
+  
+  //Close RTD TLM driver
+  if(sm_p->tlm_ready){
+    if(RTD_TLM_BOARD_MINOR == RTD_ALP_BOARD_MINOR && sm_p->alp_ready){
+      //Using a single RTD board and it was already closed by ALP
       printf("WAT: RTD TLM closed\n");
+    }else{
+      if((dm7820_status = rtd_close(p_rtd_tlm_board)))
+	perror("rtd_close");
+      else
+	printf("WAT: RTD TLM closed\n");
+    }
   }
   
-
   //Cleanup HEX
   if(HEX_ENABLE){
     hex_disconnect(hexfd);
