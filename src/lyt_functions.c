@@ -451,8 +451,12 @@ int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
   lytevent.hed.tgt_calmode   = sm_p->tgt_calmode;
 
   //Save temperature
-  lytevent.ccd_temp         = sm_p->lyt_ccd_temp;
- 
+  lytevent.ccd_temp          = sm_p->lyt_ccd_temp;
+
+  //Save origin
+  lytevent.xorigin           = sm_p->lyt_xorigin;
+  lytevent.yorigin           = sm_p->lyt_yorigin;
+  
   //Save gains
   for(i=0;i<LOWFS_N_ZERNIKE;i++)
     for(j=0;j<LOWFS_N_PID;j++)
@@ -483,7 +487,7 @@ int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
     //Cut out ROI -- transpose offsets
     for(i=0;i<LYTXS;i++)
       for(j=0;j<LYTYS;j++)
-	lytevent.image.data[i][j]=lytread[i+sm_p->lyt_yorigin][j+sm_p->lyt_xorigin];
+	lytevent.image.data[i][j]=lytread[i+lytevent.yorigin][j+lytevent.xorigin];
    
   }
   
@@ -627,6 +631,10 @@ int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
       //CCD Temp
       lytpkt.ccd_temp = lytevent.ccd_temp;
 
+      //Origins
+      lytpkt.xorigin  = lytevent.xorigin;
+      lytpkt.yorigin  = lytevent.yorigin;
+            
       //Open LYTPKT circular buffer
       lytpkt_p=(lytpkt_t *)open_buffer(sm_p,BUFFER_LYTPKT);
 
