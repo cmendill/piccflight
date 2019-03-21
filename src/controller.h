@@ -235,16 +235,16 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 	     BUFFER_SHKFULL,  BUFFER_ACQFULL,
 	     NCIRCBUF};
 
-#define SCIEVENTSIZE     3
-#define SHKEVENTSIZE     3
-#define LYTEVENTSIZE     30
-#define ACQEVENTSIZE     3
-#define THMEVENTSIZE     3
-#define MTREVENTSIZE     3
-#define SHKPKTSIZE       3
-#define LYTPKTSIZE       30
-#define SHKFULLSIZE      3
-#define ACQFULLSIZE      3
+#define SCIEVENTSIZE     5
+#define SHKEVENTSIZE     5
+#define LYTEVENTSIZE     5
+#define ACQEVENTSIZE     5
+#define THMEVENTSIZE     5
+#define MTREVENTSIZE     5
+#define SHKPKTSIZE       5
+#define LYTPKTSIZE       5
+#define SHKFULLSIZE      5
+#define ACQFULLSIZE      5
 
 /*************************************************
  * LOWFS Settings
@@ -681,6 +681,10 @@ typedef struct lyt_struct{
   uint16 data[LYTXS][LYTYS];
 } lyt_t;
 
+typedef struct lytread_struct{
+  uint16 data[LYTREADXS][LYTREADYS];
+} lytread_t;
+
 typedef struct lytref_struct{
   double refimg[LYTXS][LYTYS]; //current reference image
   double refmod[LYTXS][LYTYS]; //model reference image
@@ -874,6 +878,7 @@ typedef struct lytevent_struct{
   double    alp_measured[ALP_NACT];
   alp_t     alp;
   lyt_t     image;
+  lytread_t readimage;
 } lytevent_t;
 
 typedef struct lytpkt_struct{

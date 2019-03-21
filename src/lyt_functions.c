@@ -369,7 +369,6 @@ int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
   int zernike_switch[LOWFS_N_ZERNIKE] = {0};
   uint32_t n_dither=1;
   int sample;
-  uint16_t lytread[LYTREADXS][LYTREADYS];
   
   //Get time immidiately
   clock_gettime(CLOCK_REALTIME,&start);
@@ -470,6 +469,9 @@ int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
     if(lytevent.hed.tgt_calmode != TGT_CALMODE_NONE)
       sm_p->tgt_calmode = tgt_calibrate(lytevent.hed.tgt_calmode,lytevent.zernike_target,&lytevent.hed.tgt_calstep,LYTID,FUNCTION_NO_RESET);
 
+  //Copy full readout image to event
+  memcpy(&lytevent.readimage.data[0][0],buffer->pvAddress,sizeof(lytread_t));
+  
   //Fake data
   if(sm_p->w[LYTID].fakemode != FAKEMODE_NONE){
     if(sm_p->w[LYTID].fakemode == FAKEMODE_TEST_PATTERN)
@@ -482,13 +484,11 @@ int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
 	  lytevent.image.data[i][j]=lytref.refimg[i][j];
   }
   else{
-    //Copy image data
-    memcpy(&(lytread[0][0]),buffer->pvAddress,sizeof(lytread));
     //Cut out ROI -- transpose offsets
     for(i=0;i<LYTXS;i++)
       for(j=0;j<LYTYS;j++)
-	lytevent.image.data[i][j]=lytread[i+lytevent.yorigin][j+lytevent.xorigin];
-   
+	lytevent.image.data[i][j]=lytevent.readimage.data[i+lytevent.yorigin][j+lytevent.xorigin];
+    
   }
   
   //Command: lyt_setref 
