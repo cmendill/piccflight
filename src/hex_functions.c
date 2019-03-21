@@ -169,13 +169,21 @@ int hex_init(int *hexfd){
 /* - Use atomic operations to prevent two processes from      */
 /*   accessing the commands at the same time                  */
 /**************************************************************/
-void hex_get_command(sm_t *sm_p, hex_t *cmd){
+int hex_get_command(sm_t *sm_p, hex_t *cmd){
+  int retval = 1;
+  
   //Atomically test and set HEX command lock using GCC built-in function
-  while(__sync_lock_test_and_set(&sm_p->hex_command_lock,1));
-  //Copy command
-  memcpy(cmd,(hex_t *)&sm_p->hex_command,sizeof(hex_t));
-  //Release lock
-  __sync_lock_release(&sm_p->hex_command_lock);
+  if(__sync_lock_test_and_set(&sm_p->hex_command_lock,1)==0){
+    //Copy command
+    memcpy(cmd,(hex_t *)&sm_p->hex_command,sizeof(hex_t));
+    //Release lock
+    __sync_lock_release(&sm_p->hex_command_lock);
+    //Return 0 on success
+    retval = 0;
+  }
+
+  //Return
+  return retval;
 }
 
 /**************************************************************/
@@ -186,32 +194,29 @@ void hex_get_command(sm_t *sm_p, hex_t *cmd){
 /* - Return 0 if the command was sent and 1 if it wasn't      */
 /**************************************************************/
 int hex_send_command(sm_t *sm_p, hex_t *cmd, int proc_id){
-
+  int retval = 1;
+  
   //Atomically test and set HEX command lock using GCC built-in function
   if(__sync_lock_test_and_set(&sm_p->hex_command_lock,1)==0){
-
+    
     //Check if the commanding process is the HEX commander
     if(proc_id == sm_p->state_array[sm_p->state].hex_commander){
       
       //Send the command
-      if(hex_move(sm_p->hexfd,cmd->acmd)){
-	printf("HEX: hex_move error!\n");
-	return 1;
-      }else{
+      if(!hex_move(sm_p->hexfd,cmd->acmd)){
 	//Copy command to current position
 	memcpy((hex_t *)&sm_p->hex_command,cmd,sizeof(hex_t));
+	//Set retval for good command
+	retval = 0;
       }
     }  
     
     //Release lock
     __sync_lock_release(&sm_p->hex_command_lock);
-  }else{
-    //Couldn't get lock
-    return 1;
   }
-  
-  //Return 0 on good write
-  return 0;
+
+  //Return
+  return retval;
 }
 
 /**************************************************************/
@@ -281,12 +286,14 @@ int hex_move(int id, double *pos){
     printf("HEX: PI_IsMoving error: %s\n",msg);
     return 1;
   }
-  if(bIsMoving)
+  if(bIsMoving){
+    printf("HEX: Hexapod is moving\n");
     return 1;
-
+  }
+  
   //Convert telescope to hexapod coordinates
   hex_scope2hex(pos, result);
-
+  
   //Send command to move hexapod
   if(!PI_MOV(id, axes_all, result)){
     PI_TranslateError(PI_GetError(id),msg,PI_ERR_LENGTH);

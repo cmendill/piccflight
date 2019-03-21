@@ -163,13 +163,21 @@ int alp_zern2alp(double *zernikes,double *actuators,int reset){
 /* - Use atomic operations to prevent two processes from      */
 /*   accessing the commands at the same time                  */
 /**************************************************************/
-void alp_get_command(sm_t *sm_p, alp_t *cmd){
+int alp_get_command(sm_t *sm_p, alp_t *cmd){
+  int retval = 1;
+  
   //Atomically test and set ALP command lock using GCC built-in function
-  while(__sync_lock_test_and_set(&sm_p->alp_command_lock,1));
-  //Copy command
-  memcpy(cmd,(alp_t *)&sm_p->alp_command,sizeof(alp_t));
-  //Release lock
-  __sync_lock_release(&sm_p->alp_command_lock);
+  if(__sync_lock_test_and_set(&sm_p->alp_command_lock,1)==0){
+    //Copy command
+    memcpy(cmd,(alp_t *)&sm_p->alp_command,sizeof(alp_t));
+    //Release lock
+    __sync_lock_release(&sm_p->alp_command_lock);
+    //Return 0 on success
+    retval = 0;
+  }
+  
+  //Return
+  return retval;
 }
 
 /**************************************************************/
@@ -180,6 +188,7 @@ void alp_get_command(sm_t *sm_p, alp_t *cmd){
 /* - Return 0 if the command was sent and 1 if it wasn't      */
 /**************************************************************/
 int alp_send_command(sm_t *sm_p, alp_t *cmd, int proc_id, int n_dither){
+  int retval = 1;
   
   //Atomically test and set ALP command lock using GCC built-in function
   if(__sync_lock_test_and_set(&sm_p->alp_command_lock,1)==0){
@@ -198,7 +207,6 @@ int alp_send_command(sm_t *sm_p, alp_t *cmd, int proc_id, int n_dither){
 	printf("ALP: Initializing RTD board for %s with %d dither steps\n",sm_p->w[proc_id].name,n_dither);
 	if(rtd_init_alp(sm_p->p_rtd_alp_board,n_dither)){
 	  perror("ALP: rtd_init_alp");
-	  return 1;
 	}
 	else{
 	  sm_p->alp_proc_id = proc_id;
@@ -207,13 +215,11 @@ int alp_send_command(sm_t *sm_p, alp_t *cmd, int proc_id, int n_dither){
       }
       
       //Send the command
-      if(rtd_send_alp(sm_p->p_rtd_alp_board,cmd->acmd)){
-	//Bad command
-	return 1;
-      }
-      else{
+      if(!rtd_send_alp(sm_p->p_rtd_alp_board,cmd->acmd)){
 	//Copy command to current position
 	memcpy((alp_t *)&sm_p->alp_command,cmd,sizeof(alp_t));
+	//Set retval for good command
+	retval = 0;
       }
       
       //Unset DIO bit A0
@@ -222,15 +228,13 @@ int alp_send_command(sm_t *sm_p, alp_t *cmd, int proc_id, int n_dither){
       #endif
       
     }
+    
     //Release lock
     __sync_lock_release(&sm_p->alp_command_lock);
-  }else{
-    //Couldn't get lock
-    return 1;
   }
 
-  //Return 0 on good write
-  return 0;
+  //Return
+  return retval;
 }
 
 
@@ -266,7 +270,8 @@ int alp_set_random(sm_t *sm_p, int proc_id){
   srand((unsigned) time(&t));
   
   //Get current command
-  alp_get_command(sm_p,&alp);
+  if(alp_get_command(sm_p,&alp))
+    return 1;
 
   //Add perturbation
   for(i=0;i<ALP_NACT;i++)
@@ -291,7 +296,8 @@ int alp_set_zrandom(sm_t *sm_p, int proc_id){
   srand((unsigned) time(&t));
   
   //Get current command
-  alp_get_command(sm_p,&alp);
+  if(alp_get_command(sm_p,&alp))
+    return 1;
 
   //Calculate zernike perturbation 
   for(i=0;i<LOWFS_N_ZERNIKE;i++)
@@ -345,7 +351,8 @@ int alp_save_flat(sm_t *sm_p){
   char path[MAX_FILENAME];
 
   //Get current command
-  alp_get_command(sm_p,&alp);
+  if(alp_get_command(sm_p,&alp))
+    return 1;
 
   //Clear zernike commands
   memset(alp.zcmd,0,sizeof(alp.zcmd));

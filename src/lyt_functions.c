@@ -540,7 +540,10 @@ int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
   if((sm_p->state_array[state].alp_commander == LYTID) && sm_p->alp_ready){
 
     //Get last ALP command
-    alp_get_command(sm_p,&alp);
+    if(alp_get_command(sm_p,&alp)){
+      //Skip this image
+      return 0;
+    }
     memcpy(&alp_try,&alp,sizeof(alp_t));
 
     //Check if ALP is controlling any Zernikes

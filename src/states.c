@@ -139,8 +139,9 @@ void init_state(int state_number, state_t *state){
     //Set SHKID as HEX and ALP commander
     state->hex_commander = SHKID;
     state->alp_commander = SHKID;
-    //Offload SHK tilt to hexapod
-    state->shk.offload_tilt_to_hex=1;
+    //Offload ALP tilt to hexapod
+    state->shk.alp_zernike_offload[0] = ACTUATOR_HEX;
+    state->shk.alp_zernike_offload[1] = ACTUATOR_HEX;
     return;
   }
 

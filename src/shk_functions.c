@@ -817,7 +817,7 @@ void shk_alp_zernpid(shkevent_t *shkevent, double *zernike_delta, int *zernike_s
 /* SHK_HEX_ZERNPID                                            */
 /*  - Run PID controller on measured Zernikes for HEX         */
 /**************************************************************/
-void shk_hex_zernpid(shkevent_t *shkevent, double *zernike_delta, int *zernike_switch, int offload, int reset){
+void shk_hex_zernpid(shkevent_t *shkevent, double *zernike_delta, int *zernike_switch, int *offload_switch, int reset){
   static int init = 0;
   static double zint[LOWFS_N_ZERNIKE] = {0};
   double zerr;
@@ -829,21 +829,21 @@ void shk_hex_zernpid(shkevent_t *shkevent, double *zernike_delta, int *zernike_s
     init=1;
     if(reset) return;
   }
-
+  
   //Run PID
   for(i=0;i<LOWFS_N_ZERNIKE;i++){
+    //Offload ALP to HEX
+    if(offload_switch[i]){
+      zernike_delta[i] = -1.0 * shkevent->alp.zcmd[i] * shkevent->gain_hex_zern[0];
+    }
+    //Regular zernike control
     if(zernike_switch[i]){
-      //Offload tilt from ALP to HEX
-      if(offload && i <= 1){
-	zernike_delta[i] = -1.0 * shkevent->alp.zcmd[i] * shkevent->gain_hex_zern[0];
-      }else{
-	//Calculate error
-	zerr = shkevent->zernike_measured[i] - shkevent->zernike_target[i];
-	//Calculate integral
-	zint[i] += zerr;
-	//Calculate command
-	zernike_delta[i] = shkevent->gain_hex_zern[0] * zerr + shkevent->gain_hex_zern[1] * zint[i];
-      }
+      //Calculate error
+      zerr = shkevent->zernike_measured[i] - shkevent->zernike_target[i];
+      //Calculate integral
+      zint[i] += zerr;
+      //Calculate command
+      zernike_delta[i] = shkevent->gain_hex_zern[0] * zerr + shkevent->gain_hex_zern[1] * zint[i];
     }
   }
 }
@@ -874,6 +874,7 @@ int shk_process_image(stImageBuff *buffer,sm_t *sm_p){
   alp_t alp,alp_try,alp_delta;
   int zernike_control=0;
   int zernike_switch[LOWFS_N_ZERNIKE] = {0};
+  int offload_switch[LOWFS_N_ZERNIKE] = {0};
   uint32_t n_dither=1;
   int reset_zernike=0;
   int sample;
@@ -915,7 +916,7 @@ int shk_process_image(stImageBuff *buffer,sm_t *sm_p){
     //Reset PID controllers
     shk_alp_cellpid(NULL,FUNCTION_RESET);
     shk_alp_zernpid(NULL,NULL,NULL,FUNCTION_RESET);
-    shk_hex_zernpid(NULL,NULL,NULL,0,FUNCTION_RESET);
+    shk_hex_zernpid(NULL,NULL,NULL,NULL,FUNCTION_RESET);
     //Init ALP calmodes
     for(i=0;i<ALP_NCALMODES;i++)
       alp_init_calmode(i,&alpcalmodes[i]);
@@ -1074,14 +1075,21 @@ int shk_process_image(stImageBuff *buffer,sm_t *sm_p){
   ts2double(&delta,&dt);
   
   //Get HEX command for user control
-  if(sm_p->state_array[state].hex_commander == WATID)
-    hex_get_command(sm_p,&hex);
+  if(sm_p->state_array[state].hex_commander == WATID){
+    if(hex_get_command(sm_p,&hex)){
+      //Skip this image
+      return 0;
+    }
+  }
   
   //Check if we will send a command
   if((sm_p->state_array[state].hex_commander == SHKID) && sm_p->hex_ready){
     
     //Get last HEX command -- everytime through for event packets
-    hex_get_command(sm_p,&hex);
+    if(hex_get_command(sm_p,&hex)){
+      //Skip this image
+      return 0;
+    }
     memcpy(&hex_try,&hex,sizeof(hex_t));
     
     //Check time
@@ -1090,17 +1098,14 @@ int shk_process_image(stImageBuff *buffer,sm_t *sm_p){
       //Check if HEX is controlling any Zernikes
       zernike_control = 0;
       memset(zernike_switch,0,sizeof(zernike_switch));
+      memset(offload_switch,0,sizeof(offload_switch));
       for(i=0;i<LOWFS_N_ZERNIKE;i++){
 	if(sm_p->shk_zernike_control[i] && sm_p->state_array[state].shk.zernike_control[i] == ACTUATOR_HEX){
 	  zernike_switch[i] = 1;
 	  zernike_control = 1;
 	}
-      }
-      
-      //Check offload
-      for(i=0;i<2;i++){
-	if(sm_p->shk_zernike_control[i] && sm_p->state_array[state].shk.offload_tilt_to_hex){
-	  zernike_switch[i] = 1;
+	if(sm_p->shk_zernike_control[i] && sm_p->state_array[state].shk.alp_zernike_offload[i] == ACTUATOR_HEX){
+	  offload_switch[i] = 1;
 	  zernike_control = 1;
 	}
       }
@@ -1108,11 +1113,11 @@ int shk_process_image(stImageBuff *buffer,sm_t *sm_p){
       //Run Zernike control
       if(zernike_control){
 	// - run Zernike PID
-	shk_hex_zernpid(&shkevent, hex_delta.zcmd, zernike_switch,sm_p->state_array[state].shk.offload_tilt_to_hex, FUNCTION_NO_RESET);
+	shk_hex_zernpid(&shkevent, hex_delta.zcmd, zernike_switch, offload_switch, FUNCTION_NO_RESET);
       
 	// - zero out uncontrolled Zernikes
 	for(i=0;i<LOWFS_N_ZERNIKE;i++)
-	  if(!zernike_switch[i])
+	  if(!zernike_switch[i] && !offload_switch[i])
 	    hex_delta.zcmd[i] = 0;
 	
 	// - convert Zernike deltas to axis deltas
@@ -1120,7 +1125,7 @@ int shk_process_image(stImageBuff *buffer,sm_t *sm_p){
 	
 	// - add Zernike PID output deltas to HEX command
 	for(i=0;i<LOWFS_N_ZERNIKE;i++)
-	  if(zernike_switch[i])
+	  if(zernike_switch[i] || offload_switch[i])
 	    hex_try.zcmd[i] += hex_delta.zcmd[i];
 	
 	// - add axis deltas to HEX command
@@ -1152,14 +1157,21 @@ int shk_process_image(stImageBuff *buffer,sm_t *sm_p){
   /*************************************************************/
   
   //Get ALP command for user control
-  if(sm_p->state_array[state].alp_commander == WATID)
-    alp_get_command(sm_p,&alp);
-     
+  if(sm_p->state_array[state].alp_commander == WATID){
+    if(alp_get_command(sm_p,&alp)){
+      //Skip this image
+      return 0;
+    }
+  }
+  
   //Check if we will send a command
   if((sm_p->state_array[state].alp_commander == SHKID) && sm_p->alp_ready){
 
     //Get last ALP command
-    alp_get_command(sm_p,&alp);
+    if(alp_get_command(sm_p,&alp)){
+      //Skip this image
+      return 0;
+    }
     memcpy(&alp_try,&alp,sizeof(alp_t));
 
     //Check if ALP is controlling any Zernikes

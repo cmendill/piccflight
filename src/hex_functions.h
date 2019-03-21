@@ -7,7 +7,7 @@ int  hex_connect(void);
 void hex_disconnect(int id);
 void hex_get_error(int id);
 int  hex_init(int *hexfd);
-void hex_get_command(sm_t *sm_p, hex_t *cmd);
+int  hex_get_command(sm_t *sm_p, hex_t *cmd);
 int  hex_send_command(sm_t *sm_p, hex_t *cmd, int proc_id);
 int  hex_hex2scope(double *position, double *result);
 int  hex_scope2hex(double *position, double *result);

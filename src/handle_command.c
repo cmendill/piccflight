@@ -697,7 +697,7 @@ int handle_command(char *line, sm_t *sm_p){
 	printf("CMD: Moving hexapod to home positon\n");
 	memcpy(hexcmd.acmd,hexhome,sizeof(hexhome));
 	if(hex_send_command(sm_p,&hexcmd,WATID))
-	  printf("CMD: Hexapod command failed\n");
+	  printf("CMD: hex_send_command failed\n");
 	return(CMD_NORMAL);
       }
       //Go to DEFAULT position
@@ -710,7 +710,7 @@ int handle_command(char *line, sm_t *sm_p){
 	printf("CMD: Moving hexapod to default positon\n");
 	memcpy(hexcmd.acmd,hexdef,sizeof(hexdef));
 	if(hex_send_command(sm_p,&hexcmd,WATID))
-	  printf("CMD: Hexapod command failed\n");
+	  printf("CMD: hex_send_command failed\n");
 	return(CMD_NORMAL);
       }
       //Move in a single axis
@@ -784,10 +784,13 @@ int handle_command(char *line, sm_t *sm_p){
 	  return(CMD_NORMAL);
 	}
 	printf("CMD: Moving hexapod axis %s by %f %s\n",hex_str_axes[hex_axis],hex_poke,hex_str_unit[hex_axis]);
-	hex_get_command(sm_p,&hexcmd);
+	if(hex_get_command(sm_p,&hexcmd)){
+	  printf("CMD: hex_get_command failed\n");
+	  return(CMD_NORMAL);
+  	}
 	hexcmd.acmd[hex_axis] += hex_poke;
 	if(hex_send_command(sm_p,&hexcmd,WATID))
-	  printf("CMD: Hexapod command failed\n");
+	  printf("CMD: hex_send_command failed\n");
 	return(CMD_NORMAL);
       }
     }
@@ -933,7 +936,10 @@ int handle_command(char *line, sm_t *sm_p){
       printf("CMD: Trying to change Z[%d] by %f microns\n",itemp,ftemp);
       if(itemp >= 0 && itemp < LOWFS_N_ZERNIKE && ftemp >= ALP_DZERNIKE_MIN && ftemp <= ALP_DZERNIKE_MAX){
 	//Get current command
-	alp_get_command(sm_p,&alp);
+	if(alp_get_command(sm_p,&alp)){
+	  printf("CMD: alp_get_command failed!\n");
+	  return CMD_NORMAL;
+	}
 
 	//Set zernike perturbation 
 	dz[itemp] = ftemp;
@@ -986,7 +992,10 @@ int handle_command(char *line, sm_t *sm_p){
       printf("CMD: Trying to change A[%d] by %f units\n",itemp,ftemp);
       if(itemp >= 0 && itemp < ALP_NACT && ftemp >= -1 && ftemp <= 1){
 	//Get current command
-	alp_get_command(sm_p,&alp);
+	if(alp_get_command(sm_p,&alp)){
+	  printf("CMD: alp_get_command failed!\n");
+	  return CMD_NORMAL;
+	}
 
 	//Add to current command
 	alp.acmd[itemp] += ftemp;

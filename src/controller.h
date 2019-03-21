@@ -625,7 +625,7 @@ typedef struct shkctrl_struct{
   int fit_zernikes;
   int zernike_control[LOWFS_N_ZERNIKE];
   int cell_control;
-  int offload_tilt_to_hex;
+  int alp_zernike_offload[LOWFS_N_ZERNIKE];
 } shkctrl_t;
 
 // Lyot Sensor Control (lyt_proc.c)
@@ -633,7 +633,7 @@ typedef struct lytctrl_struct{
   int fit_zernikes;
   int zernike_control[LOWFS_N_ZERNIKE];
   int act_control;
-  int offload_tilt_to_hex;
+  int alp_zernike_offload[LOWFS_N_ZERNIKE];
 } lytctrl_t;
 
 // Science Camera Control (sci_proc.c)
