@@ -224,6 +224,9 @@ int alp_send_command(sm_t *sm_p, alp_t *cmd, int proc_id, int n_dither){
     }
     //Release lock
     __sync_lock_release(&sm_p->alp_command_lock);
+  }else{
+    //Couldn't get lock
+    return 1;
   }
 
   //Return 0 on good write
