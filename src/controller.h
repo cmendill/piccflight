@@ -114,7 +114,6 @@ enum alpcalmodes {ALP_CALMODE_NONE,
 
 enum hexcalmodes {HEX_CALMODE_NONE,
 		  HEX_CALMODE_POKE,
-		  HEX_CALMODE_TCOR,
 		  HEX_CALMODE_SPIRAL,
 		  HEX_NCALMODES};
 
@@ -499,12 +498,6 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 #define HEX_U_CAL_POKE    0.001
 #define HEX_V_CAL_POKE    0.001
 #define HEX_W_CAL_POKE    0.005
-#define HEX_X_CAL_TCOR    0.5
-#define HEX_Y_CAL_TCOR    0.5
-#define HEX_Z_CAL_TCOR    0.05
-#define HEX_U_CAL_TCOR    0.001
-#define HEX_V_CAL_TCOR    0.001
-#define HEX_W_CAL_TCOR    0.005
 #define HEX_SHK_NCALIM    5
 #define HEX_LYT_NCALIM    5
 #define HEX_PIVOT_X       0    //122.32031250
@@ -1082,8 +1075,6 @@ typedef volatile struct {
   int   sci_tec_enable;
   
   //Other Commands
-  int hex_getpos;
-  int hex_tilt_correct;
   int acq_thresh;
   int thm_enable_vref;
 

@@ -16,11 +16,6 @@
 #include "numeric.h"
 #include "hex_functions.h"
 
-/* TCOR Calibration */
-#define HEX_TCOR_DVDX -0.1
-#define HEX_TCOR_DUDY  0.1
-#define HEX_TCOR_DUDZ -0.021214635
-
 /* Error messages */
 #define PI_ERR_LENGTH 128
 
@@ -42,12 +37,6 @@ void hex_init_calmode(int calmode, calmode_t *hex){
   if(calmode == HEX_CALMODE_POKE){
     sprintf(hex->name,"HEX_CALMODE_POKE");
     sprintf(hex->cmd,"poke");
-    hex->shk_boxsize_cmd = SHK_BOXSIZE_CMD_MAX; 
-  }
-  //HEX_CALMODE_TCOR
-  if(calmode == HEX_CALMODE_TCOR){
-    sprintf(hex->name,"HEX_CALMODE_TCOR");
-    sprintf(hex->cmd,"tcor");
     hex->shk_boxsize_cmd = SHK_BOXSIZE_CMD_MAX; 
   }
   //HEX_CALMODE_SPIRAL
@@ -511,7 +500,6 @@ int hex_calibrate(int calmode, hex_t *hex, uint32_t *step, int procid, int reset
   time_t t;
   double dt=0;
   const double poke[HEX_NAXES]={HEX_X_CAL_POKE,HEX_Y_CAL_POKE,HEX_Z_CAL_POKE,HEX_U_CAL_POKE,HEX_V_CAL_POKE,HEX_W_CAL_POKE};
-  const double tcor[HEX_NAXES]={HEX_X_CAL_TCOR,HEX_Y_CAL_TCOR,HEX_Z_CAL_TCOR,HEX_U_CAL_TCOR,HEX_V_CAL_TCOR,HEX_W_CAL_TCOR};
   int iax;
   int ncalim=0;
 
@@ -590,51 +578,7 @@ int hex_calibrate(int calmode, hex_t *hex, uint32_t *step, int procid, int reset
     return calmode;
   }
 
-  /* HEX_CALMODE_TCOR:      Move through axes one at a time. */
-  /*                        Use tilt correction.             */
-  /*                        Go home in between each move.    */
-  if(calmode == HEX_CALMODE_TCOR){
-    //Save hex starting position
-    if(!mode_init[calmode]){
-      memcpy(&hex_start[calmode],hex,sizeof(hex_t));
-      mode_init[calmode]=1;
-    }
-    //Proceed with calibration
-    if(countA[calmode] >= 0 && countA[calmode] < (2*HEX_NAXES*ncalim)){
-      //Set calibration step
-      *step = countA[calmode]/ncalim;
-      //Set hex to starting position
-      memcpy(hex,&hex_start[HEX_CALMODE_TCOR],sizeof(hex_t));
-	
-      if((countA[calmode]/ncalim) % 2 == 1){
-	//move one axis
-	iax = (countB[calmode]/ncalim) % HEX_NAXES;
-	hex->acmd[iax] += tcor[iax];
-	//correct tilt
-	if(iax == HEX_AXIS_X)
-	  hex->acmd[HEX_AXIS_V] += HEX_TCOR_DVDX * tcor[iax];
-	if(iax == HEX_AXIS_Y)
-	  hex->acmd[HEX_AXIS_U] += HEX_TCOR_DUDY * tcor[iax];
-	if(iax == HEX_AXIS_Z)
-	  hex->acmd[HEX_AXIS_U] += HEX_TCOR_DUDZ * tcor[iax];
-	countB[calmode]++;
-      }
-      countA[calmode]++;
-    }
-    else{
-      //Set hex back to starting position
-      memcpy(hex,&hex_start[calmode],sizeof(hex_t));
-      mode_init[calmode]=0;
-      //Turn off calibration
-      printf("HEX: Stopping HEX calmode HEX_CALMODE_TCOR\n");
-      calmode = HEX_CALMODE_NONE;
-      init = 0;
-    }
-    return calmode;
-  }
-
   /* HEX_CALMODE_SPIRAL: Spiral Search. Tip/tilt hexapod axes in a spiral. */
-
   if(calmode == HEX_CALMODE_SPIRAL){
     double u_step;
     double v_step;

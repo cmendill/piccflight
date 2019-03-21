@@ -637,21 +637,6 @@ int handle_command(char *line, sm_t *sm_p){
 	}
 	return(CMD_NORMAL);
       }
-
-      //Turn ON tilt correction
-      sprintf(cmd,"hex tcor on");
-      if(!strncasecmp(line,cmd,strlen(cmd))){
-	printf("CMD: Turning HEX tilt correction ON\n");
-	sm_p->hex_tilt_correct = 1;
- 	return(CMD_NORMAL);
-      }
-      //Turn OFF tilt correction
-      sprintf(cmd,"hex tcor off");
-      if(!strncasecmp(line,cmd,strlen(cmd))){
-	printf("CMD: Turning HEX tilt correction OFF\n");
-	sm_p->hex_tilt_correct = 0;
-	return(CMD_NORMAL);
-      }
       //Increase step size
       sprintf(cmd,"hex inc step");
       if(!strncasecmp(line,cmd,strlen(cmd))){

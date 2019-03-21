@@ -125,9 +125,6 @@
 				   {-0.005000,  -0.001000,       0.0}, \
 				   {-0.005000,  -0.001000,       0.0}}  
 
-//Hexapod Settings
-#define HEX_TILT_CORRECT_DEFAULT  1
-
 //ACQ Settings
 #define ACQ_THRESH_DEFAULT        5
 
