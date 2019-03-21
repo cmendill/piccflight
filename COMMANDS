@@ -34,14 +34,22 @@ cmd: xxx_proc on
 
 cmd: xxx_proc off
 	turns the xxx process off
-	xxx = 
+	xxx = sci, shk, lyt, tlm, etc.
+
+cmd: xxx_proc enable
+	enables the xxx process
+	xxx = sci, shk, lyt, tlm, etc.
+
+cmd: xxx_proc disable
+	disables the xxx process
+	xxx = sci, shk, lyt, tlm, etc.
 
 cmd: xxx_proc restart
         kills and restarts process xxx 
         xxx = sci, shk, lyt, tlm, etc.
 
 cmd: proc status
-	prints the current run status of all available processes
+	prints the current status of all available processes
 
 ------------- FAKE DATA MODES -------------
 

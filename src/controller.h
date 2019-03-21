@@ -595,6 +595,7 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 typedef struct procinfo_struct{
   //Settings (watchdog.h)
   int    run;  //Run switch
+  int    ena;  //Enable switch
   int    ask;  //Tell watchdog to ask process to exit with "die" command
   int    tmo;  //# process timeout (seconds)
   char  *name; //Process name

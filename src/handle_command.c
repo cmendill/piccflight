@@ -33,16 +33,16 @@ void change_state(sm_t *sm_p, int state);
 /**************************************************************/
 void print_procstatus(sm_t *sm_p){
   int i;
-
-  printf("************ Process Status ************\n");
-  printf("Process      Running\n");
-  for(i=0;i<NCLIENTS;i++)
-    if(sm_p->w[i].run)
-      printf("%s          YES\n",sm_p->w[i].name);
-    else
-      printf("%s          NO\n",sm_p->w[i].name);
+  char run[10];
+  char ena[10];
+  printf("************* Process Status *************\n");
+  printf("%-10s %-10s %-10s\n","Process","Enabled","Running");
+  for(i=0;i<NCLIENTS;i++){
+    if(sm_p->w[i].run) sprintf(run,"YES"); else sprintf(run,"NO");
+    if(sm_p->w[i].ena) sprintf(ena,"YES"); else sprintf(ena,"NO");
+    printf("%-10s %-10s %-10s\n",sm_p->w[i].name,ena,run);
+  }
   printf("******************************************\n");
-
 }
 
 /**************************************************************/
@@ -354,15 +354,19 @@ int handle_command(char *line, sm_t *sm_p){
    * PROCESS CONTROL
    ***************************************/
 
-  //Process ON/OFF/RESTART
+  //Process control commands
   for(i=0;i<NCLIENTS;i++){
     if(i != WATID){
       //ON command
       sprintf(cmd,"%s_proc on",sm_p->w[i].name);
       for(j=0;j<strlen(cmd);j++) cmd[j]=tolower(cmd[j]);
       if(!strncasecmp(line,cmd,strlen(cmd))){
-	printf("CMD: Turning %s ON\n",sm_p->w[i].name);
-	sm_p->w[i].run = 1;
+	if(sm_p->w[i].ena){
+	  printf("CMD: Turning %s ON\n",sm_p->w[i].name);
+	  sm_p->w[i].run = 1;
+	}else{
+	  printf("CMD: Process %s DISABLED\n",sm_p->w[i].name);
+	}
 	return(CMD_NORMAL);
       }
       //OFF command
@@ -371,6 +375,22 @@ int handle_command(char *line, sm_t *sm_p){
       if(!strncasecmp(line,cmd,strlen(cmd))){
 	printf("CMD: Turning %s OFF\n",sm_p->w[i].name);
 	sm_p->w[i].run = 0;
+	return(CMD_NORMAL);
+      }
+      //ENABLE command
+      sprintf(cmd,"%s_proc enable",sm_p->w[i].name);
+      for(j=0;j<strlen(cmd);j++) cmd[j]=tolower(cmd[j]);
+      if(!strncasecmp(line,cmd,strlen(cmd))){
+	printf("CMD: Enabling %s\n",sm_p->w[i].name);
+	sm_p->w[i].ena = 1;
+	return(CMD_NORMAL);
+      }
+      //DISABLE command
+      sprintf(cmd,"%s_proc disable",sm_p->w[i].name);
+      for(j=0;j<strlen(cmd);j++) cmd[j]=tolower(cmd[j]);
+      if(!strncasecmp(line,cmd,strlen(cmd))){
+	printf("CMD: Disabling %s\n",sm_p->w[i].name);
+	sm_p->w[i].ena = 0;
 	return(CMD_NORMAL);
       }
       //RESTART command

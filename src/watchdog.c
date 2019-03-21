@@ -156,6 +156,12 @@ void wat_proc(void){
 
   /* Start Watchdog */
   while(1){
+    
+    //Check process enable flags
+    for(i=0;i<NCLIENTS;i++)
+      if(!sm_p->w[i].ena)
+	sm_p->w[i].run=0;
+
     /*(SECTION 0): If process has died, reset its pid*/
     for(i=0;i<NCLIENTS;i++)
       if(i != WATID)
@@ -282,6 +288,7 @@ int main(int argc,char **argv){
   for(i=0;i<NCLIENTS;i++){
     sm_p->w[i].pid  = -1;
     sm_p->w[i].run  =  procrun[i];
+    sm_p->w[i].ena  =  1;
     sm_p->w[i].die  =  0;
     sm_p->w[i].chk  =  0;
     sm_p->w[i].rec  =  0;

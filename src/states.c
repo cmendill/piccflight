@@ -19,9 +19,9 @@ void change_state(sm_t *sm_p, int state){
   int i;
   uint8 procrun[NCLIENTS] = PROCRUN;
   
-  //Set process run flags -- do not override defaults
+  //Set process run flags -- do not override defaults or enable flags
   for(i=0;i<NCLIENTS;i++)
-    sm_p->w[i].run = procrun[i] && sm_p->state_array[state].proc_run[i];
+    sm_p->w[i].run = procrun[i] && sm_p->state_array[state].proc_run[i] && sm_p->w[i].ena;
   
   //Change state
   sm_p->state = state;
