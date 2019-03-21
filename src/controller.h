@@ -86,6 +86,7 @@ enum states { STATE_STANDBY,
 	      STATE_LOW_POWER,
 	      STATE_ACQUIRE_TARGET,
 	      STATE_M2_ALIGN,
+	      STATE_SHK_HEX_ALIGN,
 	      STATE_SHK_HEX_CALIBRATE,
 	      STATE_SHK_ALP_CALIBRATE,
 	      STATE_SHK_ZERN_LOWFC,
@@ -504,8 +505,8 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 #define HEX_U_CAL_TCOR    0.001
 #define HEX_V_CAL_TCOR    0.001
 #define HEX_W_CAL_TCOR    0.005
-#define HEX_SHK_NCALIM    40
-#define HEX_LYT_NCALIM    200
+#define HEX_SHK_NCALIM    5
+#define HEX_LYT_NCALIM    5
 #define HEX_PIVOT_X       0    //122.32031250
 #define HEX_PIVOT_Y       0    //206.61012268
 #define HEX_PIVOT_Z       0    //74.0
@@ -524,7 +525,7 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 #define SIN_Z             sin(THETA_Z)
 #define HEX_REF_TIMEOUT   20  //seconds
 #define HEX_MOVE_TIMEOUT  5   //seconds
-#define HEX_PERIOD        0.5 //seconds, time between commands
+#define HEX_PERIOD        1.0 //seconds, time between commands
 
 /*************************************************
  * Target Parameters
@@ -625,7 +626,6 @@ typedef struct shkctrl_struct{
   int zernike_control[LOWFS_N_ZERNIKE];
   int cell_control;
   int offload_tilt_to_hex;
-  int offload_tilt_to_wasp;
 } shkctrl_t;
 
 // Lyot Sensor Control (lyt_proc.c)
@@ -634,7 +634,6 @@ typedef struct lytctrl_struct{
   int zernike_control[LOWFS_N_ZERNIKE];
   int act_control;
   int offload_tilt_to_hex;
-  int offload_tilt_to_wasp;
 } lytctrl_t;
 
 // Science Camera Control (sci_proc.c)

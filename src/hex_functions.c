@@ -205,6 +205,9 @@ int hex_send_command(sm_t *sm_p, hex_t *cmd, int proc_id){
     
     //Release lock
     __sync_lock_release(&sm_p->hex_command_lock);
+  }else{
+    //Couldn't get lock
+    return 1;
   }
   
   //Return 0 on good write
@@ -449,12 +452,12 @@ void hex_zern2hex_alt(double *zernikes, double *axes){
   double dX=0,dY=0,dZ=0,dU=0,dV=0,dW=0;
 
   //Calibration
-  double dVdZ0 =  0.000532325; //+V --> +Z0
-  double dUdZ1 =  0.000566154; //+U --> +Z1
-  double dXdZ4 = -0.64/0.3;    //+X --> -Z4 (after correct with -V)
-  double dYdZ3 = -0.64/0.2;    //+Y --> -Z3 (after correct with +U)
-  double dZdZ2 =  0.1;         //+Z --> +Z2
-  double dZdZ1 =  0.0277399;   //+Z --> +Z1
+  double dVdZ0 = 0.00097870;    //+V --> +Z0
+  double dUdZ1 = 0.00095131;    //+U --> +Z1
+  double dXdZ4 = 2*(-0.64/0.3); //+X --> -Z4 (after correct with -V)
+  double dYdZ3 = 2*(-0.64/0.2); //+Y --> -Z3 (after correct with +U)
+  double dZdZ2 = 0.19390708;    //+Z --> +Z2
+  double dZdZ1 = 0.05027623;    //+Z --> +Z1
   double dVdX  = -0.1; //+X == +V, Move V opposite X to fix
   double dUdY  =  0.1; //+Y == -U, Move U same as Y to fix
   double dUdZ  = -dUdZ1 / dZdZ1;
@@ -474,7 +477,7 @@ void hex_zern2hex_alt(double *zernikes, double *axes){
   //Convert tilt to dU & dV
   dV += dVdZ0 * zernikes[0];
   dU += dUdZ1 * zernikes[1];
-  
+
   //Set final command
   axes[HEX_AXIS_X] = dX;
   axes[HEX_AXIS_Y] = dY;

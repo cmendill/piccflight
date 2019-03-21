@@ -817,7 +817,7 @@ void shk_alp_zernpid(shkevent_t *shkevent, double *zernike_delta, int *zernike_s
 /* SHK_HEX_ZERNPID                                            */
 /*  - Run PID controller on measured Zernikes for HEX         */
 /**************************************************************/
-void shk_hex_zernpid(shkevent_t *shkevent, double *zernike_delta, int reset){
+void shk_hex_zernpid(shkevent_t *shkevent, double *zernike_delta, int *zernike_switch, int offload, int reset){
   static int init = 0;
   static double zint[LOWFS_N_ZERNIKE] = {0};
   double zerr;
@@ -832,12 +832,19 @@ void shk_hex_zernpid(shkevent_t *shkevent, double *zernike_delta, int reset){
 
   //Run PID
   for(i=0;i<LOWFS_N_ZERNIKE;i++){
-    //Calculate error
-    zerr = shkevent->zernike_measured[i] - shkevent->zernike_target[i];
-    //Calculate integral
-    zint[i] += zerr;
-    //Calculate command
-    zernike_delta[i] = shkevent->gain_hex_zern[0] * zerr + shkevent->gain_hex_zern[1] * zint[i];
+    if(zernike_switch[i]){
+      //Offload tilt from ALP to HEX
+      if(offload && i <= 1){
+	zernike_delta[i] = -1.0 * shkevent->alp.zcmd[i] * shkevent->gain_hex_zern[0];
+      }else{
+	//Calculate error
+	zerr = shkevent->zernike_measured[i] - shkevent->zernike_target[i];
+	//Calculate integral
+	zint[i] += zerr;
+	//Calculate command
+	zernike_delta[i] = shkevent->gain_hex_zern[0] * zerr + shkevent->gain_hex_zern[1] * zint[i];
+      }
+    }
   }
 }
 
@@ -908,7 +915,7 @@ int shk_process_image(stImageBuff *buffer,sm_t *sm_p){
     //Reset PID controllers
     shk_alp_cellpid(NULL,FUNCTION_RESET);
     shk_alp_zernpid(NULL,NULL,NULL,FUNCTION_RESET);
-    shk_hex_zernpid(NULL,NULL,FUNCTION_RESET);
+    shk_hex_zernpid(NULL,NULL,NULL,0,FUNCTION_RESET);
     //Init ALP calmodes
     for(i=0;i<ALP_NCALMODES;i++)
       alp_init_calmode(i,&alpcalmodes[i]);
@@ -1066,58 +1073,74 @@ int shk_process_image(stImageBuff *buffer,sm_t *sm_p){
   //Get HEX command for user control
   if(sm_p->state_array[state].hex_commander == WATID)
     hex_get_command(sm_p,&hex);
-
+  
   //Check if we will send a command
-  if((sm_p->state_array[state].hex_commander == SHKID) && sm_p->hex_ready && (dt > HEX_PERIOD)){
+  if((sm_p->state_array[state].hex_commander == SHKID) && sm_p->hex_ready){
     
-    //Get last HEX command
+    //Get last HEX command -- everytime through for event packets
     hex_get_command(sm_p,&hex);
     memcpy(&hex_try,&hex,sizeof(hex_t));
     
-    //Check if HEX is controlling any Zernikes
-    zernike_control = 0;
-    for(i=0;i<LOWFS_N_ZERNIKE;i++)
-      if(sm_p->state_array[state].shk.zernike_control[i] == ACTUATOR_HEX)
-	zernike_control = 1;
-    
-    //Run Zernike control
-    if(zernike_control){
-      // - run Zernike PID
-      shk_hex_zernpid(&shkevent, hex_delta.zcmd, FUNCTION_NO_RESET);
+    //Check time
+    if(dt > HEX_PERIOD){
       
-      // - zero out uncontrolled Zernikes
-      for(i=0;i<LOWFS_N_ZERNIKE;i++)
-	if(sm_p->state_array[state].shk.zernike_control[i] != ACTUATOR_HEX)
-	  hex_delta.zcmd[i] = 0;
+      //Check if HEX is controlling any Zernikes
+      zernike_control = 0;
+      memset(zernike_switch,0,sizeof(zernike_switch));
+      for(i=0;i<LOWFS_N_ZERNIKE;i++){
+	if(sm_p->shk_zernike_control[i] && sm_p->state_array[state].shk.zernike_control[i] == ACTUATOR_HEX){
+	  zernike_switch[i] = 1;
+	  zernike_control = 1;
+	}
+      }
+      
+      //Check offload
+      for(i=0;i<2;i++){
+	if(sm_p->shk_zernike_control[i] && sm_p->state_array[state].shk.offload_tilt_to_hex){
+	  zernike_switch[i] = 1;
+	  zernike_control = 1;
+	}
+      }
+      
+      //Run Zernike control
+      if(zernike_control){
+	// - run Zernike PID
+	shk_hex_zernpid(&shkevent, hex_delta.zcmd, zernike_switch,sm_p->state_array[state].shk.offload_tilt_to_hex, FUNCTION_NO_RESET);
+      
+	// - zero out uncontrolled Zernikes
+	for(i=0;i<LOWFS_N_ZERNIKE;i++)
+	  if(!zernike_switch[i])
+	    hex_delta.zcmd[i] = 0;
+	
+	// - convert Zernike deltas to axis deltas
+	hex_zern2hex_alt(hex_delta.zcmd, hex_delta.acmd);
+	
+	// - add Zernike PID output deltas to HEX command
+	for(i=0;i<LOWFS_N_ZERNIKE;i++)
+	  if(zernike_switch[i])
+	    hex_try.zcmd[i] += hex_delta.zcmd[i];
+	
+	// - add axis deltas to HEX command
+	for(i=0;i<HEX_NAXES;i++)
+	  hex_try.acmd[i] += hex_delta.acmd[i];
+      }
 
-      // - convert Zernike deltas to axis deltas
-      hex_zern2hex_alt(hex_delta.zcmd, hex_delta.acmd);
-
-      // - add Zernike PID output deltas to HEX command
-      for(i=0;i<LOWFS_N_ZERNIKE;i++)
-	if(sm_p->state_array[state].shk.zernike_control[i] == ACTUATOR_HEX)
-	  hex_try.zcmd[i] += hex_delta.zcmd[i];
-
-      // - add axis deltas to HEX command
-      for(i=0;i<HEX_NAXES;i++)
-	hex_try.acmd[i] += hex_delta.acmd[i];
+      //Run HEX calibration
+      if(shkevent.hed.hex_calmode != HEX_CALMODE_NONE)
+	sm_p->hex_calmode = hex_calibrate(shkevent.hed.hex_calmode,&hex_try,&shkevent.hed.hex_calstep,SHKID,FUNCTION_NO_RESET);
+      
+      //Send command to HEX
+      if(hex_send_command(sm_p,&hex_try,SHKID)){
+	// - command failed
+	// - do nothing for now
+      }else{
+	// - copy command to current position
+	memcpy(&hex,&hex_try,sizeof(hex_t));
+      }
+      
+      //Reset time
+      memcpy(&hex_last,&start,sizeof(struct timespec));
     }
-
-    //Run HEX calibration
-    if(shkevent.hed.hex_calmode != HEX_CALMODE_NONE)
-      sm_p->hex_calmode = hex_calibrate(shkevent.hed.hex_calmode,&hex_try,&shkevent.hed.hex_calstep,SHKID,FUNCTION_NO_RESET);
- 
-    //Send command to HEX
-    if(hex_send_command(sm_p,&hex_try,SHKID)){
-      // - command failed
-      // - do nothing for now
-    }else{
-      // - copy command to current position
-      memcpy(&hex,&hex_try,sizeof(hex_t));
-    }
-    
-    //Reset time
-    memcpy(&hex_last,&start,sizeof(struct timespec));
   }
 
 
@@ -1138,6 +1161,7 @@ int shk_process_image(stImageBuff *buffer,sm_t *sm_p){
 
     //Check if ALP is controlling any Zernikes
     zernike_control = 0;
+    memset(zernike_switch,0,sizeof(zernike_switch));
     for(i=0;i<LOWFS_N_ZERNIKE;i++){
       if(sm_p->shk_zernike_control[i] && sm_p->state_array[state].shk.zernike_control[i] == ACTUATOR_ALP){
 	zernike_switch[i] = 1;

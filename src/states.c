@@ -105,12 +105,12 @@ void init_state(int state_number, state_t *state){
   }
 
   
-  //STATE_M2_ALIGN
-  if(state_number == STATE_M2_ALIGN){
+  //STATE_SHK_HEX_ALIGN
+  if(state_number == STATE_SHK_HEX_ALIGN){
     //Set name
-    sprintf(state->name,"STATE_M2_ALIGN");
+    sprintf(state->name,"STATE_SHK_HEX_ALIGN");
     //Set cmd
-    sprintf(state->cmd,"m2a");
+    sprintf(state->cmd,"sha");
     //SHK Settings
     state->shk.fit_zernikes = 1;
     state->shk.zernike_control[0] = ACTUATOR_HEX;
@@ -120,6 +120,27 @@ void init_state(int state_number, state_t *state){
     state->shk.zernike_control[4] = ACTUATOR_HEX;
     //Set SHKID as hex commander
     state->hex_commander = SHKID;
+    return;
+  }
+
+  //STATE_M2_ALIGN
+  if(state_number == STATE_M2_ALIGN){
+    //Set name
+    sprintf(state->name,"STATE_M2_ALIGN");
+    //Set cmd
+    sprintf(state->cmd,"m2a");
+    //SHK Settings
+    state->shk.fit_zernikes = 1;
+    state->shk.zernike_control[0] = ACTUATOR_ALP;
+    state->shk.zernike_control[1] = ACTUATOR_ALP;
+    state->shk.zernike_control[2] = ACTUATOR_HEX;
+    state->shk.zernike_control[3] = ACTUATOR_HEX;
+    state->shk.zernike_control[4] = ACTUATOR_HEX;
+    //Set SHKID as HEX and ALP commander
+    state->hex_commander = SHKID;
+    state->alp_commander = SHKID;
+    //Offload SHK tilt to hexapod
+    state->shk.offload_tilt_to_hex=1;
     return;
   }
 
