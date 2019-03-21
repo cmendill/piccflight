@@ -158,7 +158,9 @@ LINUX SETUP
  - For PHX driver: 
    - edit /etc/default/grub and put GRUB_CMDLINE_LINUX="mem=1024M"
    - run sudo update-grub
-
+ - Disable console colors
+   - edit /home/picture/.bashrc & /root/.bashrc
+   - comment out aliases in "# enable color support..." section
 AUTO MODULE LOADING
  - edit /etc/modules and add the following lines:
     phddrv
