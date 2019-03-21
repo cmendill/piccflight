@@ -449,6 +449,9 @@ int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
   lytevent.hed.bmc_calmode   = sm_p->bmc_calmode;
   lytevent.hed.tgt_calmode   = sm_p->tgt_calmode;
 
+  //Increment frame number
+  frame_number++;
+
   //Save temperature
   lytevent.ccd_temp          = sm_p->lyt_ccd_temp;
 
@@ -650,9 +653,6 @@ int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
       close_buffer(sm_p,BUFFER_LYTPKT);
     }
   }
-
-  //Increment frame number
-  frame_number++;
 
   return 0;
 }

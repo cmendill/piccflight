@@ -963,6 +963,9 @@ int shk_process_image(stImageBuff *buffer,sm_t *sm_p){
   shkevent.hed.start_sec     = start.tv_sec;
   shkevent.hed.start_nsec    = start.tv_nsec;
   
+  //Increment frame_number
+  frame_number++;
+
   //Save temperature
   shkevent.ccd_temp         = sm_p->shk_ccd_temp;
 
@@ -1371,9 +1374,6 @@ int shk_process_image(stImageBuff *buffer,sm_t *sm_p){
       memcpy(&full_last,&start,sizeof(struct timespec));
     }
   }
-
-  //Increment frame_number
-  frame_number++;
 
   return 0;
 }
