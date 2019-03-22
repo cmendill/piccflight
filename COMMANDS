@@ -146,6 +146,14 @@ cmd: hex move [arg]
 	move the hexapod one step in the given direction
 	arg = +x, -x, +y, -y, +z, -z, +u, -u, +v, -v, +w, -w
 
+cmd: hex spiral autostop on
+      	turn hex spiral search autostop on
+	search will stop when star is found
+
+cmd: hex spiral autostop off
+        turn hex spiral search autostop off
+	search will not stop when star is found
+
 ------------- ALPAO DM CONTROL -------------
 
 cmd: alp bias [arg]

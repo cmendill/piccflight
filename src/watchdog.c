@@ -317,25 +317,26 @@ int main(int argc,char **argv){
 
   /* Set Runtime Defaults */
   /* All shmem numbers are ZERO unless defined here */
-  sm_p->die                = 0;
-  sm_p->sci_exptime        = SCI_EXPTIME_DEFAULT;
-  sm_p->sci_frmtime        = SCI_FRMTIME_DEFAULT;
-  sm_p->shk_exptime        = SHK_EXPTIME_DEFAULT;
-  sm_p->shk_frmtime        = SHK_FRMTIME_DEFAULT;
-  sm_p->lyt_exptime        = LYT_EXPTIME_DEFAULT;
-  sm_p->lyt_frmtime        = LYT_FRMTIME_DEFAULT;
-  sm_p->acq_exptime        = ACQ_EXPTIME_DEFAULT;
-  sm_p->acq_frmtime        = ACQ_FRMTIME_DEFAULT;
-  sm_p->shk_boxsize        = SHK_BOXSIZE_DEFAULT;
-  sm_p->alp_n_dither       = -1;
-  sm_p->alp_proc_id        = -1;
-  sm_p->lyt_xorigin        = LYT_XORIGIN_DEFAULT;
-  sm_p->lyt_yorigin        = LYT_YORIGIN_DEFAULT;
-  sm_p->sci_tec_enable     = 0;
-  sm_p->sci_tec_setpoint   = SCI_TEC_SETPOINT_MAX;
-  sm_p->acq_thresh         = ACQ_THRESH_DEFAULT;
-  sm_p->thm_enable_vref    = THM_ENABLE_VREF_DEFAULT;
-
+  sm_p->die                 = 0;
+  sm_p->sci_exptime         = SCI_EXPTIME_DEFAULT;
+  sm_p->sci_frmtime         = SCI_FRMTIME_DEFAULT;
+  sm_p->shk_exptime         = SHK_EXPTIME_DEFAULT;
+  sm_p->shk_frmtime         = SHK_FRMTIME_DEFAULT;
+  sm_p->lyt_exptime         = LYT_EXPTIME_DEFAULT;
+  sm_p->lyt_frmtime         = LYT_FRMTIME_DEFAULT;
+  sm_p->acq_exptime         = ACQ_EXPTIME_DEFAULT;
+  sm_p->acq_frmtime         = ACQ_FRMTIME_DEFAULT;
+  sm_p->shk_boxsize         = SHK_BOXSIZE_DEFAULT;
+  sm_p->alp_n_dither        = -1;
+  sm_p->alp_proc_id         = -1;
+  sm_p->lyt_xorigin         = LYT_XORIGIN_DEFAULT;
+  sm_p->lyt_yorigin         = LYT_YORIGIN_DEFAULT;
+  sm_p->sci_tec_enable      = 0;
+  sm_p->sci_tec_setpoint    = SCI_TEC_SETPOINT_MAX;
+  sm_p->acq_thresh          = ACQ_THRESH_DEFAULT;
+  sm_p->thm_enable_vref     = THM_ENABLE_VREF_DEFAULT;
+  sm_p->hex_spiral_autostop = HEX_SPIRAL_AUTOSTOP_DEFAULT;
+  
   //Zernike control defaults
   //--SHK
   for(i=0;i<LOWFS_N_ZERNIKE;i++)

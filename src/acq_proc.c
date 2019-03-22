@@ -102,6 +102,7 @@ void acq_process_image(uvc_frame_t *frame, sm_t *sm_p) {
   uint8_t  gif_data[(ACQXS/ACQBIN)*(ACQYS/ACQBIN)];
   int      gif_nbytes = 0;
   int      state;
+  int      nstar=0;
   
   //Get time immidiately
   clock_gettime(CLOCK_REALTIME,&start);
@@ -164,9 +165,10 @@ void acq_process_image(uvc_frame_t *frame, sm_t *sm_p) {
   //Copy full image
   memcpy(&full_image[0][0],frame->data,sizeof(full_image));
   
-  //Bin image
+  //Bin image, find star
   for(i=0;i<ACQYS;i++){
     for(j=0;j<ACQXS;j++){
+      if(full_image[i][j] > ACQ_STAR_THRESH) nstar++;
       binned_image16[i/ACQBIN][j/ACQBIN] += (uint16_t)full_image[i][j];
     }
   }
@@ -190,6 +192,17 @@ void acq_process_image(uvc_frame_t *frame, sm_t *sm_p) {
   }
   else{
     printf("ACQ: Compressed image too large %d\n",gif_nbytes);
+  }
+
+  //Spiral search
+  if(acqevent.hed.state == STATE_SPIRAL_SEARCH && acqevent.hed.hex_calmode == HEX_CALMODE_SPIRAL && sm_p->hex_spiral_autostop){
+    if(nstar > ACQ_NSTAR_THRESH){
+      //Star found. Stop search
+      sm_p->hex_calmode = HEX_CALMODE_NONE;
+      acqevent.hed.hex_calmode = HEX_CALMODE_NONE;
+      hex_calibrate(0,NULL,NULL,ACQID,FUNCTION_RESET);
+      printf("ACQ: Star found. Stopping search.\n");
+    }
   }
 
   /************************************************************/

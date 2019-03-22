@@ -131,4 +131,8 @@
 //THM Settings
 #define THM_ENABLE_VREF_DEFAULT   1
 
+//HEX Settings
+#define HEX_SPIRAL_AUTOSTOP_DEFAULT 1  //0 --> Don't stop when star is found
+                                       //1 --> Stop when star is found
+
 #endif

@@ -628,6 +628,19 @@ int handle_command(char *line, sm_t *sm_p){
   //User Hexapod Commands
   sprintf(cmd,"hex");
   if(!strncasecmp(line,cmd,strlen(cmd))){
+    //Toggle spiral search autostop
+    sprintf(cmd,"hex spiral autostop on");
+    if(!strncasecmp(line,cmd,strlen(cmd))){
+      printf("CMD: Turning HEX spiral autostop ON\n");
+      sm_p->hex_spiral_autostop=1;
+      return(CMD_NORMAL);
+    }
+    sprintf(cmd,"hex spiral autostop off");
+    if(!strncasecmp(line,cmd,strlen(cmd))){
+      printf("CMD: Turning HEX spiral autostop OFF\n");
+      sm_p->hex_spiral_autostop=0;
+      return(CMD_NORMAL);
+    }
     if(sm_p->state_array[sm_p->state].hex_commander == WATID){
       //Get hex error
       sprintf(cmd,"hex get error");

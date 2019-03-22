@@ -420,7 +420,8 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
  *************************************************/
 #define ACQ_MAX_GIF_SIZE       10000 //bytes
 #define ACQ_THRESH_MAX         255
-
+#define ACQ_STAR_THRESH        10    //ADU
+#define ACQ_NSTAR_THRESH       3     //pixels above star_thresh
 /*************************************************
  * BMC DM Parameters
  *************************************************/
@@ -1079,7 +1080,8 @@ typedef volatile struct {
   //Other Commands
   int acq_thresh;
   int thm_enable_vref;
-
+  int hex_spiral_autostop;
+  
   //Door Commands
   int open_door[MTR_NDOORS];
   int close_door[MTR_NDOORS];
