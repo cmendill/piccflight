@@ -288,7 +288,7 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
  * Camera Full Image Times
  *************************************************/
 #define SHK_FULL_IMAGE_TIME   0.5    //[seconds] period that full images are written to circbuf
-#define ACQ_FULL_IMAGE_TIME   0.5    //[seconds] period that full images are written to circbuf
+#define ACQ_FULL_IMAGE_TIME   0.0    //[seconds] period that full images are written to circbuf
 
 /*************************************************
  * Camera Exposure Time Limits
