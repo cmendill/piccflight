@@ -1792,7 +1792,7 @@ int handle_command(char *line, sm_t *sm_p){
 	sm_p->shk_gain_alp_cell[i] = shk_gain_alp_cell[i]*ftemp;
       for(i=0;i<LOWFS_N_ZERNIKE;i++) 
 	for(j=0;j<LOWFS_N_PID;j++)
-	  sm_p->shk_gain_alp_zern[i][j];
+	  sm_p->shk_gain_alp_zern[i][j] = shk_gain_alp_zern[i][j]*ftemp;
       printf("CMD: Changing SHK-->ALP gain multiplier to %f\n",ftemp);
       for(i=0;i<LOWFS_N_ZERNIKE;i++) 
 	printf("CMD: SHK Z[%2.2d] Gain: %10.6f | %10.6f | %10.6f\n", i, sm_p->shk_gain_alp_zern[i][0],sm_p->shk_gain_alp_zern[i][1],sm_p->shk_gain_alp_zern[i][2]);
