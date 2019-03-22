@@ -391,7 +391,7 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
       0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,		\
       0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
 #define SHK_BEAM_NCELLS 148
-#define SHK_ZFIT_MIN_CELLS 10
+#define SHK_ZFIT_MIN_CELLS 4
 
 /*************************************************
  * Lyot-LOWFS Parameters
