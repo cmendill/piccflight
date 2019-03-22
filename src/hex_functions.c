@@ -503,7 +503,7 @@ int hex_calibrate(int calmode, hex_t *hex, uint32_t *step, int procid, int reset
   int iax;
   int ncalim=0;
   static int leg,nu,nv,s,u,v;
-  const double spiral_step = 0.01;//degrees
+  const double spiral_step = 0.03;//degrees
 
   /* Reset */
   if(reset){
