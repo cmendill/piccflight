@@ -104,6 +104,24 @@ void init_state(int state_number, state_t *state){
     return;
   }
 
+  //STATE_SPIRAL_SEARCH
+  if(state_number == STATE_SPIRAL_SEARCH){
+    //Set name
+    sprintf(state->name,"STATE_SPIRAL_SEARCH");
+    //Set cmd
+    sprintf(state->cmd,"sps");
+    //HEX Commander
+    state->hex_commander = ACQID;
+    //ALP Commander
+    state->alp_commander = WATID;
+    //Configure Cameras
+    state->proc_run[SHKID] = 0;
+    state->proc_run[LYTID] = 0;
+    state->proc_run[SCIID] = 0;
+    state->proc_run[ACQID] = 1;
+    return;
+  }
+
   
   //STATE_SHK_HEX_ALIGN
   if(state_number == STATE_SHK_HEX_ALIGN){

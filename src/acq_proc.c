@@ -17,6 +17,7 @@
 #include "common_functions.h"
 #include "fakemodes.h"
 #include "acq_proc.h"
+#include "hex_functions.h"
 
 /* Globals */
 uvc_context_t *ctx;
@@ -89,8 +90,9 @@ void acq_process_image(uvc_frame_t *frame, sm_t *sm_p) {
   static acqfull_t acqfull;
   acqfull_t *acqfull_p;
   acqevent_t *acqevent_p;
-  static struct timespec start,end,delta,last,full_last;
+  static struct timespec start,end,delta,last,full_last,hex_last;
   static int init=0;
+  hex_t hex,hex_try,hex_delta;
   double dt;
   uint16_t fakepx=0;
   int i,j;
@@ -125,6 +127,7 @@ void acq_process_image(uvc_frame_t *frame, sm_t *sm_p) {
     memset(&acqevent,0,sizeof(acqevent));
     memcpy(&last,&start,sizeof(struct timespec));
     memcpy(&full_last,&start,sizeof(struct timespec));
+    hex_calibrate(0,NULL,NULL,ACQID,FUNCTION_RESET);
     init=1;
     if(ACQ_DEBUG) printf("ACQ: Initialized\n");
   }
@@ -151,57 +154,99 @@ void acq_process_image(uvc_frame_t *frame, sm_t *sm_p) {
   acqevent.hed.bmc_commander = sm_p->state_array[state].bmc_commander;
   acqevent.hed.start_sec    = start.tv_sec;
   acqevent.hed.start_nsec   = start.tv_nsec;
-
-  //Compress and send every other image
-  if(acqevent.hed.frame_number % 2 == 0){
-    //Copy full image
-    memcpy(&full_image[0][0],frame->data,sizeof(full_image));
-
-    //Bin image
-    for(i=0;i<ACQYS;i++){
-      for(j=0;j<ACQXS;j++){
-	binned_image16[i/ACQBIN][j/ACQBIN] += (uint16_t)full_image[i][j];
-      }
-    }
-
-    //Average bins
-    for(i=0;i<ACQYS/ACQBIN;i++){
-      for(j=0;j<ACQXS/ACQBIN;j++){
-	binned_image8[i][j] = binned_image16[i][j] / (ACQBIN*ACQBIN);
-	//Threshold
-	if(binned_image8[i][j] < sm_p->acq_thresh) binned_image8[i][j] = 0;
-      }
-    }
   
-    //Compress image
-    acq_build_gif(&binned_image8[0][0], gif_data, &gif_nbytes);
+  //Save calmodes
+  acqevent.hed.hex_calmode = sm_p->hex_calmode;
+  acqevent.hed.alp_calmode = sm_p->alp_calmode;
+  acqevent.hed.bmc_calmode = sm_p->bmc_calmode;
+  acqevent.hed.tgt_calmode = sm_p->tgt_calmode;
+
+  //Copy full image
+  memcpy(&full_image[0][0],frame->data,sizeof(full_image));
   
-    //Write gif data to event
-    if(gif_nbytes <= ACQ_MAX_GIF_SIZE){
-      memcpy(acqevent.gif,gif_data,gif_nbytes);
-      acqevent.gif_nbytes = gif_nbytes;
-    }
-    else{
-      printf("ACQ: Compressed image too large %d\n",gif_nbytes);
-    }
-
-    //Write ACQEVENT to circular buffer 
-    if(sm_p->write_circbuf[BUFFER_ACQEVENT]){
-      //Open circular buffer
-      acqevent_p=(acqevent_t *)open_buffer(sm_p,BUFFER_ACQEVENT);
-
-      //Copy acqevent
-      memcpy(acqevent_p,&acqevent,sizeof(acqevent_t));;
-
-      //Get final timestamp
-      clock_gettime(CLOCK_REALTIME,&end);
-      acqevent_p->hed.end_sec = end.tv_sec;
-      acqevent_p->hed.end_nsec = end.tv_nsec;
-
-      //Close buffer
-      close_buffer(sm_p,BUFFER_ACQEVENT);
+  //Bin image
+  for(i=0;i<ACQYS;i++){
+    for(j=0;j<ACQXS;j++){
+      binned_image16[i/ACQBIN][j/ACQBIN] += (uint16_t)full_image[i][j];
     }
   }
+  
+  //Average bins
+  for(i=0;i<ACQYS/ACQBIN;i++){
+    for(j=0;j<ACQXS/ACQBIN;j++){
+      binned_image8[i][j] = binned_image16[i][j] / (ACQBIN*ACQBIN);
+      //Threshold
+      if(binned_image8[i][j] < sm_p->acq_thresh) binned_image8[i][j] = 0;
+    }
+  }
+  
+  //Compress image
+  acq_build_gif(&binned_image8[0][0], gif_data, &gif_nbytes);
+  
+  //Write gif data to event
+  if(gif_nbytes <= ACQ_MAX_GIF_SIZE){
+    memcpy(acqevent.gif,gif_data,gif_nbytes);
+    acqevent.gif_nbytes = gif_nbytes;
+  }
+  else{
+    printf("ACQ: Compressed image too large %d\n",gif_nbytes);
+  }
+
+  /************************************************************/
+  /*******************  Hexapod Control Code  *****************/
+  /************************************************************/
+  
+  //Check time since last command
+  if(timespec_subtract(&delta,&start,&hex_last))
+    printf("ACQ: acq_process_image --> timespec_subtract error!\n");
+  ts2double(&delta,&dt);
+  
+  //Check if we will send a command
+  if((sm_p->state_array[state].hex_commander == ACQID) && sm_p->hex_ready){
+    //Get last HEX command -- everytime through for event packets
+    if(hex_get_command(sm_p,&hex)){
+      //Skip this image
+      return;
+    }
+    memcpy(&hex_try,&hex,sizeof(hex_t));
+   
+    //Check time
+    if(dt > HEX_PERIOD){
+      //Run HEX calibration
+      if(acqevent.hed.hex_calmode != HEX_CALMODE_NONE)
+	sm_p->hex_calmode = hex_calibrate(acqevent.hed.hex_calmode,&hex_try,&acqevent.hed.hex_calstep,ACQID,FUNCTION_NO_RESET);
+      
+      //Send command to HEX
+      if(hex_send_command(sm_p,&hex_try,ACQID)){
+	// - command failed
+	// - do nothing for now
+      }else{
+	// - copy command to current position
+	memcpy(&hex,&hex_try,sizeof(hex_t));
+      }
+      
+      //Reset time
+      memcpy(&hex_last,&start,sizeof(struct timespec));
+    }
+  }
+
+  //Write ACQEVENT to circular buffer 
+  if(sm_p->write_circbuf[BUFFER_ACQEVENT]){
+    //Open circular buffer
+    acqevent_p=(acqevent_t *)open_buffer(sm_p,BUFFER_ACQEVENT);
+
+    //Copy acqevent
+    memcpy(acqevent_p,&acqevent,sizeof(acqevent_t));;
+
+    //Get final timestamp
+    clock_gettime(CLOCK_REALTIME,&end);
+    acqevent_p->hed.end_sec = end.tv_sec;
+    acqevent_p->hed.end_nsec = end.tv_nsec;
+
+    //Close buffer
+    close_buffer(sm_p,BUFFER_ACQEVENT);
+  }
+
   
   /*************************************************************/
   /**********************  Full Image Code  ********************/
@@ -267,7 +312,7 @@ void acq_callback(uvc_frame_t *frame, void *ptr) {
 void acq_proc(void){
   uvc_stream_ctrl_t ctrl;
   uvc_error_t res;
-  int fps=5;
+  int fps=3; //valid fps = 15 10 7 5 3 
   int camera_running=0;
   
   /* Open Shared Memory */

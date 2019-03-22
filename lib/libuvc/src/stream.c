@@ -389,8 +389,8 @@ uvc_error_t uvc_get_stream_ctrl_format_size(
         if (frame->intervals) {
           for (interval = frame->intervals; *interval; ++interval) {
             // allow a fps rate of zero to mean "accept first rate available"
-            if (10000000 / *interval == (unsigned int) fps || fps == 0) {
-
+	    if (10000000 / *interval == (unsigned int) fps || fps == 0) {
+	      
               ctrl->bmHint = (1 << 0); /* don't negotiate interval */
               ctrl->bFormatIndex = format->bFormatIndex;
               ctrl->bFrameIndex = frame->bFrameIndex;
@@ -399,6 +399,12 @@ uvc_error_t uvc_get_stream_ctrl_format_size(
               goto found;
             }
           }
+	  //cbm added error message
+	  printf("libuvc: valid fps = ");
+	  for (interval = frame->intervals; *interval; ++interval)
+	    printf("%d ",10000000 / *interval);
+	  printf("0\n");
+
         } else {
           uint32_t interval_100ns = 10000000 / fps;
           uint32_t interval_offset = interval_100ns - frame->dwMinFrameInterval;
@@ -414,14 +420,13 @@ uvc_error_t uvc_get_stream_ctrl_format_size(
             ctrl->dwFrameInterval = interval_100ns;
 
             goto found;
-          } else{
-	    printf("libuvc: Iset:%d Ioff:%d Imin:%d Imax:%d Istp:%d\n",interval_100ns,interval_offset,frame->dwMinFrameInterval,frame->dwMaxFrameInterval,frame->dwFrameIntervalStep);
-	  }
+          } 
+	  //cbm added error message
+	  printf("libuvc: Iset:%d Ioff:%d Imin:%d Imax:%d Istp:%d\n",interval_100ns,interval_offset,frame->dwMinFrameInterval,frame->dwMaxFrameInterval,frame->dwFrameIntervalStep);
 	}
       }
     }
   }
-  
   return UVC_ERROR_INVALID_MODE;
 
 found:

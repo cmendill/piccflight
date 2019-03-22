@@ -502,6 +502,8 @@ int hex_calibrate(int calmode, hex_t *hex, uint32_t *step, int procid, int reset
   const double poke[HEX_NAXES]={HEX_X_CAL_POKE,HEX_Y_CAL_POKE,HEX_Z_CAL_POKE,HEX_U_CAL_POKE,HEX_V_CAL_POKE,HEX_W_CAL_POKE};
   int iax;
   int ncalim=0;
+  static int leg,nu,nv,s,u,v;
+  const double spiral_step = 0.01;//degrees
 
   /* Reset */
   if(reset){
@@ -580,37 +582,78 @@ int hex_calibrate(int calmode, hex_t *hex, uint32_t *step, int procid, int reset
 
   /* HEX_CALMODE_SPIRAL: Spiral Search. Tip/tilt hexapod axes in a spiral. */
   if(calmode == HEX_CALMODE_SPIRAL){
-    double u_step;
-    double v_step;
-    int max_step = 5000;
-    double spiral_radius = 0.00001;
     //Save hex starting position
     if(!mode_init[calmode]){
       memcpy(&hex_start[calmode],hex,sizeof(hex_t));
+      //reset spiral
+      u=0;
+      v=0;
+      nu=1;
+      nv=1;
+      s=0;
+      leg=0;
       mode_init[calmode]=1;
     }
+    
     //Set counter
     *step = countA[calmode];
-
-    //Run spiral search
-    if((countA[calmode]) < max_step){
-      u_step = countA[calmode] * spiral_radius * cos(countA[calmode] * (PI/180.0));
-      v_step = countA[calmode] * spiral_radius * sin(countA[calmode] * (PI/180.0));
-      hex->acmd[HEX_AXIS_U] = hex_start[HEX_CALMODE_SPIRAL].acmd[HEX_AXIS_U] + 0.005 + u_step;
-      hex->acmd[HEX_AXIS_V] = hex_start[HEX_CALMODE_SPIRAL].acmd[HEX_AXIS_V] + 0.005 + v_step;
-      if((countA[calmode] % 20)==0)
-	printf("HEX: Searching... %lu\n", countA[calmode]);
+    
+    //Increment spiral search
+    /*
+      
+      <--2--^
+      |     |
+      3     1
+      |     |
+      \/-0-->
 	
-      countA[calmode]++;
-    }else{
-      //Set hex back to starting position
-      memcpy(hex,&hex_start[calmode],sizeof(hex_t));
-      mode_init[calmode]=0;
-      //Turn off calibration
-      printf("HEX: Stopping HEX calmode HEX_CALMODE_SPIRAL\n");
-      calmode = HEX_CALMODE_NONE;
-      init=0;
+    */
+    
+    if(leg%4 == 0){
+      //BL to BR
+      u++;
+      if(++s == nu){
+	nu++;
+	leg++;
+	s=0;
+      }
     }
+    else if(leg%4 == 1){
+      //BL to TR
+      v++;
+      if(++s == nv){
+	nv++;
+	leg++;
+	s=0;
+      }
+    }
+    else if(leg%4 == 2){
+      //TR to TL
+      u--;
+      if(++s == nu){
+	nu++;
+	leg++;
+	s=0;
+      }
+    }
+    else if(leg%4 == 3){
+      //TL to BL
+      v--;
+      if(++s == nv){
+	nv++;
+	leg++;
+	s=0;
+      }
+    }
+
+    
+    countA[calmode]++;
+
+    //Set new position
+    hex->acmd[HEX_AXIS_U] = hex_start[calmode].acmd[HEX_AXIS_U] + u*spiral_step;
+    hex->acmd[HEX_AXIS_V] = hex_start[calmode].acmd[HEX_AXIS_V] + v*spiral_step;
+    printf("HEX: Spiral search (%d,%d)\n",u,v);
+    
     return calmode;
   }
   
