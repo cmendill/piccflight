@@ -347,18 +347,49 @@ cmd: [cam] zernike disable [arg]
 
 ------------- GAIN SETTINGS -------------
 
-cmd: shk alp gain [arg]
-        change the shk2alp controller PID gains by a factor
+cmd: shk alp scale cgain [arg]
+        change the shk2alp cell controller PID gains by a factor
 	arg = scale factor [0-1] to mutiply by the default gains
 
-cmd: shk hex gain [arg]
-        change the shk2hex controller PID gains by a factor
+cmd: shk alp cgain [arg1] [arg2] [arg3]
+        change the shk2alp cell controller PID gains to specific values
+	arg1 = P gain
+	arg2 = I gain
+	arg3 = D gain
+
+cmd: shk alp scale zgain [arg]
+        change the shk2alp zernike controller PID gains by a factor
+	arg = scale factor [0-1] to mutiply by the default gains
+
+cmd: shk alp zgain [arg1] [arg2] [arg3] [arg4]
+        change the shk2alp zernike controller PID gains to specific values
+        arg1 = Zernike index
+        arg2 = P gain
+	arg3 = I gain
+	arg4 = D gain
+
+cmd: shk hex scale zgain [arg]
+        change the shk2hex zernike controller PID gains by a factor
 	arg = scale factor [0-1] to mutiply by the default gains
 	
-cmd: lyt alp gain [cnd]
-        change the lyt2alp controller PID gains by a factor
+cmd: shk hex zgain [arg1] [arg2] [arg3]
+        change the shk2hex zernike controller PID gains to specific values
+	arg1 = P gain
+	arg2 = I gain
+	arg3 = D gain
+	NOTE: all zernikes use the same gain
+
+cmd: lyt alp scale zgain [arg]
+        change the lyt2alp zernike controller PID gains by a factor
 	arg = scale factor [0-1] to mutiply by the default gains
 
+cmd: lyt alp zgain [arg1] [arg2] [arg3] [arg4]
+        change the lyt2alp zernike controller PID gains to specific values
+        arg1 = Zernike index
+        arg2 = P gain
+	arg3 = I gain
+	arg4 = D gain
+	
 ------------- SCI CAMERA SETTINGS -------------
 
 cmd: sci set origin

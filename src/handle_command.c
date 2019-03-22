@@ -202,7 +202,7 @@ void print_htr_status(sm_t *sm_p){
 /*  - Handle user commands                                    */
 /**************************************************************/
 int handle_command(char *line, sm_t *sm_p){
-  double ftemp;
+  double ftemp,pgain,igain,dgain;
   int    itemp,ich,iadc;
   char   stemp[CMD_MAX_LENGTH];
   char   cmd[CMD_MAX_LENGTH];
@@ -212,8 +212,8 @@ int handle_command(char *line, sm_t *sm_p){
   double hex_poke=0;
   int    calmode=0;
   uint16_t led;
-  static double trl_poke = HEX_TRL_POKE;//0.01;
-  static double rot_poke = HEX_ROT_POKE;///0.01;
+  static double trl_poke = HEX_TRL_POKE;
+  static double rot_poke = HEX_ROT_POKE;
   static calmode_t alpcalmodes[ALP_NCALMODES];
   static calmode_t hexcalmodes[HEX_NCALMODES];
   static calmode_t bmccalmodes[BMC_NCALMODES];
@@ -1781,40 +1781,149 @@ int handle_command(char *line, sm_t *sm_p){
    * GAIN SETTINGS
    **************************************/
   
-  //SHK ALP Gain
-  sprintf(cmd,"shk alp gain");
+  //Scale SHK ALP Cell Gain
+  sprintf(cmd,"shk alp scale cgain");
   if(!strncasecmp(line,cmd,strlen(cmd)) && strlen(line) > strlen(cmd)){
     ftemp = atof(line+strlen(cmd)+1);
     if(ftemp >= 0){
-      double shk_gain_alp_zern[LOWFS_N_ZERNIKE][LOWFS_N_PID] = SHK_GAIN_ALP_ZERN_DEFAULT;
       double shk_gain_alp_cell[LOWFS_N_PID] = SHK_GAIN_ALP_CELL_DEFAULT;
       for(i=0;i<LOWFS_N_PID;i++)
 	sm_p->shk_gain_alp_cell[i] = shk_gain_alp_cell[i]*ftemp;
-      for(i=0;i<LOWFS_N_ZERNIKE;i++) 
-	for(j=0;j<LOWFS_N_PID;j++)
-	  sm_p->shk_gain_alp_zern[i][j] = shk_gain_alp_zern[i][j]*ftemp;
-      printf("CMD: Changing SHK-->ALP gain multiplier to %f\n",ftemp);
-      for(i=0;i<LOWFS_N_ZERNIKE;i++) 
-	printf("CMD: SHK Z[%2.2d] Gain: %10.6f | %10.6f | %10.6f\n", i, sm_p->shk_gain_alp_zern[i][0],sm_p->shk_gain_alp_zern[i][1],sm_p->shk_gain_alp_zern[i][2]);
+      printf("CMD: Changing SHK-->ALP cell gain multiplier to %f\n",ftemp);
+      printf("CMD: SHK-->ALP Cell Gain: %10.6f | %10.6f | %10.6f\n", sm_p->shk_gain_alp_cell[0],sm_p->shk_gain_alp_cell[1],sm_p->shk_gain_alp_cell[2]);
     }else printf("CMD: Gain multiplier must be >= 0\n");
     return CMD_NORMAL;
   }
 
-  //SHK HEX Gain
-  sprintf(cmd,"shk hex gain");
+  //User input SHK ALP Cell Gain
+  sprintf(cmd,"shk alp cgain");
+  if(!strncasecmp(line,cmd,strlen(cmd)) && strlen(line) > strlen(cmd)){
+    pch  = strtok(line+strlen(cmd)," ");
+    if(pch == NULL){
+      printf("CMD: SHK gain bad format: P.P I.I D.D\n");
+      return CMD_NORMAL;
+    }
+    pgain = atof(pch);
+    pch  = strtok(NULL," ");
+    if(pch == NULL){
+      printf("CMD: SHK gain bad format: P.P I.I D.D\n");
+      return CMD_NORMAL;
+    }
+    igain = atof(pch);
+    pch  = strtok(NULL," ");
+    if(pch == NULL){
+      printf("CMD: SHK gain bad format: P.P I.I D.D\n");
+      return CMD_NORMAL;
+    }
+    dgain = atof(pch);
+    if(pgain <= 0 && pgain >= -1 && igain <= 0 && igain >= -1 && dgain <= 0 && dgain >= -1){
+      sm_p->shk_gain_alp_cell[0] = pgain;
+      sm_p->shk_gain_alp_cell[1] = igain;
+      sm_p->shk_gain_alp_cell[2] = dgain;
+      printf("CMD: SHK-->ALP Cell Gain: %10.6f | %10.6f | %10.6f\n", sm_p->shk_gain_alp_cell[0],sm_p->shk_gain_alp_cell[1],sm_p->shk_gain_alp_cell[2]);
+    }else printf("CMD: Gain out of bounds: [-1,0]\n");
+    return CMD_NORMAL;
+  }
+
+  //Scale SHK ALP Zernike Gain
+  sprintf(cmd,"shk alp scale zgain");
+  if(!strncasecmp(line,cmd,strlen(cmd)) && strlen(line) > strlen(cmd)){
+    ftemp = atof(line+strlen(cmd)+1);
+    if(ftemp >= 0){
+      double shk_gain_alp_zern[LOWFS_N_ZERNIKE][LOWFS_N_PID] = SHK_GAIN_ALP_ZERN_DEFAULT;
+      for(i=0;i<LOWFS_N_ZERNIKE;i++) 
+	for(j=0;j<LOWFS_N_PID;j++)
+	  sm_p->shk_gain_alp_zern[i][j] = shk_gain_alp_zern[i][j]*ftemp;
+      printf("CMD: Changing SHK-->ALP Zernike gain multiplier to %f\n",ftemp);
+      for(i=0;i<LOWFS_N_ZERNIKE;i++) 
+	printf("CMD: SHK-->ALP Z[%2.2d] Gain: %10.6f | %10.6f | %10.6f\n", i, sm_p->shk_gain_alp_zern[i][0],sm_p->shk_gain_alp_zern[i][1],sm_p->shk_gain_alp_zern[i][2]);
+    }else printf("CMD: Gain multiplier must be >= 0\n");
+    return CMD_NORMAL;
+  }
+  
+  //User input SHK ALP Zernike Gain
+  sprintf(cmd,"shk alp zgain");
+  if(!strncasecmp(line,cmd,strlen(cmd)) && strlen(line) > strlen(cmd)){
+    pch  = strtok(line+strlen(cmd)," ");
+    if(pch == NULL){
+      printf("CMD: SHK gain bad format: Z P.P I.I D.D\n");
+      return CMD_NORMAL;
+    }
+    itemp = atoi(pch);
+    pch  = strtok(NULL," ");
+    if(pch == NULL){
+      printf("CMD: SHK gain bad format: Z P.P I.I D.D\n");
+      return CMD_NORMAL;
+    }
+    pgain = atof(pch);
+    pch  = strtok(NULL," ");
+    if(pch == NULL){
+      printf("CMD: SHK gain bad format: Z P.P I.I D.D\n");
+      return CMD_NORMAL;
+    }
+    igain = atof(pch);
+    pch  = strtok(NULL," ");
+    if(pch == NULL){
+      printf("CMD: SHK gain bad format: Z P.P I.I D.D\n");
+      return CMD_NORMAL;
+    }
+    dgain = atof(pch);
+    if(itemp >=0 && itemp < LOWFS_N_ZERNIKE && pgain <= 0 && pgain >= -1 && igain <= 0 && igain >= -1 && dgain <= 0 && dgain >= -1){
+      sm_p->shk_gain_alp_zern[itemp][0] = pgain;
+      sm_p->shk_gain_alp_zern[itemp][1] = igain;
+      sm_p->shk_gain_alp_zern[itemp][2] = dgain;
+      for(i=0;i<LOWFS_N_ZERNIKE;i++) 
+	printf("CMD: SHK-->ALP Z[%2.2d] Gain: %10.6f | %10.6f | %10.6f\n", i, sm_p->shk_gain_alp_zern[i][0],sm_p->shk_gain_alp_zern[i][1],sm_p->shk_gain_alp_zern[i][2]);
+    }else printf("CMD: Bad Zernike index [0,%d] or gain [-1,0]\n",LOWFS_N_ZERNIKE-1);
+    return CMD_NORMAL;
+  }
+
+  //Scale SHK HEX Zernike Gain
+  sprintf(cmd,"shk hex scale zgain");
   if(!strncasecmp(line,cmd,strlen(cmd)) && strlen(line) > strlen(cmd)){
     ftemp = atof(line+strlen(cmd)+1);
     if(ftemp >= 0){
       double shk_gain_hex_zern[LOWFS_N_PID] = SHK_GAIN_HEX_ZERN_DEFAULT;
       for(i=0;i<LOWFS_N_PID;i++)
 	sm_p->shk_gain_hex_zern[i] = shk_gain_hex_zern[i]*ftemp;
-      printf("CMD: Changing SHK-->HEX gain multiplier to %f\n",ftemp);
+      printf("CMD: Changing SHK-->HEX Zernike gain multiplier to %f\n",ftemp);
+      printf("CMD: SHK-->HEX Gain: %10.6f | %10.6f | %10.6f\n", sm_p->shk_gain_hex_zern[0],sm_p->shk_gain_hex_zern[1],sm_p->shk_gain_hex_zern[2]);
     }else printf("CMD: Gain multiplier must be >= 0\n");
     return CMD_NORMAL;
   }
 
+  //User Input SHK HEX Zernike Gain
+  sprintf(cmd,"shk hex zgain");
+  if(!strncasecmp(line,cmd,strlen(cmd)) && strlen(line) > strlen(cmd)){
+    pch  = strtok(line+strlen(cmd)," ");
+    if(pch == NULL){
+      printf("CMD: SHK gain bad format: P.P I.I D.D\n");
+      return CMD_NORMAL;
+    }
+    pgain = atof(pch);
+    pch  = strtok(NULL," ");
+    if(pch == NULL){
+      printf("CMD: SHK gain bad format: P.P I.I D.D\n");
+      return CMD_NORMAL;
+    }
+    igain = atof(pch);
+    pch  = strtok(NULL," ");
+    if(pch == NULL){
+      printf("CMD: SHK gain bad format: P.P I.I D.D\n");
+      return CMD_NORMAL;
+    }
+    dgain = atof(pch);
+    if(pgain <= 0 && pgain >= -1 && igain <= 0 && igain >= -1 && dgain <= 0 && dgain >= -1){
+      sm_p->shk_gain_hex_zern[0] = pgain;
+      sm_p->shk_gain_hex_zern[1] = igain;
+      sm_p->shk_gain_hex_zern[2] = dgain;
+      printf("CMD: SHK-->HEX Gain: %10.6f | %10.6f | %10.6f\n", sm_p->shk_gain_hex_zern[0],sm_p->shk_gain_hex_zern[1],sm_p->shk_gain_hex_zern[2]);
+    }else printf("CMD: Gain out of bounds: [-1,0]\n");
+    return CMD_NORMAL;
+  }
+
   //LYT ALP Gain
-  sprintf(cmd,"lyt alp gain");
+  sprintf(cmd,"lyt alp scale zgain");
   if(!strncasecmp(line,cmd,strlen(cmd)) && strlen(line) > strlen(cmd)){
     ftemp = atof(line+strlen(cmd)+1);
     if(ftemp >= 0){
@@ -1825,11 +1934,48 @@ int handle_command(char *line, sm_t *sm_p){
 	  sm_p->lyt_gain_alp_zern[i][j] = ftemp * lyt_gain_alp_zern[i][j];
       printf("CMD: Changing LYT-->ALP gain multiplier to %f\n",ftemp);
       for(i=0;i<LOWFS_N_ZERNIKE;i++) 
-	printf("CMD: LYT Z[%2.2d] Gain: %10.6f | %10.6f | %10.6f\n", i, sm_p->lyt_gain_alp_zern[i][0],sm_p->lyt_gain_alp_zern[i][1],sm_p->lyt_gain_alp_zern[i][2]);
+	printf("CMD: LYT-->ALP Z[%2.2d] Gain: %10.6f | %10.6f | %10.6f\n", i, sm_p->lyt_gain_alp_zern[i][0],sm_p->lyt_gain_alp_zern[i][1],sm_p->lyt_gain_alp_zern[i][2]);
     }else printf("CMD: Gain multiplier must be >= 0\n");
     return CMD_NORMAL;
   }
   
+  //User input LYT ALP Zernike Gain
+  sprintf(cmd,"lyt alp zgain");
+  if(!strncasecmp(line,cmd,strlen(cmd)) && strlen(line) > strlen(cmd)){
+    pch  = strtok(line+strlen(cmd)," ");
+    if(pch == NULL){
+      printf("CMD: LYT gain bad format: Z P.P I.I D.D\n");
+      return CMD_NORMAL;
+    }
+    itemp = atoi(pch);
+    pch  = strtok(NULL," ");
+    if(pch == NULL){
+      printf("CMD: LYT gain bad format: Z P.P I.I D.D\n");
+      return CMD_NORMAL;
+    }
+    pgain = atof(pch);
+    pch  = strtok(NULL," ");
+    if(pch == NULL){
+      printf("CMD: LYT gain bad format: Z P.P I.I D.D\n");
+      return CMD_NORMAL;
+    }
+    igain = atof(pch);
+    pch  = strtok(NULL," ");
+    if(pch == NULL){
+      printf("CMD: LYT gain bad format: Z P.P I.I D.D\n");
+      return CMD_NORMAL;
+    }
+    dgain = atof(pch);
+    if(itemp >=0 && itemp < LOWFS_N_ZERNIKE && pgain <= 0 && pgain >= -1 && igain <= 0 && igain >= -1 && dgain <= 0 && dgain >= -1){
+      sm_p->lyt_gain_alp_zern[itemp][0] = pgain;
+      sm_p->lyt_gain_alp_zern[itemp][1] = igain;
+      sm_p->lyt_gain_alp_zern[itemp][2] = dgain;
+      for(i=0;i<LOWFS_N_ZERNIKE;i++) 
+	printf("CMD: LYT-->ALP Z[%2.2d] Gain: %10.6f | %10.6f | %10.6f\n", i, sm_p->lyt_gain_alp_zern[i][0],sm_p->lyt_gain_alp_zern[i][1],sm_p->lyt_gain_alp_zern[i][2]);
+    }else printf("CMD: Bad Zernike index [0,%d] or gain [-1,0]\n",LOWFS_N_ZERNIKE-1);
+    return CMD_NORMAL;
+  }
+
   /****************************************
    * SCI CAMERA SETTINGS
    **************************************/
