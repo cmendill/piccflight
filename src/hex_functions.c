@@ -601,13 +601,20 @@ int hex_calibrate(int calmode, hex_t *hex, uint32_t *step, int procid, int reset
     //Increment spiral search
     /*
       
-      <--2--^
-      |     |
-      3     1
-      |     |
-      \/-0-->
-	
+       -4 -3 -2 -1  0  1  2  3  4 
+     4 64 63 62 61 60 59 58 57 56  4
+     3 65 36 35 34 33 32 31 30 55  3
+     2 66 37 16 15 14 13 12 29 54  2
+     1 67 38 17  4  3  2 11 28 53  1
+  V  0 68 39 18  5  0  1 10 27 52  0
+    -1 69 40 19  6  7  8  9 26 51 -1
+    -2 70 41 20 21 22 23 24 25 50 -2
+    -3 71 42 43 44 45 46 47 48 49 -3
+    -4 72 73 74 75 76 77 78 79 80 -4
+       -4 -3 -2 -1  0  1  2  3  4 
+                    U
     */
+
     
     if(leg%4 == 0){
       //BL to BR
@@ -646,14 +653,14 @@ int hex_calibrate(int calmode, hex_t *hex, uint32_t *step, int procid, int reset
       }
     }
 
-    
-    countA[calmode]++;
-
     //Set new position
     hex->acmd[HEX_AXIS_U] = hex_start[calmode].acmd[HEX_AXIS_U] + u*spiral_step;
     hex->acmd[HEX_AXIS_V] = hex_start[calmode].acmd[HEX_AXIS_V] + v*spiral_step;
-    printf("HEX: Spiral search (%d,%d)\n",u,v);
-    
+    printf("HEX: Spiral %d: %d %d\n",countA[calmode]+1,u,v);
+
+    //Increment counter
+    countA[calmode]++;
+   
     return calmode;
   }
   
