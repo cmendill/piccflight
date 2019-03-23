@@ -65,17 +65,17 @@ void write_block(DM7820_Board_Descriptor* p_rtd_board, char *buf, uint32 num){
       /*Write presync to RTD FPGA*/
       if(rtd_send_tlm(p_rtd_board, (char *)&presync,sizeof(presync))){
 	printf("TLM: rtd_send_tlm failed!\n");
-	tlmctrlC(0);
+	return;
       }
       /*Write buffer to RTD FPGA*/
       if(rtd_send_tlm(p_rtd_board, buf,num)){
 	printf("TLM: rtd_send_tlm failed!\n");
-	tlmctrlC(0);
+	return;
       }
       /*Write postsync to RTD FPGA*/
       if(rtd_send_tlm(p_rtd_board, (char *)&postsync,sizeof(postsync))){
 	printf("TLM: rtd_send_tlm failed!\n");
-	tlmctrlC(0);
+	return;
       }
       
 #if TLM_DEBUG

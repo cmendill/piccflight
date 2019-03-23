@@ -24,7 +24,7 @@ uvc_context_t *ctx;
 uvc_device_t *dev;
 uvc_device_handle_t *devh;
 int acq_shmfd;
-
+int acq_fps=3; //valid fps = 15 10 7 5 3 
 
 /**************************************************************/
 /* ACQCTRLC                                                   */
@@ -66,8 +66,8 @@ void acq_build_gif(unsigned char *input, unsigned char *build_output, int *build
   uint64_t i;
   
   //Create bitmap structure and populate as grayscale
-  Bitmap *b = bm_create(ACQXS/ACQBIN, ACQYS/ACQBIN);
-  for(i=0;i<(ACQXS/ACQBIN)*(ACQYS/ACQBIN);i++){
+  Bitmap *b = bm_create(ACQXS, ACQYS);
+  for(i=0;i<ACQXS*ACQYS;i++){
     b->data[4*i+0]=input[i];    //Blue
     b->data[4*i+1]=input[i];    //Green
     b->data[4*i+2]=input[i];    //Red
@@ -96,16 +96,20 @@ void acq_process_image(uvc_frame_t *frame, sm_t *sm_p) {
   double dt;
   uint16_t fakepx=0;
   int i,j;
-  uint8_t  full_image[ACQYS][ACQXS];
-  uint16_t binned_image16[ACQYS/ACQBIN][ACQXS/ACQBIN]={{0}};
-  uint8_t  binned_image8[ACQYS/ACQBIN][ACQXS/ACQBIN]={{0}};
-  uint8_t  gif_data[(ACQXS/ACQBIN)*(ACQYS/ACQBIN)];
+  uint8_t  full_image[ACQREADYS][ACQREADXS];
+  uint16_t binned_image16[ACQYS][ACQXS]={{0}};
+  uint8_t  gif_data[ACQXS*ACQYS];
   int      gif_nbytes = 0;
   int      state;
   int      nstar=0;
+  int      acqbin = ACQREADXS/ACQXS;
   
   //Get time immidiately
   clock_gettime(CLOCK_REALTIME,&start);
+
+  //Get one frame per second
+  if(frame->sequence % acq_fps > 0)
+    return;
   
   //Get state
   state = sm_p->state;
@@ -161,37 +165,23 @@ void acq_process_image(uvc_frame_t *frame, sm_t *sm_p) {
   acqevent.hed.alp_calmode = sm_p->alp_calmode;
   acqevent.hed.bmc_calmode = sm_p->bmc_calmode;
   acqevent.hed.tgt_calmode = sm_p->tgt_calmode;
-
+  
   //Copy full image
   memcpy(&full_image[0][0],frame->data,sizeof(full_image));
   
   //Bin image, find star
-  for(i=0;i<ACQYS;i++){
-    for(j=0;j<ACQXS;j++){
+  for(i=0;i<ACQREADYS;i++){
+    for(j=0;j<ACQREADXS;j++){
       if(full_image[i][j] > ACQ_STAR_THRESH) nstar++;
-      binned_image16[i/ACQBIN][j/ACQBIN] += (uint16_t)full_image[i][j];
+      binned_image16[i/acqbin][j/acqbin] += (uint16_t)full_image[i][j];
     }
   }
   
   //Average bins
-  for(i=0;i<ACQYS/ACQBIN;i++){
-    for(j=0;j<ACQXS/ACQBIN;j++){
-      binned_image8[i][j] = binned_image16[i][j] / (ACQBIN*ACQBIN);
-      //Threshold
-      if(binned_image8[i][j] < sm_p->acq_thresh) binned_image8[i][j] = 0;
+  for(i=0;i<ACQYS;i++){
+    for(j=0;j<ACQXS;j++){
+      acqevent.image.data[j][i] = binned_image16[i][j] / (acqbin*acqbin);
     }
-  }
-  
-  //Compress image
-  acq_build_gif(&binned_image8[0][0], gif_data, &gif_nbytes);
-  
-  //Write gif data to event
-  if(gif_nbytes <= ACQ_MAX_GIF_SIZE){
-    memcpy(acqevent.gif,gif_data,gif_nbytes);
-    acqevent.gif_nbytes = gif_nbytes;
-  }
-  else{
-    printf("ACQ: Compressed image too large %d\n",gif_nbytes);
   }
 
   //Spiral search
@@ -280,8 +270,8 @@ void acq_process_image(uvc_frame_t *frame, sm_t *sm_p) {
       //Fake data
       if(sm_p->w[ACQID].fakemode != FAKEMODE_NONE){
 	if(sm_p->w[ACQID].fakemode == FAKEMODE_TEST_PATTERN)
-	  for(i=0;i<ACQXS;i++)
-	    for(j=0;j<ACQYS;j++)
+	  for(i=0;i<ACQREADXS;i++)
+	    for(j=0;j<ACQREADYS;j++)
 	      acqfull.image.data[i][j]=fakepx++;
       }
       else{
@@ -325,7 +315,6 @@ void acq_callback(uvc_frame_t *frame, void *ptr) {
 void acq_proc(void){
   uvc_stream_ctrl_t ctrl;
   uvc_error_t res;
-  int fps=3; //valid fps = 15 10 7 5 3 
   int camera_running=0;
   
   /* Open Shared Memory */
@@ -375,7 +364,7 @@ void acq_proc(void){
   
 
     /* Setup stream profile */
-    if((res = uvc_get_stream_ctrl_format_size(devh, &ctrl, UVC_FRAME_FORMAT_GRAY8, ACQXS, ACQYS, fps))<0){
+    if((res = uvc_get_stream_ctrl_format_size(devh, &ctrl, UVC_FRAME_FORMAT_GRAY8, ACQREADXS, ACQREADYS, acq_fps))<0){
       uvc_perror(res, "get_mode"); /* device doesn't provide a matching stream */
       acqctrlC(0);
     }

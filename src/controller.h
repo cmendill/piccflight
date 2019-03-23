@@ -280,9 +280,10 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 #define LYTYS           32
 #define LYTREADXS       64   
 #define LYTREADYS       64 
-#define ACQXS           1280
-#define ACQYS           960
-#define ACQBIN          2
+#define ACQREADXS       1280
+#define ACQREADYS       960
+#define ACQXS           640
+#define ACQYS           480
 
 /*************************************************
  * Camera Full Image Times
@@ -691,6 +692,10 @@ typedef struct acq_struct{
   uint8 data[ACQXS][ACQYS];
 } acq_t;
 
+typedef struct acqread_struct{
+  uint8 data[ACQREADXS][ACQREADYS];
+} acqread_t;
+
 
 /*************************************************
  * Device Command Structures
@@ -758,7 +763,7 @@ typedef struct alpcal_struct{
 /*************************************************
  * Packet Header
  *************************************************/
-#define PICC_PKT_VERSION     21  //packet version number
+#define PICC_PKT_VERSION     22  //packet version number
 typedef struct pkthed_struct{
   uint16  version;       //packet version number
   uint16  type;          //packet ID word
@@ -839,8 +844,6 @@ typedef struct pktcell_struct{
   float     yorigin;
   float     xtarget;
   float     ytarget;
-  float     xorigin_deviation[SHK_NSAMPLES];
-  float     yorigin_deviation[SHK_NSAMPLES];
   float     xtarget_deviation[SHK_NSAMPLES];
   float     ytarget_deviation[SHK_NSAMPLES];
   float     xcommand[SHK_NSAMPLES];
@@ -856,8 +859,8 @@ typedef struct shkpkt_struct{
   float     gain_hex_zern[LOWFS_N_PID];
   float     zernike_target[LOWFS_N_ZERNIKE];
   float     zernike_measured[LOWFS_N_ZERNIKE][SHK_NSAMPLES];
-  float     alp_acmd[ALP_NACT][SHK_NSAMPLES];
-  float     alp_zcmd[LOWFS_N_ZERNIKE][SHK_NSAMPLES];
+  float     alp_acmd[ALP_NACT];
+  float     alp_zcmd[LOWFS_N_ZERNIKE];
   float     hex_acmd[HEX_NAXES];
   float     hex_zcmd[LOWFS_N_ZERNIKE];
 } shkpkt_t;
@@ -884,7 +887,8 @@ typedef struct lytpkt_struct{
   float     gain_alp_zern[LOWFS_N_ZERNIKE][LOWFS_N_PID];
   float     zernike_target[LOWFS_N_ZERNIKE];
   float     zernike_measured[LOWFS_N_ZERNIKE][LYT_NSAMPLES];
-  float     alp_zcmd[LOWFS_N_ZERNIKE][LYT_NSAMPLES];
+  float     alp_acmd[ALP_NACT];
+  float     alp_zcmd[LOWFS_N_ZERNIKE];
   lyt_t     image;
 } lytpkt_t;
 
@@ -905,9 +909,9 @@ typedef struct acqevent_struct{
   pkthed_t  hed;
   uint16    xcen;
   uint16    ycen;
-  uint32    gif_nbytes;
-  uint8     gif[ACQ_MAX_GIF_SIZE];
+  uint32    padding;
   hex_t     hex;
+  acq_t     image;
 } acqevent_t;
 
 typedef struct thmevent_struct{
@@ -936,8 +940,8 @@ typedef struct shkfull_struct{
 } shkfull_t;
 
 typedef struct acqfull_struct{
-  pkthed_t hed;
-  acq_t    image;
+  pkthed_t  hed;
+  acqread_t image;
 } acqfull_t;
 
 

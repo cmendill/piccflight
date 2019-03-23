@@ -1273,8 +1273,6 @@ int shk_process_image(stImageBuff *buffer,sm_t *sm_p){
   if(sm_p->write_circbuf[BUFFER_SHKPKT]){
     //Samples collected each time through
     for(i=0;i<SHK_BEAM_NCELLS;i++){
-      shkpkt.cells[i].xorigin_deviation[sample] = shkevent.cells[i].xorigin_deviation;
-      shkpkt.cells[i].yorigin_deviation[sample] = shkevent.cells[i].yorigin_deviation;
       shkpkt.cells[i].xtarget_deviation[sample] = shkevent.cells[i].xtarget_deviation;
       shkpkt.cells[i].ytarget_deviation[sample] = shkevent.cells[i].ytarget_deviation;
       shkpkt.cells[i].xcommand[sample]          = shkevent.cells[i].xcommand;
@@ -1282,10 +1280,6 @@ int shk_process_image(stImageBuff *buffer,sm_t *sm_p){
     }
     for(i=0;i<LOWFS_N_ZERNIKE;i++){
       shkpkt.zernike_measured[i][sample]        = shkevent.zernike_measured[i];
-      shkpkt.alp_zcmd[i][sample]                = shkevent.alp.zcmd[i];
-    }
-    for(i=0;i<ALP_NACT;i++){
-      shkpkt.alp_acmd[i][sample]                = shkevent.alp.acmd[i];
     }
 
     //Last sample, fill out rest of packet and write to circular buffer
@@ -1310,9 +1304,14 @@ int shk_process_image(stImageBuff *buffer,sm_t *sm_p){
       for(i=0;i<LOWFS_N_ZERNIKE;i++){
 	shkpkt.zernike_target[i] = shkevent.zernike_target[i];
 	shkpkt.hex_zcmd[i]       = shkevent.hex.zcmd[i];
+	shkpkt.alp_zcmd[i]       = shkevent.alp.zcmd[i];
 	for(j=0;j<LOWFS_N_PID;j++){
 	  shkpkt.gain_alp_zern[i][j] = shkevent.gain_alp_zern[i][j];
 	}
+      }
+      //Actuator commands
+      for(i=0;i<ALP_NACT;i++){
+	shkpkt.alp_acmd[i] = shkevent.alp.acmd[i];
       }
       //Gains
       for(i=0;i<LOWFS_N_PID;i++){
