@@ -84,16 +84,26 @@ uint64_t sci_xy2index(int x,int y){
 /*  - Set band origins from current image                      */
 /***************************************************************/
 void sci_setorigin(scievent_t *sci,uint16_t *img_buffer){
-  int i,j,k;
+  int i,j,k,x,y;
   int imax=0,jmax=0;
   uint16_t pmax=0,p=0;
   int64_t  index;
+  int      xorigin[SCI_NBANDS]={0};
+  int      yorigin[SCI_NBANDS]={0};
   /* Loop through band images, find max pixel */
   for(k=0;k<SCI_NBANDS;k++){
+    xorigin[k] = sci->xorigin[k];
+    yorigin[k] = sci->yorigin[k];
     pmax=0;
     for(i=0;i<SCI_SEARCH;i++){
       for(j=0;j<SCI_SEARCH;j++){
-	index = sci_xy2index(sci->xorigin[k]-(SCI_SEARCH/2)+i,sci->yorigin[k]-(SCI_SEARCH/2)+j);
+	x = sci->xorigin[k]-(SCI_SEARCH/2)+i;
+	y = sci->yorigin[k]-(SCI_SEARCH/2)+j;
+	x = x < 0 ? 0 : x;
+	x = x >= SCI_ROI_XSIZE ? SCI_ROI_XSIZE-1 : x;
+	y = y < 0 ? 0 : y;
+	y = y >= SCI_ROI_YSIZE ? SCI_ROI_YSIZE-1 : y;
+	index = sci_xy2index(x,y);
 	index = index < 0 ? 0 : index;
 	index = index > (SCI_ROI_XSIZE*SCI_ROI_YSIZE - 1) ? (SCI_ROI_XSIZE*SCI_ROI_YSIZE - 1) : index;
 	p = img_buffer[index];
@@ -105,8 +115,19 @@ void sci_setorigin(scievent_t *sci,uint16_t *img_buffer){
       }
     }
     //Set new origin
-    sci->xorigin[k] += imax - (SCI_SEARCH/2);
-    sci->yorigin[k] += jmax - (SCI_SEARCH/2);
+    xorigin[k] += imax - (SCI_SEARCH/2);
+    yorigin[k] += jmax - (SCI_SEARCH/2);
+  }
+  int check=1;
+  for(k=0;k<SCI_NBANDS;k++){
+    if(xorigin[k] < SCIXS || xorigin[k] >= SCI_ROI_XSIZE-SCIXS) check = 0; 
+    if(yorigin[k] < SCIYS || yorigin[k] >= SCI_ROI_YSIZE-SCIYS) check = 0; 
+  }
+  if(check){
+    for(k=0;k<SCI_NBANDS;k++){
+      sci->xorigin[k] = xorigin[k];
+      sci->yorigin[k] = yorigin[k];
+    }
   }
 }
 
@@ -119,11 +140,14 @@ void sci_findorigin(scievent_t *sci,uint16_t *img_buffer){
   int i,j,x,y;
   uint8_t  mask[SCI_ROI_XSIZE][SCI_ROI_YSIZE]={{0}};
   uint16_t maxval;
-  uint16_t thresh=100;
-  int      boxsize = 40;
+  uint16_t thresh=10000;
+  int      boxsize = 100;
   int      xorigin[SCI_NBANDS]={0};
   int      yorigin[SCI_NBANDS]={0};
   int      k=0,imin=0,xmin=0;
+  
+  //Init mask
+  memset(&mask[0][0],0,sizeof(mask));
   
   //Loop over entire image
   for(i=0;i<SCI_ROI_XSIZE;i++){
@@ -152,6 +176,12 @@ void sci_findorigin(scievent_t *sci,uint16_t *img_buffer){
   }
   
  sort_spots:
+  //Check that we found the correct number of spots
+  if(k != SCI_NBANDS){
+    printf("SCI: Error: Found %d spots\n",k);
+    return;
+  }
+
   //Sort spots by x coordinate
   for(k=0;k<SCI_NBANDS;k++){
     xmin = SCI_ROI_XSIZE;
