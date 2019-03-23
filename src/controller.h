@@ -520,7 +520,7 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 #define SIN_Z             sin(THETA_Z)
 #define HEX_REF_TIMEOUT   20  //seconds
 #define HEX_MOVE_TIMEOUT  5   //seconds
-#define HEX_PERIOD        1.0 //seconds, time between commands
+#define HEX_PERIOD        0.5 //seconds, time between commands
 
 /*************************************************
  * Target Parameters
