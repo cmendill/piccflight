@@ -656,7 +656,7 @@ int hex_calibrate(int calmode, hex_t *hex, uint32_t *step, int procid, int reset
     //Set new position
     hex->acmd[HEX_AXIS_U] = hex_start[calmode].acmd[HEX_AXIS_U] + u*spiral_step;
     hex->acmd[HEX_AXIS_V] = hex_start[calmode].acmd[HEX_AXIS_V] + v*spiral_step;
-    printf("HEX: Spiral %d: %d %d\n",countA[calmode]+1,u,v);
+    printf("HEX: Spiral %lu: %d %d\n",countA[calmode]+1,u,v);
 
     //Increment counter
     countA[calmode]++;
