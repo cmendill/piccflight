@@ -59,6 +59,47 @@ void thmctrlC(int sig)
 }
 
 /**************************************************************/
+/* FIND_HUMIDITY                                              */
+/* - Parse /sys/bus/i2c and return the humidity sensor device */
+/**************************************************************/
+int find_humidity(void){
+  FILE *fd=NULL;
+  char filename[256];
+  char line[256];
+  char dev[128];
+  int i;
+
+  sprintf(dev,"i2c-tiny-usb");
+  
+  //Loop over device files
+  for(i=0;i<=9;i++){
+    //Open file
+    sprintf(filename,"/sys/bus/i2c/devices/i2c-%d/name",i);
+    if((fd = fopen(filename,"r")) == NULL){
+      perror("COM: geti2c fopen");
+      fclose(fd);
+      return(-1);
+    }
+    //Read file
+    if(fgets(line, sizeof(line), fd)){
+      if(!strncasecmp(line,dev,strlen(dev))){
+	fclose(fd);
+	return i;
+      }
+    }
+  }
+
+  printf("COM: geti2c could not I2C device!\n");
+  
+  //Close file
+  fclose(fd);
+
+  //Return error
+  return(-1);
+  
+}
+
+/**************************************************************/
 /* THM_PROC                                                   */
 /*  - Main thermal control process                            */
 /**************************************************************/
@@ -76,6 +117,7 @@ void thm_proc(void){
   static int pulse_index[HTR_NSTEPS];
   int htr_pulse[SSR_NCHAN][HTR_NSTEPS];
   int state;
+  char hum_device[128];
   
   //Humidity sensors
   hdc_config config;
@@ -117,17 +159,23 @@ void thm_proc(void){
   sigset(SIGINT, thmctrlC);	/* usually ^C */
 
   /* Init humidity sensors */
-  if((thm_humfd=hdc_open(HUM_DEVICE)) >= 0){
-    for(i=0;i<HUM_NSENSORS;i++){
-      if(hdc_init(thm_humfd, &hum[i]))
-	continue;
-      if(hdc_write_config(thm_humfd, &hum[i], &config))
-	continue;
-      if(THM_DEBUG) hdc_get_info(thm_humfd, &hum[i]);
-      hum_ready[i]=1;
+  if((i = find_humidity()) >= 0){
+    sprintf(hum_device,"/dev/i2c-%d",i);
+    printf("THM: found humidity sensors on %s\n",hum_device);
+    if((thm_humfd=hdc_open(hum_device)) >= 0){
+      for(i=0;i<HUM_NSENSORS;i++){
+	if(hdc_init(thm_humfd, &hum[i]))
+	  continue;
+	if(hdc_write_config(thm_humfd, &hum[i], &config))
+	  continue;
+	if(THM_DEBUG) hdc_get_info(thm_humfd, &hum[i]);
+	hum_ready[i]=1;
+      }
+    }else{
+      printf("THM: hdc_open failed\n");
     }
   }else{
-    printf("THM: hdc_open failed\n");
+    printf("THM: could not find humidity sensors!\n");
   }
   
   /* Define structures containing board settings */
