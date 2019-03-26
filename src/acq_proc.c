@@ -19,12 +19,13 @@
 #include "acq_proc.h"
 #include "hex_functions.h"
 
+#define ACQ_FPS 5  //valid fps = 15 10 7 5 3 
+
 /* Globals */
 uvc_context_t *ctx;
 uvc_device_t *dev;
 uvc_device_handle_t *devh;
 int acq_shmfd;
-int acq_fps=3; //valid fps = 15 10 7 5 3 
 
 /**************************************************************/
 /* ACQCTRLC                                                   */
@@ -98,17 +99,15 @@ void acq_process_image(uvc_frame_t *frame, sm_t *sm_p) {
   int i,j;
   uint8_t  full_image[ACQREADYS][ACQREADXS];
   uint16_t binned_image16[ACQYS][ACQXS]={{0}};
-  uint8_t  gif_data[ACQXS*ACQYS];
-  int      gif_nbytes = 0;
-  int      state;
-  int      nstar=0;
-  int      acqbin = ACQREADXS/ACQXS;
+  int state;
+  int nstar=0;
+  int acqbin = ACQREADXS/ACQXS;
   
   //Get time immidiately
   clock_gettime(CLOCK_REALTIME,&start);
 
   //Get one frame per second
-  if(frame->sequence % acq_fps > 0)
+  if(frame->sequence % ACQ_FPS != 0)
     return;
   
   //Get state
@@ -364,7 +363,7 @@ void acq_proc(void){
   
 
     /* Setup stream profile */
-    if((res = uvc_get_stream_ctrl_format_size(devh, &ctrl, UVC_FRAME_FORMAT_GRAY8, ACQREADXS, ACQREADYS, acq_fps))<0){
+    if((res = uvc_get_stream_ctrl_format_size(devh, &ctrl, UVC_FRAME_FORMAT_GRAY8, ACQREADXS, ACQREADYS, ACQ_FPS))<0){
       uvc_perror(res, "get_mode"); /* device doesn't provide a matching stream */
       acqctrlC(0);
     }
