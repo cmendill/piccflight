@@ -20,17 +20,17 @@
 #include <libhdc.h>
 
 /* settings */
-#define MAX_AD_OFFSET  2
-#define MAX_AD_GAIN    2
-#define AD_CONFIG_MODE 3
-#define AD_RANGE_CODE  3    
-#define HTR_NSTEPS     100  //Heater resolution (0-100%)
-#define HTR_NCYCLES    10   //Number of heater output cycles
-#define ADC_NAVG       10   //Number of temperature reads to average
-#define ADC_REF_SENSOR 15
+#define MAX_AD_OFFSET   2
+#define MAX_AD_GAIN     2
+#define AD_CONFIG_MODE  3
+#define AD_RANGE_CODE   3    
+#define HTR_NSTEPS      100  //Heater resolution (0-100%)
+#define HTR_NCYCLES     10   //Number of heater output cycles
+#define ADC_NAVG        10   //Number of temperature reads to average
+#define ADC_VREF_SENSOR 15
 
 /* temperature conversion */
-#define DEFAULT_VREF    5.0     //volts
+#define VREF_DEFAULT    5.0     //volts
 #define ADC1_R1         1000.0  //ohms
 #define ADC2_R1         2000.0  //ohms
 #define ADC3_R1         2000.0  //ohms
@@ -110,7 +110,7 @@ void thm_proc(void){
   static int init = 0;
   static unsigned long count=0;
   double resistance;              // calculated RTD resistance
-  double vref = DEFAULT_VREF;     // calculated using the reference resistor RTD_OHMS
+  double vref;                    // calculated using the reference resistor RTD_OHMS
   uint16_t htr_command;           // heater command word
   unsigned char htr_lsb=0,htr_msb=0;
   const long htr_sleep = ONE_MILLION / HTR_NSTEPS / HTR_NCYCLES; //us
@@ -133,6 +133,9 @@ void thm_proc(void){
   DSCSAMPLE samples2[ADC2_NCHAN]; // digital readings
   DSCSAMPLE samples3[ADC3_NCHAN]; // digital readings
   DFLOAT voltage;                 // voltage value
+  DFLOAT voltage1[ADC1_NCHAN];    // voltage values
+  DFLOAT voltage2[ADC2_NCHAN];    // voltage values
+  DFLOAT voltage3[ADC3_NCHAN];    // voltage values
 
   /* Initialize */
   if(!init){
@@ -391,7 +394,7 @@ void thm_proc(void){
     //Check in with the watchdog
     checkin(sm_p,THMID);
     
-    /* Fill out event header */
+    //Fill out event header
     thmevent.hed.version       = PICC_PKT_VERSION;
     thmevent.hed.type          = BUFFER_THMEVENT;
     thmevent.hed.frame_number  = count++;
@@ -402,6 +405,9 @@ void thm_proc(void){
     thmevent.hed.start_sec     = start.tv_sec;
     thmevent.hed.start_nsec    = start.tv_nsec;
 
+    //Init VREF
+    vref = VREF_DEFAULT;
+    
     //=========================================================================
     // SCANNING AND OUTPUT
     // Perform the actual sampling and then output the results.
@@ -409,7 +415,7 @@ void thm_proc(void){
     // and then plug it into one of the formulas located in the manual for
     // your board (under "A/D Conversion Formulas"). 
     //=========================================================================
-    
+
     //Run through averaging loop
     for(iavg=0;iavg<ADC_NAVG;iavg++){
       //Board ADC1
@@ -418,17 +424,7 @@ void thm_proc(void){
 	dscGetLastError(&errorParams);
 	fprintf(stderr, "THM: Board ADC1 dscADScan error: %s %s\n", dscGetErrorString(errorParams.ErrCode), errorParams.errstring);
 	thmctrlC(0);
-      }
-      
-      //Get reference voltage
-      if(dscADCodeToVoltage(board1, dscadsettings1, dscadscan1.sample_values[ADC_REF_SENSOR], &voltage) != DE_NONE) {
-	dscGetLastError(&errorParams);
-	fprintf(stderr, "THM: Board ADC1 dscADCodeToVoltage error: %s %s\n", dscGetErrorString(errorParams.ErrCode), errorParams.errstring);
-	fprintf(stderr, "THM: Gain = %d\n",dscadsettings1.gain);
-	thmctrlC(0);
-      }
-      if(sm_p->thm_enable_vref) vref = voltage*(ADC1_R1+RTD_OHMS)/RTD_OHMS;
-      
+      }       
       for(i = 0; i < ADC1_NCHAN; i++){
 	if(dscADCodeToVoltage(board1, dscadsettings1, dscadscan1.sample_values[i], &voltage) != DE_NONE) {
 	  dscGetLastError(&errorParams);
@@ -436,13 +432,11 @@ void thm_proc(void){
 	  fprintf(stderr, "THM: Gain = %d\n",dscadsettings1.gain);
 	  thmctrlC(0);
 	}
-	resistance = (voltage * ADC1_R1) / (vref - voltage);
-	if(iavg == 0) thmevent.adc1_temp[i] = 0; //reset temp to zero for averaging
-	if(i == ADC_REF_SENSOR)
-	  thmevent.adc1_temp[i] = vref;
-	else
-	  thmevent.adc1_temp[i] += ((resistance - RTD_OHMS)/(RTD_ALPHA * RTD_OHMS)) / ADC_NAVG;
+	if(iavg == 0) voltage1[i] = 0; //reset voltages to zero for averaging
+	voltage1[i] += voltage/ADC_NAVG;
       }
+      //Get reference voltage
+      if(sm_p->thm_enable_vref) vref = voltage1[ADC_VREF_SENSOR]*(ADC1_R1+RTD_OHMS)/RTD_OHMS;
       #endif
     
       //Board ADC2
@@ -458,9 +452,8 @@ void thm_proc(void){
 	  fprintf(stderr, "THM: Gain = %d\n",dscadsettings2.gain);
 	  thmctrlC(0);
 	}
-	resistance = (voltage * ADC2_R1) / (vref - voltage);
-	if(iavg == 0) thmevent.adc2_temp[i] = 0; //reset temp to zero for averaging
-	thmevent.adc2_temp[i] += ((resistance - RTD_OHMS)/(RTD_ALPHA * RTD_OHMS)) / ADC_NAVG;
+	if(iavg == 0) voltage2[i] = 0; //reset voltages to zero for averaging
+	voltage2[i] += voltage/ADC_NAVG;
       }
 
       //Board ADC3
@@ -476,11 +469,26 @@ void thm_proc(void){
 	  fprintf(stderr, "THM: Gain = %d\n",dscadsettings3.gain);
 	  thmctrlC(0);
 	}
-	resistance = (voltage * ADC3_R1) / (vref - voltage);
-	if(iavg == 0) thmevent.adc3_temp[i] = 0; //reset temp to zero for averaging
-	thmevent.adc3_temp[i] += ((resistance - RTD_OHMS)/(RTD_ALPHA * RTD_OHMS)) / ADC_NAVG;
+	if(iavg == 0) voltage3[i] = 0; //reset voltages to zero for averaging
+	voltage3[i] += voltage/ADC_NAVG;
       }
     }
+    
+    /* Convert voltage to temperature */
+    for(i = 0; i < ADC1_NCHAN; i++){
+      resistance = (voltage1[i] * ADC1_R1) / (vref - voltage1[i]);
+      thmevent.adc1_temp[i] = (resistance - RTD_OHMS) / (RTD_ALPHA * RTD_OHMS);
+      if(i==ADC_VREF_SENSOR) thmevent.adc1_temp[i] = vref;
+    }
+    for(i = 0; i < ADC2_NCHAN; i++){
+      resistance = (voltage2[i] * ADC2_R1) / (vref - voltage2[i]);
+      thmevent.adc2_temp[i] = (resistance - RTD_OHMS) / (RTD_ALPHA * RTD_OHMS);
+    }
+    for(i = 0; i < ADC3_NCHAN; i++){
+      resistance = (voltage3[i] * ADC3_R1) / (vref - voltage3[i]);
+      thmevent.adc3_temp[i] = (resistance - RTD_OHMS) / (RTD_ALPHA * RTD_OHMS);
+    }
+    
 
     /* Read humidity sensors */
     if(thm_humfd >= 0){
