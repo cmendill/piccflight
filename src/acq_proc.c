@@ -265,7 +265,7 @@ void acq_process_image(uvc_frame_t *frame, sm_t *sm_p) {
       //Copy packet header
       memcpy(&acqfull.hed,&acqevent.hed,sizeof(pkthed_t));
       acqfull.hed.type = BUFFER_ACQFULL;
-    
+      
       //Fake data
       if(sm_p->w[ACQID].fakemode != FAKEMODE_NONE){
 	if(sm_p->w[ACQID].fakemode == FAKEMODE_TEST_PATTERN)
@@ -275,7 +275,9 @@ void acq_process_image(uvc_frame_t *frame, sm_t *sm_p) {
       }
       else{
 	//Copy full image
-	memcpy(&(acqfull.image.data[0][0]),frame->data,sizeof(acq_t));
+	for(i=0;i<ACQREADYS;i++)
+	  for(j=0;j<ACQREADXS;j++)
+	    acqfull.image.data[j][i] = full_image[i][j];
       }
 
       //Open circular buffer
