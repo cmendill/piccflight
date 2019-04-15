@@ -104,6 +104,7 @@ LINUX INSTALLATION
 BLACKLIST DRIVERS
  - Create/etc/modprobe.d/picture.blacklist.conf and add the lines:
      blacklist solos-pci  #conflicts with PHX driver preventing boot
+     blacklist soundcore
      blacklist sdhci_acpi #produces kernel messages for each PHX interrupt
      blacklist sdhci_pci  #produces kernel messages for each PHX interrupt
      blacklist sdhci      #produces kernel messages for each PHX interrupt
