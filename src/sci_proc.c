@@ -13,12 +13,14 @@
 #include <libfli.h>
 #include <libgen.h>
 #include <sys/stat.h>
+#include <libbmc.h>
 
 /* piccflight headers */
 #include "controller.h"
 #include "common_functions.h"
 #include "fakemodes.h"
 
+/* FLI Settings */
 #define SCI_ROI_XSIZE 2840
 #define SCI_ROI_YSIZE 2224
 #define SCI_HBIN 1 //do not change, will break code below
@@ -32,11 +34,17 @@
 #define SCI_YORIGIN {450,502,755,879,610};    //band cutout y centers (relative to the ROI)
 #define SCI_SEARCH   400                      //px search diameter to find star in each band
 
+/* BMC Settings */
+#define RANGE LIBBMC_VOLT_RANGE_100V
+
 /* Process File Descriptor */
 int sci_shmfd;
 
 /* FLI File Descriptor */
 flidev_t dev;
+
+/* BMC File Descriptor */
+libbmc_device_t libbmc_device;
 
 /**************************************************************/
 /* SCICTRLC                                                   */
@@ -44,6 +52,11 @@ flidev_t dev;
 /**************************************************************/
 void scictrlC(int sig){
   uint32 err = 0;
+  int rc;
+  useconds_t wait_time_us = 100000; // wait time
+  enum libbmc_pwr_state_enum current_pwr_status = LIBBMC_PWR_OFF;
+  char* libbmc_pwr_state_label[10] = LIBBMC_PWR_STAT_LABEL;
+
   /* Cancel Exposure */
   if((err = FLICancelExposure(dev))){
     fprintf(stderr, "SCI: Error FLICancelExposure: %s\n", strerror((int)-err));
@@ -62,10 +75,35 @@ void scictrlC(int sig){
   }else{
     if(SCI_DEBUG) printf("SCI: FLI closed\n");
   }
+  /* Stop BMC controller, turn OFF HV */
+  if((rc=libbmc_toggle_controller_stop(&libbmc_device)) < 0){
+    printf("SCI: Failed to stop BMC controller : %s - %s \n", libbmc_error_name(rc), libbmc_strerror(rc));
+  }else{
+    printf("SCI: BMC controller stopped\n");
+  }
+  usleep(wait_time_us);
+  
+  /* Block and wait until LIBBMC_PWR_OFF */
+  while(libbmc_device.status.power != LIBBMC_PWR_OFF) { // power not off
+    if(libbmc_get_status(&libbmc_device) == LIBBMC_SUCCESS) { // wait for power off
+      if(current_pwr_status != libbmc_device.status.power) { // print only when changing
+	printf("SCI: BMC controller settling => libbmc_device.status.power : %s\n", libbmc_pwr_state_label[libbmc_device.status.power]);
+	current_pwr_status = libbmc_device.status.power;
+      }
+    }
+    usleep(wait_time_us);
+  }
+  
+  /* BMC HV Power is OFF */
+  printf("SCI: BMC controller HV is OFF\n");
+
+  /* Close BMC device */
+  libbmc_close_device(&libbmc_device);
+ 
   /* Close shared memory */
   close(sci_shmfd);
-
-  if (MSG_CTRLC) printf("SCI: exiting\n");
+  
+  if(MSG_CTRLC) printf("SCI: exiting\n");
 
   /* Exit */
   exit(sig);
@@ -402,6 +440,10 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
   static unsigned long frame_number=0;
   int print_origin=0;
   int state;
+  float test_points_on[LIBBMC_NTSTPNT] = {0, 15, 30, 45, 60, 75, 90, 105, 120, 135, 150};
+  float test_points_off[LIBBMC_NTSTPNT] = {0};
+  static bmc_t bmc_zero, bmc_flat;
+  int rc;
   
   //Get time immidiately
   clock_gettime(CLOCK_REALTIME,&start);
@@ -427,6 +469,10 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
     memcpy(&last,&start,sizeof(struct timespec));
     sci_loadorigin(&scievent);
     frame_number=0;
+    for(i=0;i<BMC_NACT;i++){
+      bmc_zero.acmd[i] = 0;
+      bmc_flat.acmd[i] = 100;
+    }
     init=1;
     if(SCI_DEBUG) printf("SCI: Initialized\n");
   }
@@ -520,6 +566,44 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
     	  scievent.image[k].data[i][j] = img_buffer[sci_xy2index(scievent.xorigin[k]-(SCIXS/2)+i,scievent.yorigin[k]-(SCIYS/2)+j)];
   }
 
+  //Init BMC command
+  for(i=0;i<BMC_NACT;i++)
+    scievent.bmc.acmd[i] = -1;
+  
+  //Run BMC Controller
+  if(sm_p->bmc_ready && sm_p->bmc_hv_on){
+    if(scievent.hed.frame_number % 2){
+      //Set test points ON
+      if((rc=libbmc_set_tstpnts(&libbmc_device, test_points_on)) < 0)
+	printf("SCI: Failed to set BMC test points ON : %s - %s \n", libbmc_error_name (rc), libbmc_strerror (rc));
+      //Set all actuators to flat pattern
+      if(libbmc_set_acts(&libbmc_device, bmc_flat.acmd) != LIBBMC_SUCCESS)
+	printf ("SCI: Failed to set BMC actuators to flat\n");
+      else
+	memcpy(&scievent.bmc,&bmc_flat,sizeof(bmc_t));
+    }else{
+      //Set test points OFF
+      if((rc=libbmc_set_tstpnts(&libbmc_device, test_points_off)) < 0)
+	printf("SCI: Failed to set BMC test points OFF : %s - %s \n", libbmc_error_name (rc), libbmc_strerror (rc));
+      //Set all actuators to zero
+      if(libbmc_set_acts(&libbmc_device, bmc_zero.acmd) != LIBBMC_SUCCESS)
+	printf ("SCI: Failed to set BMC actuators to zero\n");
+      else
+	memcpy(&scievent.bmc,&bmc_zero,sizeof(bmc_t));
+    }
+  }
+
+  //Get BMC Status
+  if(sm_p->bmc_ready){
+    if((rc=libbmc_get_status(&libbmc_device)) < 0){
+      printf("SCI: Failed to get BMC status: %s - %s \n", libbmc_error_name (rc), libbmc_strerror (rc));
+    }
+    else{
+      //Copy status into scievent
+      memcpy(&scievent.bmc_status,&libbmc_device.status,sizeof(libbmc_status_t));
+    }
+  }
+  
   //Write SCIEVENT to circular buffer 
   if(sm_p->write_circbuf[BUFFER_SCIEVENT]){
     //Open circular buffer 
@@ -545,11 +629,23 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
 void sci_proc(void){
   char file[MAX_FILENAME], name[MAX_FILENAME];
   uint32_t err = 0;
-  uint32_t count = 0;
+  uint32_t counter = 0;
   long domain = (FLIDOMAIN_USB | FLIDEVICE_CAMERA);
   uint16_t *img_buffer;
   int camera_running=0;
   long exptime;
+  int rc; //for return values
+  useconds_t wait_time_us = 100000; // wait time
+  float libbmc_hv_range_value[4] = LIBBMC_VOLT_RANGE_CTRL_VALUE;
+  char* libbmc_pwr_state_label[10] = LIBBMC_PWR_STAT_LABEL;
+  int i;
+  enum libbmc_pwr_state_enum current_pwr_status = LIBBMC_PWR_OFF;
+
+  /* Check BMC NACT */
+  if(LIBBMC_NACT != BMC_NACT){
+    printf("SCI: Error LIBBMC_NACT != BMC_NACT\n");
+    scictrlC(0);
+  }
   
   /* Open Shared Memory */
   sm_t *sm_p;
@@ -561,6 +657,10 @@ void sci_proc(void){
   /* Set soft interrupt handler */
   sigset(SIGINT, scictrlC);	/* usually ^C */
 
+  /**************************************************************/
+  /*                      FLI Camera Setup                      */
+  /**************************************************************/
+  
   /* Malloc image buffer */
   img_buffer = (uint16_t *)malloc(SCI_ROI_XSIZE*SCI_ROI_YSIZE*sizeof(uint16_t));
   
@@ -587,13 +687,31 @@ void sci_proc(void){
     fprintf(stderr, "SCI: Error FLIOpen: %s\n", strerror((int)-err));
     scictrlC(0);
   }
-    
+
+  /**************************************************************/
+  /*                    BMC Controller Setup                    */
+  /**************************************************************/
+  
+  /* Open Device */
+  if((rc = libbmc_open_device(&libbmc_device)) < 0){
+    printf("SCI: Failed to find the bmc device: %s - %s \n", libbmc_error_name(rc), libbmc_strerror(rc));
+    sm_p->bmc_ready = 0;
+  }else{
+    printf("SCI: BMC device found and opened\n");
+    sm_p->bmc_ready = 1;
+  }
+  usleep(wait_time_us);
+  
   /* ----------------------- Enter Main Loop ----------------------- */
   while(1){
-
+    
     /* Check in with the watchdog */
     checkin(sm_p,SCIID);
-       
+
+    /**************************************************************/
+    /*                         FLI Config                         */
+    /**************************************************************/
+    
     /* Cancel Exposure, put camera in known state */
     if((err = FLICancelExposure(dev))){
       fprintf(stderr, "SCI: Error FLICancelExposure: %s\n", strerror((int)-err));
@@ -653,8 +771,74 @@ void sci_proc(void){
     }else{
       if(SCI_DEBUG) printf("SCI: FLI NFlushes set\n");
     }
+
+    /**************************************************************/
+    /*                         BMC Config                         */
+    /**************************************************************/
+    if(sm_p->bmc_ready){
+      if(sm_p->bmc_hv_enable){
+	/* Set BMC HV Range */
+	if((rc = libbmc_set_range(&libbmc_device, RANGE)) < 0){
+	  printf("SCI: Failed to set BMC HV range to %f : %s - %s \n", libbmc_hv_range_value[RANGE], libbmc_error_name(rc), libbmc_strerror(rc));
+	  goto exposure_start;
+	}
+	else{
+	  printf("SCI: BMC HV range set to %f => libbmc_device.status.range : %f\n", libbmc_hv_range_value[RANGE], libbmc_hv_range_value[libbmc_device.status.range]);
+	}
+	usleep(wait_time_us);
 	
+	
+	/* Start controller, turn on HV */
+	if((rc = libbmc_toggle_controller_start(&libbmc_device)) < 0){
+	  printf("SCI: Failed to start BMC controller in range %f : %s - %s \n", libbmc_hv_range_value[libbmc_device.status.range], libbmc_error_name(rc), libbmc_strerror(rc));
+	  goto exposure_start;
+	}
+	else{
+	  printf("SCI: BMC controller started => libbmc_device.status.range : %f\n", libbmc_hv_range_value[libbmc_device.status.range]);
+	}
+	usleep(wait_time_us);
+	
+	/* Block and wait until LIBBMC_PWR_ON */
+	while(libbmc_device.status.power != LIBBMC_PWR_ON) { // power not on
+	  if(libbmc_get_status(&libbmc_device) == LIBBMC_SUCCESS) { // wait for power on
+	    if(current_pwr_status != libbmc_device.status.power) { // print only when changing
+	      printf("SCI: BMC controller settling => libbmc_device.status.power : %s\n", libbmc_pwr_state_label[libbmc_device.status.power]);
+	      current_pwr_status = libbmc_device.status.power;
+	    }
+	  }
+	  usleep(wait_time_us);
+	}
+	//BMC HV Power is ON
+	printf("SCI: BMC controller HV in ON\n");
+	sm_p->bmc_hv_on = 1;
+      }else{
+	// Stop BMC controller, turn OFF HV
+	if((rc=libbmc_toggle_controller_stop(&libbmc_device)) < 0){
+	  printf("SCI: Failed to stop BMC controller : %s - %s \n", libbmc_error_name(rc), libbmc_strerror(rc));
+	  goto exposure_start;
+	}else{
+	  printf("SCI: BMC controller stopped\n");
+	}
+	usleep(wait_time_us);
+	
+	//Block and wait until LIBBMC_PWR_OFF
+	while(libbmc_device.status.power != LIBBMC_PWR_OFF) { // power not off
+	  if(libbmc_get_status(&libbmc_device) == LIBBMC_SUCCESS) { // wait for power off
+	    if(current_pwr_status != libbmc_device.status.power) { // print only when changing
+	      printf("SCI: BMC controller settling => libbmc_device.status.power : %s\n", libbmc_pwr_state_label[libbmc_device.status.power]);
+	      current_pwr_status = libbmc_device.status.power;
+	    }
+	  }
+	  usleep(wait_time_us);
+	}
+	//BMC HV Power is OFF
+	printf("SCI: BMC controller HV is OFF\n");
+	sm_p->bmc_hv_on=0;
+      }
+    }
+    
     /* ----------------------- Enter Exposure Loop ----------------------- */
+  exposure_start:
     while(1){
       /* Check if we've been asked to exit */
       if(sm_p->w[SCIID].die)
@@ -672,6 +856,9 @@ void sci_proc(void){
 	printf("SCI: Camera started\n");
       }
       
+      /* Get CCD Temperature */
+      sm_p->sci_ccd_temp = sci_get_temp(dev);
+      
       /* Run Camera */
       if(camera_running){
 	/* Run Exposure */
@@ -683,8 +870,8 @@ void sci_proc(void){
 	}
       }
       
-      /* Get CCD Temperature */
-      sm_p->sci_ccd_temp = sci_get_temp(dev);
+      /* Increment counter */
+      counter++;
 	
       /* Sleep */
       sleep(sm_p->w[SCIID].per);

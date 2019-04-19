@@ -1037,7 +1037,30 @@ int handle_command(char *line, sm_t *sm_p){
       printf("CMD: Manual ALPAO DM control disabled in this state\n");
     return CMD_NORMAL;
   }
+
+  /****************************************
+   * BMC DM CONTROL
+   **************************************/
+
+  //HV control
+  sprintf(cmd,"bmc hv enable");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    printf("CMD: Enabling BMC HV\n");
+    printf("CMD: -- WARNING -- Only operate HV below 25% humidity\n");
+    sm_p->bmc_hv_enable=1;
+    sm_p->sci_reset_camera=1;
+    return(CMD_NORMAL);
+  }
+
+  sprintf(cmd,"bmc hv disable");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    printf("CMD: Disabling BMC HV\n");
+    sm_p->bmc_hv_enable=0;
+    sm_p->sci_reset_camera=1;
+    return(CMD_NORMAL);
+  }
   
+
   /****************************************
    * SENSOR CALIBRATION
    **************************************/
@@ -2079,11 +2102,11 @@ int handle_command(char *line, sm_t *sm_p){
     }
     return(CMD_NORMAL);
   }
-  
+
   /****************************************
    * DOOR CONTROL
    **************************************/
-
+  
   //Open/Close/Stop Doors
   sprintf(cmd,"open door");
   if(!strncasecmp(line,cmd,strlen(cmd))){

@@ -3,6 +3,7 @@
 #include <string.h>
 #include <math.h>
 #include <unistd.h>
+#include <libusb.h>
 
 #include "libbmc.h"
 

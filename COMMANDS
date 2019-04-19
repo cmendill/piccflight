@@ -191,6 +191,14 @@ cmd: alp actuator [arg1] [arg2]
 	arg1 = actuator index [0,1,2,3,...,96]
 	arg2 = actuator delta in analog command units [-1 to +1] 
 
+------------- BMC DM CONTROL -------------
+
+cmd: bmc hv enable
+        enable BMC high voltage
+
+cmd: bmc hv disable
+     	disable BMC high voltage
+
 ------------- SENSOR CALIBRATION -------------
 
 cmd: shk calibrate hex [arg]

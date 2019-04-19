@@ -232,69 +232,72 @@ typedef enum libbmc_error_enum libbmc_error_t;
 
 
 // ---- status data structure ------------------------------------------------------------------------------------------
+#define LIBBMC_STAT_HLBYTE(HBYTE,LBYTE) (HBYTE*256+LBYTE)
+#define LIBBMC_VOLT_REF 2.048
+#define LIBBMC_STAT_3RAIL1_V(HBYTE,LBYTE) ((LIBBMC_VOLT_REF*LIBBMC_STAT_HLBYTE(HBYTE,LBYTE)/4095.0)*3)
+#define LIBBMC_STAT_3RAIL2_V(HBYTE,LBYTE) ((LIBBMC_VOLT_REF*LIBBMC_STAT_HLBYTE(HBYTE,LBYTE)/4095.0)*2)
+#define LIBBMC_STAT_5RAIL1_V(HBYTE,LBYTE) ((LIBBMC_VOLT_REF*LIBBMC_STAT_HLBYTE(HBYTE,LBYTE)/4095.0)*3)
+#define LIBBMC_STAT_5RAIL2_V(HBYTE,LBYTE) ((LIBBMC_VOLT_REF*LIBBMC_STAT_HLBYTE(HBYTE,LBYTE)/4095.0)*3)
+#define LIBBMC_STAT_CURRENT_MA(HBYTE,LBYTE) ((LIBBMC_VOLT_REF*LIBBMC_STAT_HLBYTE(HBYTE,LBYTE)/4095.0)*2000)
+#define LIBBMC_STAT_LN_FN(VAL) (log(VAL/(4095.0-VAL)))
+#define LIBBMC_STAT_TEMP_C(VAL) ((1/(0.003354016+(0.000248656*VAL) + (0.00000209*VAL*VAL))) - 273.15)
+#define LIBBMC_STAT_HV_REF_V(HBYTE,LBYTE) ((LIBBMC_VOLT_REF*LIBBMC_STAT_HLBYTE(HBYTE,LBYTE)/4095.0)*2)
+#define LIBBMC_STAT_VOLT_IN_V(HBYTE,LBYTE) ((LIBBMC_VOLT_REF*LIBBMC_STAT_HLBYTE(HBYTE,LBYTE)/4095.0)*11)
+#define LIBBMC_STAT_TEMP_IC_C(HBYTE,LBYTE) (6.81+(0.6318-(LIBBMC_VOLT_REF*LIBBMC_STAT_HLBYTE(HBYTE,LBYTE)/4095.0))/0.00215)
+#define LIBBMC_STAT_TESTPOINT_V(HBYTE,LBYTE) ((LIBBMC_VOLT_REF*LIBBMC_STAT_HLBYTE(HBYTE,LBYTE)/4095.0)*119.34)
+#define LIBBMC_STAT_SERIAL(UHBYTE,LHBYTE,ULBYTE,LLBYTE) ((UHBYTE<<24)+(LHBYTE<<16)+(ULBYTE<<8)+LLBYTE)
 
+//Status struct --> Align on 64bit boundry
 struct libbmc_status_struct {
-
-  #define LIBBMC_STAT_HLBYTE(HBYTE,LBYTE) (HBYTE*256+LBYTE)
-  #define LIBBMC_VOLT_REF 2.048
-
-  enum libbmc_pwr_state_enum power; // 0=LIBBMC_PWR_OFF, 1=LIBBMC_PWR_RAMP_UP_01, 2=LIBBMC_PWR_RAMP_UP_02, 3=LIBBMC_PWR_RAMP_UP_03, 4=LIBBMC_PWR_RAMP_UP_04, 5=LIBBMC_PWR_RAMP_UP_05, 6=LIBBMC_PWR_ON, 7=LIBBMC_PWR_UNKNOWN_07, 8=LIBBMC_PWR_UNKNOWN_08, 9=LIBBMC_PWR_RAMP_DOWN_09
-
-  enum libbmc_bi_state_enum supply_5va; // 0=LIBBMC_OFF, 1=LIBBMC_ON
-  enum libbmc_bi_state_enum supply_5vd; // 0=LIBBMC_OFF, 1=LIBBMC_ON
-  enum libbmc_bi_state_enum supply_hv; // 0=LIBBMC_OFF, 1=LIBBMC_ON
-  enum libbmc_bi_state_enum leds; // 0=LIBBMC_OFF, 1=LIBBMC_ON : NOTE - there is no corresponding register with this value. set to LIBBMC_ON on init
-
-  #define LIBBMC_STAT_3RAIL1_V(HBYTE,LBYTE) ((LIBBMC_VOLT_REF*LIBBMC_STAT_HLBYTE(HBYTE,LBYTE)/4095.0)*3)
-  float rail_3v1_v;
-  #define LIBBMC_STAT_3RAIL2_V(HBYTE,LBYTE) ((LIBBMC_VOLT_REF*LIBBMC_STAT_HLBYTE(HBYTE,LBYTE)/4095.0)*2)
-  float rail_3v2_v;
-  #define LIBBMC_STAT_5RAIL1_V(HBYTE,LBYTE) ((LIBBMC_VOLT_REF*LIBBMC_STAT_HLBYTE(HBYTE,LBYTE)/4095.0)*3)
-  float rail_5v1_v;
-  #define LIBBMC_STAT_5RAIL2_V(HBYTE,LBYTE) ((LIBBMC_VOLT_REF*LIBBMC_STAT_HLBYTE(HBYTE,LBYTE)/4095.0)*3)
-  float rail_5v2_v;
-
-  #define LIBBMC_STAT_CURRENT_MA(HBYTE,LBYTE) ((LIBBMC_VOLT_REF*LIBBMC_STAT_HLBYTE(HBYTE,LBYTE)/4095.0)*2000)
-  float current_ma;
-
-  #define LIBBMC_STAT_LN_FN(VAL) (log(VAL/(4095.0-VAL)))
-  #define LIBBMC_STAT_TEMP_C(VAL) ((1/(0.003354016+(0.000248656*VAL) + (0.00000209*VAL*VAL))) - 273.15)
-  float main_brd_temp_c;
-  float top_brd_temp_c;
-  float mid_brd_temp_c;
-  float bot_brd_temp_c;
-  float heatsink_temp_c;
-  float ambient_temp_c;
-  float sock1_temp_c;
-  float sock2_temp_c;
-
-  #define LIBBMC_STAT_HV_REF_V(HBYTE,LBYTE) ((LIBBMC_VOLT_REF*LIBBMC_STAT_HLBYTE(HBYTE,LBYTE)/4095.0)*2)
-  float hv_ref_v;
-
-  #define LIBBMC_STAT_VOLT_IN_V(HBYTE,LBYTE) ((LIBBMC_VOLT_REF*LIBBMC_STAT_HLBYTE(HBYTE,LBYTE)/4095.0)*11)
-  float voltage_input_v;
-
-  enum libbmc_volt_state_enum volt_3v3; // 0=LIBBMC_VOLT_GOOD, 1=LIBBMC_VOLT_ERROR
-  enum libbmc_volt_state_enum volt_5; // 0=LIBBMC_VOLT_GOOD, 1=LIBBMC_VOLT_ERROR
-
-  #define LIBBMC_STAT_TEMP_IC_C(HBYTE,LBYTE) (6.81+(0.6318-(LIBBMC_VOLT_REF*LIBBMC_STAT_HLBYTE(HBYTE,LBYTE)/4095.0))/0.00215)
-  float ic_temp_c[11];
-
-  #define LIBBMC_STAT_TESTPOINT_V(HBYTE,LBYTE) ((LIBBMC_VOLT_REF*LIBBMC_STAT_HLBYTE(HBYTE,LBYTE)/4095.0)*119.34)
-  float hv_supp_v[2];
-  float testpoint_v[11];
-
-  enum libbmc_tec_state_enum tec; // 0=LIBBMC_TEC_LOW, 1=LIBBMC_TEC_MID, 2=LIBBMC_TEC_HIGH
-  enum libbmc_fan_state_enum fan; // 0=LIBBMC_FAN_OFF, 1=LIBBMC_FAN_LOW, 2,LIBBMC_FAN_HIGH
-  enum libbmc_temp_state_enum over_temp; // 0=LIBBMC_TEMP_NORM, 1=LIBBMC_TEMP_OVER
-
-  #define LIBBMC_STAT_SERIAL(UHBYTE,LHBYTE,ULBYTE,LLBYTE) ((UHBYTE<<24)+(LHBYTE<<16)+(ULBYTE<<8)+LLBYTE)
-  uint32_t serial;
+  uint8_t power;
+  uint8_t supply_5va;
+  uint8_t supply_5vd;
+  uint8_t supply_hv; 
+  uint8_t leds;
+  uint8_t tec;
+  uint8_t fan;
+  uint8_t over_temp;
+  //----
   uint8_t fw_major;
   uint8_t fw_minor;
-
-  enum libbmc_volt_range_enum range; // 0=100V,LIBBMC_VOLT_RANGE_100V, 1=150V,LIBBMC_VOLT_RANGE_150V,2=200V,LIBBMC_VOLT_RANGE_200V,3=225V,LIBBMC_VOLT_RANGE_230V NOTE - there is no corresponding regster with this value. set to LIBBMC_ON on init
+  uint8_t range;
+  uint8_t volt_3v3;
+  uint8_t volt_5;
+  uint8_t pad1;
+  uint8_t pad2;
+  uint8_t pad3;
+  //----
+  uint32_t serial;
+  uint32_t pad4;
+  //----
+  float rail_3v1_v;
+  float rail_3v2_v;
+  //----
+  float rail_5v1_v;
+  float rail_5v2_v;
+  //----
+  float current_ma;
+  float main_brd_temp_c;
+  //----
+  float top_brd_temp_c;
+  float mid_brd_temp_c;
+  //----
+  float bot_brd_temp_c;
+  float heatsink_temp_c;
+  //----
+  float ambient_temp_c;
+  float sock1_temp_c;
+  //----
+  float sock2_temp_c;
+  float hv_ref_v;
+  //----
+  float voltage_input_v;
+  float ic_temp_c[11];
+  //----
+  float hv_supp_v[2];
+  float testpoint_v[11];
 };
+
 typedef struct libbmc_status_struct libbmc_status_t;
 
 

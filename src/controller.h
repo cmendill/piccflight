@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <time.h>
 #include <dm7820_library.h>
+#include <libbmc.h>
 
 #ifndef _CONTROLLER
 #define _CONTROLLER
@@ -144,7 +145,7 @@ enum bmccalmodes {BMC_CALMODE_NONE,
 *************************************************/
 #define ALP_ENABLE      1 // ALPAO DM
 #define BMC_ENABLE      0 // BMC DM
-#define HEX_ENABLE      1 // Hexapod
+#define HEX_ENABLE      0 // Hexapod
 #define LED_ENABLE      1 // LED
 #define HTR_ENABLE      1 // Heaters
 #define MTR_ENABLE      1 // Motors
@@ -426,7 +427,7 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 /*************************************************
  * BMC DM Parameters
  *************************************************/
-#define BMC_NACT    952
+#define BMC_NACT    1020 //flight 1 square DM
 #define BMC_STROKE  1.5
 #define BMCXS        34
 #define BMCYS        34
@@ -548,7 +549,7 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 #define TLM_REPLACE_CODE   0xFFFF                //Code to replace empty codes with in data
 #define TLM_PRESYNC        0x12345678            //TLM packet pre sync word
 #define TLM_POSTSYNC       0xDEADBEEF            //TLM packet post sync word
-#define TLM_BUFFER_LENGTH  (TLM_DATA_RATE/5)     //TLM DMA buffer length (5 updates/sec)
+#define TLM_BUFFER_LENGTH  (TLM_DATA_RATE/5)    //TLM DMA buffer length (10 updates/sec)
 #define TLM_BUFFER_SIZE    (TLM_BUFFER_LENGTH*2) //TLM DMA buffer size
 
 /*************************************************
@@ -710,7 +711,7 @@ typedef struct hex_struct{
 } hex_t;
 
 typedef struct bmc_struct{
-  uint16 acmd[BMC_NACT];
+  float acmd[BMC_NACT];
 } bmc_t;
 
 typedef struct htr_struct{
@@ -902,6 +903,7 @@ typedef struct scievent_struct{
   uint32   yorigin[SCI_NBANDS];
   sci_t    image[SCI_NBANDS];
   bmc_t    bmc;
+  libbmc_status_t bmc_status;
 } scievent_t;
 
 typedef struct acqevent_struct{
@@ -1084,6 +1086,8 @@ typedef volatile struct {
   int acq_thresh;
   int thm_enable_vref;
   int hex_spiral_autostop;
+  int bmc_hv_enable;
+  int bmc_hv_on;
   
   //Door Commands
   int open_door[MTR_NDOORS];
