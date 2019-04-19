@@ -17,7 +17,7 @@
 #include "rtd_functions.h"
 #include "fakemodes.h"
 
-#define NFAKE 100000
+#define NFAKE   102000
 #define FAKEMAX 65536
 
 /* Globals */
@@ -208,29 +208,35 @@ void tlm_proc(void){
 	  }
 	}
 	ilast%=FAKEMAX;
-
-	//Check if we've been asked to exit
-	if(sm_p->w[TLMID].die)
-	  tlmctrlC(0);
+      }
+      if(sm_p->w[TLMID].fakemode == FAKEMODE_TEST_PATTERN2){
+	for(i=0;i<NFAKE;i++){
+	  if(i % 2) fakeword[i] = 0x0000; else fakeword[i] = 0xFFFF;
+	  //fakeword[i]= i % 34;
+	}
+      }
+      
+      //Check if we've been asked to exit
+      if(sm_p->w[TLMID].die)
+	tlmctrlC(0);
+      
+      //Check in with watchdog
+      checkin(sm_p,TLMID);
+      
+      /*Write Data*/
+      if(ethfd >= 0){
+	write_to_socket(ethfd,fakeword,sizeof(uint16)*NFAKE);
+	//sleep (time @ 250000 Wps)
+	usleep((long)(ONE_MILLION * ((double)NFAKE / (double)TLM_DATA_RATE)));
 	
-	//Check in with watchdog
-	checkin(sm_p,TLMID);
-	
- 	/*Write Data*/
-	if(ethfd >= 0){
-	  write_to_socket(ethfd,fakeword,sizeof(uint16)*NFAKE);
-	  //sleep (time @ 250000 Wps)
-	  usleep((long)(ONE_MILLION * ((double)NFAKE / (double)TLM_DATA_RATE)));
-	  
-	}else{
-	  //RTD write fake data
-	  if(sm_p->tlm_ready){
-	    if(rtd_send_tlm(sm_p->p_rtd_tlm_board,(char *)fakeword,sizeof(uint16)*NFAKE)){
-	      printf("TLM: rtd_send_tlm failed!\n");
-	      tlmctrlC(0);
-	    }
-	    usleep(50000);
+      }else{
+	//RTD write fake data
+	if(sm_p->tlm_ready){
+	  if(rtd_send_tlm(sm_p->p_rtd_tlm_board,(char *)fakeword,sizeof(uint16)*NFAKE)){
+	    printf("TLM: rtd_send_tlm failed!\n");
+	    tlmctrlC(0);
 	  }
+	  usleep(50000);
 	}
       }
       continue;
