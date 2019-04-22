@@ -268,7 +268,7 @@ struct libbmc_status_struct {
   uint8_t pad3;
   //----
   uint32_t serial;
-  uint32_t pad4;
+  float voltage_input_v;
   //----
   float rail_3v1_v;
   float rail_3v2_v;
@@ -291,11 +291,10 @@ struct libbmc_status_struct {
   float sock2_temp_c;
   float hv_ref_v;
   //----
-  float voltage_input_v;
+  float testpoint_v[11];
   float ic_temp_c[11];
   //----
   float hv_supp_v[2];
-  float testpoint_v[11];
 };
 
 typedef struct libbmc_status_struct libbmc_status_t;

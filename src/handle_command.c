@@ -1046,7 +1046,7 @@ int handle_command(char *line, sm_t *sm_p){
   sprintf(cmd,"bmc hv enable");
   if(!strncasecmp(line,cmd,strlen(cmd))){
     printf("CMD: Enabling BMC HV\n");
-    printf("CMD: -- WARNING -- Only operate HV below 25% humidity\n");
+    printf("CMD: -- WARNING -- Only operate HV below 25 percent humidity\n");
     sm_p->bmc_hv_enable=1;
     sm_p->sci_reset_camera=1;
     return(CMD_NORMAL);

@@ -35,7 +35,7 @@
 #define SCI_SEARCH   400                      //px search diameter to find star in each band
 
 /* BMC Settings */
-#define RANGE LIBBMC_VOLT_RANGE_100V
+#define RANGE LIBBMC_VOLT_RANGE_150V
 
 /* Process File Descriptor */
 int sci_shmfd;
@@ -87,7 +87,7 @@ void scictrlC(int sig){
   while(libbmc_device.status.power != LIBBMC_PWR_OFF) { // power not off
     if(libbmc_get_status(&libbmc_device) == LIBBMC_SUCCESS) { // wait for power off
       if(current_pwr_status != libbmc_device.status.power) { // print only when changing
-	printf("SCI: BMC controller settling => libbmc_device.status.power : %s\n", libbmc_pwr_state_label[libbmc_device.status.power]);
+	printf("SCI: BMC controller settling: %s\n", libbmc_pwr_state_label[libbmc_device.status.power]);
 	current_pwr_status = libbmc_device.status.power;
       }
     }
@@ -440,9 +440,7 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
   static unsigned long frame_number=0;
   int print_origin=0;
   int state;
-  float test_points_on[LIBBMC_NTSTPNT] = {0, 15, 30, 45, 60, 75, 90, 105, 120, 135, 150};
-  float test_points_off[LIBBMC_NTSTPNT] = {0};
-  static bmc_t bmc_zero, bmc_flat;
+  static bmc_t bmc_try;
   int rc;
   
   //Get time immidiately
@@ -469,10 +467,6 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
     memcpy(&last,&start,sizeof(struct timespec));
     sci_loadorigin(&scievent);
     frame_number=0;
-    for(i=0;i<BMC_NACT;i++){
-      bmc_zero.acmd[i] = 0;
-      bmc_flat.acmd[i] = 100;
-    }
     init=1;
     if(SCI_DEBUG) printf("SCI: Initialized\n");
   }
@@ -567,41 +561,33 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
   }
 
   //Init BMC command
-  for(i=0;i<BMC_NACT;i++)
-    scievent.bmc.acmd[i] = -1;
+  for(i=0;i<BMC_NACT;i++){
+    scievent.bmc.acmd[i] = 0;
+    bmc_try.acmd[i] = 100;
+  }
+  for(i=0;i<BMC_NTEST;i++){
+    scievent.bmc.tcmd[i] = 0;
+    bmc_try.tcmd[i] = i*15;
+  }
   
   //Run BMC Controller
   if(sm_p->bmc_ready && sm_p->bmc_hv_on){
-    if(scievent.hed.frame_number % 2){
-      //Set test points ON
-      if((rc=libbmc_set_tstpnts(&libbmc_device, test_points_on)) < 0)
-	printf("SCI: Failed to set BMC test points ON : %s - %s \n", libbmc_error_name (rc), libbmc_strerror (rc));
-      //Set all actuators to flat pattern
-      if(libbmc_set_acts(&libbmc_device, bmc_flat.acmd) != LIBBMC_SUCCESS)
-	printf ("SCI: Failed to set BMC actuators to flat\n");
-      else
-	memcpy(&scievent.bmc,&bmc_flat,sizeof(bmc_t));
-    }else{
-      //Set test points OFF
-      if((rc=libbmc_set_tstpnts(&libbmc_device, test_points_off)) < 0)
-	printf("SCI: Failed to set BMC test points OFF : %s - %s \n", libbmc_error_name (rc), libbmc_strerror (rc));
-      //Set all actuators to zero
-      if(libbmc_set_acts(&libbmc_device, bmc_zero.acmd) != LIBBMC_SUCCESS)
-	printf ("SCI: Failed to set BMC actuators to zero\n");
-      else
-	memcpy(&scievent.bmc,&bmc_zero,sizeof(bmc_t));
-    }
+    //Run actuator test pattern
+    i=(scievent.hed.frame_number/2) % BMC_NACT;
+    if(scievent.hed.frame_number % 2) bmc_try.acmd[i]=150; else bmc_try.acmd[i]=0;
+    //Send command
+    if(libbmc_set_acts_tstpnts(&libbmc_device, bmc_try.acmd, bmc_try.tcmd))
+      printf ("SCI: BMC command failed\n");
+    else
+      memcpy(&scievent.bmc,&bmc_try,sizeof(bmc_t));
   }
-
+  
   //Get BMC Status
   if(sm_p->bmc_ready){
-    if((rc=libbmc_get_status(&libbmc_device)) < 0){
-      printf("SCI: Failed to get BMC status: %s - %s \n", libbmc_error_name (rc), libbmc_strerror (rc));
-    }
-    else{
-      //Copy status into scievent
-      memcpy(&scievent.bmc_status,&libbmc_device.status,sizeof(libbmc_status_t));
-    }
+    if(libbmc_get_status(&libbmc_device))
+      printf("SCI: Failed to get BMC status\n");
+    else
+      memcpy(&scievent.bmc_status,&libbmc_device.status,sizeof(bmc_status_t));
   }
   
   //Write SCIEVENT to circular buffer 
@@ -691,16 +677,20 @@ void sci_proc(void){
   /**************************************************************/
   /*                    BMC Controller Setup                    */
   /**************************************************************/
-  
-  /* Open Device */
-  if((rc = libbmc_open_device(&libbmc_device)) < 0){
-    printf("SCI: Failed to find the bmc device: %s - %s \n", libbmc_error_name(rc), libbmc_strerror(rc));
-    sm_p->bmc_ready = 0;
-  }else{
-    printf("SCI: BMC device found and opened\n");
-    sm_p->bmc_ready = 1;
+  if(BMC_ENABLE){
+    /* Open Device */
+    if((rc = libbmc_open_device(&libbmc_device)) < 0){
+      printf("SCI: Failed to find the bmc device: %s - %s \n", libbmc_error_name(rc), libbmc_strerror(rc));
+      sm_p->bmc_ready = 0;
+    }else{
+      printf("SCI: BMC device found and opened\n");
+      sm_p->bmc_ready = 1;
+    }
+    /* Turn off LEDs */
+    if(libbmc_toggle_leds_off(&libbmc_device))
+      printf("SCI: ERROR (libbmc_toggle_leds_off)\n");
+    usleep(wait_time_us);
   }
-  usleep(wait_time_us);
   
   /* ----------------------- Enter Main Loop ----------------------- */
   while(1){
@@ -779,22 +769,22 @@ void sci_proc(void){
       if(sm_p->bmc_hv_enable){
 	/* Set BMC HV Range */
 	if((rc = libbmc_set_range(&libbmc_device, RANGE)) < 0){
-	  printf("SCI: Failed to set BMC HV range to %f : %s - %s \n", libbmc_hv_range_value[RANGE], libbmc_error_name(rc), libbmc_strerror(rc));
+	  printf("SCI: Failed to set BMC HV range to %5.1f : %s - %s \n", libbmc_hv_range_value[RANGE], libbmc_error_name(rc), libbmc_strerror(rc));
 	  goto exposure_start;
 	}
 	else{
-	  printf("SCI: BMC HV range set to %f => libbmc_device.status.range : %f\n", libbmc_hv_range_value[RANGE], libbmc_hv_range_value[libbmc_device.status.range]);
+	  printf("SCI: BMC HV range set to: %5.1f\n", libbmc_hv_range_value[libbmc_device.status.range]);
 	}
 	usleep(wait_time_us);
 	
 	
 	/* Start controller, turn on HV */
 	if((rc = libbmc_toggle_controller_start(&libbmc_device)) < 0){
-	  printf("SCI: Failed to start BMC controller in range %f : %s - %s \n", libbmc_hv_range_value[libbmc_device.status.range], libbmc_error_name(rc), libbmc_strerror(rc));
+	  printf("SCI: Failed to start BMC controller in range %5.1f : %s - %s \n", libbmc_hv_range_value[libbmc_device.status.range], libbmc_error_name(rc), libbmc_strerror(rc));
 	  goto exposure_start;
 	}
 	else{
-	  printf("SCI: BMC controller started => libbmc_device.status.range : %f\n", libbmc_hv_range_value[libbmc_device.status.range]);
+	  printf("SCI: BMC controller started: %5.1f\n", libbmc_hv_range_value[libbmc_device.status.range]);
 	}
 	usleep(wait_time_us);
 	
@@ -802,7 +792,7 @@ void sci_proc(void){
 	while(libbmc_device.status.power != LIBBMC_PWR_ON) { // power not on
 	  if(libbmc_get_status(&libbmc_device) == LIBBMC_SUCCESS) { // wait for power on
 	    if(current_pwr_status != libbmc_device.status.power) { // print only when changing
-	      printf("SCI: BMC controller settling => libbmc_device.status.power : %s\n", libbmc_pwr_state_label[libbmc_device.status.power]);
+	      printf("SCI: BMC controller settling: %s\n", libbmc_pwr_state_label[libbmc_device.status.power]);
 	      current_pwr_status = libbmc_device.status.power;
 	    }
 	  }
@@ -825,7 +815,7 @@ void sci_proc(void){
 	while(libbmc_device.status.power != LIBBMC_PWR_OFF) { // power not off
 	  if(libbmc_get_status(&libbmc_device) == LIBBMC_SUCCESS) { // wait for power off
 	    if(current_pwr_status != libbmc_device.status.power) { // print only when changing
-	      printf("SCI: BMC controller settling => libbmc_device.status.power : %s\n", libbmc_pwr_state_label[libbmc_device.status.power]);
+	      printf("SCI: BMC controller settling: %s\n", libbmc_pwr_state_label[libbmc_device.status.power]);
 	      current_pwr_status = libbmc_device.status.power;
 	    }
 	  }

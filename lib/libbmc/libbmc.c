@@ -156,7 +156,7 @@ libbmc_error_t libbmc_open_device (libbmc_device_t* p_libbmc_device) {
       libusb_free_config_descriptor (p_config_desc); // free the config descriptor
 
       // configure the device
-
+      /*
       int ret4; // for return values of libusb_set_auto_detach_kernel_driver ()
       ret4 = libusb_set_auto_detach_kernel_driver (p_libbmc_device->handle, 1); // auto detach the kernel driver when claiming
       if (ret4 < 0) { // libusb_set_auto_detach_kernel_driver () failed
@@ -166,7 +166,7 @@ libbmc_error_t libbmc_open_device (libbmc_device_t* p_libbmc_device) {
         libusb_close (p_libbmc_device->handle); // close opened device
         return ret4; // return error
       }
-
+      */
       // libusb_set_auto_detach_kernel_driver () successful
 #if LIBBMC_DEBUG
       printf ("BMC: libusb_set_auto_detach_kernel_driver successful\n");
@@ -694,26 +694,24 @@ static libbmc_error_t _libbmc_toggle_controller (libbmc_device_t* p_libbmc_devic
 /*  - checks if controller is already on                                                                              */
 /**********************************************************************************************************************/
 libbmc_error_t libbmc_toggle_controller_start (libbmc_device_t* p_libbmc_device) {
-  int ret1, ret2; // for return values of libbmc_get_status (), _libbmc_toggle_controller ()
-  ret1 = libbmc_get_status (p_libbmc_device); // first libbmc_get_status ()
-  if (ret1 != 0) // libbmc_get_status () failed
-    return ret1; // return error
-  else { // libbmc_get_status () successful
-    if (p_libbmc_device->status.power == LIBBMC_PWR_ON) // controller already on
-      return LIBBMC_SUCCESS; // return success
-    else { // controller is off 
-      ret2 = _libbmc_toggle_controller (p_libbmc_device); // toggle controller to on
-      if (ret2 != 0) // _libbmc_toggle_controller () failed
-        return ret2; // return error
-      else { // _libbmc_toggle_controller () successful
-        if (p_libbmc_device->status.power == LIBBMC_PWR_ON) // controller on verified
-          return LIBBMC_SUCCESS; // return success
-        else // controller on verification failed
-          return LIBBMC_ERROR_OTHER; // return error
-      }
-    }
+  int ret;
+  //check if controller already on
+  if((ret = libbmc_get_status (p_libbmc_device))){
+    printf("BMC: ERROR (libbmc_get_status)\n");
+    return ret;
   }
+  if(p_libbmc_device->status.power == LIBBMC_PWR_ON){
+    return LIBBMC_SUCCESS;
+  }
+  
+  //controller is off, toggle power 
+  if((ret = _libbmc_toggle_controller(p_libbmc_device))){
+    printf("BMC: ERROR (_libbmc_toggle_controller)\n");
+    return ret; // return error
+  }
+  return LIBBMC_SUCCESS;
 }
+
 /**********************************************************************************************************************/
 /* LIBBMC_TOGGLE_CONTROLLER_STOP                                                                                      */
 /* libbmc_device_t* p_libbmc_device : device handle                                                                   */
@@ -722,31 +720,23 @@ libbmc_error_t libbmc_toggle_controller_start (libbmc_device_t* p_libbmc_device)
 /*  - checks if controller is already off                                                                             */
 /**********************************************************************************************************************/
 libbmc_error_t libbmc_toggle_controller_stop (libbmc_device_t* p_libbmc_device) {
-  int ret1, ret2; // for return values of libbmc_get_status (), _libbmc_toggle_controller ()
-  ret1 = libbmc_get_status (p_libbmc_device); // first libbmc_get_status ()
-  if (ret1 != 0) // libbmc_get_status () failed
-    return ret1; // return error
-  else { // libbmc_get_status () successful
-    if (p_libbmc_device->status.power == LIBBMC_PWR_OFF) // controller already on
-      return LIBBMC_SUCCESS; // return success
-    else { // controller is off 
-      ret2 = _libbmc_toggle_controller (p_libbmc_device); // toggle controller to on
-      if (ret2 != 0) // _libbmc_toggle_controller () failed
-        return ret2; // return error
-      else { // _libbmc_toggle_controller () successful
-        if (p_libbmc_device->status.power == LIBBMC_PWR_OFF) // controller on verified
-          return LIBBMC_SUCCESS; // return success
-        else // controller on verification failed
-          return LIBBMC_ERROR_OTHER; // return error
-      }
-    }
+  int ret;
+  //check if controller already off
+  if((ret = libbmc_get_status (p_libbmc_device))){
+    printf("BMC: ERROR (libbmc_get_status)\n");
+    return ret;
   }
+  if(p_libbmc_device->status.power == LIBBMC_PWR_OFF){
+    return LIBBMC_SUCCESS;
+  }
+  
+  //controller is on, toggle power 
+  if((ret = _libbmc_toggle_controller(p_libbmc_device))){
+    printf("BMC: ERROR (_libbmc_toggle_controller)\n");
+    return ret; // return error
+  }
+  return LIBBMC_SUCCESS;
 }
-
-
-
-
-
 
 
 
@@ -766,7 +756,7 @@ static libbmc_error_t _libbmc_init_status (libbmc_device_t* p_libbmc_device) {
     return ret1; // return error
   else { // libbmc_get_status () successful
     // initialize values not in the status packet with default values
-    p_libbmc_device->status.range = LIBBMC_VOLT_RANGE_100V;
+    p_libbmc_device->status.range = LIBBMC_VOLT_RANGE_150V;
     p_libbmc_device->status.leds = LIBBMC_ON;
   }
   return ret1;

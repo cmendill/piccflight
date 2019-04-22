@@ -144,8 +144,8 @@ enum bmccalmodes {BMC_CALMODE_NONE,
 * Master Enable Switches
 *************************************************/
 #define ALP_ENABLE      1 // ALPAO DM
-#define BMC_ENABLE      0 // BMC DM
-#define HEX_ENABLE      0 // Hexapod
+#define BMC_ENABLE      1 // BMC DM
+#define HEX_ENABLE      1 // Hexapod
 #define LED_ENABLE      1 // LED
 #define HTR_ENABLE      1 // Heaters
 #define MTR_ENABLE      1 // Motors
@@ -428,6 +428,7 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
  * BMC DM Parameters
  *************************************************/
 #define BMC_NACT    1020 //flight 1 square DM
+#define BMC_NTEST   11
 #define BMC_STROKE  1.5
 #define BMCXS        34
 #define BMCYS        34
@@ -712,6 +713,8 @@ typedef struct hex_struct{
 
 typedef struct bmc_struct{
   float acmd[BMC_NACT];
+  float tcmd[BMC_NTEST];
+  float pad;
 } bmc_t;
 
 typedef struct htr_struct{
@@ -733,7 +736,57 @@ typedef struct htr_struct{
 typedef struct hum_struct{
   float humidity;
   float temp;
-} hum_t; 
+} hum_t;
+
+//BMC Status Struct: NOTE this is a copy from libbmc.h DO NOT CHANGE
+typedef struct bmc_status_struct {
+  uint8_t power;
+  uint8_t supply_5va;
+  uint8_t supply_5vd;
+  uint8_t supply_hv; 
+  uint8_t leds;
+  uint8_t tec;
+  uint8_t fan;
+  uint8_t over_temp;
+  //----
+  uint8_t fw_major;
+  uint8_t fw_minor;
+  uint8_t range;
+  uint8_t volt_3v3;
+  uint8_t volt_5;
+  uint8_t pad1;
+  uint8_t pad2;
+  uint8_t pad3;
+  //----
+  uint32_t serial;
+  float voltage_input_v;
+  //----
+  float rail_3v1_v;
+  float rail_3v2_v;
+  //----
+  float rail_5v1_v;
+  float rail_5v2_v;
+  //----
+  float current_ma;
+  float main_brd_temp_c;
+  //----
+  float top_brd_temp_c;
+  float mid_brd_temp_c;
+  //----
+  float bot_brd_temp_c;
+  float heatsink_temp_c;
+  //----
+  float ambient_temp_c;
+  float sock1_temp_c;
+  //----
+  float sock2_temp_c;
+  float hv_ref_v;
+  //----
+  float testpoint_v[BMC_NTEST];
+  float ic_temp_c[BMC_NTEST];
+  //----
+  float hv_supp_v[2];
+} bmc_status_t;
 
 /*************************************************
  * Calmode Structures
@@ -903,7 +956,7 @@ typedef struct scievent_struct{
   uint32   yorigin[SCI_NBANDS];
   sci_t    image[SCI_NBANDS];
   bmc_t    bmc;
-  libbmc_status_t bmc_status;
+  bmc_status_t bmc_status;
 } scievent_t;
 
 typedef struct acqevent_struct{
