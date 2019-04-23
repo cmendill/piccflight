@@ -660,13 +660,14 @@ int read_uplink(char *cmd, int max, int fd){
   //ascii.dle = 0x10
   //ascii.etx = 0x03
   //  ID Byte = 0x14
-  char dle;
-  char id;
-  char length;
+  uint8_t dle;
+  uint8_t id;
+  uint8_t len;
   char data[255];
-  char etx;
-  int  num;
-
+  uint8_t etx;
+  uint8_t num;
+  int n,m;
+  
   //Read DLE (presync)
   if(read(fd,&dle,1) != 1){
     printf("CMD: Bad DLE read\n");
@@ -676,44 +677,75 @@ int read_uplink(char *cmd, int max, int fd){
     printf("CMD: Wrong DLE value 0x%x\n",dle);
     return -1;
   }
-
+  
   //Read packet ID
   if(read(fd,&id,1) != 1){
     printf("CMD: Bad ID read\n");
     return -1;
   }
-  if(id != 0x14){
-    printf("CMD: Wrong ID value 0x%x\n",id);
-    return -1;
+  
+  //Check ID
+
+  //Request Science Data
+  if(id == 0x13){
+    //Read ETX (postsync)
+    if(read(fd,&etx,1) != 1){
+      printf("CMD: Bad ETX read\n");
+      return -1;
+    }
+    if(etx != 0x03){
+      printf("CMD: Wrong ETX value 0x%x\n",etx);
+      return -1;
+    }
+    
+    //Return 0 to ignore
+    return 0;
   }
 
-  //Read data length
-  if(read(fd,&length,1) != 1){
-    printf("CMD: Bad LENGTH read\n");
-    return -1;
+
+  //Uplink Command
+  if(id == 0x14){
+    //Read data len
+    if(read(fd,&len,1) != 1){
+      printf("CMD: Bad LEN read\n");
+      return -1;
+    }
+    
+    //Check len
+    if(len < 0 || len > 255){
+      printf("CMD: Read LEN out of bounds 0x%x\n",len);
+      return -1;
+    }
+    
+    //Read data
+    n=0; m=0;
+    while(m < len){
+      if((n=read(fd,&data[m],len-m)) < 0){
+	printf("CMD: Bad DATA read\n");
+	return -1;
+      }
+      m += n;
+    }
+    
+    //Read ETX (postsync)
+    if(read(fd,&etx,1) != 1){
+      printf("CMD: Bad ETX read\n");
+      return -1;
+    }
+    if(etx != 0x03){
+      printf("CMD: Wrong ETX value 0x%x\n",etx);
+      return -1;
+    }
+    
+    //Copy data
+    num = (len > max) ? max : len;
+    memcpy(cmd,data,num);
+        
+    //Return number of bytes read up to max allowed
+    return num;
   }
 
-  //Read data
-  if(read(fd,&data,length) != length){
-    printf("CMD: Bad DATA read\n");
-    return -1;
-  }
-
-  //Read ETX (postsync)
-  if(read(fd,&etx,1) != 1){
-    printf("CMD: Bad ETX read\n");
-    return -1;
-  }
-  if(etx != 0x03){
-    printf("CMD: Wrong ETX value 0x%x\n",etx);
-    return -1;
-  }
-
-  //Copy data
-  num = (length > max) ? max : length;
-  memcpy(cmd,data,num);
-
-  //Return number of bytes read up to max allowed
-  return num;
+  //ID Not Found
+  return 0;
   
 }
