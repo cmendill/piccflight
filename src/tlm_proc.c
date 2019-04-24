@@ -42,7 +42,7 @@ void tlmctrlC(int sig){
 }
 
 /* Send data over TM*/
-void write_block(DM7820_Board_Descriptor* p_rtd_board, char *buf, uint32 num){
+void write_block(DM7820_Board_Descriptor* p_rtd_board, char *buf, uint32 num, int flush){
   static uint32 presync  = TLM_PRESYNC;
   static uint32 postsync = TLM_POSTSYNC;
   
@@ -63,17 +63,17 @@ void write_block(DM7820_Board_Descriptor* p_rtd_board, char *buf, uint32 num){
     /*Send TM over RTD*/
     if(p_rtd_board != NULL){
       /*Write presync to RTD FPGA*/
-      if(rtd_send_tlm(p_rtd_board, (char *)&presync,sizeof(presync))){
+      if(rtd_send_tlm(p_rtd_board, (char *)&presync,sizeof(presync),0)){
 	printf("TLM: rtd_send_tlm failed!\n");
 	return;
       }
       /*Write buffer to RTD FPGA*/
-      if(rtd_send_tlm(p_rtd_board, buf,num)){
+      if(rtd_send_tlm(p_rtd_board, buf, num, 0)){
 	printf("TLM: rtd_send_tlm failed!\n");
 	return;
       }
       /*Write postsync to RTD FPGA*/
-      if(rtd_send_tlm(p_rtd_board, (char *)&postsync,sizeof(postsync))){
+      if(rtd_send_tlm(p_rtd_board, (char *)&postsync,sizeof(postsync),flush)){
 	printf("TLM: rtd_send_tlm failed!\n");
 	return;
       }
@@ -130,8 +130,8 @@ void tlm_proc(void){
   int sentdata=0;
   int readdata=0;
   uint32 savecount[NCIRCBUF]={0};
-  struct timespec now,delta,last[NCIRCBUF];
-  double dt;
+  struct timespec now,delta,last[NCIRCBUF],last_send;
+  double dt,dt_send;
 
   /* Open Shared Memory */
   sm_t *sm_p;
@@ -187,7 +187,8 @@ void tlm_proc(void){
     printf("TLM: Saving data to: %s\n",datpath);
   }
 
-  /* Init start times */
+  /* Init last data times */
+  clock_gettime(CLOCK_REALTIME,&last_send);
   for(i=0;i<NCIRCBUF;i++)
     clock_gettime(CLOCK_REALTIME,&last[i]);
   
@@ -212,7 +213,6 @@ void tlm_proc(void){
       if(sm_p->w[TLMID].fakemode == FAKEMODE_TEST_PATTERN2){
 	for(i=0;i<NFAKE;i++){
 	  if(i % 2) fakeword[i] = 0x0000; else fakeword[i] = 0xFFFF;
-	  //fakeword[i]= i % 34;
 	}
       }
       
@@ -232,7 +232,7 @@ void tlm_proc(void){
       }else{
 	//RTD write fake data
 	if(sm_p->tlm_ready){
-	  if(rtd_send_tlm(sm_p->p_rtd_tlm_board,(char *)fakeword,sizeof(uint16)*NFAKE)){
+	  if(rtd_send_tlm(sm_p->p_rtd_tlm_board,(char *)fakeword,sizeof(uint16)*NFAKE,0)){
 	    printf("TLM: rtd_send_tlm failed!\n");
 	    tlmctrlC(0);
 	  }
@@ -257,6 +257,10 @@ void tlm_proc(void){
 	if(timespec_subtract(&delta,&now,&last[i]))
 	  printf("SRV: timespec_subtract error!\n");
 	ts2double(&delta,&dt);
+	if(timespec_subtract(&delta,&now,&last_send))
+	  printf("SRV: timespec_subtract error!\n");
+	ts2double(&delta,&dt_send);
+	
 	//Read data
 	readdata=0;
 	if(sm_p->circbuf[i].send == 1)
@@ -271,7 +275,9 @@ void tlm_proc(void){
 	  //Send data
 	  if(sm_p->circbuf[i].send){
 	    if(sm_p->tlm_ready){
-	      write_block(sm_p->p_rtd_tlm_board,buffer,sm_p->circbuf[i].nbytes);
+	      write_block(sm_p->p_rtd_tlm_board,buffer,sm_p->circbuf[i].nbytes,(dt_send > 0.5));
+	      //save last send time
+	      memcpy(&last_send,&now,sizeof(struct timespec));
 	    }
 	  }
 	  //Save data

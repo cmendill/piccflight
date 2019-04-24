@@ -431,7 +431,7 @@ int rtd_send_alp(DM7820_Board_Descriptor* p_rtd_board, double *cmd) {
 /*  - Write telemetry data out the RTD interface              */
 /*  - Buffer data until the DMA buffer is full. Then send.    */
 /**************************************************************/
-int rtd_send_tlm(DM7820_Board_Descriptor* p_rtd_board, char *buf, uint32_t num){
+int rtd_send_tlm(DM7820_Board_Descriptor* p_rtd_board, char *buf, uint32_t num, int flush){
   static volatile uint32_t m=0;
   uint32_t nwords = 0;
   uint16_t *buf16;
@@ -468,6 +468,11 @@ int rtd_send_tlm(DM7820_Board_Descriptor* p_rtd_board, char *buf, uint32_t num){
     
     //Add n to l
     l+=n;
+
+    //Flush buffer with empty code if requested
+    if(flush)
+      while(m < (buffer_length-1))
+	rtd_tlm_dma_buffer[m++]=TLM_EMPTY_CODE;
     
     //Check if the buffer is full and we need to do a transfer
     if(m==buffer_length-1){
