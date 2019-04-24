@@ -10,7 +10,10 @@ cmd: exit
 
 cmd: shutdown
         exit the watchdog and shut down the computer
- 
+
+cmd: sysinfo
+	print cpu usage
+
 cmd: packet info
      	prints the sizes of the telemetry packets
 

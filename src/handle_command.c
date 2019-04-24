@@ -267,6 +267,14 @@ int handle_command(char *line, sm_t *sm_p){
     return(CMD_SHUTDOWN);
   }
 
+  //sysinfo: print CPU Memory and Disk usage
+  sprintf(cmd,"sysinfo");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    if(system("top -bn1 | grep Cpu") == -1)
+      printf("CMD: system command error\n");
+    return(CMD_NORMAL);
+  }
+  
   //print packet info
   sprintf(cmd,"packet info");
   if(!strncasecmp(line,cmd,strlen(cmd))){
