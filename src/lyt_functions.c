@@ -617,6 +617,7 @@ int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
     //Samples, collected each time through
     for(i=0;i<LOWFS_N_ZERNIKE;i++){
       lytpkt.zernike_measured[i][sample] = lytevent.zernike_measured[i];
+      lytpkt.alp_zcmd[i][sample] = lytevent.alp.zcmd[i];
     }
   
     //Last sample, fill out rest of packet and write to circular buffer
@@ -629,7 +630,6 @@ int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
       //Zernike gains and targets
       for(i=0;i<LOWFS_N_ZERNIKE;i++){
 	lytpkt.zernike_target[i]         = lytevent.zernike_target[i]; 
-	lytpkt.alp_zcmd[i]               = lytevent.alp.zcmd[i];
 	for(j=0;j<LOWFS_N_PID;j++){
 	  lytpkt.gain_alp_zern[i][j]     = lytevent.gain_alp_zern[i][j];
 	}

@@ -941,7 +941,8 @@ typedef struct lytpkt_struct{
   float     zernike_target[LOWFS_N_ZERNIKE];
   float     zernike_measured[LOWFS_N_ZERNIKE][LYT_NSAMPLES];
   float     alp_acmd[ALP_NACT];
-  float     alp_zcmd[LOWFS_N_ZERNIKE];
+  float     alp_zcmd[LOWFS_N_ZERNIKE][LYT_NSAMPLES];
+  float     padding;
   lyt_t     image;
 } lytpkt_t;
 
