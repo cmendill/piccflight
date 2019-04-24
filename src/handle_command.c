@@ -270,7 +270,8 @@ int handle_command(char *line, sm_t *sm_p){
   //sysinfo: print CPU Memory and Disk usage
   sprintf(cmd,"sysinfo");
   if(!strncasecmp(line,cmd,strlen(cmd))){
-    if(system("top -bn1 | grep Cpu") == -1)
+    //print top 5 process lines from top
+    if(system("top -bn1 | head -n 12 | tail -n 6") == -1)
       printf("CMD: system command error\n");
     return(CMD_NORMAL);
   }
