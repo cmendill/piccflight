@@ -295,11 +295,11 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 /*************************************************
  * Camera Exposure Time Limits
  *************************************************/
-#define SHK_EXPTIME_MIN  0.010
+#define SHK_EXPTIME_MIN  0.0001
 #define SHK_EXPTIME_MAX  16.00
 #define SHK_FRMTIME_MIN  0.010
 #define SHK_FRMTIME_MAX  16.00
-#define LYT_EXPTIME_MIN  0.001
+#define LYT_EXPTIME_MIN  0.0001
 #define LYT_EXPTIME_MAX  16.00
 #define LYT_FRMTIME_MIN  0.001
 #define LYT_FRMTIME_MAX  16.00
