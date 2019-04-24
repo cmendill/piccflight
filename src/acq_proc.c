@@ -19,7 +19,7 @@
 #include "acq_proc.h"
 #include "hex_functions.h"
 
-#define ACQ_FPS 5  //valid fps = 15 10 7 5 3 
+#define ACQ_FPS 3  //valid fps = 15 10 7 5 3 
 
 /* Globals */
 uvc_context_t *ctx;
@@ -107,7 +107,7 @@ void acq_process_image(uvc_frame_t *frame, sm_t *sm_p) {
   clock_gettime(CLOCK_REALTIME,&start);
 
   //Get one frame per second
-  if(frame->sequence % ACQ_FPS != 0)
+  if(frame->sequence % (ACQ_FPS+1) != 0)
     return;
   
   //Get state
