@@ -589,10 +589,6 @@ int main(int argc,char **argv){
   cfsetispeed(&t,B1200);
   tcsetattr(fdcmd,TCSANOW,&t);
   
-  /* Configure readset */
-  FD_ZERO(&readset);
-  FD_SET(STDIN,&readset); //console input
-  FD_SET(fdcmd,&readset); //command uplink
   
   /* Launch Watchdog */
   if(sm_p->w[WATID].run){
@@ -607,6 +603,11 @@ int main(int argc,char **argv){
     //Init retval
     retval = CMD_NORMAL;
     
+    /* Configure readset */
+    FD_ZERO(&readset);
+    FD_SET(STDIN,&readset); //console input
+    FD_SET(fdcmd,&readset); //command uplink
+
     //Select on readset with no timeout (blocking)
     if(select(FD_SETSIZE,&readset,NULL,NULL,NULL) < 0){
       perror("select");
