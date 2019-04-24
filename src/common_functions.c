@@ -740,6 +740,9 @@ int read_uplink(char *cmd, int max, int fd){
     //Copy data
     num = (len > max) ? max : len;
     memcpy(cmd,data,num);
+
+    //Print command
+    printf("CMD: Got uplink: %s\n",cmd);
         
     //Return number of bytes read up to max allowed
     return num;
