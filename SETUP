@@ -89,10 +89,22 @@ LINUX INSTALLATION
  - Install Options:
    - Choose not to setup network during install
    - Hostname: picture
-   - User Full Name: PICTURE
+   - User Full Name: picture
    - Username: picture
-   - Choose to use the entire disk (may change for readonly)
+   - Password: perfect
+   - You may get a prompt that the password is too weak. Select to use the weak password.
+   - No disk encryption
+   - Partitioning:
+      - Select manual partitioning
+      - Delete existing partitions
+      - Create first partition 8GB, primary, start at begining of disk, ext4, mount @ /... use all defaults
+      - Create second partiion, size = "max", primary, ext4, mount @ /data
+      - Choose to write partition table, confirm that we want NO swap partition
+   - Select "No automatic updates"
    - Do not select any additional software to install
+   - Wait for installer to finish
+   - Select to install GRUB
+   - Installation complete, remove USB disk and reboot
  - First boot instructions
    - You will need to disable the PCI bus on the first boot to fix a driver conflict
    - Bios-->Advanced-->South Cluster-->PCI Express-->PCI Express Root Port 1 (DISABLE)
@@ -142,6 +154,8 @@ INSTALL PACKAGES
      sudo apt-get install setserial
  - i2c-tools
      sudo apt-get install i2c-tools
+ - overlayroot
+     sudo apt-get install overlayroot
  - mkl 
      Download Intel MKL library (l_mkl_2018.3.222.tgz)
      Transfer to flight computer
@@ -153,23 +167,53 @@ CONFIGURE SSH KEY LOGIN
  - mkdir ~/.ssh
  - chmod 700 ~/.ssh
  - cat id_rsa.pub >> ~/.ssh/authorized_keys
+ - sudo -i
+ - mkdir /root/.ssh
+ - chmod 700 /root/.ssh
+ - cat id_rsa.pub >> /root/.ssh/authorized_keys
 
 LINUX SETUP
  - sudo addgroup wheel
- - For PHX driver: 
-   - edit /etc/default/grub and put GRUB_CMDLINE_LINUX="mem=1024M"
-   - run sudo update-grub
  - Disable console colors
    - edit /home/picture/.bashrc & /root/.bashrc
    - comment out aliases in "# enable color support..." section
+
+GRUB SETUP
+  - copy ./linux/grub to /etc/default/grub
+  - run: sudo update-grub
+  - see the grub config file for different serial console options 
+
 AUTO MODULE LOADING
  - edit /etc/modules and add the following lines:
     phddrv
     rtd_dm7820
     fliusb
     i2c-dev
-   
-SERIAL PORT SETUP (EMM-4M-XT)
+
+DISABLE DISK CHECKING AT BOOT
+ - Edit /etc/fstab
+ - Change last entry for both partitions to 0
+ - AND/OR
+ - run: sudo tune2fs -c 0 -i 0 /dev/sda1
+        sudo tune2fs -c 0 -i 0 /dev/sda2
+ - to check: sudo tune2fs -l /dev/sda1 | egrep -i 'mount count|check'
+             sudo tune2fs -l /dev/sda2 | egrep -i 'mount count|check'
+
+CREATE SERIAL CONSOLE OR RUN PICCFLIGHT ON BOOT
+ - for serial console:
+     sudo cp ./linux/ttyS0.conf /etc/init/
+     sudo start ttyS0
+ - to auto run piccflight on boot
+     sudo cp ./linux/piccflight.conf /etc/init
+     sudo start piccflight
+ - NOTE: You can only run one of these services at a time
+         To disable, run:
+	 sudo stop ttyS0
+	 OR
+	 sudo stop piccflight
+	 Then delete the .conf file from /etc/init
+
+SERIAL PORT SETUP FOR EMM-4M-XT Serial Board
  - After installing setserial, check available devices with:
     sudo setserial -g /dev/ttyS*
  - Then setup ports:
@@ -177,3 +221,15 @@ SERIAL PORT SETUP (EMM-4M-XT)
     sudo setserial /dev/ttyS11 port 0x388 irq 6 uart 16654 Baud_base 115200
     sudo setserial /dev/ttyS12 port 0x288 irq 10 uart 16654 Baud_base 115200
     sudo setserial /dev/ttyS13 port 0x230 irq 11 uart 16654 Baud_base 115200
+
+READONLY SYSTEM SETUP
+ - Install overlayroot (see above)
+ - Edit: /etc/overlayroot.conf
+ - Add: overlayroot="tmpfs:recurse=0"
+ - Reboot, you will now have a readonly system
+ - To get back to writeable run: sudo overlayroot-chroot
+    - Edit /etc/overlayroot.conf
+    - Change to: overlayroot="disabled"
+    - Save
+    - Reboot
+
