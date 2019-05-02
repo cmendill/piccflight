@@ -191,14 +191,16 @@ AUTO MODULE LOADING
     i2c-dev
 
 DISABLE DISK CHECKING AT BOOT
- - Edit /etc/fstab
- - Change last entry for both partitions to 0
- - AND/OR
- - run: sudo tune2fs -c 0 -i 0 /dev/sda1
-        sudo tune2fs -c 0 -i 0 /dev/sda2
- - to check: sudo tune2fs -l /dev/sda1 | egrep -i 'mount count|check'
-             sudo tune2fs -l /dev/sda2 | egrep -i 'mount count|check'
-
+ - Both of these methods works. Do both.
+ - Method 1
+    - Edit /etc/fstab
+    - Change last entry <pass> for /dev/sda1 and /dev/sda2 to 0
+ - Method 2 
+    - run: sudo tune2fs -c 0 -i 0 /dev/sda1
+           sudo tune2fs -c 0 -i 0 /dev/sda2
+    - to check: sudo tune2fs -l /dev/sda1 | egrep -i 'mount count|check'
+                sudo tune2fs -l /dev/sda2 | egrep -i 'mount count|check'
+	  
 CREATE SERIAL CONSOLE OR RUN PICCFLIGHT ON BOOT
  - for serial console:
      sudo cp ./linux/ttyS0.conf /etc/init/

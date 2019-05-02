@@ -4,11 +4,11 @@
 #   info -f grub -n 'Simple configuration'
 
 #Commands to disable the grub menu
-#To enable, comment out the two GRUB_HIDDEN lines
 GRUB_DEFAULT=0
 GRUB_HIDDEN_TIMEOUT=0
 GRUB_HIDDEN_TIMEOUT_QUIET=true
 GRUB_TIMEOUT=0
+GRUB_RECORDFAIL_TIMEOUT=0
 
 ########################################################################
 #Define kernel command
