@@ -336,6 +336,8 @@ int main(int argc,char **argv){
   sm_p->acq_thresh          = ACQ_THRESH_DEFAULT;
   sm_p->thm_enable_vref     = THM_ENABLE_VREF_DEFAULT;
   sm_p->hex_spiral_autostop = HEX_SPIRAL_AUTOSTOP_DEFAULT;
+  sm_p->lyt_mag_enable      = 0;
+  sm_p->lyt_mag             = 1;
   
   //Zernike control defaults
   //--SHK

@@ -307,6 +307,16 @@ cmd: lyt shift origin [arg]
         shift the image origin 1 pixel in the given direction
 	arg = +x, -x, +y, -y
 
+cmd: lyt enable mag
+        enable lyt image magnification
+	
+cmd: lyt disable mag
+        disable lyt image magnification
+	
+cmd: lyt mag [arg]
+        set lyt image magnification
+	arg = magnification [0.1 - 10.0]
+
 cmd: lyt set ref
 	set current LYT image as the reference image
 

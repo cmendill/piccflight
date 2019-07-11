@@ -1585,6 +1585,34 @@ int handle_command(char *line, sm_t *sm_p){
     return CMD_NORMAL;
   }
 
+  //LYT Image Magnification
+  sprintf(cmd,"lyt enable mag");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    printf("CMD: Enabling LYT Magnification\n");
+    sm_p->lyt_mag_enable=1;
+    return(CMD_NORMAL);
+  }
+  
+  sprintf(cmd,"lyt disable mag");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    printf("CMD: Disabling LYT Magnification\n");
+    sm_p->lyt_mag_enable=0;
+    return(CMD_NORMAL);
+  }
+  
+  sprintf(cmd,"lyt mag");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    ftemp = atof(line+strlen(cmd)+1);
+    if(ftemp >= LYT_MAG_MIN && ftemp <= LYT_MAG_MAX){
+      sm_p->lyt_mag = ftemp;
+      printf("CMD: Setting LYT magnification to %f\n",sm_p->lyt_mag);
+    }
+    else
+      printf("CMD: LYT mag must be between %f and %f\n",LYT_MAG_MIN,LYT_MAG_MAX);
+    return(CMD_NORMAL);
+  }
+
+
   //LYT Reference Image Commands
   sprintf(cmd,"lyt set ref");
   if(!strncasecmp(line,cmd,strlen(cmd))){

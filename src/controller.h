@@ -409,6 +409,9 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 #define LYT_YORIGIN_MIN       0
 #define LYT_YORIGIN_MAX       (LYTREADXS-LYTXS) //origins are transposed
 #define LYT_PIXEL_THRESH      200 //ADU
+#define LYT_MAG_MIN           0.1
+#define LYT_MAG_MAX           10
+
 /*************************************************
  * SCI Camera Parameters
  *************************************************/
@@ -1089,6 +1092,8 @@ typedef volatile struct {
   double lyt_gain_alp_zern[LOWFS_N_ZERNIKE][LOWFS_N_PID];  //LYT ALP zernike PID gains
   int    lyt_xorigin;                                      //LYT ROI bottom-left X
   int    lyt_yorigin;                                      //LYT ROI bottom-left Y
+  int    lyt_mag_enable;                                   //LYT Magnification switch
+  double lyt_mag;                                          //LYT Magnification
   
   //Camera Process Reset Commands
   int shk_reset;

@@ -369,6 +369,10 @@ int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
   int zernike_switch[LOWFS_N_ZERNIKE] = {0};
   uint32_t n_dither=1;
   int sample;
+
+  //Image magnification
+  double x,y,f_x_y1,f_x_y2;
+  int x1,x2,y1,y2;
   
   //Get time immidiately
   clock_gettime(CLOCK_REALTIME,&start);
@@ -487,11 +491,41 @@ int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
 	  lytevent.image.data[i][j]=lytref.refimg[i][j];
   }
   else{
-    //Cut out ROI -- transpose offsets
-    for(i=0;i<LYTXS;i++)
-      for(j=0;j<LYTYS;j++)
-	lytevent.image.data[i][j]=lytevent.readimage.data[i+lytevent.yorigin][j+lytevent.xorigin];
-    
+    if(sm_p->lyt_mag_enable){
+      //Run image magnification
+      for(i=0;i<LYTXS;i++){
+	for(j=0;j<LYTYS;j++){
+	  //Define location of interpolated pixel -- transpose origin offsets
+	  x = (i - LYTXS/2)/mag + (LYTREADXS/2) + lytevent.yorigin - (LYTREADXS-LYTXS)/2;
+	  y = (j - LYTYS/2)/mag + (LYTREADYS/2) + lytevent.xorigin - (LYTREADYS-LYTYS)/2;
+	  
+	  //Pick 4 pixels for interpolation
+	  x1 = fix(x);
+	  x2 = x1 + 1;
+	  y1 = fix(y);
+	  y2 = y1 + 1;
+
+	  //Calculate interpolated value
+	  if(x1 >= 0 && x1 < LYTREADXS && x2 >= 0 && x2 < LYTREADXS && y1 >= 0 && y1 < LYTREADYS && y2 >= 0 && y2 < LYTREADYS){
+	    f_x_y1  = (x2 - x) * lytevent.readimage.data[x1][y1] / (x2 - x1) + (x - x1) * lytevent.readimage.data[x2][y1] / (x2 - x1);
+	    f_x_y2  = (x2 - x) * lytevent.readimage.data[x1][y2] / (x2 - x1) + (x - x1) * lytevent.readimage.data[x2][y2] / (x2 - x1);
+	    lytevent.image.data[i][j] = (y2 - y) * f_x_y1 / (y2 - y1) + (y - y1) * f_x_y2 / (y2-y1);
+	  }else{
+	    //1 of 4 pixels is out of bounds --> use closest value
+	    x = x < 0 ? 0 : x;
+	    y = y < 0 ? 0 : y;
+	    x = x >= LYTREADXS ? LYTREADXS-1 : x;
+	    y = y >= LYTREADYS ? LYTREADYS-1 : y;
+	    lytevent.image.data[i][j] = lytevent.readimage.data[fix(x)][fix(y)];
+	  }
+	}
+      }
+    }else{
+      //Cut out ROI -- transpose origin offsets
+      for(i=0;i<LYTXS;i++)
+	for(j=0;j<LYTYS;j++)
+	  lytevent.image.data[i][j]=lytevent.readimage.data[i+lytevent.yorigin][j+lytevent.xorigin];
+    }
   }
   
   //Command: lyt_setref 
