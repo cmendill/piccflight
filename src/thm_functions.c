@@ -32,6 +32,8 @@ void thm_init_heater(int h, htr_t *htr){
     htr->maxpower = 50;
     htr->setpoint = 20;
     htr->deadband = 1;
+    htr->override = 0;
+    htr->enable   = 0;
   }
 
   //HTR1: HEX2
@@ -42,6 +44,8 @@ void thm_init_heater(int h, htr_t *htr){
     htr->maxpower = 50;
     htr->setpoint = 20;
     htr->deadband = 1;
+    htr->override = 0;
+    htr->enable   = 0;
   }
 
   //HTR2: HEX3
@@ -52,6 +56,8 @@ void thm_init_heater(int h, htr_t *htr){
     htr->maxpower = 50;
     htr->setpoint = 20;
     htr->deadband = 1;
+    htr->override = 0;
+    htr->enable   = 0;
   }
 
   //HTR3: HEX4
@@ -62,6 +68,8 @@ void thm_init_heater(int h, htr_t *htr){
     htr->maxpower = 50;
     htr->setpoint = 20;
     htr->deadband = 1;
+    htr->override = 0;
+    htr->enable   = 0;
   }
 
   //HTR4: HEX5
@@ -72,6 +80,8 @@ void thm_init_heater(int h, htr_t *htr){
     htr->maxpower = 50;
     htr->setpoint = 20;
     htr->deadband = 1;
+    htr->override = 0;
+    htr->enable   = 0;
   }
 
   //HTR5: HEX6
@@ -82,6 +92,8 @@ void thm_init_heater(int h, htr_t *htr){
     htr->maxpower = 50;
     htr->setpoint = 20;
     htr->deadband = 1;
+    htr->override = 0;
+    htr->enable   = 0;
   }
   
   //HTR6: ALB1
@@ -92,6 +104,8 @@ void thm_init_heater(int h, htr_t *htr){
     htr->maxpower = 50;
     htr->setpoint = 20;
     htr->deadband = 1;
+    htr->override = 0;
+    htr->enable   = 0;
   }
 
   //HTR7: ALB2
@@ -102,6 +116,8 @@ void thm_init_heater(int h, htr_t *htr){
     htr->maxpower = 50;
     htr->setpoint = 20;
     htr->deadband = 1;
+    htr->override = 0;
+    htr->enable   = 0;
   }
 
   //HTR8: ALB3
@@ -112,6 +128,8 @@ void thm_init_heater(int h, htr_t *htr){
     htr->maxpower = 50;
     htr->setpoint = 20;
     htr->deadband = 1;
+    htr->override = 0;
+    htr->enable   = 0;
   }
 
   //HTR9: ALB4
@@ -122,6 +140,8 @@ void thm_init_heater(int h, htr_t *htr){
     htr->maxpower = 50;
     htr->setpoint = 20;
     htr->deadband = 1;
+    htr->override = 0;
+    htr->enable   = 0;
   }
 
   //HTR10: HXB1
@@ -132,6 +152,8 @@ void thm_init_heater(int h, htr_t *htr){
     htr->maxpower = 50;
     htr->setpoint = 20;
     htr->deadband = 1;
+    htr->override = 0;
+    htr->enable   = 0;
   }
 
 
@@ -143,6 +165,8 @@ void thm_init_heater(int h, htr_t *htr){
     htr->maxpower = 50;
     htr->setpoint = 20;
     htr->deadband = 1;
+    htr->override = 0;
+    htr->enable   = 0;
   }
 
   //HTR12: BMCC
@@ -153,6 +177,8 @@ void thm_init_heater(int h, htr_t *htr){
     htr->maxpower = 50;
     htr->setpoint = 20;
     htr->deadband = 1;
+    htr->override = 0;
+    htr->enable   = 0;
   }
 
   //HTR13: POL1
@@ -163,6 +189,8 @@ void thm_init_heater(int h, htr_t *htr){
     htr->maxpower = 50;
     htr->setpoint = 20;
     htr->deadband = 1;
+    htr->override = 0;
+    htr->enable   = 0;
   }
 
   //HTR14: POL2
@@ -173,6 +201,8 @@ void thm_init_heater(int h, htr_t *htr){
     htr->maxpower = 50;
     htr->setpoint = 20;
     htr->deadband = 1;
+    htr->override = 0;
+    htr->enable   = 0;
   }
 
   //HTR15: ALPC
@@ -183,6 +213,8 @@ void thm_init_heater(int h, htr_t *htr){
     htr->maxpower = 50;
     htr->setpoint = 20;
     htr->deadband = 1;
+    htr->override = 0;
+    htr->enable   = 0;
   }
 
 
