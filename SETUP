@@ -107,7 +107,9 @@ LINUX INSTALLATION
    - Installation complete, remove USB disk and reboot
  - First boot instructions
    - You will need to disable the PCI bus on the first boot to fix a driver conflict
+   - Without disabling the PCI bus you will see a CPU lockup error message and the system will hang
    - Bios-->Advanced-->South Cluster-->PCI Express-->PCI Express Root Port 1 (DISABLE)
+   - Alternatively you can edit the linux command line in grub add append: modprobe.blacklist=solos-pci
    - See BLACKLIST DRIVERS below
    - Once drivers are blacklisted, reboot and re-enable the PCI bus
    - The system should now boot normally
@@ -174,9 +176,18 @@ CONFIGURE SSH KEY LOGIN
 
 LINUX SETUP
  - sudo addgroup wheel
+ - Change root password:
+   - sudo passwd root
+   - exozodi
  - Disable console colors
    - edit /home/picture/.bashrc & /root/.bashrc
    - comment out aliases in "# enable color support..." section
+
+SYNC FLIGHT SOFTWARE
+ - From piccflight on GSE computer, run:
+   - ./time
+   - ./sync
+ - See README for build instructions
 
 GRUB SETUP
   - copy ./linux/grub to /etc/default/grub
@@ -189,17 +200,6 @@ AUTO MODULE LOADING
     rtd_dm7820
     fliusb
     i2c-dev
-
-DISABLE DISK CHECKING AT BOOT
- - Both of these methods works. Do both.
- - Method 1
-    - Edit /etc/fstab
-    - Change last entry <pass> for /dev/sda1 and /dev/sda2 to 0
- - Method 2 
-    - run: sudo tune2fs -c 0 -i 0 /dev/sda1
-           sudo tune2fs -c 0 -i 0 /dev/sda2
-    - to check: sudo tune2fs -l /dev/sda1 | egrep -i 'mount count|check'
-                sudo tune2fs -l /dev/sda2 | egrep -i 'mount count|check'
 	  
 CREATE SERIAL CONSOLE OR RUN PICCFLIGHT ON BOOT
  - for serial console:
@@ -215,7 +215,7 @@ CREATE SERIAL CONSOLE OR RUN PICCFLIGHT ON BOOT
 	 sudo stop piccflight
 	 Then delete the .conf file from /etc/init
 
-SERIAL PORT SETUP FOR EMM-4M-XT Serial Board
+OBSOLETE: SERIAL PORT SETUP FOR EMM-4M-XT Serial Board
  - After installing setserial, check available devices with:
     sudo setserial -g /dev/ttyS*
  - Then setup ports:
@@ -223,6 +223,17 @@ SERIAL PORT SETUP FOR EMM-4M-XT Serial Board
     sudo setserial /dev/ttyS11 port 0x388 irq 6 uart 16654 Baud_base 115200
     sudo setserial /dev/ttyS12 port 0x288 irq 10 uart 16654 Baud_base 115200
     sudo setserial /dev/ttyS13 port 0x230 irq 11 uart 16654 Baud_base 115200
+
+DISABLE DISK CHECKING AT BOOT
+ - Both of these methods works. Do both.
+ - Method 1
+    - Edit /etc/fstab
+    - Change last entry <pass> for /dev/sda1 and /dev/sda2 to 0
+ - Method 2 
+    - run: sudo tune2fs -c 0 -i 0 /dev/sda1
+           sudo tune2fs -c 0 -i 0 /dev/sda2
+    - to check: sudo tune2fs -l /dev/sda1 | egrep -i 'mount count|check'
+                sudo tune2fs -l /dev/sda2 | egrep -i 'mount count|check'
 
 READONLY SYSTEM SETUP
  - Install overlayroot (see above)

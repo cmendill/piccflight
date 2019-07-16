@@ -7,6 +7,7 @@
 #include <fcntl.h>
 #include <ctype.h>
 #include <libgen.h>
+#include <math.h>
 #include <sys/stat.h>
 #include <sys/io.h>
 #include <phx_api.h>
@@ -496,13 +497,13 @@ int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
       for(i=0;i<LYTXS;i++){
 	for(j=0;j<LYTYS;j++){
 	  //Define location of interpolated pixel -- transpose origin offsets
-	  x = (i - LYTXS/2)/mag + (LYTREADXS/2) + lytevent.yorigin - (LYTREADXS-LYTXS)/2;
-	  y = (j - LYTYS/2)/mag + (LYTREADYS/2) + lytevent.xorigin - (LYTREADYS-LYTYS)/2;
+	  x = (i - LYTXS/2)/sm_p->lyt_mag + (LYTREADXS/2) + lytevent.yorigin - (LYTREADXS-LYTXS)/2;
+	  y = (j - LYTYS/2)/sm_p->lyt_mag + (LYTREADYS/2) + lytevent.xorigin - (LYTREADYS-LYTYS)/2;
 	  
 	  //Pick 4 pixels for interpolation
-	  x1 = fix(x);
+	  x1 = (int)x;
 	  x2 = x1 + 1;
-	  y1 = fix(y);
+	  y1 = (int)y;
 	  y2 = y1 + 1;
 
 	  //Calculate interpolated value
@@ -516,7 +517,7 @@ int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
 	    y = y < 0 ? 0 : y;
 	    x = x >= LYTREADXS ? LYTREADXS-1 : x;
 	    y = y >= LYTREADYS ? LYTREADYS-1 : y;
-	    lytevent.image.data[i][j] = lytevent.readimage.data[fix(x)][fix(y)];
+	    lytevent.image.data[i][j] = lytevent.readimage.data[(int)x][(int)y];
 	  }
 	}
       }
