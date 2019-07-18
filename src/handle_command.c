@@ -315,7 +315,7 @@ int handle_command(char *line, sm_t *sm_p){
     if(i >= PROC_TIMEOUT){
       printf("CMD: -- timeout!\n");
     }
-    printf("Flight data erased\n");
+    printf("CMD: Flight data erased\n");
     return(CMD_NORMAL);
   }
 
@@ -341,7 +341,7 @@ int handle_command(char *line, sm_t *sm_p){
     if(i >= PROC_TIMEOUT){
       printf("CMD: -- timeout!\n");
     }
-    printf("Calibration data erased\n");
+    printf("CMD: Calibration data erased\n");
     return(CMD_NORMAL);
   }
 
