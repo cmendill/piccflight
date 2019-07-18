@@ -442,6 +442,7 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
   int state;
   static bmc_t bmc_try;
   int rc;
+  time_t t;
   
   //Get time immidiately
   clock_gettime(CLOCK_REALTIME,&start);
@@ -572,8 +573,12 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
   
   //Run BMC Controller
   if(sm_p->bmc_ready && sm_p->bmc_hv_on){
+    //Init random numbers
+    srand((unsigned) time(&t));
     //Run actuator test pattern
-    i=(scievent.hed.frame_number/2) % BMC_NACT;
+    i=(int)((rand() / (double) RAND_MAX) * (BMC_NACT-1));
+    if(i<0) i=0;
+    if(i>=BMC_NACT) i=BMC_NACT-1;
     if(scievent.hed.frame_number % 2) bmc_try.acmd[i]=150; else bmc_try.acmd[i]=0;
     //Send command
     if(libbmc_set_acts_tstpnts(&libbmc_device, bmc_try.acmd, bmc_try.tcmd))
@@ -690,6 +695,8 @@ void sci_proc(void){
     if(libbmc_toggle_leds_off(&libbmc_device))
       printf("SCI: ERROR (libbmc_toggle_leds_off)\n");
     usleep(wait_time_us);
+    /* Disable HV */
+    sm_p->bmc_hv_enable = 0;
   }
   
   /* ----------------------- Enter Main Loop ----------------------- */
