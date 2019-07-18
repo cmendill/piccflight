@@ -410,7 +410,7 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 #define LYT_YORIGIN_MAX       (LYTREADXS-LYTXS) //origins are transposed
 #define LYT_PIXEL_THRESH      200 //ADU
 #define LYT_MAG_MIN           0.1
-#define LYT_MAG_MAX           10
+#define LYT_MAG_MAX           10.0
 
 /*************************************************
  * SCI Camera Parameters
@@ -819,7 +819,7 @@ typedef struct alpcal_struct{
 /*************************************************
  * Packet Header
  *************************************************/
-#define PICC_PKT_VERSION     22  //packet version number
+#define PICC_PKT_VERSION     23  //packet version number
 typedef struct pkthed_struct{
   uint16  version;       //packet version number
   uint16  type;          //packet ID word
