@@ -181,7 +181,7 @@ enum bmccalmodes {BMC_CALMODE_NONE,
 #define SHK_CONFIG_FILE        "config/shk.cfg"
 #define LYT_CONFIG_FILE        "config/lyt.cfg"
 #define DATAPATH               "output/data/flight_data/folder_%5.5d/"
-#define DATANAME               "output/data/flight_data/folder_%5.5d/picture.%s.%8.8d.dat"
+#define DATANAME               "output/data/flight_data/folder_%5.5d/picture.%10.10ld.%s.%8.8d.dat"
 #define SHK_HEX_CALFILE        "output/data/calibration/shk_hex_%s_%s_%s_caldata.dat"
 #define SHK_ALP_CALFILE        "output/data/calibration/shk_alp_%s_%s_%s_caldata.dat"
 #define SHK_TGT_CALFILE        "output/data/calibration/shk_tgt_%s_%s_%s_caldata.dat"

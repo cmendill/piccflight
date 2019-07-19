@@ -8,6 +8,7 @@
 #include <string.h>
 #include <fcntl.h>
 #include <ctype.h>
+#include <time.h>
 #include <sys/stat.h>
 #include <dm7820_library.h>
 
@@ -90,9 +91,10 @@ void write_block(DM7820_Board_Descriptor* p_rtd_board, char *buf, uint32 num, in
 void save_data(void *buf, uint32 num, char *tag, uint32 framenumber, uint32 folderindex){
   int fd;
   char filename[100];
+  time_t now = time(NULL);
   
   /*Create filename*/
-  sprintf(filename,DATANAME,folderindex,tag,framenumber);
+  sprintf(filename,DATANAME,folderindex,now,tag,framenumber);
   /*Open file*/
   fd = open(filename,O_RDWR | O_CREAT, 0666);
   if(fd<0){
