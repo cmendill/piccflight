@@ -625,13 +625,16 @@ void sci_proc(void){
   uint16_t *img_buffer;
   int camera_running=0;
   long exptime;
+  flimode_t mode_index;
+  char mode_string[128];
+  size_t mode_size=128;
   int rc; //for return values
   useconds_t wait_time_us = 100000; // wait time
   float libbmc_hv_range_value[4] = LIBBMC_VOLT_RANGE_CTRL_VALUE;
   char* libbmc_pwr_state_label[10] = LIBBMC_PWR_STAT_LABEL;
   int i;
   enum libbmc_pwr_state_enum current_pwr_status = LIBBMC_PWR_OFF;
-
+  
   /* Check BMC NACT */
   if(LIBBMC_NACT != BMC_NACT){
     printf("SCI: Error LIBBMC_NACT != BMC_NACT\n");
@@ -767,6 +770,25 @@ void sci_proc(void){
       fprintf(stderr, "SCI: Error FLISetNFlushes: %s\n", strerror((int)-err));
     }else{
       if(SCI_DEBUG) printf("SCI: FLI NFlushes set\n");
+    }
+
+    /* Set camera mode */
+    mode_index = 0;
+    if((err = FLISetCameraMode(dev, mode_index))){
+      fprintf(stderr, "SCI: Error FLI SetCameraMode: %s\n", strerror((int)-err));
+    }
+     
+    /* Get camera mode */
+    if((err = FLIGetCameraMode(dev, &mode_index))){
+      fprintf(stderr, "SCI: Error FLIGetCameraMode: %s\n", strerror((int)-err));
+    }else{
+      FLIGetCameraModeString(dev,mode_index,mode_string,mode_size);
+      printf("SCI: Mode %d = %s\n",(int)mode_index,mode_string);
+      for(mode_index=0;mode_index<10;mode_index++){
+	if(FLIGetCameraModeString(dev,mode_index,mode_string,mode_size))
+	  break;
+	else printf("SCI: Supported mode %d = %s\n",(int)mode_index,mode_string);
+      }
     }
 
     /**************************************************************/
