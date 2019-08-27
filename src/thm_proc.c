@@ -11,6 +11,8 @@
 #include <ctype.h>
 #include <math.h>
 #include <sys/io.h>
+#include <sensors/sensors.h>
+#include <sensors/error.h>
 
 /* piccflight headers */
 #include "controller.h"
@@ -51,6 +53,8 @@ void thmctrlC(int sig)
   }
   //cleanup humidity sensors
   hdc_cleanup(thm_humfd);
+  //cleanup cpu sensors
+  sensors_cleanup();
   //close shared memory
   close(thm_shmfd);
 #if MSG_CTRLC
@@ -124,7 +128,15 @@ void thm_proc(void){
   hdc_config config;
   hdc_device_t hum[HUM_NSENSORS] = {HUM1_ADDR,HUM2_ADDR,HUM3_ADDR};
   int hum_ready[HUM_NSENSORS] = {0};
-  
+
+  //CPU temp sensors
+  const sensors_chip_name *chip = NULL;
+  const sensors_feature *feature = NULL;
+  const sensors_subfeature *sub = NULL;
+  int cpu_ready=0;
+  int chip_nr=0;
+  double cpuval;
+
   //DSCUD Variables
   BYTE result;                    // returned error code
   DSCB board1, board2, board3;    // handle used to refer to the board
@@ -180,6 +192,14 @@ void thm_proc(void){
     }
   }else{
     printf("THM: could not find humidity sensors!\n");
+  }
+
+  /* Init CPU temp sensors */
+  if(sensors_init(NULL) == 0){
+    if((chip = sensors_get_detected_chips(NULL, &chip_nr))){
+      cpu_ready=1;
+      printf("THM: Initialized CPU sensors\n");
+    }
   }
   
   /* Define structures containing board settings */
@@ -497,6 +517,32 @@ void thm_proc(void){
 	  hdc_get_t(thm_humfd, &hum[i], &thmevent.hum[i].temp);
 	  hdc_get_rh(thm_humfd, &hum[i], &thmevent.hum[i].humidity);
 	}
+      }
+    }
+
+    /* Read CPU sensors */
+    if(cpu_ready){
+      //CPU 1
+      i=0;
+      feature = sensors_get_features(chip, &i);
+      i=0;
+      sub = sensors_get_all_subfeatures(chip, feature, &i);
+      if(sub->flags & SENSORS_MODE_R){
+        if(sensors_get_value(chip, sub->number, &cpuval))
+	  cpuval=-99;
+        else
+          thmevent.cpu1_temp = cpuval;
+      }
+      //CPU 2
+      i=1;
+      feature = sensors_get_features(chip, &i);
+      i=0;
+      sub = sensors_get_all_subfeatures(chip, feature, &i);
+      if(sub->flags & SENSORS_MODE_R){
+        if(sensors_get_value(chip, sub->number, &cpuval))
+	  cpuval=-99;
+        else
+          thmevent.cpu2_temp = cpuval;
       }
     }
     

@@ -819,7 +819,7 @@ typedef struct alpcal_struct{
 /*************************************************
  * Packet Header
  *************************************************/
-#define PICC_PKT_VERSION     23  //packet version number
+#define PICC_PKT_VERSION     24  //packet version number
 typedef struct pkthed_struct{
   uint16  version;       //packet version number
   uint16  type;          //packet ID word
@@ -974,8 +974,8 @@ typedef struct acqevent_struct{
 
 typedef struct thmevent_struct{
   pkthed_t  hed;
-  float     cpu_temp;
-  float     padding;
+  float     cpu1_temp;
+  float     cpu2_temp;
   float     adc1_temp[ADC1_NCHAN];
   float     adc2_temp[ADC2_NCHAN];
   float     adc3_temp[ADC3_NCHAN];
