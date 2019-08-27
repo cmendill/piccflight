@@ -158,6 +158,10 @@ INSTALL PACKAGES
      sudo apt-get install i2c-tools
  - overlayroot
      sudo apt-get install overlayroot
+ - lm-sensors
+     sudo apt-get install lm-sensors
+ - libsensors4-dev
+     sudo apt-get install libsensors4-dev
  - mkl 
      Download Intel MKL library (l_mkl_2018.3.222.tgz)
      Transfer to flight computer
