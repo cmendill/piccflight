@@ -240,7 +240,8 @@ READONLY SYSTEM SETUP
  - Edit: /etc/overlayroot.conf
  - Add: overlayroot="tmpfs:recurse=0"
  - Reboot, you will now have a readonly system
- - To get back to writeable run: sudo overlayroot-chroot
+ - To get back to writeable:
+    - sudo overlayroot-chroot
     - Edit /etc/overlayroot.conf
     - Change to: overlayroot="disabled"
     - Save
