@@ -373,7 +373,10 @@ static int rtd_tlm_write_dma_fifo(DM7820_Board_Descriptor* p_rtd_board) {
       return 1;
     }
   }
-  
+
+  //Extra sleep to make sure kernel ISR has handled the interrupt
+  usleep(500);
+
   //Write data to driver's DMA buffer
   if(DM7820_FIFO_DMA_Write(p_rtd_board, DM7820_FIFO_QUEUE_1, rtd_tlm_dma_buffer, 1)){
     perror("RTD: DM7820_FIFO_DMA_Write");
