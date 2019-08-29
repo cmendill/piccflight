@@ -230,7 +230,8 @@ int handle_command(char *line, sm_t *sm_p){
   alp_t alp;
   double dz[LOWFS_N_ZERNIKE] = {0};
   double da[ALP_NACT] = {0};
-    
+  int lyt_roi[2] = {0};
+  
   //Intitalize
   if(!init){
     //Init ALP calmodes
@@ -1582,6 +1583,40 @@ int handle_command(char *line, sm_t *sm_p){
     }
     sm_p->lyt_yorigin = itemp;
     printf("CMD: LYT shifted yorigin -1px to %d\n",sm_p->lyt_yorigin);
+    return CMD_NORMAL;
+  }
+
+  //LYT ROI
+  sprintf(cmd,"lyt roi");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    pch = strtok(line+strlen(cmd)," ");
+    if(pch == NULL){
+      printf("CMD: Bad command format\n");
+      return CMD_NORMAL;
+    }
+    lyt_roi[0] = atoi(pch);
+    pch = strtok(NULL," ");
+    if(pch == NULL){
+      printf("CMD: Bad command format\n");
+      return CMD_NORMAL;
+    }
+    lyt_roi[1] = atoi(pch);
+    //Check values
+    if((lyt_roi[0] < LYT_ROI_MIN) || (lyt_roi[0] > LYT_ROI_MAX)){
+      printf("CMD: LYT ROI out of bounds\n");
+      return CMD_NORMAL;
+    }
+    if((lyt_roi[1] < LYT_ROI_MIN) || (lyt_roi[1] > LYT_ROI_MAX)){
+      printf("CMD: LYT ROI out of bounds\n");
+      return CMD_NORMAL;
+    }
+    //Set values & trigger reset
+    sm_p->lyt_roi[0] = lyt_roi[0];
+    sm_p->lyt_roi[1] = lyt_roi[1];
+    sm_p->lyt_roi[2] = LYTREADXS;
+    sm_p->lyt_roi[3] = LYTREADYS;
+    sm_p->lyt_reset_camera = 1;
+    printf("CMD: Set LYT ROI to %d %d %d %d\n",sm_p->lyt_roi[0],sm_p->lyt_roi[1],sm_p->lyt_roi[2],sm_p->lyt_roi[3]);
     return CMD_NORMAL;
   }
 

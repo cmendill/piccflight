@@ -307,6 +307,11 @@ cmd: lyt shift origin [arg]
         shift the image origin 1 pixel in the given direction
 	arg = +x, -x, +y, -y
 
+cmd: lyt roi [arg1] [arg2]
+     	change the LYT readout ROI origin
+	arg1 = X origin
+	arg2 = Y origin
+
 cmd: lyt enable mag
         enable lyt image magnification
 	

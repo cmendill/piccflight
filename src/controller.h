@@ -411,6 +411,8 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 #define LYT_PIXEL_THRESH      200 //ADU
 #define LYT_MAG_MIN           0.1
 #define LYT_MAG_MAX           10.0
+#define LYT_ROI_MIN           0
+#define LYT_ROI_MAX           400
 
 /*************************************************
  * SCI Camera Parameters
@@ -1094,6 +1096,7 @@ typedef volatile struct {
   int    lyt_yorigin;                                      //LYT ROI bottom-left Y
   int    lyt_mag_enable;                                   //LYT Magnification switch
   double lyt_mag;                                          //LYT Magnification
+  int    lyt_roi[4];                                       //LYT ROI
   
   //Camera Process Reset Commands
   int shk_reset;

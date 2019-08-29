@@ -17,6 +17,8 @@
 #include "controller.h"
 #include "common_functions.h"
 #include "phx_config.h"
+#include "phx_bobcat.h"
+#include "phx_phoenix_bobcat.h"
 #include "../drivers/phxdrv/picc_dio.h"
 
 /* LYT board number */
@@ -106,6 +108,7 @@ int lyt_proc(void){
   ui64 dwParamValue;
   etParamValue roiWidth, roiHeight, bufferWidth, bufferHeight;
   int camera_running = 0;
+  region roi;
   
   /* Open Shared Memory */
   sm_t *sm_p;
@@ -187,7 +190,20 @@ int lyt_proc(void){
     }
     camera_running = 0;
     printf("LYT: Camera stopped\n");
-      
+
+    /* Setup ROI */
+    roi.x_offset = sm_p->lyt_roi[0];
+    roi.y_offset = sm_p->lyt_roi[1];
+    roi.x_length = sm_p->lyt_roi[2];
+    roi.y_length = sm_p->lyt_roi[3];
+    roi.x_binning = BOBCAT_BINNING_1X;
+    roi.y_binning = BOBCAT_BINNING_1X;
+    eStat = PHX_BOBCAT_Configure(lytCamera, PHX_BOBCAT_ROI, &roi);
+    if ( PHX_OK != eStat )
+      printf("LYT: ERROR PHX_BOBCAT_Configure --> ROI\n");
+    else
+      printf("LYT: Set ROI: %d %d %d %d\n",roi.x_offset,roi.y_offset,roi.x_length,roi.y_length);
+     
     /* Setup exposure */
     usleep(500000);
     //Get minimum line time
