@@ -655,6 +655,11 @@ int main(int argc,char **argv){
       shutdown=1;
       break;
     }
+    if(retval == CMD_REBOOT){
+      //Exit watchdog, reboot cpu
+      shutdown=2;
+      break;
+    }
 
 
 }
@@ -733,11 +738,20 @@ int main(int argc,char **argv){
   printf("WAT: cleanup done\n");
   
   //Shutdown CPU
-  if(shutdown){
+  if(shutdown==1){
     printf("WAT: Shutting down CPU NOW!\n");
     fflush(stdout);
     if(system("shutdown -h now"))
       printf("WAT: shutdown command failed! (%d)\n",errno);
+
+    //Go to sleep
+    sleep(60);
+  }
+  if(shutdown==2){
+    printf("WAT: Rebooting CPU NOW!\n");
+    fflush(stdout);
+    if(system("reboot"))
+      printf("WAT: reboot command failed! (%d)\n",errno);
 
     //Go to sleep
     sleep(60);

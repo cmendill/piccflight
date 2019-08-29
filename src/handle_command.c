@@ -268,6 +268,12 @@ int handle_command(char *line, sm_t *sm_p){
     return(CMD_SHUTDOWN);
   }
 
+  //reboot: exit watchdog and reboot computer
+  sprintf(cmd,"reboot");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    return(CMD_REBOOT);
+  }
+
   //sysinfo: print CPU Memory and Disk usage
   sprintf(cmd,"sysinfo");
   if(!strncasecmp(line,cmd,strlen(cmd))){

@@ -11,6 +11,9 @@ cmd: exit
 cmd: shutdown
         exit the watchdog and shut down the computer
 
+cmd: reboot
+        exit the watchdog and reboot the computer
+
 cmd: sysinfo
 	print cpu usage
 
