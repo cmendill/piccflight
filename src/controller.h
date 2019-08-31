@@ -427,7 +427,7 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
  *************************************************/
 #define ACQ_MAX_GIF_SIZE       10000 //bytes
 #define ACQ_THRESH_MAX         255
-#define ACQ_STAR_THRESH        10    //ADU
+#define ACQ_STAR_THRESH        3     //ADU
 #define ACQ_NSTAR_THRESH       3     //pixels above star_thresh
 /*************************************************
  * BMC DM Parameters
