@@ -312,13 +312,17 @@ static void rtd_alp_build_dither_block(double *cmd) {
 static int rtd_alp_write_dma_fifo(DM7820_Board_Descriptor* p_rtd_board) {
   uint8_t fifo_status;
   static int fifo_warn = 1;
+  static int dma_warn = 1;
   uint32_t count=0;
   
   //NOTE: This function DOES NOT block waiting for the next DMA transfer
   
   //DMA should ALWAYS be done
   if(DM7820_General_Check_DMA_0_Transfer(p_rtd_board) == 0){
-    printf("RTD: ALP DMA NOT DONE!\n");
+    if(dma_warn){
+      printf("RTD: ALP DMA NOT DONE! (Suppressing additional warnings)\n");
+      dma_warn = 0;
+    }
     return 1;
   }
   
@@ -440,7 +444,8 @@ int rtd_send_tlm(DM7820_Board_Descriptor* p_rtd_board, char *buf, uint32_t num, 
   uint16_t *buf16;
   uint32_t i=0,l=0,n=0;
   uint32_t buffer_length = rtd_tlm_dma_buffer_size/2;
-  
+  const int rem[2] = {256,262};
+    
   //Everything written must be an integer number of 16bit words
   if(num % 2){
     printf("rtd_write_dma: BAD DATA SIZE\n");
@@ -455,25 +460,59 @@ int rtd_send_tlm(DM7820_Board_Descriptor* p_rtd_board, char *buf, uint32_t num, 
   for(i=0;i<nwords;i++)
     if(buf16[i] == TLM_EMPTY_CODE)
       buf16[i] = TLM_REPLACE_CODE;
+
+  //Remove bad DMA region
+  for(i=rem[0];i<=rem[1];i++)
+    rtd_tlm_dma_buffer[i] = TLM_EMPTY_CODE;
   
+  //TLM FAKEMODE 3 --> Fill out the raw buffer with a counter
+  if(flush == 2){
+    m=0;
+    for(i=0;i<buffer_length;i++){
+      if((i < rem[0]) || (i > rem[1]))
+	rtd_tlm_dma_buffer[i] = m++ % 65536;
+    }
+    rtd_tlm_dma_buffer[buffer_length-1] = TLM_EMPTY_CODE;
+    if(rtd_tlm_write_dma_fifo(p_rtd_board))
+      return 1;
+    else
+      return 0;
+  }
+
+      
   //Write data into output buffer
   while(l<nwords){
     //l --> number of words out of nwords written to the buffer
     //m --> total number of words already written to buffer
     //n --> number of words to write this time through while loop
-    n = (nwords-l)<(buffer_length-m-1) ? (nwords-l):(buffer_length-m-1);
-    
-    //Copy local data into output buffer
-    memcpy(&rtd_tlm_dma_buffer[m],&buf16[l],n*sizeof(uint16_t));
-      
-    //Add n to m
-    m+=n;
-    
-    //Add n to l
-    l+=n;
+
+    //Copy local data into output buffer -- skipping bad region
+
+    //Write up to the begining of the bad region
+    if(m < rem[0]){
+      n = (nwords-l)<(rem[0]-m)?(nwords-l):(rem[0]-m);
+      memcpy(&rtd_tlm_dma_buffer[m],&buf16[l],n*sizeof(uint16_t));
+      //Add n to m
+      m+=n;
+      //Add n to l
+      l+=n;
+    }
+
+    //Skip over the bad region
+    if(m == rem[0]) m = rem[1]+1;
+
+    //Write from the end of the bad region to the end of the buffer
+    if(m > rem[1]){
+      n = (nwords-l)<(buffer_length-m-1) ? (nwords-l):(buffer_length-m-1);
+      memcpy(&rtd_tlm_dma_buffer[m],&buf16[l],n*sizeof(uint16_t));
+      //Add n to m
+      m+=n;
+      //Add n to l
+      l+=n;
+    }
 
     //Flush buffer with empty code if requested
-    if(flush)
+    if(flush == 1)
       while(m < (buffer_length-1))
 	rtd_tlm_dma_buffer[m++]=TLM_EMPTY_CODE;
     

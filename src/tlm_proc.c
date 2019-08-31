@@ -134,7 +134,8 @@ void tlm_proc(void){
   uint32 savecount[NCIRCBUF]={0};
   struct timespec now,delta,last[NCIRCBUF],last_send;
   double dt,dt_send;
-
+  int fakeflush=0;
+  
   /* Open Shared Memory */
   sm_t *sm_p;
   if((sm_p = openshm(&tlm_shmfd)) == NULL){
@@ -234,11 +235,14 @@ void tlm_proc(void){
       }else{
 	//RTD write fake data
 	if(sm_p->tlm_ready){
-	  if(rtd_send_tlm(sm_p->p_rtd_tlm_board,(char *)fakeword,sizeof(uint16)*NFAKE,0)){
+	  fakeflush=0;
+	  if(sm_p->w[TLMID].fakemode == FAKEMODE_TEST_PATTERN3)
+	    fakeflush=2; 
+	  if(rtd_send_tlm(sm_p->p_rtd_tlm_board,(char *)fakeword,sizeof(uint16)*NFAKE,fakeflush)){
 	    printf("TLM: rtd_send_tlm failed!\n");
 	    tlmctrlC(0);
 	  }
-	  usleep(50000);
+	  if(sm_p->w[TLMID].fakemode != FAKEMODE_TEST_PATTERN3) usleep(50000);
 	}
       }
       continue;

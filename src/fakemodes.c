@@ -30,4 +30,9 @@ void init_fakemode(int fakemode, calmode_t *fake){
     sprintf(fake->name,"FAKEMODE_TEST_PATTERN2");
     sprintf(fake->cmd,"pat2tern");
   }
+  //FAKEMODE_TEST_PATTERN3
+  if(fakemode == FAKEMODE_TEST_PATTERN3){
+    sprintf(fake->name,"FAKEMODE_TEST_PATTERN3");
+    sprintf(fake->cmd,"pat3tern");
+  }
 }
