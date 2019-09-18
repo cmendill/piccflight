@@ -352,7 +352,7 @@ cmd: [cam] target [arg1] [arg2]
 
 ------------- ZERNIKE CONTROL SWITCHES -------------
 
-cmd: [cam] zernike info
+cmd: [cam] zernike status
         cam = "shk" or "lyt"
         print out which zernikes are enabled and which are disabled
 
