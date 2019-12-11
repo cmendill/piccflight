@@ -1718,7 +1718,7 @@ int handle_command(char *line, sm_t *sm_p){
     ftemp  = atof(pch);
     if(itemp >= 0 && itemp < LOWFS_N_ZERNIKE && ftemp >= ALP_ZERNIKE_MIN && ftemp <= ALP_ZERNIKE_MAX){
       sm_p->shk_zernike_target[itemp] = ftemp;
-      printf("CMD: Setting SHK target Z[%d] = %f microns\n",itemp,ftemp);
+      printf("CMD: Setting SHK target Z[%d] = %f microns\n",itemp,sm_p->shk_zernike_target[itemp]);
     }
     else{
       printf("CMD: Zernike target out of bounds #[%d,%d] C[%f,%f]\n",0,LOWFS_N_ZERNIKE,ALP_ZERNIKE_MIN,ALP_ZERNIKE_MAX);
@@ -1727,6 +1727,31 @@ int handle_command(char *line, sm_t *sm_p){
     return CMD_NORMAL;
   }
   
+  sprintf(cmd,"shk inc target");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    pch = strtok(line+strlen(cmd)," ");
+    if(pch == NULL){
+      printf("CMD: Bad command format\n");
+      return CMD_NORMAL;
+    }
+    itemp  = atoi(pch);
+    pch = strtok(NULL," ");
+    if(pch == NULL){
+      printf("CMD: Bad command format\n");
+      return CMD_NORMAL;
+    }
+    ftemp  = atof(pch);
+    if(itemp >= 0 && itemp < LOWFS_N_ZERNIKE && ftemp >= ALP_DZERNIKE_MIN && ftemp <= ALP_DZERNIKE_MAX){
+      sm_p->shk_zernike_target[itemp] += ftemp;
+      printf("CMD: Setting SHK target Z[%d] = %f microns\n",itemp,sm_p->shk_zernike_target[itemp]);
+    }
+    else{
+      printf("CMD: Zernike target out of bounds #[%d,%d] C[%f,%f]\n",0,LOWFS_N_ZERNIKE,ALP_DZERNIKE_MIN,ALP_DZERNIKE_MAX);
+      return CMD_NORMAL;
+    }
+    return CMD_NORMAL;
+  }
+
   //LYT Zernike Targets
   sprintf(cmd,"lyt target reset");
   if(!strncasecmp(line,cmd,strlen(cmd))){
@@ -1751,7 +1776,7 @@ int handle_command(char *line, sm_t *sm_p){
     ftemp  = atof(pch);
     if(itemp >= 0 && itemp < LOWFS_N_ZERNIKE && ftemp >= ALP_ZERNIKE_MIN && ftemp <= ALP_ZERNIKE_MAX){
       sm_p->lyt_zernike_target[itemp] = ftemp;
-      printf("CMD: Setting LYT target Z[%d] = %f microns\n",itemp,ftemp);
+      printf("CMD: Setting LYT target Z[%d] = %f microns\n",itemp,sm_p->lyt_zernike_target[itemp]);
     }
     else{
       printf("CMD: Zernike target out of bounds #[%d,%d] C[%f,%f]\n",0,LOWFS_N_ZERNIKE,ALP_ZERNIKE_MIN,ALP_ZERNIKE_MAX);
@@ -1760,6 +1785,30 @@ int handle_command(char *line, sm_t *sm_p){
     return CMD_NORMAL;
   }
 
+  sprintf(cmd,"lyt inc target");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    pch = strtok(line+strlen(cmd)," ");
+    if(pch == NULL){
+      printf("CMD: Bad command format\n");
+      return CMD_NORMAL;
+    }
+    itemp  = atoi(pch);
+    pch = strtok(NULL," ");
+    if(pch == NULL){
+      printf("CMD: Bad command format\n");
+      return CMD_NORMAL;
+    }
+    ftemp  = atof(pch);
+    if(itemp >= 0 && itemp < LOWFS_N_ZERNIKE && ftemp >= ALP_DZERNIKE_MIN && ftemp <= ALP_DZERNIKE_MAX){
+      sm_p->lyt_zernike_target[itemp] += ftemp;
+      printf("CMD: Setting LYT target Z[%d] = %f microns\n",itemp,sm_p->lyt_zernike_target[itemp]);
+    }
+    else{
+      printf("CMD: Zernike target out of bounds #[%d,%d] C[%f,%f]\n",0,LOWFS_N_ZERNIKE,ALP_DZERNIKE_MIN,ALP_DZERNIKE_MAX);
+      return CMD_NORMAL;
+    }
+    return CMD_NORMAL;
+  }
   /****************************************
    * ZERNIKE CONTROL SWITCHES
    **************************************/

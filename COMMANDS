@@ -92,7 +92,7 @@ cmd: tgt calmode [arg]
 
 cmd: alp timer length [arg]
         set the length of timed alp calmodes
-	these are ALP_CALMODE_TIMER & ALP_CALMODE_FLIGHT
+	these are used for ALP_CALMODE_TIMER & ALP_CALMODE_FLIGHT
 	arg = floating point seconds
 	
 ------------------ STATES -----------------
@@ -345,7 +345,13 @@ cmd: lyt load ref
 
 cmd: [cam] target [arg1] [arg2]
 	cam = "shk" or "lyt"
-        change the xxx zernike target	
+        set the arg1 zernike target to arg2	
+	arg1 = zernike index [0,1,2,3,...,22]
+	arg2 = zernike wavefront amplitude [microns RMS]
+
+cmd: [cam] inc target [arg1] [arg2]
+	cam = "shk" or "lyt"
+        increment the arg1 zernike target by arg2	
 	arg1 = zernike index [0,1,2,3,...,22]
 	arg2 = zernike wavefront amplitude [microns RMS]
 
