@@ -397,7 +397,7 @@ int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
     //Reset zern2alp mapping
     alp_zern2alp(NULL,NULL,FUNCTION_RESET);
     //Reset calibration routines
-    alp_calibrate(sm_p,0,NULL,NULL,LYTID,FUNCTION_RESET);
+    alp_calibrate(sm_p,0,NULL,NULL,NULL,LYTID,FUNCTION_RESET);
     tgt_calibrate(0,NULL,NULL,LYTID,FUNCTION_RESET);
     //Reset PID controllers
     lyt_alp_zernpid(NULL,NULL,NULL,FUNCTION_RESET);
@@ -613,7 +613,7 @@ int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
     }
     //Calibrate ALP
     if(lytevent.hed.alp_calmode != ALP_CALMODE_NONE)
-      sm_p->alp_calmode = alp_calibrate(sm_p,lytevent.hed.alp_calmode,&alp_try,&lytevent.hed.alp_calstep,LYTID,FUNCTION_NO_RESET);
+      sm_p->alp_calmode = alp_calibrate(sm_p,lytevent.hed.alp_calmode,&alp_try,&lytevent.hed.alp_calstep,lytevent.zernike_calibrate,LYTID,FUNCTION_NO_RESET);
     
     //Send command to ALP
     if(alp_send_command(sm_p,&alp_try,LYTID,n_dither)){

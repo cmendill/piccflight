@@ -482,7 +482,7 @@ void alp_init_calibration(sm_t *sm_p){
 /* ALP_CALIBRATE                                              */
 /* - Run calibration routines for ALPAO DM                    */
 /**************************************************************/
-int alp_calibrate(sm_t *sm_p, int calmode, alp_t *alp, uint32_t *step, int procid, int reset){
+int alp_calibrate(sm_t *sm_p, int calmode, alp_t *alp, uint32_t *step, double *zoutput, int procid, int reset){
   const double zernike_timestep = ZERNIKE_ERRORS_PERIOD;
   static int init=0;
   static double zrand[LOWFS_N_ZERNIKE]={0};
@@ -795,13 +795,13 @@ int alp_calibrate(sm_t *sm_p, int calmode, alp_t *alp, uint32_t *step, int proci
     //Set data index
     index = (uint64_t)(dt/zernike_timestep);
     if((index < ZERNIKE_ERRORS_NUMBER-1) && (dt <= sm_p->alpcal.timer_length)){
-      //Interpolate between steps, calc zernike deltas
+      //Interpolate between steps, convert from [Microns RMS Wavefront] to [Microns RMS Surface], calc zernike deltas
       step_fraction = fmod(dt,zernike_timestep)/zernike_timestep;
       for(i=0;i<LOWFS_N_ZERNIKE;i++){
-	this_zernike[i] = (1-step_fraction)*sm_p->alpcal.zernike_errors[i][index] + step_fraction*sm_p->alpcal.zernike_errors[i][index+1];
-	//Convert from [Microns RMS Wavefront] to [Microns RMS Surface]
-	dz[i] = 0.5*(this_zernike[i] - sm_p->alpcal.last_zernike[i]);
+	this_zernike[i] = 0.5*((1-step_fraction)*sm_p->alpcal.zernike_errors[i][index] + step_fraction*sm_p->alpcal.zernike_errors[i][index+1]);
+	dz[i] = this_zernike[i] - sm_p->alpcal.last_zernike[i];
       }
+      
       //Wait for the 2nd iteration to move the mirror to prevent large deltas
       if(sm_p->alpcal.countA[calmode] > 0){
 	//Add zernike deltas to ALP command
@@ -815,6 +815,8 @@ int alp_calibrate(sm_t *sm_p, int calmode, alp_t *alp, uint32_t *step, int proci
       }
       //Save zernikes
       memcpy((double *)sm_p->alpcal.last_zernike,this_zernike,sizeof(sm_p->alpcal.last_zernike));
+      //Return current zernikes to user
+      memcpy(zoutput, this_zernike, sizeof(this_zernike));
     }else{
       //Don't set alp back to starting position since we are probably in closed loop
       //Turn off calibration

@@ -14,6 +14,6 @@ int  alp_set_bias(sm_t *sm_p, double bias, int proc_id);
 int  alp_set_random(sm_t *sm_p,int proc_id);
 int  alp_set_zrandom(sm_t *sm_p,int proc_id);
 void alp_init_calibration(sm_t *sm_p);
-int  alp_calibrate(sm_t *sm_p, int calmode, alp_t *alp, uint32_t *step, int procid, int reset);
+int  alp_calibrate(sm_t *sm_p, int calmode, alp_t *alp, uint32_t *step, double *zoutput, int procid, int reset);
 
 #endif
