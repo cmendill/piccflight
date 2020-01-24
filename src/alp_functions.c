@@ -474,6 +474,7 @@ void alp_init_calibration(sm_t *sm_p){
 
   /* Initialize other elements */
   sm_p->alpcal.timer_length = CALMODE_TIMER_SEC;
+  sm_p->alpcal.command_scale = 1;
   
   
 }
@@ -582,7 +583,7 @@ int alp_calibrate(sm_t *sm_p, int calmode, alp_t *alp, uint32_t *step, double *z
       
       //Poke one actuator
       if((sm_p->alpcal.countA[calmode]/ncalim) % 2 == 1){
-	alp->acmd[(sm_p->alpcal.countB[calmode]/ncalim) % ALP_NACT] += poke;
+	alp->acmd[(sm_p->alpcal.countB[calmode]/ncalim) % ALP_NACT] += poke * sm_p->alpcal.command_scale;
 	sm_p->alpcal.countB[calmode]++;
       }
     }else{
@@ -621,7 +622,7 @@ int alp_calibrate(sm_t *sm_p, int calmode, alp_t *alp, uint32_t *step, double *z
       //Poke one zernike by adding it on top of the starting position
       if((sm_p->alpcal.countA[calmode]/ncalim) % 2 == 1){
 	z = (sm_p->alpcal.countB[calmode]/ncalim) % LOWFS_N_ZERNIKE;
-	alp->zcmd[z] = zpoke[z];
+	alp->zcmd[z] = zpoke[z] * sm_p->alpcal.command_scale;
 	alp_zern2alp(alp->zcmd,act,FUNCTION_NO_RESET);
 	for(i=0; i<ALP_NACT; i++)
 	  alp->acmd[i] += act[i];
@@ -658,7 +659,7 @@ int alp_calibrate(sm_t *sm_p, int calmode, alp_t *alp, uint32_t *step, double *z
 
       //Ramp one actuator
       if((sm_p->alpcal.countA[calmode]/ncalim) % 2 == 1){
-	alp->acmd[(sm_p->alpcal.countB[calmode]/ncalim) % ALP_NACT] += 5*poke/ncalim;
+	alp->acmd[(sm_p->alpcal.countB[calmode]/ncalim) % ALP_NACT] += 5*poke*sm_p->alpcal.command_scale/ncalim;
 	sm_p->alpcal.countB[calmode]++;
       }
     }else{
@@ -698,8 +699,8 @@ int alp_calibrate(sm_t *sm_p, int calmode, alp_t *alp, uint32_t *step, double *z
       if((sm_p->alpcal.countA[calmode]/ncalim) % 2 == 1){
 	z = (sm_p->alpcal.countB[calmode]/ncalim) % LOWFS_N_ZERNIKE;
 	//Set starting position as negative full ramp amplitude
-	if(sm_p->alpcal.countB[calmode] % ncalim == 0) alp->zcmd[z] = -zpoke[z];
-	alp->zcmd[z] += 2*zpoke[z]/ncalim;
+	if(sm_p->alpcal.countB[calmode] % ncalim == 0) alp->zcmd[z] = -zpoke[z] * sm_p->alpcal.command_scale;
+	alp->zcmd[z] += 2*zpoke[z]*sm_p->alpcal.command_scale/ncalim;
 	alp_zern2alp(alp->zcmd,act,FUNCTION_NO_RESET);
 	for(i=0; i<ALP_NACT; i++)
 	  alp->acmd[i] += act[i];
@@ -731,7 +732,7 @@ int alp_calibrate(sm_t *sm_p, int calmode, alp_t *alp, uint32_t *step, double *z
       //Poke all actuators by random amount (just once)
       if(sm_p->alpcal.countA[calmode] == ncalim){
 	for(i=0; i<ALP_NACT; i++)
-	  alp->acmd[i] = sm_p->alpcal.alp_start[calmode].acmd[i] + poke * arand[i];
+	  alp->acmd[i] = sm_p->alpcal.alp_start[calmode].acmd[i] + poke * arand[i] * sm_p->alpcal.command_scale;
       }
     }else{
       //Set alp back to starting position
@@ -762,7 +763,7 @@ int alp_calibrate(sm_t *sm_p, int calmode, alp_t *alp, uint32_t *step, double *z
       //Poke all zernikes by random amount (just once)
       if(sm_p->alpcal.countA[calmode] >= ncalim){
 	for(i=0; i<LOWFS_N_ZERNIKE; i++)
-	  alp->zcmd[i] = zpoke[i]*zrand[i];
+	  alp->zcmd[i] = zpoke[i] * zrand[i] * sm_p->alpcal.command_scale;
 	alp_zern2alp(alp->zcmd,act,FUNCTION_NO_RESET);
 	for(i=0; i<ALP_NACT; i++)
 	  alp->acmd[i] = sm_p->alpcal.alp_start[calmode].acmd[i]+act[i];
@@ -799,6 +800,7 @@ int alp_calibrate(sm_t *sm_p, int calmode, alp_t *alp, uint32_t *step, double *z
       step_fraction = fmod(dt,zernike_timestep)/zernike_timestep;
       for(i=0;i<LOWFS_N_ZERNIKE;i++){
 	this_zernike[i] = 0.5*((1-step_fraction)*sm_p->alpcal.zernike_errors[i][index] + step_fraction*sm_p->alpcal.zernike_errors[i][index+1]);
+	this_zernike[i] *= sm_p->alpcal.command_scale;
 	dz[i] = this_zernike[i] - sm_p->alpcal.last_zernike[i];
       }
       

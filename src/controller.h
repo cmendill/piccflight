@@ -594,6 +594,7 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
  *************************************************/
 #define CALMODE_TIMER_SEC       30 //default length of calmode_timer
 #define CALMODE_TIMER_MAX      300 //max length of calmode_timer
+#define ALP_CAL_SCALE_MAX       10 //max ALP calbration command scale
 #define CPU_AFFINITY_PHX0        1 //cpu bit mask
 #define CPU_AFFINITY_PHX1        2 //cpu bit mask
 #define CPU_AFFINITY_XHCI_HCD    1 //cpu bit mask
@@ -816,6 +817,7 @@ typedef struct alpcal_struct{
   double last_zernike[LOWFS_N_ZERNIKE];
   double zernike_errors[LOWFS_N_ZERNIKE][ZERNIKE_ERRORS_NUMBER];
   double timer_length;
+  double command_scale;
 } alpcal_t;
 
 /*************************************************

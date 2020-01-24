@@ -88,12 +88,16 @@ cmd: tgt calmode [arg]
 	arg = string command for the calibration mode
 	sending command without the cmd will print the available modes
 	
------------- CALIBRATION MODES ------------
+------------ CALIBRATION SETTINGS ------------
 
 cmd: alp timer length [arg]
         set the length of timed alp calmodes
 	these are used for ALP_CALMODE_TIMER & ALP_CALMODE_FLIGHT
 	arg = floating point seconds
+	
+cmd: alp cal scale [arg]
+        scale the ALP calibration commands by [arg]
+	arg = floating point scale factor
 	
 ------------------ STATES -----------------
 
