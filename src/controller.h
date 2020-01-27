@@ -239,7 +239,7 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 
 #define SCIEVENTSIZE     5
 #define SHKEVENTSIZE     20
-#define LYTEVENTSIZE     20
+#define LYTEVENTSIZE     60
 #define ACQEVENTSIZE     5
 #define THMEVENTSIZE     5
 #define MTREVENTSIZE     5
