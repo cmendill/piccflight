@@ -357,8 +357,8 @@ int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
   static calmode_t hexcalmodes[HEX_NCALMODES];
   static calmode_t bmccalmodes[BMC_NCALMODES];
   static calmode_t tgtcalmodes[TGT_NCALMODES];
-  static struct timespec start,end,delta,last;
-  static uint32 frame_number=0;
+  static struct timespec start,end,delta,last,pkt_last;
+  static uint32 frame_number=0, sample=0;
   static int init=0;
   static lytref_t lytref;
   double dt;
@@ -369,7 +369,6 @@ int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
   int zernike_control=0;
   int zernike_switch[LOWFS_N_ZERNIKE] = {0};
   uint32_t n_dither=1;
-  int sample;
 
   //Image magnification
   double x,y,f_x_y1,f_x_y2;
@@ -392,8 +391,9 @@ int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
     //Zero out events & commands
     memset(&lytevent,0,sizeof(lytevent_t));
     memset(&lytpkt,0,sizeof(lytpkt_t));
-    //Init frame number
+    //Init frame number & sample
     frame_number=0;
+    sample=0;
     //Reset zern2alp mapping
     alp_zern2alp(NULL,NULL,FUNCTION_RESET);
     //Reset calibration routines
@@ -419,6 +419,7 @@ int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
       tgt_init_calmode(i,&tgtcalmodes[i]);
     //Reset last times
     memcpy(&last,&start,sizeof(struct timespec));
+    memcpy(&pkt_last,&start,sizeof(struct timespec));
     //Set init flag
     init=1;
     //Debugging
@@ -432,9 +433,6 @@ int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
 
   //Save time
   memcpy(&last,&start,sizeof(struct timespec));
-
-  //Get sample
-  sample = frame_number % LYT_NSAMPLES;
 
   //Fill out event header
   lytevent.hed.version       = PICC_PKT_VERSION;
@@ -654,14 +652,24 @@ int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
       lytpkt.zernike_measured[i][sample] = lytevent.zernike_measured[i];
       lytpkt.alp_zcmd[i][sample] = lytevent.alp.zcmd[i];
     }
-  
+
+    //Increment sample counter
+    sample++;
+    
+    //Get time since last packet write
+    if(timespec_subtract(&delta,&start,&pkt_last))
+      printf("LYT: lyt_process_image --> timespec_subtract error!\n");
+    ts2double(&delta,&dt);
+    
     //Last sample, fill out rest of packet and write to circular buffer
-    if(sample == LYT_NSAMPLES-1){
+    if((sample == LYT_NSAMPLES) || (dt > LYT_LYTPKT_TIME)){
       //Header
       memcpy(&lytpkt.hed,&lytevent.hed,sizeof(pkthed_t));
       lytpkt.hed.type = BUFFER_LYTPKT;
+
       //Image
       memcpy(&lytpkt.image,&lytevent.image,sizeof(lyt_t));
+
       //Zernike gains and targets
       for(i=0;i<LOWFS_N_ZERNIKE;i++){
 	lytpkt.zernike_target[i]         = lytevent.zernike_target[i]; 
@@ -681,7 +689,11 @@ int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
       //Origins
       lytpkt.xorigin  = lytevent.xorigin;
       lytpkt.yorigin  = lytevent.yorigin;
-            
+
+      //Number of samples
+      lytpkt.nsamples = sample;
+      sample = 0;
+      
       //Open LYTPKT circular buffer
       lytpkt_p=(lytpkt_t *)open_buffer(sm_p,BUFFER_LYTPKT);
 
@@ -695,6 +707,12 @@ int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
     
       //Close buffer
       close_buffer(sm_p,BUFFER_LYTPKT);
+
+      //Copy final timestamp
+      memcpy(&pkt_last,&end,sizeof(struct timespec));
+
+      //Reset sample counter
+      sample = 0;
     }
   }
 

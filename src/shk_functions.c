@@ -863,8 +863,8 @@ int shk_process_image(stImageBuff *buffer,sm_t *sm_p){
   static calmode_t hexcalmodes[HEX_NCALMODES];
   static calmode_t bmccalmodes[BMC_NCALMODES];
   static calmode_t tgtcalmodes[TGT_NCALMODES];
-  static struct timespec start,end,delta,last,full_last,hex_last;
-  static uint32 frame_number=0;
+  static struct timespec start,end,delta,last,full_last,hex_last,pkt_last;
+  static uint32 frame_number=0,sample=0;
   static int init=0;
   double dt;
   int i,j;
@@ -877,7 +877,6 @@ int shk_process_image(stImageBuff *buffer,sm_t *sm_p){
   int offload_switch[LOWFS_N_ZERNIKE] = {0};
   uint32_t n_dither=1;
   int reset_zernike=0;
-  int sample;
     
   //Get time immidiately
   clock_gettime(CLOCK_REALTIME,&start);
@@ -897,8 +896,9 @@ int shk_process_image(stImageBuff *buffer,sm_t *sm_p){
     memset(&shkfull,0,sizeof(shkfull_t));
     memset(&shkevent,0,sizeof(shkevent_t));
     memset(&shkpkt,0,sizeof(shkpkt_t));
-    //Init frame number
+    //Init frame number & sample
     frame_number=0;
+    sample=0;
     //Init cells
     shk_init_cells(&shkevent);
     //Load cell origins
@@ -932,6 +932,7 @@ int shk_process_image(stImageBuff *buffer,sm_t *sm_p){
     //Reset last times
     memcpy(&full_last,&start,sizeof(struct timespec));
     memcpy(&hex_last,&start,sizeof(struct timespec));
+    memcpy(&pkt_last,&start,sizeof(struct timespec));
     memcpy(&last,&start,sizeof(struct timespec));
     //Set init flag
     init=1;
@@ -946,9 +947,6 @@ int shk_process_image(stImageBuff *buffer,sm_t *sm_p){
 
   //Save time
   memcpy(&last,&start,sizeof(struct timespec));
-
-  //Get sample
-  sample = frame_number % SHK_NSAMPLES;
 
   //Fill out event header
   shkevent.hed.version       = PICC_PKT_VERSION;
@@ -1271,7 +1269,7 @@ int shk_process_image(stImageBuff *buffer,sm_t *sm_p){
   /**********************  SHK Packet Code  ********************/
   /*************************************************************/
   if(sm_p->write_circbuf[BUFFER_SHKPKT]){
-    //Samples collected each time through
+    //Samples, collected each time through
     for(i=0;i<SHK_BEAM_NCELLS;i++){
       shkpkt.cells[i].xtarget_deviation[sample] = shkevent.cells[i].xtarget_deviation;
       shkpkt.cells[i].ytarget_deviation[sample] = shkevent.cells[i].ytarget_deviation;
@@ -1282,11 +1280,20 @@ int shk_process_image(stImageBuff *buffer,sm_t *sm_p){
       shkpkt.zernike_measured[i][sample]        = shkevent.zernike_measured[i];
     }
 
+    //Increment sample counter
+    sample++;
+
+    //Get time since last packet write
+    if(timespec_subtract(&delta,&start,&pkt_last))
+      printf("SHK: shk_process_image --> timespec_subtract error!\n");
+    ts2double(&delta,&dt);
+        
     //Last sample, fill out rest of packet and write to circular buffer
-    if(sample == SHK_NSAMPLES-1){
+    if((sample == SHK_NSAMPLES) || (dt > SHK_SHKPKT_TIME)){
       //Header
       memcpy(&shkpkt.hed,&shkevent.hed,sizeof(pkthed_t));
       shkpkt.hed.type = BUFFER_SHKPKT;
+
       //Cells
       for(i=0;i<SHK_BEAM_NCELLS;i++){
 	shkpkt.cells[i].spot_found              = shkevent.cells[i].spot_found;
@@ -1300,6 +1307,7 @@ int shk_process_image(stImageBuff *buffer,sm_t *sm_p){
 	shkpkt.cells[i].xtarget                 = shkevent.cells[i].xtarget;
 	shkpkt.cells[i].ytarget                 = shkevent.cells[i].ytarget;
       }
+
       //Zernike items
       for(i=0;i<LOWFS_N_ZERNIKE;i++){
 	shkpkt.zernike_target[i] = shkevent.zernike_target[i];
@@ -1309,25 +1317,32 @@ int shk_process_image(stImageBuff *buffer,sm_t *sm_p){
 	  shkpkt.gain_alp_zern[i][j] = shkevent.gain_alp_zern[i][j];
 	}
       }
+
       //Actuator commands
       for(i=0;i<ALP_NACT;i++){
 	shkpkt.alp_acmd[i] = shkevent.alp.acmd[i];
       }
+
       //Gains
       for(i=0;i<LOWFS_N_PID;i++){
 	shkpkt.gain_alp_cell[i] = shkevent.gain_alp_cell[i];
 	shkpkt.gain_hex_zern[i] = shkevent.gain_hex_zern[i];
       }
+
       //Hex Commands
       for(i=0;i<HEX_NAXES;i++){
 	shkpkt.hex_acmd[i] = shkevent.hex.acmd[i];
       }
-      //Other event items
+      
+      //CCD Temp
       shkpkt.ccd_temp = shkevent.ccd_temp;
-   
+      
+      //Number of samples
+      shkpkt.nsamples = sample;
+            
       //Open SHKPKT circular buffer
       shkpkt_p=(shkpkt_t *)open_buffer(sm_p,BUFFER_SHKPKT);
-
+      
       //Copy data
       memcpy(shkpkt_p,&shkpkt,sizeof(shkpkt_t));;
     
@@ -1338,8 +1353,15 @@ int shk_process_image(stImageBuff *buffer,sm_t *sm_p){
     
       //Close buffer
       close_buffer(sm_p,BUFFER_SHKPKT);
+
+      //Copy final timestamp
+      memcpy(&pkt_last,&end,sizeof(struct timespec));
+
+      //Reset sample counter
+      sample = 0;
     }
   }
+  
   /*************************************************************/
   /**********************  Full Image Code  ********************/
   /*************************************************************/

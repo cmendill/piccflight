@@ -374,7 +374,8 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 #define SHK_ALP_ZERN_INT_MAX  0.1
 #define SHK_ALP_ZERN_INT_MIN -0.1
 #define SHK_SAVE_ZMATRIX      0
-#define SHK_NSAMPLES          40 //number of samples per shkevent
+#define SHK_SHKPKT_TIME       1.0 //Maximum time between writing shkpkt
+#define SHK_NSAMPLES          40  //Number of samples per shkpkt
 #define SHK_BEAM_SELECT	{			\
       0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,		\
       0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,		\
@@ -399,7 +400,8 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
  * Lyot-LOWFS Parameters
  *************************************************/
 #define LYT_CONTROL_NPIX      709 //number of controlled pixels on LLOWFS
-#define LYT_NSAMPLES          400 //number of samples per lytevent
+#define LYT_NSAMPLES          400 //number of samples per lytpkt
+#define LYT_LYTPKT_TIME       1.0 //Maximum amount of time between writing lytpkt
 #define LYT_ALP_ZERN_INT_MAX  0.1
 #define LYT_ALP_ZERN_INT_MIN -0.1
 #define LYT_ZERNIKE_MIN      -0.05 //min limit for measured zernikes [microns]
@@ -429,6 +431,7 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 #define ACQ_THRESH_MAX         255
 #define ACQ_STAR_THRESH        3     //ADU
 #define ACQ_NSTAR_THRESH       3     //pixels above star_thresh
+
 /*************************************************
  * BMC DM Parameters
  *************************************************/
@@ -823,7 +826,7 @@ typedef struct alpcal_struct{
 /*************************************************
  * Packet Header
  *************************************************/
-#define PICC_PKT_VERSION     25  //packet version number
+#define PICC_PKT_VERSION     26  //packet version number
 typedef struct pkthed_struct{
   uint16  version;       //packet version number
   uint16  type;          //packet ID word
@@ -924,6 +927,8 @@ typedef struct shkpkt_struct{
   float     alp_zcmd[LOWFS_N_ZERNIKE];
   float     hex_acmd[HEX_NAXES];
   float     hex_zcmd[LOWFS_N_ZERNIKE];
+  uint32    nsamples;
+  uint32    padding;
 } shkpkt_t;
 
 typedef struct lytevent_struct{
@@ -951,7 +956,7 @@ typedef struct lytpkt_struct{
   float     zernike_measured[LOWFS_N_ZERNIKE][LYT_NSAMPLES];
   float     alp_acmd[ALP_NACT];
   float     alp_zcmd[LOWFS_N_ZERNIKE][LYT_NSAMPLES];
-  float     padding;
+  uint32    nsamples;
   lyt_t     image;
 } lytpkt_t;
 
