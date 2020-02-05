@@ -178,7 +178,7 @@ enum bmccalmodes {BMC_CALMODE_NONE,
 #define LYTPIX2ALPZER_REFIMG_FILE "config/lytpix2alpzer_refimg.dat"
 #define LYTPIX2ALPZER_REFMOD_FILE "config/lytpix2alpzer_refmod.dat"
 #define LYTPIX2ALPZER_PXMASK_FILE "config/lytpix2alpzer_pxmask.dat"
-#define SHK_CONFIG_FILE        "config/shk.cfg"
+#define SHK_CONFIG_FILE        "config/shk_2bin_2tap_8bit.cfg"
 #define LYT_CONFIG_FILE        "config/lyt.cfg"
 #define DATAPATH               "output/data/flight_data/folder_%5.5d/"
 #define DATANAME               "output/data/flight_data/folder_%5.5d/picture.%10.10ld.%s.%8.8d.dat"
@@ -297,7 +297,7 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
  *************************************************/
 #define SHK_EXPTIME_MIN  0.0001
 #define SHK_EXPTIME_MAX  16.00
-#define SHK_FRMTIME_MIN  0.010
+#define SHK_FRMTIME_MIN  0.001
 #define SHK_FRMTIME_MAX  16.00
 #define LYT_EXPTIME_MIN  0.0001
 #define LYT_EXPTIME_MAX  16.00
