@@ -374,7 +374,7 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 #define SHK_ALP_ZERN_INT_MAX  0.1
 #define SHK_ALP_ZERN_INT_MIN -0.1
 #define SHK_SAVE_ZMATRIX      0
-#define SHK_SHKPKT_TIME       1.0 //Maximum time between writing shkpkt
+#define SHK_SHKPKT_TIME       1.1 //Maximum time between writing shkpkt
 #define SHK_NSAMPLES          40  //Number of samples per shkpkt
 #define SHK_BEAM_SELECT	{			\
       0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,		\
@@ -401,7 +401,7 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
  *************************************************/
 #define LYT_CONTROL_NPIX      709 //number of controlled pixels on LLOWFS
 #define LYT_NSAMPLES          400 //number of samples per lytpkt
-#define LYT_LYTPKT_TIME       1.0 //Maximum amount of time between writing lytpkt
+#define LYT_LYTPKT_TIME       1.1 //Maximum amount of time between writing lytpkt
 #define LYT_ALP_ZERN_INT_MAX  0.1
 #define LYT_ALP_ZERN_INT_MIN -0.1
 #define LYT_ZERNIKE_MIN      -0.05 //min limit for measured zernikes [microns]
