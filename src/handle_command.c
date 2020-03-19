@@ -55,9 +55,9 @@ void print_states(state_t *state, int current){
   printf("#    Command    Name\n");
   for(i=0;i<NSTATES;i++){
     if(current == i)
-      printf("%02d   %-6s    *%s\n",i,state[i].cmd,state[i].name);
+      printf("%02d   %-7s   *%s\n",i,state[i].cmd,state[i].name);
     else
-      printf("%02d   %-6s     %s\n",i,state[i].cmd,state[i].name);
+      printf("%02d   %-7s    %s\n",i,state[i].cmd,state[i].name);
   }
   printf("******************************************\n");
 
@@ -73,9 +73,9 @@ void print_alp_calmodes(calmode_t *alp, int current){
   printf("#    Command    Name\n");
   for(i=0;i<ALP_NCALMODES;i++){
     if(current == i)
-      printf("%02d   %-6s    *%s\n",i,alp[i].cmd,alp[i].name);
+      printf("%02d   %-7s   *%s\n",i,alp[i].cmd,alp[i].name);
     else
-      printf("%02d   %-6s     %s\n",i,alp[i].cmd,alp[i].name);
+      printf("%02d   %-7s    %s\n",i,alp[i].cmd,alp[i].name);
   }
   printf("*************************************************\n");
 }
@@ -90,9 +90,9 @@ void print_hex_calmodes(calmode_t *hex, int current){
   printf("#    Command    Name\n");
   for(i=0;i<HEX_NCALMODES;i++){
     if(current == i)
-      printf("%02d   %-6s    *%s\n",i,hex[i].cmd,hex[i].name);
+      printf("%02d   %-7s   *%s\n",i,hex[i].cmd,hex[i].name);
     else
-      printf("%02d   %-6s     %s\n",i,hex[i].cmd,hex[i].name);
+      printf("%02d   %-7s    %s\n",i,hex[i].cmd,hex[i].name);
   }
   printf("*************************************************\n");
 }
@@ -107,9 +107,9 @@ void print_bmc_calmodes(calmode_t *bmc, int current){
   printf("#    Command    Name\n");
   for(i=0;i<BMC_NCALMODES;i++){
     if(current == i)
-      printf("%02d   %-6s    *%s\n",i,bmc[i].cmd,bmc[i].name);
+      printf("%02d   %-7s   *%s\n",i,bmc[i].cmd,bmc[i].name);
     else
-      printf("%02d   %-6s     %s\n",i,bmc[i].cmd,bmc[i].name);
+      printf("%02d   %-7s    %s\n",i,bmc[i].cmd,bmc[i].name);
   }
   printf("*************************************************\n");
 }
@@ -124,9 +124,9 @@ void print_tgt_calmodes(calmode_t *tgt, int current){
   printf("#    Command    Name\n");
   for(i=0;i<TGT_NCALMODES;i++){
     if(current == i)
-      printf("%02d   %-6s    *%s\n",i,tgt[i].cmd,tgt[i].name);
+      printf("%02d   %-7s   *%s\n",i,tgt[i].cmd,tgt[i].name);
     else
-      printf("%02d   %-6s     %s\n",i,tgt[i].cmd,tgt[i].name);
+      printf("%02d   %-7s    %s\n",i,tgt[i].cmd,tgt[i].name);
   }
   printf("*************************************************\n");
 }

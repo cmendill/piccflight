@@ -100,6 +100,12 @@ void alp_init_calmode(int calmode, calmode_t *alp){
     sprintf(alp->cmd,"zrand");
     alp->shk_boxsize_cmd = SHK_BOXSIZE_CMD_STD;
   }
+  //ALP_CALMODE_PMZPOKE
+  if(calmode == ALP_CALMODE_PMZPOKE){
+    sprintf(alp->name,"ALP_CALMODE_PMZPOKE");
+    sprintf(alp->cmd,"pmzpoke");
+    alp->shk_boxsize_cmd = SHK_BOXSIZE_CMD_STD;
+  }
 
 }
 
@@ -633,6 +639,56 @@ int alp_calibrate(sm_t *sm_p, int calmode, alp_t *alp, uint32_t *step, double *z
       memcpy(alp,(alp_t *)&sm_p->alpcal.alp_start[calmode],sizeof(alp_t));
       //Turn off calibration
       printf("ALP: Stopping calmode ALP_CALMODE_ZPOKE\n");
+      calmode = ALP_CALMODE_NONE;
+      init = 0;
+    }
+
+    //Set step counter
+    *step = (sm_p->alpcal.countA[calmode]/ncalim);
+
+    //Increment counter
+    sm_p->alpcal.countA[calmode]++;
+    
+    //Return calmode
+    return calmode;
+  }
+
+  /* ALP_CALMODE_PMZPOKE: Poke Zernikes one at a time @ +/- poke amplitude. */
+  /*                      Set to starting position in between each poke.    */
+  if(calmode == ALP_CALMODE_PMZPOKE){
+    //Check counters
+    if(sm_p->alpcal.countA[calmode] >= 0 && sm_p->alpcal.countA[calmode] < (3*LOWFS_N_ZERNIKE*ncalim)){
+      //Set all Zernikes to zero
+      for(i=0;i<LOWFS_N_ZERNIKE;i++)
+	alp->zcmd[i] = 0.0;
+
+      //Set all ALP actuators to starting position
+      for(i=0;i<ALP_NACT;i++)
+	alp->acmd[i]=sm_p->alpcal.alp_start[calmode].acmd[i];
+      
+      //Poke one zernike UP
+      if((sm_p->alpcal.countA[calmode]/ncalim) % 3 == 1){
+	z = (sm_p->alpcal.countB[calmode]/ncalim) % LOWFS_N_ZERNIKE;
+	alp->zcmd[z] = zpoke[z] * sm_p->alpcal.command_scale;
+	alp_zern2alp(alp->zcmd,act,FUNCTION_NO_RESET);
+	for(i=0; i<ALP_NACT; i++)
+	  alp->acmd[i] += act[i];
+      }
+      //Poke one zernike DOWN
+      if((sm_p->alpcal.countA[calmode]/ncalim) % 3 == 2){
+	z = (sm_p->alpcal.countB[calmode]/ncalim) % LOWFS_N_ZERNIKE;
+	alp->zcmd[z] = -1 * zpoke[z] * sm_p->alpcal.command_scale;
+	alp_zern2alp(alp->zcmd,act,FUNCTION_NO_RESET);
+	for(i=0; i<ALP_NACT; i++)
+	  alp->acmd[i] += act[i];
+	//Increment Zernike counter
+	sm_p->alpcal.countB[calmode]++;
+      }
+    }else{
+      //Set alp back to starting position
+      memcpy(alp,(alp_t *)&sm_p->alpcal.alp_start[calmode],sizeof(alp_t));
+      //Turn off calibration
+      printf("ALP: Stopping calmode ALP_CALMODE_PMZPOKE\n");
       calmode = ALP_CALMODE_NONE;
       init = 0;
     }
