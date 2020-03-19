@@ -93,7 +93,7 @@ void getlyt_proc(void){
   sm_p->write_circbuf[BUFFER_LYTEVENT] = WRITE_LYTEVENT_DEFAULT;
 
   /* Cleanup and exit */
-  printf("GETLYT: Wrote %lu lytevents to %s\n",count,outfile);
+  printf("GETLYT: %lu to %s\n",count,outfile);
   close(shmfd);
   fclose(out);
   

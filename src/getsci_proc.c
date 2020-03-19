@@ -93,7 +93,7 @@ void getsci_proc(void){
   sm_p->write_circbuf[BUFFER_SCIEVENT] = WRITE_SCIEVENT_DEFAULT;
 
   /* Cleanup and exit */
-  printf("GETSCI: Wrote %lu scievents to %s\n",count,outfile);
+  printf("GETSCI: %lu to %s\n",count,outfile);
   close(shmfd);
   fclose(out);
   

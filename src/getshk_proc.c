@@ -93,7 +93,7 @@ void getshk_proc(void){
   sm_p->write_circbuf[BUFFER_SHKEVENT] = WRITE_SHKEVENT_DEFAULT;
 
   /* Cleanup and exit */
-  printf("GETSHK: Wrote %lu shkevents to %s\n",count,outfile);
+  printf("GETSHK: %lu to %s\n",count,outfile);
   close(shmfd);
   fclose(out);
   
