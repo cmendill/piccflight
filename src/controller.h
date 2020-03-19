@@ -485,7 +485,7 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 #define ALP_SHK_ZPOKE         0.02  //shk zernike microns RMS
 #define ALP_SHK_NCALIM        40    //shk number of calibration images per alp step
 #define ALP_LYT_POKE          0.01  //lyt alp actuator calibration poke
-#define ALP_LYT_ZPOKE         0.01  //lyt zernike microns RMS
+#define ALP_LYT_ZPOKE         0.02  //lyt zernike microns RMS
 #define ALP_LYT_NCALIM        400   //lyt number of calibration images per alp step
 
 /*************************************************
@@ -827,7 +827,7 @@ typedef struct alpcal_struct{
 /*************************************************
  * Packet Header
  *************************************************/
-#define PICC_PKT_VERSION     26  //packet version number
+#define PICC_PKT_VERSION     27  //packet version number
 typedef struct pkthed_struct{
   uint16  version;       //packet version number
   uint16  type;          //packet ID word
