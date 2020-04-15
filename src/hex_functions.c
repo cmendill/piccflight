@@ -80,6 +80,7 @@ void hex_get_error(int id){
 int hex_init(int *hexfd){
   int bFlag,i;
   char msg[PI_ERR_LENGTH];
+  char text[256];
   double hexzero[HEX_NAXES] = {0,0,0,0,0,0};
   double pivot[3]  = {HEX_PIVOT_X,HEX_PIVOT_Y,HEX_PIVOT_Z};
   char *chkaxis=""; //will check all axes
@@ -148,6 +149,26 @@ int hex_init(int *hexfd){
     return 0;
   }
   printf("HEX: Pivot point set\n");
+
+  /* Get Debugging Info */
+  if(!PI_qCST(*hexfd,NULL,text,256)){
+    PI_TranslateError(PI_GetError(*hexfd),msg,PI_ERR_LENGTH);
+    printf("HEX: PI_qCST error: %s\n",msg);
+  }else{
+    printf("HEX: CST %s\n",text);
+  }
+  if(!PI_qVER(*hexfd,text,256)){
+    PI_TranslateError(PI_GetError(*hexfd),msg,PI_ERR_LENGTH);
+    printf("HEX: PI_qVER error: %s\n",msg);
+  }else{
+    printf("HEX: VER %s\n",text);
+  }
+  if(!PI_qIDN(*hexfd,text,256)){
+    PI_TranslateError(PI_GetError(*hexfd),msg,PI_ERR_LENGTH);
+    printf("HEX: PI_qIDN error: %s\n",msg);
+  }else{
+    printf("HEX: IDN %s\n",text);
+  }
   
   return 0;
 }
