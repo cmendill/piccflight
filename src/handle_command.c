@@ -533,11 +533,11 @@ int handle_command(char *line, sm_t *sm_p){
   sprintf(cmd,"alp timer length");
   if(!strncasecmp(line,cmd,strlen(cmd))){
     ftemp = atof(line+strlen(cmd)+1);
-    if(ftemp > 0 && ftemp <= CALMODE_TIMER_MAX){
+    if(ftemp > 0 && ftemp <= ZERNIKE_ERRORS_LENGTH){
       sm_p->alpcal.timer_length = ftemp;
       printf("CMD: Changed ALP calibration timer length to %.1f seconds\n",sm_p->alpcal.timer_length);
     }else{
-      printf("CMD: ALP calibration timer out of bounds [%d,%d]\n",0,CALMODE_TIMER_MAX);
+      printf("CMD: ALP calibration timer out of bounds [%d,%d]\n",0,ZERNIKE_ERRORS_LENGTH);
     }
     return(CMD_NORMAL);
   }

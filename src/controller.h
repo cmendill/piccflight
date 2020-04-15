@@ -265,10 +265,10 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 /*************************************************
  * Zernike Errors
  *************************************************/
-#define ZERNIKE_ERRORS_FILE   "config/zernike_errors.dat"
-#define ZERNIKE_ERRORS_NUMBER 150000
+#define ZERNIKE_ERRORS_FILE   "config/picture_c_pointing_data_20200310_newfilter_zernike_errors.dat"
+#define ZERNIKE_ERRORS_NUMBER 200000
 #define ZERNIKE_ERRORS_PERIOD 0.00200000
-#define ZERNIKE_ERRORS_LENGTH 300
+#define ZERNIKE_ERRORS_LENGTH 400
 
 /*************************************************
  * Camera Settings -- Keep sizes divisible by 4 (packets)
@@ -597,7 +597,6 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
  * Other Parameters
  *************************************************/
 #define CALMODE_TIMER_SEC       30 //default length of calmode_timer
-#define CALMODE_TIMER_MAX      300 //max length of calmode_timer
 #define ALP_CAL_SCALE_MAX       10 //max ALP calbration command scale
 #define CPU_AFFINITY_PHX0        1 //cpu bit mask
 #define CPU_AFFINITY_PHX1        2 //cpu bit mask
