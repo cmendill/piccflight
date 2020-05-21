@@ -826,7 +826,7 @@ typedef struct alpcal_struct{
 /*************************************************
  * Packet Header
  *************************************************/
-#define PICC_PKT_VERSION     28  //packet version number
+#define PICC_PKT_VERSION     29  //packet version number
 typedef struct pkthed_struct{
   uint16  version;       //packet version number
   uint16  type;          //packet ID word
@@ -946,7 +946,6 @@ typedef struct lytevent_struct{
   double    alp_measured[ALP_NACT];
   alp_t     alp;
   lyt_t     image;
-  lytread_t readimage;
 } lytevent_t;
 
 typedef struct lytpkt_struct{

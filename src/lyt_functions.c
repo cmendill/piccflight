@@ -428,6 +428,7 @@ int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
   static int init=0;
   static lytref_t lytref;
   static int pid_reset=FUNCTION_RESET;
+  static lytread_t readimage;
   double dt;
   int i,j;
   uint16_t fakepx=0;
@@ -547,7 +548,7 @@ int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
       sm_p->tgt_calmode = tgt_calibrate(lytevent.hed.tgt_calmode,lytevent.zernike_target,&lytevent.hed.tgt_calstep,LYTID,FUNCTION_NO_RESET);
 
   //Copy full readout image to event
-  memcpy(&lytevent.readimage.data[0][0],buffer->pvAddress,sizeof(lytread_t));
+  memcpy(&readimage.data[0][0],buffer->pvAddress,sizeof(lytread_t));
   
   //Fake data
   if(sm_p->w[LYTID].fakemode != FAKEMODE_NONE){
@@ -577,8 +578,8 @@ int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
 
 	  //Calculate interpolated value
 	  if(x1 >= 0 && x1 < LYTREADXS && x2 >= 0 && x2 < LYTREADXS && y1 >= 0 && y1 < LYTREADYS && y2 >= 0 && y2 < LYTREADYS){
-	    f_x_y1  = (x2 - x) * lytevent.readimage.data[x1][y1] / (x2 - x1) + (x - x1) * lytevent.readimage.data[x2][y1] / (x2 - x1);
-	    f_x_y2  = (x2 - x) * lytevent.readimage.data[x1][y2] / (x2 - x1) + (x - x1) * lytevent.readimage.data[x2][y2] / (x2 - x1);
+	    f_x_y1  = (x2 - x) * readimage.data[x1][y1] / (x2 - x1) + (x - x1) * readimage.data[x2][y1] / (x2 - x1);
+	    f_x_y2  = (x2 - x) * readimage.data[x1][y2] / (x2 - x1) + (x - x1) * readimage.data[x2][y2] / (x2 - x1);
 	    lytevent.image.data[i][j] = (y2 - y) * f_x_y1 / (y2 - y1) + (y - y1) * f_x_y2 / (y2-y1);
 	  }else{
 	    //1 of 4 pixels is out of bounds --> use closest value
@@ -586,7 +587,7 @@ int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
 	    y = y < 0 ? 0 : y;
 	    x = x >= LYTREADXS ? LYTREADXS-1 : x;
 	    y = y >= LYTREADYS ? LYTREADYS-1 : y;
-	    lytevent.image.data[i][j] = lytevent.readimage.data[(int)x][(int)y];
+	    lytevent.image.data[i][j] = readimage.data[(int)x][(int)y];
 	  }
 	}
       }
@@ -594,7 +595,7 @@ int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
       //Cut out ROI -- transpose origin offsets
       for(i=0;i<LYTXS;i++)
 	for(j=0;j<LYTYS;j++)
-	  lytevent.image.data[i][j]=lytevent.readimage.data[i+lytevent.yorigin][j+lytevent.xorigin];
+	  lytevent.image.data[i][j]=readimage.data[i+lytevent.yorigin][j+lytevent.xorigin];
     }
   }
   
