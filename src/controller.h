@@ -826,7 +826,7 @@ typedef struct alpcal_struct{
 /*************************************************
  * Packet Header
  *************************************************/
-#define PICC_PKT_VERSION     29  //packet version number
+#define PICC_PKT_VERSION     30  //packet version number
 typedef struct pkthed_struct{
   uint16  version;       //packet version number
   uint16  type;          //packet ID word
@@ -938,7 +938,8 @@ typedef struct lytevent_struct{
   uint16    yorigin;
   double    xcentroid;
   double    ycentroid;
-  uint64    locked;
+  uint32    locked;
+  uint32    background;
   double    gain_alp_zern[LOWFS_N_ZERNIKE][LOWFS_N_PID];
   double    zernike_measured[LOWFS_N_ZERNIKE];
   double    zernike_target[LOWFS_N_ZERNIKE];
@@ -955,7 +956,8 @@ typedef struct lytpkt_struct{
   uint16    yorigin;
   float     xcentroid[LYT_NSAMPLES];
   float     ycentroid[LYT_NSAMPLES];
-  uint64    locked;
+  uint32    locked;
+  uint32    background;
   float     gain_alp_zern[LOWFS_N_ZERNIKE][LOWFS_N_PID];
   float     zernike_target[LOWFS_N_ZERNIKE];
   float     zernike_measured[LOWFS_N_ZERNIKE][LYT_NSAMPLES];

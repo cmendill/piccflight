@@ -438,6 +438,8 @@ int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
   int zernike_switch[LOWFS_N_ZERNIKE] = {0};
   uint32_t n_dither=1;
   int zfit_error=0;
+  double background=0;
+  const long nbkg = LYTREADXS*LYTREADYS - LYTXS*LYTYS;
   
   //Image magnification
   double x,y,f_x_y1,f_x_y2;
@@ -549,6 +551,9 @@ int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
 
   //Copy full readout image to event
   memcpy(&readimage.data[0][0],buffer->pvAddress,sizeof(lytread_t));
+
+  //Init background
+  lytevent.background = 0;
   
   //Fake data
   if(sm_p->w[LYTID].fakemode != FAKEMODE_NONE){
@@ -592,10 +597,15 @@ int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
 	}
       }
     }else{
-      //Cut out ROI -- transpose origin offsets
-      for(i=0;i<LYTXS;i++)
-	for(j=0;j<LYTYS;j++)
-	  lytevent.image.data[i][j]=readimage.data[i+lytevent.yorigin][j+lytevent.xorigin];
+      //Cut out ROI & measure background -- transpose origin offsets
+      for(i=0;i<LYTREADXS;i++)
+	for(j=0;j<LYTREADYS;j++)
+	  if((i >= lytevent.yorigin) && (i < lytevent.yorigin+LYTXS) && (j >= lytevent.xorigin) && (j < lytevent.xorigin+LYTYS))
+	    lytevent.image.data[i-lytevent.yorigin][j-lytevent.xorigin]=readimage.data[i][j];
+	  else
+	    background += readimage.data[i][j];
+      //Take average
+      lytevent.background = background / nbkg;
     }
   }
   
@@ -776,6 +786,9 @@ int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
       lytpkt.xorigin  = lytevent.xorigin;
       lytpkt.yorigin  = lytevent.yorigin;
 
+      //Background
+      lytpkt.background = lytevent.background;
+      
       //Number of samples
       lytpkt.nsamples = sample;
       sample = 0;
