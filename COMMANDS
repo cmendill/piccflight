@@ -329,6 +329,12 @@ cmd: lyt mag [arg]
         set lyt image magnification
 	arg = magnification [0.1 - 10.0]
 
+cmd: lyt enable cen
+        enable lyt centroid control
+	
+cmd: lyt disable cen
+        disable lyt centroid control
+	
 cmd: lyt set ref
 	set current LYT image as the reference image
 

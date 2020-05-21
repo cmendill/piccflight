@@ -1672,6 +1672,20 @@ int handle_command(char *line, sm_t *sm_p){
     return(CMD_NORMAL);
   }
 
+  //LYT Centroid Control
+  sprintf(cmd,"lyt enable cen");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    printf("CMD: Enabling LYT centroid control\n");
+    sm_p->lyt_cen_enable=1;
+    return(CMD_NORMAL);
+  }
+  
+  sprintf(cmd,"lyt disable cen");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    printf("CMD: Disabling LYT centroid control\n");
+    sm_p->lyt_cen_enable=0;
+    return(CMD_NORMAL);
+  }
 
   //LYT Reference Image Commands
   sprintf(cmd,"lyt set ref");

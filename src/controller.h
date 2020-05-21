@@ -1112,6 +1112,7 @@ typedef volatile struct {
   int    lyt_mag_enable;                                   //LYT Magnification switch
   double lyt_mag;                                          //LYT Magnification
   int    lyt_roi[4];                                       //LYT ROI
+  int    lyt_cen_enable;                                   //LYT Enable centroid control
   
   //Camera Process Reset Commands
   int shk_reset;

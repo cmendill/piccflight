@@ -53,18 +53,19 @@
 #define SAVE_ACQFULL_DEFAULT       0
 
 //Exposure times
-#define SCI_EXPTIME_DEFAULT 0.010
-#define SCI_FRMTIME_DEFAULT 0.010
-#define SHK_EXPTIME_DEFAULT 0.025  //40hz
-#define SHK_FRMTIME_DEFAULT 0.025  //40hz
-#define LYT_EXPTIME_DEFAULT 0.0025 //400hz
-#define LYT_FRMTIME_DEFAULT 0.0025 //400hz
-#define ACQ_EXPTIME_DEFAULT 0.200
-#define ACQ_FRMTIME_DEFAULT 0.200
+#define SCI_EXPTIME_DEFAULT        0.010
+#define SCI_FRMTIME_DEFAULT        0.010
+#define SHK_EXPTIME_DEFAULT        0.025  //40hz
+#define SHK_FRMTIME_DEFAULT        0.025  //40hz
+#define LYT_EXPTIME_DEFAULT        0.0025 //400hz
+#define LYT_FRMTIME_DEFAULT        0.0025 //400hz
+#define ACQ_EXPTIME_DEFAULT        0.200
+#define ACQ_FRMTIME_DEFAULT        0.200
 
-//LYT ROI Settings
-#define LYT_XORIGIN_DEFAULT 16
-#define LYT_YORIGIN_DEFAULT 16
+//LYT Settings
+#define LYT_XORIGIN_DEFAULT        16
+#define LYT_YORIGIN_DEFAULT        16
+#define LYT_CEN_ENABLE_DEFAULT     1
 
 //Shack-Hartmann Settings
 #define SHK_BOXSIZE_DEFAULT        7

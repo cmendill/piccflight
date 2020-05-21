@@ -364,6 +364,9 @@ int main(int argc,char **argv){
   sm_p->lyt_roi[1] = 12;
   sm_p->lyt_roi[2] = 64;
   sm_p->lyt_roi[3] = 64;
+
+  //LYT Centroid Control
+  sm_p->lyt_cen_enable = LYT_CEN_ENABLE_DEFAULT;
   
   /* Initialize States */
   for(i=0;i<NSTATES;i++)

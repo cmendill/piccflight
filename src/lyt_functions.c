@@ -208,7 +208,7 @@ void lyt_saveref(lytref_t *lytref){
 /* LYT_ALP_ZERNPID                                            */
 /*  - Run PID controller on measured Zernikes for ALP         */
 /**************************************************************/
-void lyt_alp_zernpid(lytevent_t *lytevent, double *zernike_delta, int *zernike_switch, int reset){
+void lyt_alp_zernpid(lytevent_t *lytevent, double *zernike_delta, int *zernike_switch, int cen_enable, int reset){
   static int init = 0;
   static double zint[LOWFS_N_ZERNIKE] = {0};
   double zerr;
@@ -236,7 +236,11 @@ void lyt_alp_zernpid(lytevent_t *lytevent, double *zernike_delta, int *zernike_s
     usezern=1;
   if(usezern && ((abs(lytevent->xcentroid) > maxthresh) || (abs(lytevent->ycentroid) > maxthresh)))
     usezern=0;
-
+  
+  //Check centroid enable
+  if(!cen_enable)
+    usezern=1;
+  
   if(usezern){
     //Run Zernike PID
     for(i=0;i<LOWFS_N_ZERNIKE;i++){
@@ -265,8 +269,6 @@ void lyt_alp_zernpid(lytevent_t *lytevent, double *zernike_delta, int *zernike_s
       zernike_delta[1] = cgain * lytevent->xcentroid/dCXdZ1;
     //Reset integrator
     memset(zint,0,sizeof(zint));
-    //Unset locked flag
-    lytevent->locked = 1;
   }
 }
 
@@ -274,8 +276,9 @@ void lyt_alp_zernpid(lytevent_t *lytevent, double *zernike_delta, int *zernike_s
 /* LYT_ZERNIKE_FIT                                            */
 /*  - Fit Zernikes to LYT pixels                              */
 /*  - Measure image centroid                                  */
+/*  - Return 0 on success, 1 on error                         */
 /**************************************************************/
-void lyt_zernike_fit(lyt_t *image, lytref_t *lytref, double *zernikes, double *xcentroid, double *ycentroid, int reset){
+int lyt_zernike_fit(lyt_t *image, lytref_t *lytref, double *zernikes, double *xcentroid, double *ycentroid, int reset){
   FILE   *fd=NULL;
   char   filename[MAX_FILENAME];
   static lytevent_t lytevent;
@@ -332,7 +335,7 @@ void lyt_zernike_fit(lyt_t *image, lytref_t *lytref, double *zernikes, double *x
     //--set init flag
     init=1;
     //--return if reset
-    if(reset) return;
+    if(reset) return 0;
   }
 
   //Get image totals for normalization & histograms for centroid
@@ -401,8 +404,10 @@ void lyt_zernike_fit(lyt_t *image, lytref_t *lytref, double *zernikes, double *x
     //Zero out centroids
     *xcentroid = 0;
     *ycentroid = 0;
+    //Return error
+    return 1;
   }
-    
+  return 0;
 }
 
 /**************************************************************/
@@ -422,6 +427,7 @@ int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
   static uint32 frame_number=0, sample=0;
   static int init=0;
   static lytref_t lytref;
+  static int pid_reset=FUNCTION_RESET;
   double dt;
   int i,j;
   uint16_t fakepx=0;
@@ -430,7 +436,8 @@ int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
   int zernike_control=0;
   int zernike_switch[LOWFS_N_ZERNIKE] = {0};
   uint32_t n_dither=1;
-
+  int zfit_error=0;
+  
   //Image magnification
   double x,y,f_x_y1,f_x_y2;
   int x1,x2,y1,y2;
@@ -461,7 +468,7 @@ int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
     alp_calibrate(sm_p,0,NULL,NULL,NULL,LYTID,FUNCTION_RESET);
     tgt_calibrate(0,NULL,NULL,LYTID,FUNCTION_RESET);
     //Reset PID controllers
-    lyt_alp_zernpid(NULL,NULL,NULL,FUNCTION_RESET);
+    lyt_alp_zernpid(NULL,NULL,NULL,0,FUNCTION_RESET);
     //Init reference image structure
     lyt_initref(&lytref);
     //Reset zernike fitter
@@ -522,6 +529,9 @@ int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
   //Save origin
   lytevent.xorigin           = sm_p->lyt_xorigin;
   lytevent.yorigin           = sm_p->lyt_yorigin;
+
+  //Init locked flag
+  lytevent.locked            = 0;
   
   //Save gains
   for(i=0;i<LOWFS_N_ZERNIKE;i++)
@@ -623,7 +633,7 @@ int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
 
   //Fit Zernikes
   if(sm_p->state_array[state].lyt.fit_zernikes)
-    lyt_zernike_fit(&lytevent.image,&lytref,lytevent.zernike_measured, &lytevent.xcentroid, &lytevent.ycentroid, FUNCTION_NO_RESET);
+    zfit_error = lyt_zernike_fit(&lytevent.image,&lytref,lytevent.zernike_measured, &lytevent.xcentroid, &lytevent.ycentroid, FUNCTION_NO_RESET);
   
 
   /*************************************************************/
@@ -648,11 +658,18 @@ int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
       }
     }
 
+    //Check if we have a valid measurement
+    if(zfit_error){
+      zernike_control=0;
+      pid_reset=FUNCTION_RESET;
+    }
+    
     //Run Zernike control
     if(zernike_control){
       // - run Zernike PID
-      lyt_alp_zernpid(&lytevent, alp_delta.zcmd, zernike_switch, FUNCTION_NO_RESET);
-
+      lyt_alp_zernpid(&lytevent, alp_delta.zcmd, zernike_switch, sm_p->lyt_cen_enable, pid_reset);
+      pid_reset = FUNCTION_NO_RESET;
+      
       // - zero out uncontrolled Zernikes
       for(i=0;i<LOWFS_N_ZERNIKE;i++)
 	if(!zernike_switch[i])
@@ -670,6 +687,7 @@ int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
       for(i=0;i<ALP_NACT;i++)
 	alp_try.acmd[i] += alp_delta.acmd[i];
     }
+    
     //Calibrate ALP
     if(lytevent.hed.alp_calmode != ALP_CALMODE_NONE)
       sm_p->alp_calmode = alp_calibrate(sm_p,lytevent.hed.alp_calmode,&alp_try,&lytevent.hed.alp_calstep,lytevent.zernike_calibrate,LYTID,FUNCTION_NO_RESET);
