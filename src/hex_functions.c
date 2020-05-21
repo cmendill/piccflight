@@ -85,7 +85,8 @@ int hex_init(int *hexfd){
   double pivot[3]  = {HEX_PIVOT_X,HEX_PIVOT_Y,HEX_PIVOT_Z};
   char *chkaxis=""; //will check all axes
   int bIsMoving=0;
-
+  int answer_size;
+  
   /* Connect to Hexapod */
   if((*hexfd=hex_connect()) < 0){
     printf("HEX: hex_connect error!\n");
@@ -168,6 +169,46 @@ int hex_init(int *hexfd){
     printf("HEX: PI_qIDN error: %s\n",msg);
   }else{
     printf("HEX: IDN %s\n",text);
+  }
+  
+  if(!PI_GcsCommandset(*hexfd,"DIA? 1")){
+    PI_TranslateError(PI_GetError(*hexfd),msg,PI_ERR_LENGTH);
+    printf("HEX: PI_GcsCommandset error: %s\n",msg);
+  }else{
+    while(1){
+      if(!PI_GcsGetAnswerSize(*hexfd,&answer_size)){
+	PI_TranslateError(PI_GetError(*hexfd),msg,PI_ERR_LENGTH);
+	printf("HEX: PI_GcsGetAnswerSize error: %s\n",msg);
+	break;
+      }
+      if(answer_size == 0) break;
+      if(!PI_GcsGetAnswer(*hexfd,text,256)){
+	PI_TranslateError(PI_GetError(*hexfd),msg,PI_ERR_LENGTH);
+	printf("HEX: PI_GcsGetAnswer error: %s\n",msg);
+	break;
+      }
+      printf("HEX: DIA %s\n",text);
+    }
+  }
+  
+  if(!PI_GcsCommandset(*hexfd,"DIA? 2")){
+    PI_TranslateError(PI_GetError(*hexfd),msg,PI_ERR_LENGTH);
+    printf("HEX: PI_GcsCommandset error: %s\n",msg);
+  }else{
+    while(1){
+      if(!PI_GcsGetAnswerSize(*hexfd,&answer_size)){
+	PI_TranslateError(PI_GetError(*hexfd),msg,PI_ERR_LENGTH);
+	printf("HEX: PI_GcsGetAnswerSize error: %s\n",msg);
+	break;
+      }
+      if(answer_size == 0) break;
+      if(!PI_GcsGetAnswer(*hexfd,text,256)){
+	PI_TranslateError(PI_GetError(*hexfd),msg,PI_ERR_LENGTH);
+	printf("HEX: PI_GcsGetAnswer error: %s\n",msg);
+	break;
+      }
+      printf("HEX: DIA %s\n",text);
+    }
   }
   
   return 0;
