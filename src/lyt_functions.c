@@ -379,11 +379,11 @@ int lyt_zernike_fit(lyt_t *image, lytref_t *lytref, double *zernikes, double *xc
   //Fit zernikes if above pixel threshold
   if(maxpix > LYT_PIXEL_THRESH){
     
-    //Fill out pixel delta array
+    //Fill out pixel delta array -- populate using row majority to match IDL matrix
     if(img_total > 0 && ref_total > 0){
       count=0;
-      for(i=0;i<LYTXS;i++)
-	for(j=0;j<LYTYS;j++)
+      for(j=0;j<LYTYS;j++)
+	for(i=0;i<LYTXS;i++)
 	  if(lytref->pxmask[i][j])
 	    lyt_delta[count++]  = ((double)image->data[i][j])/img_total - lytref->refimg[i][j]/ref_total;
     }
