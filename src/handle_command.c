@@ -1723,6 +1723,35 @@ int handle_command(char *line, sm_t *sm_p){
     return(CMD_NORMAL);
   }
 
+  //LYT Dark Image Commands
+  sprintf(cmd,"lyt set dark");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    printf("CMD: Setting current LYT image as dark\n");
+    sm_p->lyt_setdark=1;
+    return(CMD_NORMAL);
+  }
+
+  sprintf(cmd,"lyt zero dark");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    printf("CMD: Setting LYT dark image to zero\n");
+    sm_p->lyt_zerodark=1;
+    return(CMD_NORMAL);
+  }
+  
+  sprintf(cmd,"lyt save dark");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    printf("CMD: Saving LYT dark image to file\n");
+    sm_p->lyt_savedark=1;
+    return(CMD_NORMAL);
+  }
+
+  sprintf(cmd,"lyt load dark");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    printf("CMD: Loading LYT dark image from file\n");
+    sm_p->lyt_loaddark=1;
+    return(CMD_NORMAL);
+  }
+
   /****************************************
    * ZERNIKE TARGETS
    **************************************/

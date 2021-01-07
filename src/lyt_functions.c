@@ -205,6 +205,91 @@ void lyt_saveref(lytref_t *lytref){
 }
 
 /**************************************************************/
+/* LYT_LOADDARK                                               */
+/*  - Load dark image from file                               */
+/**************************************************************/
+void lyt_loaddark(lytdark_t *lytdark){
+  FILE *fd=NULL;
+  char filename[MAX_FILENAME];
+  uint64 fsize,rsize;
+  lytdark_t readimg;
+  
+  /* Open darkimg file */
+  //--setup filename
+  sprintf(filename,LYT_DARKIMG_FILE);
+  //--open file
+  if((fd = fopen(filename,"r")) == NULL){
+    perror("LYT: loaddark fopen");
+    return;
+  }
+  //--check file size
+  fseek(fd, 0L, SEEK_END);
+  fsize = ftell(fd);
+  rewind(fd);
+  rsize = sizeof(lytdark_t);
+  if(fsize != rsize){
+    printf("LYT: incorrect LYT_DARKIMG_FILE size %lu != %lu\n",fsize,rsize);
+    fclose(fd);
+    return;
+  }
+  
+  //Read file
+  if(fread(&readimg,sizeof(lytdark_t),1,fd) != 1){
+    perror("LYT: loaddark fread");
+    fclose(fd);
+    return;
+  }
+  
+  //Close file
+  fclose(fd);
+  printf("LYT: Read: %s\n",filename);
+
+  //Copy image
+  memcpy(lytdark,&readimg,sizeof(lytdark_t));
+}
+
+/***************************************************************/
+/* LYT_SAVEDARK                                                */
+/*  - Save dark image to file                                  */
+/***************************************************************/
+void lyt_savedark(lytdark_t *lytdark){
+  struct stat st = {0};
+  FILE *fd=NULL;
+  static char outfile[MAX_FILENAME];
+  char temp[MAX_FILENAME];
+  char path[MAX_FILENAME];
+  int i;
+  
+  /* Open output file */
+  //--setup filename
+  sprintf(outfile,"%s",LYT_DARKIMG_FILE);
+  //--create output folder if it does not exist
+  strcpy(temp,outfile);
+  strcpy(path,dirname(temp));
+  if (stat(path, &st) == -1){
+    printf("LYT: creating folder %s\n",path);
+    recursive_mkdir(path, 0777);
+  }
+  //--open file
+  if((fd = fopen(outfile, "w")) == NULL){
+    perror("LYT: savedark fopen()\n");
+    return;
+  }
+  
+  //Save darkimg
+  if(fwrite(lytdark,sizeof(lytdark_t),1,fd) != 1){
+    printf("LYT: savedark fwrite error!\n");
+    fclose(fd);
+    return;
+  }
+  printf("LYT: Wrote: %s\n",outfile);
+  
+  //Close file
+  fclose(fd);
+  return;
+}
+
+/**************************************************************/
 /* LYT_ALP_ZERNPID                                            */
 /*  - Run PID controller on measured Zernikes for ALP         */
 /**************************************************************/
@@ -429,6 +514,8 @@ int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
   static lytref_t lytref;
   static int pid_reset=FUNCTION_RESET;
   static lytread_t readimage;
+  static lytdark_t darkimage;
+  static int darkcount=0;
   double dt;
   int i,j;
   uint16_t fakepx=0;
@@ -462,6 +549,7 @@ int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
     //Zero out events & commands
     memset(&lytevent,0,sizeof(lytevent_t));
     memset(&lytpkt,0,sizeof(lytpkt_t));
+    memset(&darkimage,0,sizeof(lytdark_t));
     //Init frame number & sample
     frame_number=0;
     sample=0;
@@ -474,6 +562,8 @@ int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
     lyt_alp_zernpid(NULL,NULL,NULL,0,FUNCTION_RESET);
     //Init reference image structure
     lyt_initref(&lytref);
+    //Load dark image
+    lyt_loaddark(&darkimage);
     //Reset zernike fitter
     lyt_zernike_fit(NULL,&lytref,NULL,NULL,NULL,FUNCTION_RESET);
     //Init ALP calmodes
@@ -601,7 +691,7 @@ int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
       for(i=0;i<LYTREADXS;i++)
 	for(j=0;j<LYTREADYS;j++)
 	  if((i >= lytevent.yorigin) && (i < lytevent.yorigin+LYTXS) && (j >= lytevent.xorigin) && (j < lytevent.xorigin+LYTYS))
-	    lytevent.image.data[i-lytevent.yorigin][j-lytevent.xorigin]=readimage.data[i][j];
+	    lytevent.image.data[i-lytevent.yorigin][j-lytevent.xorigin]=(double)readimage.data[i][j] - darkimage.data[i][j];
 	  else
 	    background += readimage.data[i][j];
       //Take average
@@ -641,6 +731,42 @@ int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
     lyt_loadref(&lytref);
     sm_p->lyt_loadref=0;
   }
+
+  
+  //Command: lyt_setdark 
+  if(sm_p->lyt_setdark){
+    //Clear current dark image
+    if(darkcount==0) memset(&darkimage,0,sizeof(darkimage));
+    //Add current full image to dark image average
+    for(i=0;i<LYTREADXS;i++)
+      for(j=0;j<LYTREADYS;j++)
+	darkimage.data[i][j] += (double)readimage.data[i][j] / LYT_NDARK;
+    if(++darkcount == LYT_NDARK){
+      sm_p->lyt_setdark=0;
+      darkcount=0;
+      printf("LYT: %d frames averaged into dark image\n",LYT_NDARK);
+    }
+  }
+  //Command: lyt_zerodark 
+  if(sm_p->lyt_zerodark){
+    //Clear current dark image
+    memset(&darkimage,0,sizeof(darkimage));
+    sm_p->lyt_zerodark=0;
+    printf("LYT: dark image set to zero\n");
+  }
+  //Command: lyt_savedark 
+  if(sm_p->lyt_savedark){
+    //Save current dark image to disk
+    lyt_savedark(&darkimage);
+    sm_p->lyt_savedark=0;
+  }
+  //Command: lyt_loaddark 
+  if(sm_p->lyt_loaddark){
+    //Load saved dark image from disk
+    lyt_loaddark(&darkimage);
+    sm_p->lyt_loaddark=0;
+  }
+  
 
   //Fit Zernikes
   if(sm_p->state_array[state].lyt.fit_zernikes)

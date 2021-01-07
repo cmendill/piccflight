@@ -198,6 +198,7 @@ enum bmccalmodes {BMC_CALMODE_NONE,
 #define ALP_FLAT_FILE          "output/settings/alp_flat.dat"
 #define SCI_ORIGIN_FILE        "output/settings/sci_origin.dat"
 #define LYT_REFIMG_FILE        "output/settings/lyt_refimg.dat"
+#define LYT_DARKIMG_FILE       "output/settings/lyt_darkimg.dat"
 #define CMD_ERASE_FLIGHT_DATA  "rm -r output/data/flight_data/*"
 #define CMD_ERASE_CAL_DATA     "rm -r output/data/calibration/*"
 
@@ -416,6 +417,7 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 #define LYT_MAG_MAX           10.0
 #define LYT_ROI_MIN           0
 #define LYT_ROI_MAX           400
+#define LYT_NDARK             1000 //number of frames to average into the LYT dark frame
 
 /*************************************************
  * SCI Camera Parameters
@@ -684,12 +686,16 @@ typedef struct shk_struct{
 } shk_t;
 
 typedef struct lyt_struct{
-  uint16 data[LYTXS][LYTYS];
+  double data[LYTXS][LYTYS];
 } lyt_t;
 
 typedef struct lytread_struct{
   uint16 data[LYTREADXS][LYTREADYS];
 } lytread_t;
+
+typedef struct lytdark_struct{
+  double data[LYTREADXS][LYTREADYS];
+} lytdark_t;
 
 typedef struct lytref_struct{
   double refimg[LYTXS][LYTYS]; //current reference image
@@ -826,7 +832,7 @@ typedef struct alpcal_struct{
 /*************************************************
  * Packet Header
  *************************************************/
-#define PICC_PKT_VERSION     30  //packet version number
+#define PICC_PKT_VERSION     31  //packet version number
 typedef struct pkthed_struct{
   uint16  version;       //packet version number
   uint16  type;          //packet ID word
@@ -1152,6 +1158,12 @@ typedef volatile struct {
   int lyt_saveref;
   int lyt_loadref;
 
+  //LYT Dark Image Commands
+  int lyt_setdark;
+  int lyt_zerodark;
+  int lyt_savedark;
+  int lyt_loaddark;
+  
   //Camera Telemetry
   float shk_ccd_temp;
   float lyt_ccd_temp;
