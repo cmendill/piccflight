@@ -46,6 +46,7 @@ flidev_t dev;
 /* BMC File Descriptor */
 libbmc_device_t libbmc_device;
 
+
 /**************************************************************/
 /* SCICTRLC                                                   */
 /*  - Main process interrupt routine                          */
@@ -53,7 +54,6 @@ libbmc_device_t libbmc_device;
 void scictrlC(int sig){
   uint32 err = 0;
   int rc;
-  useconds_t wait_time_us = 100000; // wait time
   enum libbmc_pwr_state_enum current_pwr_status = LIBBMC_PWR_OFF;
   char* libbmc_pwr_state_label[10] = LIBBMC_PWR_STAT_LABEL;
 
@@ -75,28 +75,10 @@ void scictrlC(int sig){
   }else{
     if(SCI_DEBUG) printf("SCI: FLI closed\n");
   }
-  /* Stop BMC controller, turn OFF HV */
-  if((rc=libbmc_toggle_controller_stop(&libbmc_device)) < 0){
-    printf("SCI: Failed to stop BMC controller : %s - %s \n", libbmc_error_name(rc), libbmc_strerror(rc));
-  }else{
-    printf("SCI: BMC controller stopped\n");
-  }
-  usleep(wait_time_us);
   
-  /* Block and wait until LIBBMC_PWR_OFF */
-  while(libbmc_device.status.power != LIBBMC_PWR_OFF) { // power not off
-    if(libbmc_get_status(&libbmc_device) == LIBBMC_SUCCESS) { // wait for power off
-      if(current_pwr_status != libbmc_device.status.power) { // print only when changing
-	printf("SCI: BMC controller settling: %s\n", libbmc_pwr_state_label[libbmc_device.status.power]);
-	current_pwr_status = libbmc_device.status.power;
-      }
-    }
-    usleep(wait_time_us);
-  }
+  /* Turn BMC HV off */
+  libbmc_hv_off(&libbmc_device);
   
-  /* BMC HV Power is OFF */
-  printf("SCI: BMC controller HV is OFF\n");
-
   /* Close BMC device */
   libbmc_close_device(&libbmc_device);
  
@@ -628,12 +610,8 @@ void sci_proc(void){
   flimode_t mode_index;
   char mode_string[128];
   size_t mode_size=128;
-  int rc; //for return values
-  useconds_t wait_time_us = 100000; // wait time
-  float libbmc_hv_range_value[4] = LIBBMC_VOLT_RANGE_CTRL_VALUE;
-  char* libbmc_pwr_state_label[10] = LIBBMC_PWR_STAT_LABEL;
   int i;
-  enum libbmc_pwr_state_enum current_pwr_status = LIBBMC_PWR_OFF;
+  int rc;
   
   /* Check BMC NACT */
   if(LIBBMC_NACT != BMC_NACT){
@@ -697,7 +675,7 @@ void sci_proc(void){
     /* Turn off LEDs */
     if(libbmc_toggle_leds_off(&libbmc_device))
       printf("SCI: ERROR (libbmc_toggle_leds_off)\n");
-    usleep(wait_time_us);
+    usleep(LIBBMC_LONG_USLEEP);
     /* Disable HV */
     sm_p->bmc_hv_enable = 0;
   }
@@ -796,68 +774,22 @@ void sci_proc(void){
     /**************************************************************/
     if(sm_p->bmc_ready){
       if(sm_p->bmc_hv_enable){
-	/* Set BMC HV Range */
-	if((rc = libbmc_set_range(&libbmc_device, RANGE)) < 0){
-	  printf("SCI: Failed to set BMC HV range to %5.1f : %s - %s \n", libbmc_hv_range_value[RANGE], libbmc_error_name(rc), libbmc_strerror(rc));
-	  goto exposure_start;
-	}
-	else{
-	  printf("SCI: BMC HV range set to: %5.1f\n", libbmc_hv_range_value[libbmc_device.status.range]);
-	}
-	usleep(wait_time_us);
-	
-	
-	/* Start controller, turn on HV */
-	if((rc = libbmc_toggle_controller_start(&libbmc_device)) < 0){
-	  printf("SCI: Failed to start BMC controller in range %5.1f : %s - %s \n", libbmc_hv_range_value[libbmc_device.status.range], libbmc_error_name(rc), libbmc_strerror(rc));
-	  goto exposure_start;
-	}
-	else{
-	  printf("SCI: BMC controller started: %5.1f\n", libbmc_hv_range_value[libbmc_device.status.range]);
-	}
-	usleep(wait_time_us);
-	
-	/* Block and wait until LIBBMC_PWR_ON */
-	while(libbmc_device.status.power != LIBBMC_PWR_ON) { // power not on
-	  if(libbmc_get_status(&libbmc_device) == LIBBMC_SUCCESS) { // wait for power on
-	    if(current_pwr_status != libbmc_device.status.power) { // print only when changing
-	      printf("SCI: BMC controller settling: %s\n", libbmc_pwr_state_label[libbmc_device.status.power]);
-	      current_pwr_status = libbmc_device.status.power;
-	    }
-	  }
-	  usleep(wait_time_us);
-	}
-	//BMC HV Power is ON
-	printf("SCI: BMC controller HV in ON\n");
-	sm_p->bmc_hv_on = 1;
-      }else{
+	// Start BMC controller, turn ON HV
+	if((rc=libbmc_hv_on(&libbmc_device,RANGE)) < 0)
+	  printf("SCI: Failed to start BMC controller : %s - %s \n", libbmc_error_name(rc), libbmc_strerror(rc));
+	else
+	  sm_p->bmc_hv_on = 1;
+      }
+      else{
 	// Stop BMC controller, turn OFF HV
-	if((rc=libbmc_toggle_controller_stop(&libbmc_device)) < 0){
+	if((rc=libbmc_hv_off(&libbmc_device)) < 0)
 	  printf("SCI: Failed to stop BMC controller : %s - %s \n", libbmc_error_name(rc), libbmc_strerror(rc));
-	  goto exposure_start;
-	}else{
-	  printf("SCI: BMC controller stopped\n");
-	}
-	usleep(wait_time_us);
-	
-	//Block and wait until LIBBMC_PWR_OFF
-	while(libbmc_device.status.power != LIBBMC_PWR_OFF) { // power not off
-	  if(libbmc_get_status(&libbmc_device) == LIBBMC_SUCCESS) { // wait for power off
-	    if(current_pwr_status != libbmc_device.status.power) { // print only when changing
-	      printf("SCI: BMC controller settling: %s\n", libbmc_pwr_state_label[libbmc_device.status.power]);
-	      current_pwr_status = libbmc_device.status.power;
-	    }
-	  }
-	  usleep(wait_time_us);
-	}
-	//BMC HV Power is OFF
-	printf("SCI: BMC controller HV is OFF\n");
-	sm_p->bmc_hv_on=0;
+	else
+	  sm_p->bmc_hv_on = 0;
       }
     }
     
     /* ----------------------- Enter Exposure Loop ----------------------- */
-  exposure_start:
     while(1){
       /* Check if we've been asked to exit */
       if(sm_p->w[SCIID].die)

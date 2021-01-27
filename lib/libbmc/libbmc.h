@@ -4,8 +4,9 @@
 #include <libusb.h>
 #include <math.h>
 
-// #include "libbmc_round_map.h"
-#include "libbmc_square_map.h"
+#include "libbmc_round_map_rot2.h"
+//#include "libbmc_square_map.h"
+//#include "libbmc_full_map.h"
 
 #define LIBBMC_DEBUG 0
 
@@ -13,6 +14,7 @@
 #define LIBBMC_PRODUCT_ID 0x0052
 
 #define LIBBMC_SHORT_USLEEP 50000 // 0.05 s
+#define LIBBMC_LONG_USLEEP  100000 // 0.1 s
 
 
 
@@ -291,8 +293,8 @@ struct libbmc_status_struct {
   float sock2_temp_c;
   float hv_ref_v;
   //----
-  float testpoint_v[11];
-  float ic_temp_c[11];
+  float testpoint_v[LIBBMC_NTSTPNT];
+  float ic_temp_c[LIBBMC_NTSTPNT];
   //----
   float hv_supp_v[2];
 };
@@ -327,6 +329,9 @@ libbmc_error_t libbmc_toggle_hv_off (libbmc_device_t*); // turns the high voltag
 
 libbmc_error_t libbmc_toggle_controller_start (libbmc_device_t*); // turns the controller on
 libbmc_error_t libbmc_toggle_controller_stop (libbmc_device_t*); // turns the controller off
+
+libbmc_error_t libbmc_hv_on (libbmc_device_t* p_libbmc_device, int range); //full controller startup
+libbmc_error_t libbmc_hv_off (libbmc_device_t* p_libbmc_device); //full controller shutdown
 
 libbmc_error_t libbmc_set_fan (libbmc_device_t*, enum libbmc_fan_state_enum); // set the fan to a given state
 

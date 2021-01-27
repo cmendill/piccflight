@@ -738,8 +738,98 @@ libbmc_error_t libbmc_toggle_controller_stop (libbmc_device_t* p_libbmc_device) 
   return LIBBMC_SUCCESS;
 }
 
+/**********************************************************************************************************************/
+/* LIBBMC_HV_ON                                                                                                       */
+/* libbmc_device_t* p_libbmc_device : device handle                                                                   */
+/* libbmc_error_t return : error                                                                                      */
+/*  - power on controller                                                                                             */
+/*  - turn on high voltage                                                                                            */
+/**********************************************************************************************************************/
+libbmc_error_t libbmc_hv_on (libbmc_device_t* p_libbmc_device, int range) {
+  int ret;
+  float libbmc_hv_range_value[4] = LIBBMC_VOLT_RANGE_CTRL_VALUE;
+  char* libbmc_pwr_state_label[10] = LIBBMC_PWR_STAT_LABEL;
+  enum libbmc_pwr_state_enum current_pwr_status = LIBBMC_PWR_OFF;
+  
+  /* Set BMC HV Range */
+  if((ret = libbmc_set_range(p_libbmc_device, range)) < 0){
+    printf("BMC: Failed to set BMC HV range to %5.1f : %s - %s \n", libbmc_hv_range_value[range], libbmc_error_name(ret), libbmc_strerror(ret));
+    return ret;
+  }
+  else{
+    printf("BMC: HV range set to: %5.1f\n", libbmc_hv_range_value[p_libbmc_device->status.range]);
+  }
+  usleep(LIBBMC_LONG_USLEEP);
+	
+	
+  /* Start controller, turn on HV */
+  if((ret = libbmc_toggle_controller_start(p_libbmc_device)) < 0){
+    printf("BMC: Failed to start BMC controller in range %5.1f : %s - %s \n", libbmc_hv_range_value[p_libbmc_device->status.range], libbmc_error_name(ret), libbmc_strerror(ret));
+    return ret;
+  }
+  else{
+    printf("BMC: Controller started: %5.1f\n", libbmc_hv_range_value[p_libbmc_device->status.range]);
+  }
+  usleep(LIBBMC_LONG_USLEEP);
+	
+  /* Block and wait until LIBBMC_PWR_ON */
+  while(p_libbmc_device->status.power != LIBBMC_PWR_ON) { // power not on
+    if(libbmc_get_status(p_libbmc_device) == LIBBMC_SUCCESS) { // wait for power on
+      if(current_pwr_status != p_libbmc_device->status.power) { // print only when changing
+	printf("BMC: Controller settling: %s\n", libbmc_pwr_state_label[p_libbmc_device->status.power]);
+	current_pwr_status = p_libbmc_device->status.power;
+      }
+    }
+    usleep(LIBBMC_LONG_USLEEP);
+  }
+  //BMC HV Power is ON
+  printf("BMC: Controller HV in ON\n");
+  return LIBBMC_SUCCESS;
+}
 
+/**********************************************************************************************************************/
+/* LIBBMC_HV_OFF                                                                                                      */
+/* libbmc_device_t* p_libbmc_device : device handle                                                                   */
+/* libbmc_error_t return : error                                                                                      */
+/*  - turn off high voltage                                                                                           */
+/*  - turn off controller                                                                                             */
+/**********************************************************************************************************************/
+libbmc_error_t libbmc_hv_off (libbmc_device_t* p_libbmc_device) {
+  int ret;
+  char* libbmc_pwr_state_label[10] = LIBBMC_PWR_STAT_LABEL;
+  enum libbmc_pwr_state_enum current_pwr_status = LIBBMC_PWR_OFF;
+  float act[LIBBMC_NACT]={0};
+  float tst[LIBBMC_NTSTPNT]={0};
+  
+  //Send command to zero out controller
+  if(libbmc_set_acts_tstpnts(p_libbmc_device, act, tst))
+    printf ("BMC: Zero command failed\n");
+  printf("BMC: Set all channels to 0V\n");
 
+  /* Stop BMC controller, turn OFF HV */
+  if((ret=libbmc_toggle_controller_stop(p_libbmc_device)) < 0){
+    printf("BMC: Failed to stop BMC controller : %s - %s \n", libbmc_error_name(ret), libbmc_strerror(ret));
+    return ret;
+  }else{
+    printf("BMC: Controller stopped\n");
+  }
+  usleep(LIBBMC_LONG_USLEEP);
+  
+  /* Block and wait until LIBBMC_PWR_OFF */
+  while(p_libbmc_device->status.power != LIBBMC_PWR_OFF) { // power not off
+    if(libbmc_get_status(p_libbmc_device) == LIBBMC_SUCCESS) { // wait for power off
+      if(current_pwr_status != p_libbmc_device->status.power) { // print only when changing
+	printf("BMC: Controller settling: %s\n", libbmc_pwr_state_label[p_libbmc_device->status.power]);
+	current_pwr_status = p_libbmc_device->status.power;
+      }
+    }
+    usleep(LIBBMC_LONG_USLEEP);
+  }
+  
+  /* BMC HV Power is OFF */
+  printf("BMC: Controller HV is OFF\n");
+  return LIBBMC_SUCCESS;
+}
 
 
 

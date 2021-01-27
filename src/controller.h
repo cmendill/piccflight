@@ -4,7 +4,6 @@
 #include <stdint.h>
 #include <time.h>
 #include <dm7820_library.h>
-#include <libbmc.h>
 
 #ifndef _CONTROLLER
 #define _CONTROLLER
@@ -438,7 +437,7 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 /*************************************************
  * BMC DM Parameters
  *************************************************/
-#define BMC_NACT    1020 //flight 1 square DM
+#define BMC_NACT    952
 #define BMC_NTEST   11
 #define BMC_STROKE  1.5
 #define BMCXS        34
