@@ -273,12 +273,41 @@ void init_state(int state_number, state_t *state){
     return;
   }
 
-  //STATE_SCI_DARK_HOLE
-  if(state_number == STATE_SCI_DARK_HOLE){
+  //STATE_HOWFS
+  if(state_number == STATE_HOWFS){
     //Set name
-    sprintf(state->name,"STATE_SCI_DARK_HOLE");
+    sprintf(state->name,"STATE_HOWFS");
     //Set cmd
-    sprintf(state->cmd,"sdh");
+    sprintf(state->cmd,"how");
+    //Set options
+    state->bmc_commander = SCIID;
+    state->sci.run_howfs = 1;
+    state->sci.run_efc   = 0;
+    //Set LYTID as alp commander
+    state->alp_commander = LYTID;
+    //LYT Settings
+    state->lyt.fit_zernikes = 1;
+    for(i=0;i<LOWFS_N_ZERNIKE;i++)
+      state->lyt.zernike_control[i] = ACTUATOR_ALP;
+    return;
+  }
+
+  //STATE_EFC
+  if(state_number == STATE_EFC){
+    //Set name
+    sprintf(state->name,"STATE_EFC");
+    //Set cmd
+    sprintf(state->cmd,"efc");
+    //Set options
+    state->bmc_commander = SCIID;
+    state->sci.run_howfs = 1;
+    state->sci.run_efc   = 1;
+    //Set LYTID as alp commander
+    state->alp_commander = LYTID;
+    //LYT Settings
+    state->lyt.fit_zernikes = 1;
+    for(i=0;i<LOWFS_N_ZERNIKE;i++)
+      state->lyt.zernike_control[i] = ACTUATOR_ALP;
     return;
   }
 }

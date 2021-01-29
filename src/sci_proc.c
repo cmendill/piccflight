@@ -20,20 +20,6 @@
 #include "common_functions.h"
 #include "fakemodes.h"
 
-/* FLI Settings */
-#define SCI_ROI_XSIZE 2840
-#define SCI_ROI_YSIZE 2224
-#define SCI_HBIN 1 //do not change, will break code below
-#define SCI_VBIN 1 //do not change, will break code below
-#define SCI_UL_X 0
-#define SCI_UL_Y 0
-#define SCI_LR_X (SCI_UL_X+(SCI_ROI_XSIZE/SCI_HBIN))
-#define SCI_LR_Y (SCI_UL_Y+(SCI_ROI_YSIZE/SCI_VBIN))
-#define SCI_NFLUSHES 4
-#define SCI_XORIGIN {334,852,1363,1849,2327}; //band cutout x centers (relative to the ROI)
-#define SCI_YORIGIN {450,502,755,879,610};    //band cutout y centers (relative to the ROI)
-#define SCI_SEARCH   400                      //px search diameter to find star in each band
-
 /* BMC Settings */
 #define RANGE LIBBMC_VOLT_RANGE_150V
 
@@ -450,6 +436,8 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
     memcpy(&last,&start,sizeof(struct timespec));
     sci_loadorigin(&scievent);
     frame_number=0;
+    //Reset calibration routines
+    bmc_calibrate(sm_p,0,NULL,NULL,NULL,LYTID,FUNCTION_RESET);
     init=1;
     if(SCI_DEBUG) printf("SCI: Initialized\n");
   }
@@ -541,16 +529,6 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
       for(i=0;i<SCIXS;i++)
 	for(j=0;j<SCIYS;j++)
     	  scievent.image[k].data[i][j] = img_buffer[sci_xy2index(scievent.xorigin[k]-(SCIXS/2)+i,scievent.yorigin[k]-(SCIYS/2)+j)];
-  }
-
-  //Init BMC command
-  for(i=0;i<BMC_NACT;i++){
-    scievent.bmc.acmd[i] = 0;
-    bmc_try.acmd[i] = 100;
-  }
-  for(i=0;i<BMC_NTEST;i++){
-    scievent.bmc.tcmd[i] = 0;
-    bmc_try.tcmd[i] = i*15;
   }
   
   //Run BMC Controller

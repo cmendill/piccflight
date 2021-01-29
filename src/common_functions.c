@@ -752,3 +752,39 @@ int read_uplink(char *cmd, int max, int fd){
   return 0;
   
 }
+
+/**************************************************************/
+/* READ_FILE                                                  */
+/* - Read entire file into pointer                            */
+/**************************************************************/
+int read_file(char *filename, void *dest, size_t nbytes){
+  FILE   *fd=NULL;
+  uint64 fsize;
+  
+  /****** READ FILE ******/
+  //--open file
+  if((fd = fopen(filename,"r")) == NULL){
+    perror("ERR: read_file --> fopen");
+    return 1;
+  }
+
+  //--check file size
+  fseek(fd, 0L, SEEK_END);
+  fsize = ftell(fd);
+  rewind(fd);
+  if(fsize != nbytes){
+    printf("ERR: read_file --> incorrect file size %lu != %lu\n",fsize,nbytes);
+    fclose(fd);
+    return 1;
+  }
+
+  //--read file
+  if(fread(dest,nbytes,1,fd) != 1){
+    perror("ERR: read_file --> fread");
+    fclose(fd);
+    return 1;
+  }
+
+  fclose(fd);
+  return 0;    
+}

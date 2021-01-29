@@ -96,7 +96,8 @@ enum states { STATE_STANDBY,
 	      STATE_LYT_ZERN_LOWFC,
 	      STATE_LYT_TT_LOWFC,
 	      STATE_SCI_BMC_CALIBRATE,
-	      STATE_SCI_DARK_HOLE,
+	      STATE_HOWFS,
+	      STATE_EFC,
 	      NSTATES};
 
 /*************************************************
@@ -126,6 +127,10 @@ enum tgtcalmodes {TGT_CALMODE_NONE,
 		  TGT_NCALMODES};
 
 enum bmccalmodes {BMC_CALMODE_NONE,
+		  BMC_CALMODE_TIMER,
+		  BMC_CALMODE_POKE,
+		  BMC_CALMODE_RAND,
+		  BMC_CALMODE_PROBE,
 		  BMC_NCALMODES};
 
 /*************************************************
@@ -180,6 +185,11 @@ enum bmccalmodes {BMC_CALMODE_NONE,
 #define LYTPIX2ALPZER_PXMASK_FILE "config/lytpix2alpzer_pxmask.dat"
 #define SHK_CONFIG_FILE        "config/shk_2bin_2tap_8bit.cfg"
 #define LYT_CONFIG_FILE        "config/lyt.cfg"
+#define SCI_MASK_FILE          "config/howfs_scimask.dat"
+#define BMC_MASK_FILE          "config/howfs_bmcmask.dat"
+#define BMC_PROBE_FILE         "config/howfs_bmcprobe%d.dat"
+#define BMC_CAL_A_FILE         "config/bmc_cal_a.dat"
+#define BMC_CAL_B_FILE         "config/bmc_cal_b.dat"
 #define DATAPATH               "output/data/flight_data/folder_%5.5d/"
 #define DATANAME               "output/data/flight_data/folder_%5.5d/picture.%10.10ld.%s.%8.8d.dat"
 #define SHK_HEX_CALFILE        "output/data/calibration/shk_hex_%s_%s_%s_caldata.dat"
@@ -423,6 +433,21 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
  *************************************************/
 #define SCI_NBANDS              5 //number of bands on a single SCI camera image
 #define SCI_NSAMPLES            1 //number of scievents to save in a single packet
+#define SCI_NPIX              830 //number of pixels in dark zone
+#define SCI_HOWFS_NPROBE        4 //number of HOWFS DM probe steps
+#define SCI_HOWFS_NSTEP         5 //number of HOWFS steps
+#define SCI_ROI_XSIZE        2840
+#define SCI_ROI_YSIZE        2224
+#define SCI_HBIN                1 //do not change, will break code below
+#define SCI_VBIN                1 //do not change, will break code below
+#define SCI_UL_X                0
+#define SCI_UL_Y                0
+#define SCI_LR_X (SCI_UL_X+(SCI_ROI_XSIZE/SCI_HBIN))
+#define SCI_LR_Y (SCI_UL_Y+(SCI_ROI_YSIZE/SCI_VBIN))
+#define SCI_NFLUSHES            4
+#define SCI_XORIGIN {334,852,1363,1849,2327}; //band cutout x centers (relative to the ROI)
+#define SCI_YORIGIN {450,502,755,879,610};    //band cutout y centers (relative to the ROI)
+#define SCI_SEARCH            400 //px search diameter to find star in each band
 #define SCI_TEC_SETPOINT_MIN  -40 //C
 #define SCI_TEC_SETPOINT_MAX   35 //C
 
@@ -445,6 +470,8 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 #define BMC_DMAX     ((1<<14) - 1)
 #define BMC_DMIN     0
 #define BMC_DMID     ((DM_DMIN+DM_DMAX)/2)
+#define BMC_SCI_NCALIM 1
+#define BMC_SCI_POKE   10.0 //nm   
 
 /*************************************************
  * ALPAO DM Parameters
@@ -646,8 +673,8 @@ typedef struct lytctrl_struct{
 
 // Science Camera Control (sci_proc.c)
 typedef struct scictrl_struct{
-  int sensing_bmc;
-  int dig_dark_hole;
+  int run_howfs;
+  int run_efc;
 } scictrl_t;
 
 // Acquisition Camera Control (acq_proc.c)
@@ -679,6 +706,11 @@ typedef struct state_struct{
 typedef struct sci_struct{
   uint16 data[SCIXS][SCIYS];
 } sci_t;
+
+typedef struct field_struct{
+  double rfield[SCI_NPIX];
+  double ifield[SCI_NPIX];
+} field_t;
 
 typedef struct shk_struct{
   uint8 data[SHKXS][SHKYS];
@@ -815,6 +847,7 @@ typedef struct calmode_struct{
   double shk_zpoke[LOWFS_N_ZERNIKE];
   double lyt_poke;
   double lyt_zpoke[LOWFS_N_ZERNIKE];
+  double sci_poke;
 } calmode_t;
 
 typedef struct alpcal_struct{
@@ -827,6 +860,15 @@ typedef struct alpcal_struct{
   double timer_length;
   double command_scale;
 } alpcal_t;
+
+typedef struct bmccal_struct{
+  uint64 countA[BMC_NCALMODES];
+  uint64 countB[BMC_NCALMODES];
+  bmc_t  bmc_start[BMC_NCALMODES];
+  struct timespec start[BMC_NCALMODES];
+  double timer_length;
+  double command_scale;
+} bmccal_t;
 
 /*************************************************
  * Packet Header
@@ -986,14 +1028,10 @@ typedef struct scievent_struct{
   bmc_status_t bmc_status;
 } scievent_t;
 
-typedef struct acqevent_struct{
+typedef struct howfs_struct{
   pkthed_t  hed;
-  uint16    xcen;
-  uint16    ycen;
-  uint32    padding;
-  hex_t     hex;
-  acq_t     image;
-} acqevent_t;
+  field_t   field[SCI_NBANDS];
+} howfs_t;
 
 typedef struct thmevent_struct{
   pkthed_t  hed;
@@ -1062,6 +1100,9 @@ typedef volatile struct {
   DM7820_Board_Descriptor* p_rtd_alp_board;
   DM7820_Board_Descriptor* p_rtd_tlm_board;
 
+  //BMC file descriptor
+  libbmc_device_t libbmc_device;
+
   //Hexapod file descriptor
   int hexfd;
 
@@ -1101,6 +1142,9 @@ typedef volatile struct {
 
   //ALP Calibration Structure
   alpcal_t alpcal;
+
+  //BMC Calibration Structure
+  bmccal_t bmccal;
 
   //Calibration file name
   char calfile[MAX_FILENAME];
