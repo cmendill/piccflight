@@ -29,10 +29,6 @@ int sci_shmfd;
 /* FLI File Descriptor */
 flidev_t dev;
 
-/* BMC File Descriptor */
-libbmc_device_t libbmc_device;
-
-
 /**************************************************************/
 /* SCICTRLC                                                   */
 /*  - Main process interrupt routine                          */
@@ -530,16 +526,38 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
 	for(j=0;j<SCIYS;j++)
     	  scievent.image[k].data[i][j] = img_buffer[sci_xy2index(scievent.xorigin[k]-(SCIXS/2)+i,scievent.yorigin[k]-(SCIYS/2)+j)];
   }
+
+  /*************************************************************/
+  /********************  BMC DM Control Code  ******************/
+  /*************************************************************/
   
-  //Run BMC Controller
-  if(sm_p->bmc_ready && sm_p->bmc_hv_on){
-    //Init random numbers
-    srand((unsigned) time(&t));
-    //Run actuator test pattern
-    i=(int)((rand() / (double) RAND_MAX) * (BMC_NACT-1));
-    if(i<0) i=0;
-    if(i>=BMC_NACT) i=BMC_NACT-1;
-    if(scievent.hed.frame_number % 2) bmc_try.acmd[i]=150; else bmc_try.acmd[i]=0;
+  //Check if we will send a command
+  if((sm_p->state_array[state].bmc_commander == SCIID) && sm_p->bmc_ready && sm_p->bmc_hv_on){
+    
+    //Get last BMC command
+    if(bmc_get_command(sm_p,&bmc)){
+      //Skip this image
+      return 0;
+    }
+    memcpy(&bmc_try,&bmc,sizeof(bmc_t));
+    
+
+
+
+    
+    //Calibrate BMC
+    if(lytevent.hed.bmc_calmode != BMC_CALMODE_NONE)
+      sm_p->bmc_calmode = bmc_calibrate(sm_p,lytevent.hed.bmc_calmode,&bmc_try,&lytevent.hed.bmc_calstep,SCIID,FUNCTION_NO_RESET);
+    
+    //Send command to BMC
+    if(bmc_send_command(sm_p,&bmc_try,SCIID)){
+      // - command failed
+      // - do nothing for now
+    }else{
+      // - copy command to current position
+      memcpy(&bmc,&bmc_try,sizeof(bmc_t));
+    }
+    
     //Send command
     if(libbmc_set_acts_tstpnts(&libbmc_device, bmc_try.acmd, bmc_try.tcmd))
       printf ("SCI: BMC command failed\n");
