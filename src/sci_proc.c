@@ -20,9 +20,6 @@
 #include "common_functions.h"
 #include "fakemodes.h"
 
-/* BMC Settings */
-#define RANGE LIBBMC_VOLT_RANGE_150V
-
 /* Process File Descriptor */
 int sci_shmfd;
 
@@ -35,9 +32,6 @@ flidev_t dev;
 /**************************************************************/
 void scictrlC(int sig){
   uint32 err = 0;
-  int rc;
-  enum libbmc_pwr_state_enum current_pwr_status = LIBBMC_PWR_OFF;
-  char* libbmc_pwr_state_label[10] = LIBBMC_PWR_STAT_LABEL;
 
   /* Cancel Exposure */
   if((err = FLICancelExposure(dev))){
@@ -58,12 +52,6 @@ void scictrlC(int sig){
     if(SCI_DEBUG) printf("SCI: FLI closed\n");
   }
   
-  /* Turn BMC HV off */
-  libbmc_hv_off(&libbmc_device);
-  
-  /* Close BMC device */
-  libbmc_close_device(&libbmc_device);
- 
   /* Close shared memory */
   close(sci_shmfd);
   
@@ -541,9 +529,6 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
     }
     memcpy(&bmc_try,&bmc,sizeof(bmc_t));
     
-
-
-
     
     //Calibrate BMC
     if(lytevent.hed.bmc_calmode != BMC_CALMODE_NONE)
@@ -557,16 +542,10 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
       // - copy command to current position
       memcpy(&bmc,&bmc_try,sizeof(bmc_t));
     }
-    
-    //Send command
-    if(libbmc_set_acts_tstpnts(&libbmc_device, bmc_try.acmd, bmc_try.tcmd))
-      printf ("SCI: BMC command failed\n");
-    else
-      memcpy(&scievent.bmc,&bmc_try,sizeof(bmc_t));
   }
   
   //Get BMC Status
-  if(sm_p->bmc_ready){
+  if((sm_p->state_array[state].bmc_commander == SCIID) && sm_p->bmc_ready){
     if(libbmc_get_status(&libbmc_device))
       printf("SCI: Failed to get BMC status\n");
     else
@@ -608,13 +587,7 @@ void sci_proc(void){
   size_t mode_size=128;
   int i;
   int rc;
-  
-  /* Check BMC NACT */
-  if(LIBBMC_NACT != BMC_NACT){
-    printf("SCI: Error LIBBMC_NACT != BMC_NACT\n");
-    scictrlC(0);
-  }
-  
+    
   /* Open Shared Memory */
   sm_t *sm_p;
   if((sm_p = openshm(&sci_shmfd)) == NULL){
@@ -656,25 +629,6 @@ void sci_proc(void){
     scictrlC(0);
   }
 
-  /**************************************************************/
-  /*                    BMC Controller Setup                    */
-  /**************************************************************/
-  if(BMC_ENABLE){
-    /* Open Device */
-    if((rc = libbmc_open_device(&libbmc_device)) < 0){
-      printf("SCI: Failed to find the bmc device: %s - %s \n", libbmc_error_name(rc), libbmc_strerror(rc));
-      sm_p->bmc_ready = 0;
-    }else{
-      printf("SCI: BMC device found and opened\n");
-      sm_p->bmc_ready = 1;
-    }
-    /* Turn off LEDs */
-    if(libbmc_toggle_leds_off(&libbmc_device))
-      printf("SCI: ERROR (libbmc_toggle_leds_off)\n");
-    usleep(LIBBMC_LONG_USLEEP);
-    /* Disable HV */
-    sm_p->bmc_hv_enable = 0;
-  }
   
   /* ----------------------- Enter Main Loop ----------------------- */
   while(1){
@@ -765,26 +719,6 @@ void sci_proc(void){
       }
     }
 
-    /**************************************************************/
-    /*                         BMC Config                         */
-    /**************************************************************/
-    if(sm_p->bmc_ready){
-      if(sm_p->bmc_hv_enable){
-	// Start BMC controller, turn ON HV
-	if((rc=libbmc_hv_on(&libbmc_device,RANGE)) < 0)
-	  printf("SCI: Failed to start BMC controller : %s - %s \n", libbmc_error_name(rc), libbmc_strerror(rc));
-	else
-	  sm_p->bmc_hv_on = 1;
-      }
-      else{
-	// Stop BMC controller, turn OFF HV
-	if((rc=libbmc_hv_off(&libbmc_device)) < 0)
-	  printf("SCI: Failed to stop BMC controller : %s - %s \n", libbmc_error_name(rc), libbmc_strerror(rc));
-	else
-	  sm_p->bmc_hv_on = 0;
-      }
-    }
-    
     /* ----------------------- Enter Exposure Loop ----------------------- */
     while(1){
       /* Check if we've been asked to exit */

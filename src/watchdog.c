@@ -15,6 +15,7 @@
 #include <sys/io.h>
 #include <sys/prctl.h>
 #include <dm7820_library.h>
+#include <libbmc.h>
 
 /* piccflight headers */
 #include "watchdog.h"
@@ -258,7 +259,6 @@ int main(int argc,char **argv){
   int shutdown=0;
   DM7820_Board_Descriptor* p_rtd_alp_board;
   DM7820_Board_Descriptor* p_rtd_tlm_board;
-  int hexfd;
   int irq;
   fd_set readset;
   int fdcmd;
@@ -558,15 +558,34 @@ int main(int argc,char **argv){
   /* Init HEX Driver */
   if(HEX_ENABLE){
     printf("WAT: Opening HEX driver\n");
-    if(hex_init(&hexfd)){
+    if(hex_init(&sm_p->hexfd)){
+      sm_p->hex_ready = 0;
       printf("WAT: ERROR: HEX init failed!\n");
     }
     else{
-      sm_p->hexfd = hexfd;
       sm_p->hex_ready = 1;
       printf("WAT: HEX ready\n");
     }
   }
+
+  /* Initialize BMC DM */
+  if(BMC_ENABLE){
+    /* Open Device */
+    if((retval = libbmc_open_device(&sm_p->libbmc_device)) < 0){
+      printf("SCI: Failed to find the bmc device: %s - %s \n", libbmc_error_name(retval), libbmc_strerror(retval));
+      sm_p->bmc_ready = 0;
+    }else{
+      printf("SCI: BMC device found and opened\n");
+      sm_p->bmc_ready = 1;
+    }
+    /* Turn off LEDs */
+    if(libbmc_toggle_leds_off(&sm_p->libbmc_device))
+      printf("SCI: ERROR (libbmc_toggle_leds_off)\n");
+    usleep(LIBBMC_LONG_USLEEP);
+    /* Disable HV by default*/
+    sm_p->bmc_hv_enable = 0;
+  }
+
   
   /* Set initial ALP position */
   if(sm_p->alp_ready){
@@ -732,6 +751,14 @@ int main(int argc,char **argv){
   if(HEX_ENABLE){
     hex_disconnect(hexfd);
     printf("WAT: HEX closed\n");
+  }
+
+  //Cleanup BMC
+  if(BMC_ENABLE){
+    /* Turn BMC HV off */
+    libbmc_hv_off(&sm_p->libbmc_device);
+    /* Close BMC device */
+    libbmc_close_device(&sm_p->libbmc_device);
   }
 
   //Close shared memory

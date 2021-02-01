@@ -208,7 +208,6 @@ int handle_command(char *line, sm_t *sm_p){
   char   cmd[CMD_MAX_LENGTH];
   int    cmdfound=0;
   int    i=0,j=0,hex_axis=0;
-  int hexfd;
   double hex_poke=0;
   int    calmode=0;
   uint16_t led;
@@ -231,6 +230,7 @@ int handle_command(char *line, sm_t *sm_p){
   double dz[LOWFS_N_ZERNIKE] = {0};
   double da[ALP_NACT] = {0};
   int lyt_roi[2] = {0};
+  int ret;
   
   //Intitalize
   if(!init){
@@ -685,11 +685,11 @@ int handle_command(char *line, sm_t *sm_p){
       if(!strncasecmp(line,cmd,strlen(cmd))){
 	if(HEX_ENABLE){
 	  printf("CMD: Opening HEX driver\n");
-	  if(hex_init(&hexfd)){
+	  if(hex_init(&sm_p->hexfd)){
+	    sm_p->hex_ready = 0;
 	    printf("CMD: ERROR: HEX init failed!\n");
 	  }
 	  else{
-	    sm_p->hexfd = hexfd;
 	    sm_p->hex_ready = 1;
 	    printf("CMD: HEX ready\n");
 	  }
@@ -1075,9 +1075,8 @@ int handle_command(char *line, sm_t *sm_p){
   sprintf(cmd,"bmc hv enable");
   if(!strncasecmp(line,cmd,strlen(cmd))){
     printf("CMD: Enabling BMC HV\n");
-    printf("CMD: -- WARNING -- Only operate HV below 25 percent humidity\n");
+    printf("CMD: -- WARNING -- Only operate HV below 30 percent humidity\n");
     sm_p->bmc_hv_enable=1;
-    sm_p->sci_reset_camera=1;
     return(CMD_NORMAL);
   }
 
@@ -1085,10 +1084,53 @@ int handle_command(char *line, sm_t *sm_p){
   if(!strncasecmp(line,cmd,strlen(cmd))){
     printf("CMD: Disabling BMC HV\n");
     sm_p->bmc_hv_enable=0;
-    sm_p->sci_reset_camera=1;
     return(CMD_NORMAL);
   }
-  
+
+  sprintf(cmd,"bmc hv on");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    if(sm_p->bmc_ready){
+      if(sm_p->bmc_hv_enable){
+	printf("CMD: Turning ON BMC HV\n");
+	printf("CMD: -- WARNING -- Only operate HV below 30 percent humidity\n");
+	// Start BMC controller, turn ON HV
+	if((ret=libbmc_hv_on(&sm_p->libbmc_device,BMC_RANGE)) < 0)
+	  printf("CMD: Failed to start BMC controller : %s - %s \n", libbmc_error_name(ret), libbmc_strerror(ret));
+	else
+	  sm_p->bmc_hv_on = 1;
+      }
+      else{
+	printf("CMD: BMC HV not enabled\n");
+      }
+    }
+    else{
+      printf("CMD: BMC controller not ready\n");
+    }
+    return(CMD_NORMAL);
+  }
+
+  sprintf(cmd,"bmc hv off");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    if(sm_p->bmc_ready){
+      if(sm_p->bmc_hv_enable){
+	printf("CMD: Turning OFF BMC HV\n");
+	printf("CMD: -- WARNING -- Only operate HV below 30 percent humidity\n");
+	// Stop BMC controller, turn OFF HV
+	if((ret=libbmc_hv_off(&sm_p->libbmc_device)) < 0)
+	  printf("CMD: Failed to stop BMC controller : %s - %s \n", libbmc_error_name(ret), libbmc_strerror(ret));
+	else
+	  sm_p->bmc_hv_on = 0;
+      }
+      else{
+	printf("CMD: BMC HV not enabled\n");
+      }
+    }
+    else{
+      printf("CMD: BMC controller not ready\n");
+    }
+    return(CMD_NORMAL);
+  }
+
 
   /****************************************
    * SENSOR CALIBRATION

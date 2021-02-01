@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <time.h>
 #include <dm7820_library.h>
+#include <libbmc.h>
 
 #ifndef _CONTROLLER
 #define _CONTROLLER
@@ -462,14 +463,15 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 /*************************************************
  * BMC DM Parameters
  *************************************************/
-#define BMC_NACT    952
-#define BMC_NTEST   11
-#define BMC_STROKE  1.5
-#define BMCXS        34
-#define BMCYS        34
-#define BMC_DMAX     ((1<<14) - 1)
-#define BMC_DMIN     0
-#define BMC_DMID     ((DM_DMIN+DM_DMAX)/2)
+#define BMC_NACT       LIBBMC_NACT
+#define BMC_NTEST      LIBBMC_NTSTPTS
+#define BMC_RANGE      LIBBMC_VOLT_RANGE_150V
+#define BMC_STROKE     1.5
+#define BMCXS          34
+#define BMCYS          34
+#define BMC_DMAX       ((1<<14) - 1)
+#define BMC_DMIN       0
+#define BMC_DMID       ((DM_DMIN+DM_DMAX)/2)
 #define BMC_SCI_NCALIM 1
 #define BMC_SCI_POKE   10.0 //nm   
 
@@ -785,6 +787,7 @@ typedef struct hum_struct{
 } hum_t;
 
 //BMC Status Struct: NOTE this is a copy from libbmc.h DO NOT CHANGE
+//                   It is here so that the GSE software can parse the packet.
 typedef struct bmc_status_struct {
   uint8_t power;
   uint8_t supply_5va;

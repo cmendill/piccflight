@@ -96,7 +96,7 @@ int bmc_send_command(sm_t *sm_p, bmc_t *cmd, int proc_id){
     if(proc_id == sm_p->state_array[sm_p->state].bmc_commander){
       
       //Send the command
-      if(!rtd_send_bmc(sm_p->p_rtd_bmc_board,cmd->acmd)){
+      if(!libbmc_set_acts_tstpnts(sm_p->libbmc_device, cmd->acmd, cmd->tcmd)){
 	//Copy command to current position
 	memcpy((bmc_t *)&sm_p->bmc_command,cmd,sizeof(bmc_t));
 	//Set retval for good command
