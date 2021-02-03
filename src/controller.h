@@ -247,7 +247,7 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 	     BUFFER_THMEVENT, BUFFER_MTREVENT,
 	     BUFFER_SHKPKT,   BUFFER_LYTPKT,
 	     BUFFER_SHKFULL,  BUFFER_ACQFULL,
-	     NCIRCBUF};
+	     BUFFER_WFSEVENT, NCIRCBUF};
 
 #define SCIEVENTSIZE     5
 #define SHKEVENTSIZE     20
@@ -259,6 +259,7 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 #define LYTPKTSIZE       5
 #define SHKFULLSIZE      5
 #define ACQFULLSIZE      5
+#define WFSEVENTSIZE     5
 
 /*************************************************
  * LOWFS Settings
@@ -709,10 +710,18 @@ typedef struct sci_struct{
   uint16 data[SCIXS][SCIYS];
 } sci_t;
 
-typedef struct field_struct{
-  double rfield[SCI_NPIX];
-  double ifield[SCI_NPIX];
-} field_t;
+typedef struct sci_bands_struct{
+  sci_t band[SCI_NBANDS];
+} sci_bands_t;
+
+typedef struct sci_howfs_struct{
+  sci_bands_t step[HOWFS_NSTEP];
+} sci_howfs_t;
+
+typedef struct sci_field_struct{
+  double r[SCI_NPIX];
+  double i[SCI_NPIX];
+} sci_field_t;
 
 typedef struct shk_struct{
   uint8 data[SHKXS][SHKYS];
@@ -1018,23 +1027,23 @@ typedef struct lytpkt_struct{
 } lytpkt_t;
 
 typedef struct scievent_struct{
-  pkthed_t hed;
-  float    ccd_temp;
-  float    backplane_temp;
-  float    tec_power;
-  int16    tec_setpoint;
-  uint16   tec_enable;  
-  uint32   xorigin[SCI_NBANDS];
-  uint32   yorigin[SCI_NBANDS];
-  sci_t    image[SCI_NBANDS];
-  bmc_t    bmc;
+  pkthed_t     hed;
+  float        ccd_temp;
+  float        backplane_temp;
+  float        tec_power;
+  int16        tec_setpoint;
+  uint16       tec_enable;  
+  uint32       xorigin[SCI_NBANDS];
+  uint32       yorigin[SCI_NBANDS];
+  sci_bands_t  bands;
+  bmc_t        bmc;
   bmc_status_t bmc_status;
 } scievent_t;
 
-typedef struct howfs_struct{
+typedef struct wfsevent_struct{
   pkthed_t  hed;
   field_t   field[SCI_NBANDS];
-} howfs_t;
+} wfsevent_t;
 
 typedef struct thmevent_struct{
   pkthed_t  hed;
@@ -1244,6 +1253,7 @@ typedef volatile struct {
 
   //Events circular buffers
   scievent_t scievent[SCIEVENTSIZE];
+  wfsevent_t wfsevent[WFSEVENTSIZE];
   shkevent_t shkevent[SHKEVENTSIZE];
   lytevent_t lytevent[LYTEVENTSIZE];
   acqevent_t acqevent[ACQEVENTSIZE];

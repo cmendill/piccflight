@@ -378,21 +378,41 @@ int sci_expose(sm_t *sm_p, flidev_t dev, uint16 *img_buffer){
 }
 
 /**************************************************************/
+/* SCI_HOWFS_CONSTRUCT_FIELD                                  */
+/*  - Construct field measurement from a series of probes     */
+/**************************************************************/
+int sci_howfs_construct_field(sci_howfs_t *frames,sci_field_t *field){
+  int i;
+  
+  //Fake field
+  for(i=0;i<SCI_NPIX;i++){
+    field->r[i] = 1;
+    field->i[i] = 2;
+  }
+
+}
+
+/**************************************************************/
 /* SCI_PROCESS_IMAGE                                          */
 /*  - Process SCI camera image                                */
 /**************************************************************/
 void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
   static scievent_t scievent;
+  static wfsevent_t wfsevent;
   scievent_t* scievent_p;
   static struct timespec start,end,delta,last;
   static int init = 0;
+  static int howfs_init = 0;
+  static int howfs_got_frame[HOWFS_NSTEP]={0};
+  static sci_howfs_t howfs_frames;
   double dt;
+  double delta_nm[BMC_NACT]={0};
   uint16 fakepx=0;
   uint32 i,j,k;
   static unsigned long frame_number=0;
   int print_origin=0;
   int state;
-  static bmc_t bmc_try;
+  static bmc_t bmc_try, bmc_flat;
   int rc;
   time_t t;
   
@@ -422,6 +442,7 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
     frame_number=0;
     //Reset calibration routines
     bmc_calibrate(sm_p,0,NULL,NULL,NULL,LYTID,FUNCTION_RESET);
+    howfs_init=0;
     init=1;
     if(SCI_DEBUG) printf("SCI: Initialized\n");
   }
@@ -505,14 +526,14 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
       for(k=0;k<SCI_NBANDS;k++)
 	for(i=0;i<SCIXS;i++)
 	  for(j=0;j<SCIYS;j++)
-	    scievent.image[k].data[i][j]=fakepx++;
+	    scievent.bands.band[k].data[i][j]=fakepx++;
   }
   else{
     //Cut out bands 
     for(k=0;k<SCI_NBANDS;k++)
       for(i=0;i<SCIXS;i++)
 	for(j=0;j<SCIYS;j++)
-    	  scievent.image[k].data[i][j] = img_buffer[sci_xy2index(scievent.xorigin[k]-(SCIXS/2)+i,scievent.yorigin[k]-(SCIYS/2)+j)];
+    	  scievent.bands.band[k].data[i][j] = img_buffer[sci_xy2index(scievent.xorigin[k]-(SCIXS/2)+i,scievent.yorigin[k]-(SCIYS/2)+j)];
   }
 
   /*************************************************************/
@@ -528,6 +549,51 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
       return 0;
     }
     memcpy(&bmc_try,&bmc,sizeof(bmc_t));
+
+    //Run HOWFS
+    if(sm_p->state_array[state].sci.run_howfs){
+      if(!howfs_init){
+	//Set starting frame number
+	howfs_istart = frame_number;
+	//Save current BMC command as starting flat
+	memcpy(&bmc_flat,&bmc,sizeof(bmc_t));
+	//Set init
+	howfs_init = 1;
+      }
+      //Define HOWFS index
+      ihowfs = (frame_number - howfs_istart) % HOWFS_NSTEP;
+
+      //********** HOWFC Indexing ************
+      //ihowfs:  0      1   2   3   4
+      //dmcmd:   p0    p1  p2  p3  new_flat
+      //image:   flat  p0  p1  p2  p3
+
+      //Save frames
+      memcpy(&howfs_frames.step[ihowfs],&scievent.bands,sizeof(sci_bands_t));
+            
+      //HOWFS Operations
+      if(ihowfs == HOWFS_NSTEP-1){
+	//Calculate field 
+	sci_howfs_construct_field(&howfs_frames,&wfsevent.field);
+
+	//Run EFC
+	if(sm_p->state_array[state].sci.run_efc){
+	  //Get DM acuator deltas from field
+	  sci_howfs_efc(&wfsevent.field,delta_nm);
+	  //Add deltas to current flat
+	  bmc_add_nm(bmc_flat.acmd,delta_nm);
+	}
+	
+	//Write WFSEVENT to circular buffer 
+	memcpy(&wfsevent.hed,&scievent.hed,sizeof(pkthed_t));
+	wfsevent.hed.type = BUFFER_WFSEVENT;
+	if(sm_p->write_circbuf[BUFFER_WFSEVENT])
+	  write_to_buffer(sm_p,(void *)&WFSevent,BUFFER_WFSEVENT);
+      }
+
+      //Set BMC Probe: try = flat + probe
+      bmc_howfs_probe(&bmc_flat,&bmc_try,ihowfs);
+    }
     
     
     //Calibrate BMC
@@ -553,21 +619,8 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
   }
   
   //Write SCIEVENT to circular buffer 
-  if(sm_p->write_circbuf[BUFFER_SCIEVENT]){
-    //Open circular buffer 
-    scievent_p=(scievent_t *)open_buffer(sm_p,BUFFER_SCIEVENT);
-    
-    //Copy scievent 
-    memcpy(scievent_p,&scievent,sizeof(scievent_t));;
-    
-    //Get final timestamp 
-    clock_gettime(CLOCK_REALTIME,&end);
-    scievent_p->hed.end_sec = end.tv_sec;
-    scievent_p->hed.end_nsec = end.tv_nsec;
-    
-    //Close buffer 
-    close_buffer(sm_p,BUFFER_SCIEVENT);
-  }
+  if(sm_p->write_circbuf[BUFFER_SCIEVENT])
+    write_to_buffer(sm_p,(void *)&scievent,BUFFER_SCIEVENT);
 }
 
 /**************************************************************/

@@ -208,10 +208,11 @@ int read_from_buffer(sm_t *sm_p, void *output, int buf, int id){
 /******************************************************************************
         WRITE TO A CIRCULAR BUFFER
 ******************************************************************************/
-int write_to_buffer(sm_t *sm_p, void *input, int buf){
+void write_to_buffer(sm_t *sm_p, void *input, int buf){
   int i;
   char *ptr;
   unsigned long int offset;
+  static struct timespec end;;
 
   //for each client, if we are out of buffer space, remove trailing entry
   for (i=0;i<NCLIENTS;i++){
@@ -226,9 +227,14 @@ int write_to_buffer(sm_t *sm_p, void *input, int buf){
   ptr = (char *)sm_p->circbuf[buf].buffer + offset;
   memcpy((void *)ptr,input,sm_p->circbuf[buf].nbytes);
 
+  //set final timestamp
+  clock_gettime(CLOCK_REALTIME,&end);
+  ((pkthed_t *)ptr)->end_sec = end.tv_sec;
+  ((pkthed_t *)ptr)->end_nsec = end.tv_nsec;
+
   //increment write offset
   sm_p->circbuf[buf].write_offset++;
-  return 0;
+  return;
 }
 
 /******************************************************************************
