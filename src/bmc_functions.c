@@ -134,20 +134,24 @@ int bmc_set_bias(sm_t *sm_p, float bias, int proc_id){
 /**************************************************************/
 int bmc_set_random(sm_t *sm_p, int proc_id){
   bmc_t bmc;
+  double dl[BMC_NACT];
   time_t t;
   int i;
   
   //Init random numbers
   srand((unsigned) time(&t));
   
-  //Get current command
+  //Get current command (volts)
   if(bmc_get_command(sm_p,&bmc))
     return 1;
 
-  //Add perturbation
+  //Get random perturbations (length)
   for(i=0;i<BMC_NACT;i++)
-    bmc.acmd[i] += (2*(rand() / (double) RAND_MAX) - 1) * BMC_SCI_POKE;
+    dl[i] = (2*(rand() / (double) RAND_MAX) - 1) * BMC_SCI_POKE;
 
+  //Add perturbations to command
+  bmc_add_length(&bmc.acmd,&bmc.acmd,dl);
+  
   //Send command
   return(bmc_send_command(sm_p,&bmc,proc_id));
 }
@@ -162,17 +166,21 @@ int bmc_zero_flat(sm_t *sm_p, int proc_id){
   return(bmc_send_command(sm_p,&bmc,proc_id));
 }
 
-/**************************************************************/
-/* BMC_REVERT_FLAT                                            */
-/* - Set BMC to #defined flat map                             */
-/**************************************************************/
-int bmc_revert_flat(sm_t *sm_p, int proc_id){
+/***************************************************************/
+/* BMC_REVERT_FLAT                                             */
+/*  - Loads BMC flat from default file                         */
+/***************************************************************/
+int bmc_revert_flat(sm_t *sm_p,int proc_id){
   bmc_t bmc;
-  const float flat[BMC_NACT] = BMC_OFFSET;
-  memset(&bmc,0,sizeof(bmc_t));
-  memcpy(bmc.acmd,flat,sizeof(bmc.acmd));
+  const char filename[]=BMC_DEFAULT_FILE;
+
+  //Read flat file
+  read_file(filename,&bmc);
+  
+  //Send flat to BMC
   return(bmc_send_command(sm_p,&bmc,proc_id,1));
 }
+
 
 /**************************************************************/
 /* BMC_SAVE_FLAT                                              */
@@ -180,45 +188,16 @@ int bmc_revert_flat(sm_t *sm_p, int proc_id){
 /**************************************************************/
 int bmc_save_flat(sm_t *sm_p){
   bmc_t bmc;
-  struct stat st = {0};
-  FILE *fd=NULL;
-  static char outfile[MAX_FILENAME];
-  char temp[MAX_FILENAME];
-  char path[MAX_FILENAME];
+  const char filename[]=BMC_FLAT_FILE;
 
   //Get current command
   if(bmc_get_command(sm_p,&bmc))
     return 1;
 
-  //Clear zernike commands
-  memset(bmc.zcmd,0,sizeof(bmc.zcmd));
-
-  //Open output file
-  //--setup filename
-  sprintf(outfile,"%s",BMC_FLAT_FILE);
-  //--create output folder if it does not exist
-  strcpy(temp,outfile);
-  strcpy(path,dirname(temp));
-  if (stat(path, &st) == -1){
-    printf("BMC: creating folder %s\n",path);
-    recursive_mkdir(path, 0777);
-  }
-  //--open file
-  if((fd = fopen(outfile, "w")) == NULL){
-    perror("BMC: bmc_save_flat fopen()\n");
-    return 1;
-  }
+  //Save command to file
+  check_and_mkdir(filename);
+  write_file(filename,&bmc,sizeof(bmc_t));
   
-  //Save flat
-  if(fwrite(&bmc,sizeof(bmc_t),1,fd) != 1){
-    printf("BMC: bmc_save_flat fwrite error!\n");
-    fclose(fd);
-    return 1;
-  }
-  printf("BMC: Wrote: %s\n",outfile);
-
-  //Close file
-  fclose(fd);
   return 0;
 }
 
@@ -227,44 +206,12 @@ int bmc_save_flat(sm_t *sm_p){
 /*  - Loads BMC flat from file                                 */
 /***************************************************************/
 int bmc_load_flat(sm_t *sm_p,int proc_id){
-  FILE *fd=NULL;
-  char filename[MAX_FILENAME];
-  uint64 fsize,rsize;
   bmc_t bmc;
-    
-  //Open file
-  //--setup filename
-  sprintf(filename,BMC_FLAT_FILE);
-  //--open file
-  if((fd = fopen(filename,"r")) == NULL){
-    perror("BMC: bmc_load_flat fopen");
-    return 0;
-  }
-  //--check file size
-  fseek(fd, 0L, SEEK_END);
-  fsize = ftell(fd);
-  rewind(fd);
-  rsize = sizeof(bmc_t);
-  if(fsize != rsize){
-    printf("BMC: incorrect BMC_FLAT_FILE size %lu != %lu\n",fsize,rsize);
-    fclose(fd);
-    return 0;
-  }
+  const char filename[]=BMC_FLAT_FILE;
+
+  //Read flat file
+  read_file(filename,&bmc);
   
-  //Read file
-  if(fread(&bmc,rsize,1,fd) != 1){
-    perror("BMC: bmc_load_flat fread");
-    fclose(fd);
-    return 0;
-  }
-
-  //Close file
-  fclose(fd);
-  printf("BMC: Read: %s\n",filename);
-
-  //Clear zernike commands
-  memset(bmc.zcmd,0,sizeof(bmc.zcmd));
-
   //Send flat to BMC
   return(bmc_send_command(sm_p,&bmc,proc_id,1));
 }
@@ -275,10 +222,7 @@ int bmc_load_flat(sm_t *sm_p,int proc_id){
 /* - Initialize calibration structure                         */
 /**************************************************************/
 void bmc_init_calibration(sm_t *sm_p){
-  int i;
-  FILE *fd=NULL;
-  char filename[MAX_FILENAME];
-
+  
   //Zero out calibration struct
   memset((void *)&sm_p->bmccal,0,sizeof(bmccal_t));
 
@@ -290,18 +234,19 @@ void bmc_init_calibration(sm_t *sm_p){
 }
 
 /**************************************************************/
-/* BMC_ADD_NM                                                 */
-/* - Add NM command to current voltage command                */
+/* BMC_ADD_LENGTH                                             */
+/* - Add length command to current voltage command            */
+/* - Output can be same pointer as input                      */
 /**************************************************************/
-void bmc_add_nm(float *v, double *dn){
+void bmc_add_length(float *input, float *output, double *dl){
   int i;
   double a[BMC_NACT]={0};
   double b[BMC_NACT]={0};
-  double n;
+  double l;
   static int init=0;
-  //n = a*v^2 + b*v
-  //0 = a*v^2 + b*v -n
-  //v = (sqrt(b^2 + 4*a*n) - b) / 2*a
+  //l = a*v^2 + b*v
+  //0 = a*v^2 + b*v - l
+  //v = (sqrt(b^2 + 4*a*l) - b) / 2*a
   if(!init){
     if(read_file(BMC_CAL_A_FILE,a,sizeof(a)))
       memset(a,0,sizeof(a));
@@ -310,10 +255,41 @@ void bmc_add_nm(float *v, double *dn){
     init=1;
   }
   for(i=0;i<BMC_NACT;i++){
-    n    = a[i]*v[i]^2 + b[i]*v[i];
-    n   += dn[i];
-    v[i] = (sqrt(b[i]^2 + 4*a[i]*n) - b[i]) / (2*a[i]);
+    l    = a[i]*input[i]^2 + b[i]*input[i];
+    l   += dl[i];
+    output[i] = (sqrt(b[i]^2 + 4*a[i]*l) - b[i]) / (2*a[i]);
   }
+  return;
+}
+
+
+/**************************************************************/
+/* BMC_ADD_PROBE                                              */
+/* - Add probe pattern to BMC command                         */
+/* - Output can be same pointer as input                      */
+/**************************************************************/
+void bmc_add_probe(float *input, float *output, int ihowfs){
+  static init init=0;
+  static double probe[BMC_NACT][SCI_HOWFS_NPROBE];
+  char filename[MAX_FILENAME];
+  int i,j;
+
+  //Initialize
+  if(!init){
+    //Read probes
+    for(i=0;i<SCI_HOWFS_NPROBE;i++){
+      sprintf(filename,HOWFS_PROBE_FILE,i);
+      if(read_file(filename,&probe[0][i])){
+	memset(&probe[0][0],0,sizeof(probe));
+	break;
+      }
+    }
+    init=1;
+  }
+
+  //Add probe to flat
+  bmc_add_length(input,output,probe[0][ihowfs];
+    
   return;
 }
 
@@ -334,8 +310,6 @@ int bmc_calibrate(sm_t *sm_p, int calmode, bmc_t *bmc, uint32_t *step, int proci
   double act[BMC_NACT];
   double poke=0;
   int    ncalim=0;
-  double probe[BMC_NACT][HOWFS_NPROBE];
-  char   filename[MAX_FILENAME];
   
   /* Reset & Quick Init*/
   if(reset || !init){
@@ -348,14 +322,6 @@ int bmc_calibrate(sm_t *sm_p, int calmode, bmc_t *bmc, uint32_t *step, int proci
     //Init BMC calmodes
     for(i=0;i<BMC_NCALMODES;i++)
       bmc_init_calmode(i,&bmccalmodes[i]);
-    //Read probes
-    for(i=0;i<SCI_HOWFS_NPROBE;i++){
-      sprintf(filename,HOWFS_PROBE_FILE,i);
-      if(read_file(filename,&probe[0][i])){
-	memset(&probe[0][0],0,sizeof(probe));
-	break;
-      }
-    }
     init = 1;
     if(reset) return calmode;
   }
@@ -475,15 +441,12 @@ int bmc_calibrate(sm_t *sm_p, int calmode, bmc_t *bmc, uint32_t *step, int proci
 
   /* BMC_CALMODE_PROBE: Step through the HOWFS probe patterns         */
   if(calmode==BMC_CALMODE_PROBE){
-    //Set step counter
-    *step = (sm_p->bmccal.countA[calmode]/ncalim);
-
     //Check counters
     if(sm_p->bmccal.countA[calmode] >= 0 && sm_p->bmccal.countA[calmode] < ncalim*SCI_HOWFS_NPROBE){
       //Set all BMC actuators to starting position
       memcpy(bmc,(bmc_t *)&sm_p->bmccal.bmc_start[calmode],sizeof(bmc_t));
       //Add probe pattern
-      bmc_add_nm(&bmc->acmd,probe[0][*step]);
+      bmc_add_probe(&bmc->acmd,&bmc->acmd,sm_p->bmccal.countA[calmode]/ncalim);
     }else{
       //Set bmc back to starting position
       memcpy(bmc,(bmc_t *)&sm_p->bmccal.bmc_start[calmode],sizeof(bmc_t));
@@ -493,6 +456,9 @@ int bmc_calibrate(sm_t *sm_p, int calmode, bmc_t *bmc, uint32_t *step, int proci
       init = 0;
     }
     
+    //Set step counter
+    *step = (sm_p->bmccal.countA[calmode]/ncalim);
+
     //Increment counter
     sm_p->bmccal.countA[calmode]++;
     

@@ -191,6 +191,9 @@ enum bmccalmodes {BMC_CALMODE_NONE,
 #define BMC_PROBE_FILE         "config/howfs_bmcprobe%d.dat"
 #define BMC_CAL_A_FILE         "config/bmc_cal_a.dat"
 #define BMC_CAL_B_FILE         "config/bmc_cal_b.dat"
+#define BMC_DEFAULT_FILE       "config/bmc_default.dat"
+#define BMC_FLAT_FILE          "config/bmc_flat.dat"
+#define EFC_MATRIX_FILE        "config/efc_matrix.dat"
 #define DATAPATH               "output/data/flight_data/folder_%5.5d/"
 #define DATANAME               "output/data/flight_data/folder_%5.5d/picture.%10.10ld.%s.%8.8d.dat"
 #define SHK_HEX_CALFILE        "output/data/calibration/shk_hex_%s_%s_%s_caldata.dat"
@@ -474,7 +477,7 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 #define BMC_DMIN       0
 #define BMC_DMID       ((DM_DMIN+DM_DMAX)/2)
 #define BMC_SCI_NCALIM 1
-#define BMC_SCI_POKE   10.0 //nm   
+#define BMC_SCI_POKE   10e-9 //meters
 
 /*************************************************
  * ALPAO DM Parameters

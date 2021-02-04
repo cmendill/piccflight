@@ -469,6 +469,24 @@ void recursive_mkdir(const char *dir, mode_t mode) {
   mkdir(tmp, mode);
 }
 
+/******************************************************************************
+        CHECK_AND_MKDIR
+******************************************************************************/
+void check_and_mkdir(char *filename){
+  struct stat st = {0};
+  char temp[MAX_FILENAME];
+  char path[MAX_FILENAME];
+
+  //--create output folder if it does not exist
+  strcpy(temp,filename); //dirname may modify filename, make copy
+  strcpy(path,dirname(temp));
+  if (stat(path, &st) == -1){
+    printf("COM: creating folder %s\n",path);
+    recursive_mkdir(path, 0777);
+  }
+  return;
+}
+
 /**************************************************************/
 /* RANDOM_ARRAY                                               */
 /* - Create an array of random numbers                        */
@@ -763,7 +781,7 @@ int read_uplink(char *cmd, int max, int fd){
 /* READ_FILE                                                  */
 /* - Read entire file into pointer                            */
 /**************************************************************/
-int read_file(char *filename, void *dest, size_t nbytes){
+int read_file(char *filename, void *dst, size_t nbytes){
   FILE   *fd=NULL;
   uint64 fsize;
   
@@ -785,8 +803,32 @@ int read_file(char *filename, void *dest, size_t nbytes){
   }
 
   //--read file
-  if(fread(dest,nbytes,1,fd) != 1){
+  if(fread(dst,nbytes,1,fd) != 1){
     perror("ERR: read_file --> fread");
+    fclose(fd);
+    return 1;
+  }
+
+  fclose(fd);
+  return 0;    
+}
+
+/**************************************************************/
+/* WRITE_FILE                                                 */
+/* - Write from pointer to file                               */ 
+/**************************************************************/
+int write_file(char *filename, void *src, size_t nbytes){
+  FILE   *fd=NULL;
+  
+  /****** READ FILE ******/
+  //--open file
+  if((fd = fopen(filename,"w")) == NULL){
+    perror("ERR: write_file --> fopen");
+    return 1;
+  }
+  //--write file
+  if(fwrite(src,nbytes,1,fd) != 1){
+    perror("ERR: write_file --> fwrite");
     fclose(fd);
     return 1;
   }

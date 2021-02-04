@@ -381,7 +381,7 @@ int sci_expose(sm_t *sm_p, flidev_t dev, uint16 *img_buffer){
 /* SCI_HOWFS_CONSTRUCT_FIELD                                  */
 /*  - Construct field measurement from a series of probes     */
 /**************************************************************/
-int sci_howfs_construct_field(sci_howfs_t *frames,sci_field_t *field){
+void sci_howfs_construct_field(sci_howfs_t *frames,sci_field_t *field){
   int i;
   
   //Fake field
@@ -389,7 +389,30 @@ int sci_howfs_construct_field(sci_howfs_t *frames,sci_field_t *field){
     field->r[i] = 1;
     field->i[i] = 2;
   }
+  return;
+}
 
+/**************************************************************/
+/* SCI_HOWFS_EFC                                              */
+/*  - Perform EFC matrix multiply                             */
+/**************************************************************/
+void sci_howfs_efc(sci_field_t *field, double *delta_length){
+  static int init=0;
+  static double matrix[2*SCI_NPIX*BMC_NACT]={0};
+  const char filename[]=EFC_MATRIX_FILE;
+  
+  //Initialize
+  if(!init){
+    //Read EFC matrix from file
+    if(read_file(filename,matrix))
+      memset(matrix,0,sizeof(matrix));
+    init=1;
+  }
+  
+  //Perform matrix multiply
+  num_dgemv(matrix, (double *)field, delta_length, BMC_NACT, 2*SCI_NPIX);
+
+  return;
 }
 
 /**************************************************************/
@@ -406,7 +429,7 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
   static int howfs_got_frame[HOWFS_NSTEP]={0};
   static sci_howfs_t howfs_frames;
   double dt;
-  double delta_nm[BMC_NACT]={0};
+  double delta_length[BMC_NACT]={0};
   uint16 fakepx=0;
   uint32 i,j,k;
   static unsigned long frame_number=0;
@@ -579,9 +602,9 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
 	//Run EFC
 	if(sm_p->state_array[state].sci.run_efc){
 	  //Get DM acuator deltas from field
-	  sci_howfs_efc(&wfsevent.field,delta_nm);
+	  sci_howfs_efc(&wfsevent.field,delta_);
 	  //Add deltas to current flat
-	  bmc_add_nm(bmc_flat.acmd,delta_nm);
+	  bmc_add_length(bmc_flat.acmd,bmc_flat.acmd,delta_length);
 	}
 	
 	//Write WFSEVENT to circular buffer 
