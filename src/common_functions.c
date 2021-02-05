@@ -9,6 +9,7 @@
 #include <ctype.h>
 #include <netdb.h>
 #include <math.h>
+#include <libgen.h>
 
 #include <sys/time.h>
 #include <sys/mman.h>

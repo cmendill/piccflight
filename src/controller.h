@@ -209,7 +209,8 @@ enum bmccalmodes {BMC_CALMODE_NONE,
 #define SCI_OUTFILE            "output/data/calibration/sci_output_%s.dat"
 #define SHK_ORIGIN_FILE        "output/settings/shk_origin.dat"
 #define ALP_FLAT_FILE          "output/settings/alp_flat.dat"
-#define SCI_ORIGIN_FILE        "output/settings/sci_origin.dat"
+#define SCI_XORIGIN_FILE        "output/settings/sci_xorigin.dat"
+#define SCI_YORIGIN_FILE        "output/settings/sci_yorigin.dat"
 #define LYT_REFIMG_FILE        "output/settings/lyt_refimg.dat"
 #define LYT_DARKIMG_FILE       "output/settings/lyt_darkimg.dat"
 #define CMD_ERASE_FLIGHT_DATA  "rm -r output/data/flight_data/*"
@@ -467,8 +468,8 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 /*************************************************
  * BMC DM Parameters
  *************************************************/
-#define BMC_NACT       LIBBMC_NACT
-#define BMC_NTEST      LIBBMC_NTSTPTS
+#define BMC_NACT       952 //LIBBMC_NACT
+#define BMC_NTEST      11  //LIBBMC_NTSTPNT
 #define BMC_RANGE      LIBBMC_VOLT_RANGE_150V
 #define BMC_STROKE     1.5
 #define BMCXS          34
@@ -718,7 +719,7 @@ typedef struct sci_bands_struct{
 } sci_bands_t;
 
 typedef struct sci_howfs_struct{
-  sci_bands_t step[HOWFS_NSTEP];
+  sci_bands_t step[SCI_HOWFS_NSTEP];
 } sci_howfs_t;
 
 typedef struct sci_field_struct{
@@ -858,6 +859,7 @@ typedef struct calmode_struct{
   int    shk_boxsize_cmd;
   int    shk_ncalim;
   int    lyt_ncalim;
+  int    sci_ncalim;
   double shk_poke;
   double shk_zpoke[LOWFS_N_ZERNIKE];
   double lyt_poke;
@@ -888,7 +890,7 @@ typedef struct bmccal_struct{
 /*************************************************
  * Packet Header
  *************************************************/
-#define PICC_PKT_VERSION     31  //packet version number
+#define PICC_PKT_VERSION     32  //packet version number
 typedef struct pkthed_struct{
   uint16  version;       //packet version number
   uint16  type;          //packet ID word
@@ -1043,9 +1045,18 @@ typedef struct scievent_struct{
   bmc_status_t bmc_status;
 } scievent_t;
 
-typedef struct wfsevent_struct{
+typedef struct acqevent_struct{
   pkthed_t  hed;
-  field_t   field[SCI_NBANDS];
+  uint16    xcen;
+  uint16    ycen;
+  uint32    padding;
+  hex_t     hex;
+  acq_t     image;
+} acqevent_t;
+
+typedef struct wfsevent_struct{
+  pkthed_t      hed;
+  sci_field_t   field[SCI_NBANDS];
 } wfsevent_t;
 
 typedef struct thmevent_struct{

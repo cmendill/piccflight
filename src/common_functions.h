@@ -13,7 +13,7 @@ int  procwait(int pid,int timout);
 void checkin(sm_t *sm_p,int id);
 int check_buffer(sm_t *sm_p, int buf, int id);
 int read_from_buffer(sm_t *sm_p, void *output, int buf, int id);
-int write_to_buffer(sm_t *sm_p, void *input, int buf);
+void write_to_buffer(sm_t *sm_p, void *input, int buf);
 void *open_buffer(sm_t *sm_p, int buf);
 void close_buffer(sm_t *sm_p, int buf);
 int read_newest_buffer(sm_t *sm_p, void *output, int buf, int id);
@@ -24,12 +24,15 @@ int  read_from_socket(int s,void *buf,int num);
 void *get_in_addr(struct sockaddr *sa);
 int  eth_send(char *addr,char *port,void *data,int nbytes);
 void recursive_mkdir(const char *dir, mode_t mode);
+void check_and_mkdir(char *filename);
 void random_array(double *array, long num, double amplitude);
 int getirq(char *driver);
 int setirq_affinity(int irq, int proc);
 void timestamp(char *ts);
 int ditherfill(int *index, int length);
 int read_uplink(char *cmd, int max, int fd);
+int read_file(char *filename, void *dst, size_t nbytes);
+int write_file(char *filename, void *src, size_t nbytes);
 
 #endif
 

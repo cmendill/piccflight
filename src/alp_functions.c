@@ -114,46 +114,21 @@ void alp_init_calmode(int calmode, calmode_t *alp){
 /*  - Convert zernike commands to ALPAO DM commands           */
 /**************************************************************/
 int alp_zern2alp(double *zernikes,double *actuators,int reset){
-  FILE *matrix=NULL;
-  char matrix_file[MAX_FILENAME];
+  char filename[]=SHKZER2ALPACT_FILE;
   static int init=0;
   static double zern2alp_matrix[LOWFS_N_ZERNIKE*ALP_NACT]={0};
-  uint64 fsize,rsize;
-  int c,i;
 
   if(!init || reset){
-    /* Open matrix file */
-    //--setup filename
-    sprintf(matrix_file,SHKZER2ALPACT_FILE);
-    //--open matrix file
-    if((matrix = fopen(matrix_file,"r")) == NULL){
-      perror("ALP: zern2alp fopen");
+    //Read matrix file
+    if(read_file(filename,zern2alp_matrix,sizeof(zern2alp_matrix))){
+      memset(zern2alp_matrix,0,sizeof(zern2alp_matrix));
       return 1;
     }
-
-    //--check file size
-    fseek(matrix, 0L, SEEK_END);
-    fsize = ftell(matrix);
-    rewind(matrix);
-    rsize = LOWFS_N_ZERNIKE*ALP_NACT*sizeof(double);
-    if(fsize != rsize){
-      printf("ALP: incorrect zern2alp matrix file size %lu != %lu\n",fsize,rsize);
-      return 1;
-    }
-
-    //--read matrix
-    if(fread(zern2alp_matrix,LOWFS_N_ZERNIKE*ALP_NACT*sizeof(double),1,matrix) != 1){
-      perror("ALP: zern2alp fread");
-      return 1;
-    }
-    //--close file
-    fclose(matrix);
-    printf("ALP: Read: %s\n",matrix_file);
-
-    //--set init flag
+    
+    //Set init flag
     init=1;
 
-    //--return if reset
+    //Return if reset
     if(reset) return 0;
   }
 
@@ -350,11 +325,8 @@ int alp_revert_flat(sm_t *sm_p, int proc_id){
 /**************************************************************/
 int alp_save_flat(sm_t *sm_p){
   alp_t alp;
-  struct stat st = {0};
-  FILE *fd=NULL;
-  static char outfile[MAX_FILENAME];
-  char temp[MAX_FILENAME];
-  char path[MAX_FILENAME];
+  char filename[]=ALP_FLAT_FILE;
+  
 
   //Get current command
   if(alp_get_command(sm_p,&alp))
@@ -363,32 +335,11 @@ int alp_save_flat(sm_t *sm_p){
   //Clear zernike commands
   memset(alp.zcmd,0,sizeof(alp.zcmd));
 
-  //Open output file
-  //--setup filename
-  sprintf(outfile,"%s",ALP_FLAT_FILE);
-  //--create output folder if it does not exist
-  strcpy(temp,outfile);
-  strcpy(path,dirname(temp));
-  if (stat(path, &st) == -1){
-    printf("ALP: creating folder %s\n",path);
-    recursive_mkdir(path, 0777);
-  }
-  //--open file
-  if((fd = fopen(outfile, "w")) == NULL){
-    perror("ALP: alp_save_flat fopen()\n");
-    return 1;
-  }
-  
-  //Save flat
-  if(fwrite(&alp,sizeof(alp_t),1,fd) != 1){
-    printf("ALP: alp_save_flat fwrite error!\n");
-    fclose(fd);
-    return 1;
-  }
-  printf("ALP: Wrote: %s\n",outfile);
+  //Write output file
+  check_and_mkdir(filename);
+  write_file(filename,&alp,sizeof(alp));
+  printf("ALP: Wrote: %s\n",filename);
 
-  //Close file
-  fclose(fd);
   return 0;
 }
 
@@ -397,44 +348,16 @@ int alp_save_flat(sm_t *sm_p){
 /*  - Loads ALP flat from file                                 */
 /***************************************************************/
 int alp_load_flat(sm_t *sm_p,int proc_id){
-  FILE *fd=NULL;
-  char filename[MAX_FILENAME];
-  uint64 fsize,rsize;
+  char filename[]=ALP_FLAT_FILE;
   alp_t alp;
     
-  //Open file
-  //--setup filename
-  sprintf(filename,ALP_FLAT_FILE);
-  //--open file
-  if((fd = fopen(filename,"r")) == NULL){
-    perror("ALP: alp_load_flat fopen");
-    return 0;
-  }
-  //--check file size
-  fseek(fd, 0L, SEEK_END);
-  fsize = ftell(fd);
-  rewind(fd);
-  rsize = sizeof(alp_t);
-  if(fsize != rsize){
-    printf("ALP: incorrect ALP_FLAT_FILE size %lu != %lu\n",fsize,rsize);
-    fclose(fd);
-    return 0;
-  }
-  
   //Read file
-  if(fread(&alp,rsize,1,fd) != 1){
-    perror("ALP: alp_load_flat fread");
-    fclose(fd);
-    return 0;
-  }
-
-  //Close file
-  fclose(fd);
-  printf("ALP: Read: %s\n",filename);
-
+  if(read_file(filename,&alp,sizeof(alp)))
+    return 1;
+  
   //Clear zernike commands
   memset(alp.zcmd,0,sizeof(alp.zcmd));
-
+  
   //Send flat to ALP
   return(alp_send_command(sm_p,&alp,proc_id,1));
 }
@@ -446,43 +369,20 @@ int alp_load_flat(sm_t *sm_p,int proc_id){
 /**************************************************************/
 void alp_init_calibration(sm_t *sm_p){
   int i;
-  FILE *fd=NULL;
-  char filename[MAX_FILENAME];
+  char filename[]=ZERNIKE_ERRORS_FILE;
 
   //Zero out calibration struct
   memset((void *)&sm_p->alpcal,0,sizeof(alpcal_t));
 
-  /* Open zernike errors file */
-  //--setup filename
-  sprintf(filename,ZERNIKE_ERRORS_FILE);
-  //--open file
-  if((fd = fopen(filename,"r")) == NULL){
-    perror("ALP: Zernike errors file: fopen");
-    
-  }else{
-    //--check file size
-    fseek(fd, 0L, SEEK_END);
-    if(ftell(fd) != sizeof(sm_p->alpcal.zernike_errors)){
-      printf("ALP: incorrect zernike_errors file size (%lu) != expected (%lu)\n",ftell(fd),sizeof(sm_p->alpcal.zernike_errors));
-    }else{
-      rewind(fd);
-      //--read data
-      if(fread(sm_p->alpcal.zernike_errors,sizeof(sm_p->alpcal.zernike_errors),1,fd) != 1){
-	perror("ALP: zernike_errors fread");
-      }else{    
-	printf("ALP: Read %s\n",filename);
-      }
-    }
-  }
+  //Read Zernike errors file
+  if(read_file(filename,sm_p->alpcal.zernike_errors,sizeof(sm_p->alpcal.zernike_errors)))
+    memset(sm_p->alpcal.zernike_errors,0,sizeof(sm_p->alpcal.zernike_errors));
   
-  //--close file
-  fclose(fd);
-
   /* Initialize other elements */
   sm_p->alpcal.timer_length = CALMODE_TIMER_SEC;
   sm_p->alpcal.command_scale = 1;
   
-  
+  return; 
 }
 
 /**************************************************************/

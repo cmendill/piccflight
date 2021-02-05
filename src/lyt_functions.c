@@ -6,9 +6,7 @@
 #include <string.h>
 #include <fcntl.h>
 #include <ctype.h>
-#include <libgen.h>
 #include <math.h>
-#include <sys/stat.h>
 #include <sys/io.h>
 #include <phx_api.h>
 
@@ -28,95 +26,32 @@
 /*  - Initialize reference image structure                    */
 /**************************************************************/
 void lyt_initref(lytref_t *lytref){
-  FILE   *fd=NULL;
   char   filename[MAX_FILENAME];
-  uint64 fsize,rsize;
   
   /****** READ DEFAULT REFERENCE IMAGE FILE ******/
   //--setup filename
   sprintf(filename,LYTPIX2ALPZER_REFIMG_FILE);
-  //--open file
-  if((fd = fopen(filename,"r")) == NULL){
-    perror("LYT: lyt_refimg fopen");
-  }else{
-    //--check file size
-    fseek(fd, 0L, SEEK_END);
-    fsize = ftell(fd);
-    rewind(fd);
-    rsize = sizeof(lytref->refdef);
-    if(fsize != rsize){
-      printf("LYT: incorrect lyt_refimg file size %lu != %lu\n",fsize,rsize);
-      fclose(fd);
-    }else{
-      //--read file
-      if(fread(&lytref->refdef[0][0],rsize,1,fd) != 1){
-	perror("LYT: lyt_refimg fread");
-	fclose(fd);
-      }else{
-	//--close file
-	fclose(fd);
-	printf("LYT: Read: %s\n",filename);
-	//--copy to current reference image
-	memcpy(&lytref->refimg[0][0],&lytref->refdef[0][0],sizeof(lytref->refimg));
-      }
-    }
-  }
+  //--read file
+  if(read_file(filename,&lytref->refdef[0][0],sizeof(lytref->refdef)))
+    memset(&lytref->refdef[0][0],0,sizeof(lytref->refdef));
+  //--copy to current reference image
+  memcpy(&lytref->refimg[0][0],&lytref->refdef[0][0],sizeof(lytref->refimg));
   
   /****** READ MODEL REFERENCE IMAGE FILE ******/
   //--setup filename
   sprintf(filename,LYTPIX2ALPZER_REFMOD_FILE);
-  //--open file
-  if((fd = fopen(filename,"r")) == NULL){
-    perror("LYT: lyt_refmod fopen");
-  }else{
-    //--check file size
-    fseek(fd, 0L, SEEK_END);
-    fsize = ftell(fd);
-    rewind(fd);
-    rsize = sizeof(lytref->refmod);
-    if(fsize != rsize){
-      printf("LYT: incorrect lyt_refmod file size %lu != %lu\n",fsize,rsize);
-      fclose(fd);
-    }else{
-      //--read file
-      if(fread(&lytref->refmod[0][0],rsize,1,fd) != 1){
-	perror("LYT: lyt_refmod fread");
-	fclose(fd);
-      }else{
-	//--close file
-	fclose(fd);
-	printf("LYT: Read: %s\n",filename);
-      }
-    }
-  }
+  //--read file
+  if(read_file(filename,&lytref->refmod[0][0],sizeof(lytref->refmod)))
+    memset(&lytref->refmod[0][0],0,sizeof(lytref->refmod));
   
   /****** READ PIXEL MASK FILE ******/
   //--setup filename
   sprintf(filename,LYTPIX2ALPZER_PXMASK_FILE);
-  //--open file
-  if((fd = fopen(filename,"r")) == NULL){
-    perror("LYT: lyt_pxmask fopen");
-  }else{
-    //--check file size
-    fseek(fd, 0L, SEEK_END);
-    fsize = ftell(fd);
-    rewind(fd);
-    rsize = sizeof(lytref->pxmask);
-    if(fsize != rsize){
-      printf("LYT: incorrect lyt_pxmask file size %lu != %lu\n",fsize,rsize);
-      fclose(fd);
-    }else{
-      //--read file
-      if(fread(&lytref->pxmask[0][0],rsize,1,fd) != 1){
-	perror("LYT: lyt_pxmaxk fread");
-	fclose(fd);
-      }else{
-	//--close file
-	fclose(fd);
-	printf("LYT: Read: %s\n",filename);
-      }
-    }
-  }
+  //--read file
+  if(read_file(filename,&lytref->pxmask[0][0],sizeof(lytref->pxmask)))
+    memset(&lytref->pxmask[0][0],0,sizeof(lytref->pxmask));
+
+  return;
 }
 
 /**************************************************************/
@@ -124,39 +59,12 @@ void lyt_initref(lytref_t *lytref){
 /*  - Load reference image from file                          */
 /**************************************************************/
 void lyt_loadref(lytref_t *lytref){
-  FILE *fd=NULL;
-  char filename[MAX_FILENAME];
-  uint64 fsize,rsize;
+  char filename[]=LYT_REFIMG_FILE;
   double refimg[LYTXS][LYTYS];
-  
-  /* Open refimg file */
-  //--setup filename
-  sprintf(filename,LYT_REFIMG_FILE);
-  //--open file
-  if((fd = fopen(filename,"r")) == NULL){
-    perror("LYT: loadref fopen");
-    return;
-  }
-  //--check file size
-  fseek(fd, 0L, SEEK_END);
-  fsize = ftell(fd);
-  rewind(fd);
-  rsize = sizeof(refimg);
-  if(fsize != rsize){
-    printf("LYT: incorrect LYT_REFIMG_FILE size %lu != %lu\n",fsize,rsize);
-    fclose(fd);
-    return;
-  }
-  
+
   //Read file
-  if(fread(&refimg[0][0],sizeof(refimg),1,fd) != 1){
-    perror("LYT: loadref fread");
-    fclose(fd);
+  if(read_file(filename,&refimg[0][0],sizeof(refimg)))
     return;
-  }
-  
-  //Close file
-  fclose(fd);
   printf("LYT: Read: %s\n",filename);
 
   //Copy image into reference structure
@@ -168,39 +76,13 @@ void lyt_loadref(lytref_t *lytref){
 /*  - Save reference image to file                             */
 /***************************************************************/
 void lyt_saveref(lytref_t *lytref){
-  struct stat st = {0};
-  FILE *fd=NULL;
-  static char outfile[MAX_FILENAME];
-  char temp[MAX_FILENAME];
-  char path[MAX_FILENAME];
-  int i;
+  char filename[]=LYT_REFIMG_FILE;
   
-  /* Open output file */
-  //--setup filename
-  sprintf(outfile,"%s",LYT_REFIMG_FILE);
-  //--create output folder if it does not exist
-  strcpy(temp,outfile);
-  strcpy(path,dirname(temp));
-  if (stat(path, &st) == -1){
-    printf("LYT: creating folder %s\n",path);
-    recursive_mkdir(path, 0777);
-  }
-  //--open file
-  if((fd = fopen(outfile, "w")) == NULL){
-    perror("LYT: saveref fopen()\n");
+  //Write file
+  if(write_file(filename,&lytref->refimg[0][0],sizeof(lytref->refimg)))
     return;
-  }
-  
-  //Save refimg
-  if(fwrite(&lytref->refimg[0][0],sizeof(lytref->refimg),1,fd) != 1){
-    printf("LYT: saveref fwrite error!\n");
-    fclose(fd);
-    return;
-  }
-  printf("LYT: Wrote: %s\n",outfile);
-  
-  //Close file
-  fclose(fd);
+  printf("LYT: Wrote: %s\n",filename);
+
   return;
 }
 
@@ -209,39 +91,12 @@ void lyt_saveref(lytref_t *lytref){
 /*  - Load dark image from file                               */
 /**************************************************************/
 void lyt_loaddark(lytdark_t *lytdark){
-  FILE *fd=NULL;
-  char filename[MAX_FILENAME];
-  uint64 fsize,rsize;
+  char filename[]=LYT_DARKIMG_FILE;
   lytdark_t readimg;
-  
-  /* Open darkimg file */
-  //--setup filename
-  sprintf(filename,LYT_DARKIMG_FILE);
-  //--open file
-  if((fd = fopen(filename,"r")) == NULL){
-    perror("LYT: loaddark fopen");
-    return;
-  }
-  //--check file size
-  fseek(fd, 0L, SEEK_END);
-  fsize = ftell(fd);
-  rewind(fd);
-  rsize = sizeof(lytdark_t);
-  if(fsize != rsize){
-    printf("LYT: incorrect LYT_DARKIMG_FILE size %lu != %lu\n",fsize,rsize);
-    fclose(fd);
-    return;
-  }
-  
+
   //Read file
-  if(fread(&readimg,sizeof(lytdark_t),1,fd) != 1){
-    perror("LYT: loaddark fread");
-    fclose(fd);
+  if(read_file(filename,&readimg,sizeof(readimg)))
     return;
-  }
-  
-  //Close file
-  fclose(fd);
   printf("LYT: Read: %s\n",filename);
 
   //Copy image
@@ -253,39 +108,14 @@ void lyt_loaddark(lytdark_t *lytdark){
 /*  - Save dark image to file                                  */
 /***************************************************************/
 void lyt_savedark(lytdark_t *lytdark){
-  struct stat st = {0};
-  FILE *fd=NULL;
-  static char outfile[MAX_FILENAME];
-  char temp[MAX_FILENAME];
-  char path[MAX_FILENAME];
-  int i;
-  
-  /* Open output file */
-  //--setup filename
-  sprintf(outfile,"%s",LYT_DARKIMG_FILE);
-  //--create output folder if it does not exist
-  strcpy(temp,outfile);
-  strcpy(path,dirname(temp));
-  if (stat(path, &st) == -1){
-    printf("LYT: creating folder %s\n",path);
-    recursive_mkdir(path, 0777);
-  }
-  //--open file
-  if((fd = fopen(outfile, "w")) == NULL){
-    perror("LYT: savedark fopen()\n");
+  char filename[]=LYT_DARKIMG_FILE;
+    
+  //Write file
+  if(write_file(filename,lytdark,sizeof(lytdark_t)))
     return;
-  }
   
-  //Save darkimg
-  if(fwrite(lytdark,sizeof(lytdark_t),1,fd) != 1){
-    printf("LYT: savedark fwrite error!\n");
-    fclose(fd);
-    return;
-  }
-  printf("LYT: Wrote: %s\n",outfile);
-  
-  //Close file
-  fclose(fd);
+  printf("LYT: Wrote: %s\n",filename);
+
   return;
 }
 
@@ -364,20 +194,18 @@ void lyt_alp_zernpid(lytevent_t *lytevent, double *zernike_delta, int *zernike_s
 /*  - Return 0 on success, 1 on error                         */
 /**************************************************************/
 int lyt_zernike_fit(lyt_t *image, lytref_t *lytref, double *zernikes, double *xcentroid, double *ycentroid, int reset){
-  FILE   *fd=NULL;
-  char   filename[MAX_FILENAME];
   static lytevent_t lytevent;
   static int init=0;
   static double lyt2zern_matrix[LYTXS*LYTYS*LOWFS_N_ZERNIKE]={0}; //zernike fitting matrix (max size)
   static int lyt_npix=0;
   double lyt_delta[LYTXS*LYTYS]={0}; //measured image - reference (max size)
-  uint64 fsize,rsize;
   double img_total,ref_total,cen_total,value,xnum,ynum;
   double xhist[LYTXS]={0};
   double yhist[LYTYS]={0};
   int    i,j,count;
   uint16 maxpix;
-  
+  char   filename[]=LYTPIX2ALPZER_FILE;
+
   /* Initialize Fitting Matrix */
   if(!init || reset){
 
@@ -390,36 +218,16 @@ int lyt_zernike_fit(lyt_t *image, lytref_t *lytref, double *zernikes, double *xc
 
 
     /****** READ ZERNIKE MATRIX FILE ******/
-    //--setup filename
-    sprintf(filename,LYTPIX2ALPZER_FILE);
-    //--open file
-    if((fd = fopen(filename,"r")) == NULL){
-      perror("LYT: lyt2zern fopen");
-    }else{
-      //--check file size
-      fseek(fd, 0L, SEEK_END);
-      fsize = ftell(fd);
-      rewind(fd);
-      rsize = lyt_npix*LOWFS_N_ZERNIKE*sizeof(double);
-      if(fsize != rsize){
-	printf("LYT: incorrect lyt2zern matrix file size %lu != %lu\n",fsize,rsize);
-	fclose(fd);
-      }else{
-	//--read matrix
-	if(fread(lyt2zern_matrix,rsize,1,fd) != 1){
-	  perror("LYT: lyt2zern fread");
-	  fclose(fd);
-	}else{
-	  //--close file
-	  fclose(fd);
-	  printf("LYT: Read: %s\n",filename);
-	}
-      }
+    if(read_file(filename,lyt2zern_matrix,lyt_npix*LOWFS_N_ZERNIKE*sizeof(double))){
+      printf("LYT: ERROR reading lyt2zern file\n");
+      memset(lyt2zern_matrix,0,sizeof(lyt2zern_matrix));
     }
+    else
+      printf("LYT: Read: %s\n",filename);
     
-    //--set init flag
+    //Set init flag
     init=1;
-    //--return if reset
+    //Return if reset
     if(reset) return 0;
   }
 

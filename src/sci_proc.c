@@ -19,6 +19,8 @@
 #include "controller.h"
 #include "common_functions.h"
 #include "fakemodes.h"
+#include "bmc_functions.h"
+#include "numeric.h"
 
 /* Process File Descriptor */
 int sci_shmfd;
@@ -194,55 +196,26 @@ void sci_findorigin(scievent_t *sci,uint16_t *img_buffer){
 /*  - Load band origins from file                             */
 /**************************************************************/
 void sci_loadorigin(scievent_t *sci){
-  FILE *fd=NULL;
-  char filename[MAX_FILENAME];
-  uint64 fsize,rsize;
-  uint32 xorigin[SCI_NBANDS] = SCI_XORIGIN;
-  uint32 yorigin[SCI_NBANDS] = SCI_YORIGIN;
-  int k;
+  char xfile[]=SCI_XORIGIN_FILE;
+  char yfile[]=SCI_YORIGIN_FILE;
+  uint32 xorigin[SCI_NBANDS];
+  uint32 yorigin[SCI_NBANDS];
   
-  /* Initialize with default origins */
-  memcpy(sci->xorigin,xorigin,sizeof(xorigin));
-  memcpy(sci->yorigin,yorigin,sizeof(yorigin));
-  
-  /* Open origin file */
-  //--setup filename
-  sprintf(filename,SCI_ORIGIN_FILE);
-  //--open file
-  if((fd = fopen(filename,"r")) == NULL){
-    perror("SCI: loadorigin fopen");
+  //Read files
+  if(read_file(xfile,xorigin,sizeof(xorigin))){
+    printf("SCI: ERROR: X Origin read_file\n");
     return;
   }
-  //--check file size
-  fseek(fd, 0L, SEEK_END);
-  fsize = ftell(fd);
-  rewind(fd);
-  rsize = sizeof(xorigin) + sizeof(yorigin);
-  if(fsize != rsize){
-    printf("SCI: incorrect SCI_ORIGIN_FILE size %lu != %lu\n",fsize,rsize);
-    fclose(fd);
+  if(read_file(yfile,yorigin,sizeof(yorigin))){
+    printf("SCI: ERROR: Y Origin read_file\n");
     return;
   }
   
-  //Read file
-  if(fread(xorigin,sizeof(xorigin),1,fd) != 1){
-    perror("SCI: loadorigin fread");
-    fclose(fd);
-    return;
-  }
-  if(fread(yorigin,sizeof(yorigin),1,fd) != 1){
-    perror("SCI: loadorigin fread");
-    fclose(fd);
-    return;
-  }
-  
-  //Close file
-  fclose(fd);
-  printf("SCI: Read: %s\n",filename);
-
   //Copy origins
   memcpy(sci->xorigin,xorigin,sizeof(xorigin));
   memcpy(sci->yorigin,yorigin,sizeof(yorigin));
+  
+  return;
 }
 
 /***************************************************************/
@@ -250,44 +223,21 @@ void sci_loadorigin(scievent_t *sci){
 /*  - Saves cell origins to file                               */
 /***************************************************************/
 void sci_saveorigin(scievent_t *sci){
-  struct stat st = {0};
-  FILE *fd=NULL;
-  static char outfile[MAX_FILENAME];
-  char temp[MAX_FILENAME];
-  char path[MAX_FILENAME];
-  int k;
+  char xfile[]=SCI_XORIGIN_FILE;
+  char yfile[]=SCI_YORIGIN_FILE;
 
-  /* Open output file */
-  //--setup filename
-  sprintf(outfile,"%s",SCI_ORIGIN_FILE);
-  //--create output folder if it does not exist
-  strcpy(temp,outfile);
-  strcpy(path,dirname(temp));
-  if (stat(path, &st) == -1){
-    printf("SCI: creating folder %s\n",path);
-    recursive_mkdir(path, 0777);
-  }
-  //--open file
-  if((fd = fopen(outfile, "w")) == NULL){
-    perror("SCI: saveorigin fopen()\n");
-    return;
-  }
+  //Write files
+  if(write_file(xfile,sci->xorigin,sizeof(sci->xorigin)))
+    printf("SCI: ERROR: X Origin write_file\n");
+  else
+    printf("SCI: Wrote file: %s\n",xfile);
   
-  //Save origins
-  if(fwrite(sci->xorigin,sizeof(sci->xorigin),1,fd) != 1){
-    printf("SCI: saveorigin fwrite error!\n");
-    fclose(fd);
-    return;
-  }
-  if(fwrite(sci->yorigin,sizeof(sci->yorigin),1,fd) != 1){
-    printf("SCI: saveorigin fwrite error!\n");
-    fclose(fd);
-    return;
-  }
-  printf("SCI: Wrote: %s\n",outfile);
+  if(write_file(yfile,sci->yorigin,sizeof(sci->yorigin)))
+    printf("SCI: ERROR: Y Origin write_file\n");
+  else
+    printf("SCI: Wrote file: %s\n",yfile);
 
-  //Close file
-  fclose(fd);
+  return;
 }
 
 /**************************************************************/
@@ -382,13 +332,17 @@ int sci_expose(sm_t *sm_p, flidev_t dev, uint16 *img_buffer){
 /*  - Construct field measurement from a series of probes     */
 /**************************************************************/
 void sci_howfs_construct_field(sci_howfs_t *frames,sci_field_t *field){
-  int i;
+  //NOTE: *field is a pointer to a SCI_NBANDS array of fields
+  int i,k;
   
   //Fake field
-  for(i=0;i<SCI_NPIX;i++){
-    field->r[i] = 1;
-    field->i[i] = 2;
+  for(k=0;k<SCI_NBANDS;k++){
+    for(i=0;i<SCI_NPIX;i++){
+      field[k].r[i] = 1;
+      field[k].i[i] = 2;
+    }
   }
+  
   return;
 }
 
@@ -397,20 +351,21 @@ void sci_howfs_construct_field(sci_howfs_t *frames,sci_field_t *field){
 /*  - Perform EFC matrix multiply                             */
 /**************************************************************/
 void sci_howfs_efc(sci_field_t *field, double *delta_length){
+  //NOTE: *field is a pointer to a SCI_NBANDS array of fields
   static int init=0;
-  static double matrix[2*SCI_NPIX*BMC_NACT]={0};
-  const char filename[]=EFC_MATRIX_FILE;
+  static double matrix[2*SCI_NPIX*SCI_NBANDS*BMC_NACT]={0};
+  char filename[]=EFC_MATRIX_FILE;
   
   //Initialize
   if(!init){
     //Read EFC matrix from file
-    if(read_file(filename,matrix))
+    if(read_file(filename,matrix,sizeof(matrix)))
       memset(matrix,0,sizeof(matrix));
     init=1;
   }
   
   //Perform matrix multiply
-  num_dgemv(matrix, (double *)field, delta_length, BMC_NACT, 2*SCI_NPIX);
+  num_dgemv(matrix, (double *)field, delta_length, BMC_NACT, 2*SCI_NPIX*SCI_NBANDS);
 
   return;
 }
@@ -426,16 +381,17 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
   static struct timespec start,end,delta,last;
   static int init = 0;
   static int howfs_init = 0;
-  static int howfs_got_frame[HOWFS_NSTEP]={0};
+  static int howfs_got_frame[SCI_HOWFS_NSTEP]={0};
   static sci_howfs_t howfs_frames;
   double dt;
   double delta_length[BMC_NACT]={0};
   uint16 fakepx=0;
   uint32 i,j,k;
-  static unsigned long frame_number=0;
+  static unsigned long frame_number=0,howfs_istart=0;
+  int ihowfs;
   int print_origin=0;
   int state;
-  static bmc_t bmc_try, bmc_flat;
+  static bmc_t bmc, bmc_try, bmc_flat;
   int rc;
   time_t t;
   
@@ -464,7 +420,7 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
     sci_loadorigin(&scievent);
     frame_number=0;
     //Reset calibration routines
-    bmc_calibrate(sm_p,0,NULL,NULL,NULL,LYTID,FUNCTION_RESET);
+    bmc_calibrate(sm_p,0,NULL,NULL,SCIID,FUNCTION_RESET);
     howfs_init=0;
     init=1;
     if(SCI_DEBUG) printf("SCI: Initialized\n");
@@ -569,7 +525,7 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
     //Get last BMC command
     if(bmc_get_command(sm_p,&bmc)){
       //Skip this image
-      return 0;
+      return;
     }
     memcpy(&bmc_try,&bmc,sizeof(bmc_t));
 
@@ -584,7 +540,7 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
 	howfs_init = 1;
       }
       //Define HOWFS index
-      ihowfs = (frame_number - howfs_istart) % HOWFS_NSTEP;
+      ihowfs = (frame_number - howfs_istart) % SCI_HOWFS_NSTEP;
 
       //********** HOWFC Indexing ************
       //ihowfs:  0      1   2   3   4
@@ -595,14 +551,14 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
       memcpy(&howfs_frames.step[ihowfs],&scievent.bands,sizeof(sci_bands_t));
             
       //HOWFS Operations
-      if(ihowfs == HOWFS_NSTEP-1){
-	//Calculate field 
-	sci_howfs_construct_field(&howfs_frames,&wfsevent.field);
+      if(ihowfs == SCI_HOWFS_NSTEP-1){
+	//Calculate field
+	sci_howfs_construct_field(&howfs_frames,wfsevent.field);
 
 	//Run EFC
 	if(sm_p->state_array[state].sci.run_efc){
 	  //Get DM acuator deltas from field
-	  sci_howfs_efc(&wfsevent.field,delta_);
+	  sci_howfs_efc(wfsevent.field,delta_length);
 	  //Add deltas to current flat
 	  bmc_add_length(bmc_flat.acmd,bmc_flat.acmd,delta_length);
 	}
@@ -611,17 +567,17 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
 	memcpy(&wfsevent.hed,&scievent.hed,sizeof(pkthed_t));
 	wfsevent.hed.type = BUFFER_WFSEVENT;
 	if(sm_p->write_circbuf[BUFFER_WFSEVENT])
-	  write_to_buffer(sm_p,(void *)&WFSevent,BUFFER_WFSEVENT);
+	  write_to_buffer(sm_p,(void *)&wfsevent,BUFFER_WFSEVENT);
       }
 
       //Set BMC Probe: try = flat + probe
-      bmc_howfs_probe(&bmc_flat,&bmc_try,ihowfs);
+      bmc_add_probe(bmc_flat.acmd,bmc_try.acmd,ihowfs);
     }
     
     
     //Calibrate BMC
-    if(lytevent.hed.bmc_calmode != BMC_CALMODE_NONE)
-      sm_p->bmc_calmode = bmc_calibrate(sm_p,lytevent.hed.bmc_calmode,&bmc_try,&lytevent.hed.bmc_calstep,SCIID,FUNCTION_NO_RESET);
+    if(scievent.hed.bmc_calmode != BMC_CALMODE_NONE)
+      sm_p->bmc_calmode = bmc_calibrate(sm_p,scievent.hed.bmc_calmode,&bmc_try,&scievent.hed.bmc_calstep,SCIID,FUNCTION_NO_RESET);
     
     //Send command to BMC
     if(bmc_send_command(sm_p,&bmc_try,SCIID)){
@@ -635,10 +591,10 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
   
   //Get BMC Status
   if((sm_p->state_array[state].bmc_commander == SCIID) && sm_p->bmc_ready){
-    if(libbmc_get_status(&libbmc_device))
+    if(libbmc_get_status((libbmc_device_t *)&sm_p->libbmc_device))
       printf("SCI: Failed to get BMC status\n");
     else
-      memcpy(&scievent.bmc_status,&libbmc_device.status,sizeof(bmc_status_t));
+      memcpy(&scievent.bmc_status,&sm_p->libbmc_device.status,sizeof(bmc_status_t));
   }
   
   //Write SCIEVENT to circular buffer 

@@ -558,7 +558,7 @@ int main(int argc,char **argv){
   /* Init HEX Driver */
   if(HEX_ENABLE){
     printf("WAT: Opening HEX driver\n");
-    if(hex_init(&sm_p->hexfd)){
+    if(hex_init((int *)&sm_p->hexfd)){
       sm_p->hex_ready = 0;
       printf("WAT: ERROR: HEX init failed!\n");
     }
@@ -571,7 +571,7 @@ int main(int argc,char **argv){
   /* Initialize BMC DM */
   if(BMC_ENABLE){
     /* Open Device */
-    if((retval = libbmc_open_device(&sm_p->libbmc_device)) < 0){
+    if((retval = libbmc_open_device((libbmc_device_t *)&sm_p->libbmc_device)) < 0){
       printf("SCI: Failed to find the bmc device: %s - %s \n", libbmc_error_name(retval), libbmc_strerror(retval));
       sm_p->bmc_ready = 0;
     }else{
@@ -579,7 +579,7 @@ int main(int argc,char **argv){
       sm_p->bmc_ready = 1;
     }
     /* Turn off LEDs */
-    if(libbmc_toggle_leds_off(&sm_p->libbmc_device))
+    if(libbmc_toggle_leds_off((libbmc_device_t *)&sm_p->libbmc_device))
       printf("SCI: ERROR (libbmc_toggle_leds_off)\n");
     usleep(LIBBMC_LONG_USLEEP);
     /* Disable HV by default*/
@@ -749,16 +749,20 @@ int main(int argc,char **argv){
   
   //Cleanup HEX
   if(HEX_ENABLE){
-    hex_disconnect(hexfd);
-    printf("WAT: HEX closed\n");
+    if(sm_p->hex_ready){
+      hex_disconnect(sm_p->hexfd);
+      printf("WAT: HEX closed\n");
+    }
   }
 
   //Cleanup BMC
   if(BMC_ENABLE){
-    /* Turn BMC HV off */
-    libbmc_hv_off(&sm_p->libbmc_device);
-    /* Close BMC device */
-    libbmc_close_device(&sm_p->libbmc_device);
+    if(sm_p->bmc_ready){
+      /* Turn BMC HV off */
+      libbmc_hv_off((libbmc_device_t *)&sm_p->libbmc_device);
+      /* Close BMC device */
+      libbmc_close_device((libbmc_device_t *)&sm_p->libbmc_device);
+    }
   }
 
   //Close shared memory

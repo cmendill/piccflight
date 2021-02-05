@@ -96,7 +96,7 @@ int bmc_send_command(sm_t *sm_p, bmc_t *cmd, int proc_id){
     if(proc_id == sm_p->state_array[sm_p->state].bmc_commander){
       
       //Send the command
-      if(!libbmc_set_acts_tstpnts(sm_p->libbmc_device, cmd->acmd, cmd->tcmd)){
+      if(!libbmc_set_acts_tstpnts((libbmc_device_t *)&sm_p->libbmc_device, cmd->acmd, cmd->tcmd)){
 	//Copy command to current position
 	memcpy((bmc_t *)&sm_p->bmc_command,cmd,sizeof(bmc_t));
 	//Set retval for good command
@@ -150,7 +150,7 @@ int bmc_set_random(sm_t *sm_p, int proc_id){
     dl[i] = (2*(rand() / (double) RAND_MAX) - 1) * BMC_SCI_POKE;
 
   //Add perturbations to command
-  bmc_add_length(&bmc.acmd,&bmc.acmd,dl);
+  bmc_add_length(bmc.acmd,bmc.acmd,dl);
   
   //Send command
   return(bmc_send_command(sm_p,&bmc,proc_id));
@@ -172,13 +172,13 @@ int bmc_zero_flat(sm_t *sm_p, int proc_id){
 /***************************************************************/
 int bmc_revert_flat(sm_t *sm_p,int proc_id){
   bmc_t bmc;
-  const char filename[]=BMC_DEFAULT_FILE;
+  char filename[]=BMC_DEFAULT_FILE;
 
   //Read flat file
-  read_file(filename,&bmc);
+  read_file(filename,&bmc,sizeof(bmc));
   
   //Send flat to BMC
-  return(bmc_send_command(sm_p,&bmc,proc_id,1));
+  return(bmc_send_command(sm_p,&bmc,proc_id));
 }
 
 
@@ -188,7 +188,7 @@ int bmc_revert_flat(sm_t *sm_p,int proc_id){
 /**************************************************************/
 int bmc_save_flat(sm_t *sm_p){
   bmc_t bmc;
-  const char filename[]=BMC_FLAT_FILE;
+  char filename[]=BMC_FLAT_FILE;
 
   //Get current command
   if(bmc_get_command(sm_p,&bmc))
@@ -207,13 +207,13 @@ int bmc_save_flat(sm_t *sm_p){
 /***************************************************************/
 int bmc_load_flat(sm_t *sm_p,int proc_id){
   bmc_t bmc;
-  const char filename[]=BMC_FLAT_FILE;
+  char filename[]=BMC_FLAT_FILE;
 
   //Read flat file
-  read_file(filename,&bmc);
+  read_file(filename,&bmc,sizeof(bmc));
   
   //Send flat to BMC
-  return(bmc_send_command(sm_p,&bmc,proc_id,1));
+  return(bmc_send_command(sm_p,&bmc,proc_id));
 }
 
 
@@ -255,9 +255,9 @@ void bmc_add_length(float *input, float *output, double *dl){
     init=1;
   }
   for(i=0;i<BMC_NACT;i++){
-    l    = a[i]*input[i]^2 + b[i]*input[i];
+    l    = a[i]*input[i]*input[i] + b[i]*input[i];
     l   += dl[i];
-    output[i] = (sqrt(b[i]^2 + 4*a[i]*l) - b[i]) / (2*a[i]);
+    output[i] = (sqrt(b[i]*b[i] + 4*a[i]*l) - b[i]) / (2*a[i]);
   }
   return;
 }
@@ -269,7 +269,7 @@ void bmc_add_length(float *input, float *output, double *dl){
 /* - Output can be same pointer as input                      */
 /**************************************************************/
 void bmc_add_probe(float *input, float *output, int ihowfs){
-  static init init=0;
+  static int init=0;
   static double probe[BMC_NACT][SCI_HOWFS_NPROBE];
   char filename[MAX_FILENAME];
   int i,j;
@@ -278,8 +278,8 @@ void bmc_add_probe(float *input, float *output, int ihowfs){
   if(!init){
     //Read probes
     for(i=0;i<SCI_HOWFS_NPROBE;i++){
-      sprintf(filename,HOWFS_PROBE_FILE,i);
-      if(read_file(filename,&probe[0][i])){
+      sprintf(filename,BMC_PROBE_FILE,i);
+      if(read_file(filename,&probe[0][i],sizeof(double)*BMC_NACT)){
 	memset(&probe[0][0],0,sizeof(probe));
 	break;
       }
@@ -288,7 +288,7 @@ void bmc_add_probe(float *input, float *output, int ihowfs){
   }
 
   //Add probe to flat
-  bmc_add_length(input,output,probe[0][ihowfs];
+  bmc_add_length(input,output,&probe[0][ihowfs]);
     
   return;
 }
@@ -446,7 +446,7 @@ int bmc_calibrate(sm_t *sm_p, int calmode, bmc_t *bmc, uint32_t *step, int proci
       //Set all BMC actuators to starting position
       memcpy(bmc,(bmc_t *)&sm_p->bmccal.bmc_start[calmode],sizeof(bmc_t));
       //Add probe pattern
-      bmc_add_probe(&bmc->acmd,&bmc->acmd,sm_p->bmccal.countA[calmode]/ncalim);
+      bmc_add_probe(bmc->acmd,bmc->acmd,sm_p->bmccal.countA[calmode]/ncalim);
     }else{
       //Set bmc back to starting position
       memcpy(bmc,(bmc_t *)&sm_p->bmccal.bmc_start[calmode],sizeof(bmc_t));

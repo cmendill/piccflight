@@ -94,25 +94,15 @@ void shk_revertorigin(shkevent_t *shkevent){
 /*  - Saves cell origins to file                               */
 /***************************************************************/
 void shk_saveorigin(shkevent_t *shkevent){
-  struct stat st = {0};
   FILE *fd=NULL;
-  static char outfile[MAX_FILENAME];
+  char filename[]=SHK_ORIGIN_FILE;
   int i;
-  char temp[MAX_FILENAME];
-  char path[MAX_FILENAME];
   
   /* Open output file */
-  //--setup filename
-  sprintf(outfile,"%s",SHK_ORIGIN_FILE);
   //--create output folder if it does not exist
-  strcpy(temp,outfile);
-  strcpy(path,dirname(temp));
-  if (stat(path, &st) == -1){
-    printf("SHK: creating folder %s\n",path);
-    recursive_mkdir(path, 0777);
-  }
+  check_and_mkdir(filename);
   //--open file
-  if((fd = fopen(outfile, "w")) == NULL){
+  if((fd = fopen(filename, "w")) == NULL){
     perror("SHK: saveorigin fopen()\n");
     return;
   }
@@ -130,7 +120,7 @@ void shk_saveorigin(shkevent_t *shkevent){
       return;
     }
   }
-  printf("SHK: Wrote: %s\n",outfile);
+  printf("SHK: Wrote: %s\n",filename);
 
   //Close file
   fclose(fd);
@@ -446,11 +436,8 @@ void shk_zernike_matrix(shkcell_t *cells, double *matrix_fwd, double *matrix_inv
   double dxdy_dz[2*SHK_BEAM_NCELLS*LOWFS_N_ZERNIKE] = {0};
   double x_1 = 0, x_2 = 0, x_3 = 0, x_4 = 0, x_5=0;
   double y_1 = 0, y_2 = 0, y_3 = 0, y_4 = 0, y_5=0;
-  struct stat st = {0};
   FILE *fd=NULL;
-  char outfile[MAX_FILENAME];
-  char temp[MAX_FILENAME];
-  char path[MAX_FILENAME];
+  char filename[MAX_FILENAME];
   double cell_size_px = SHK_LENSLET_PITCH_UM/SHK_PX_PITCH_UM;
   
   
@@ -549,28 +536,13 @@ void shk_zernike_matrix(shkcell_t *cells, double *matrix_fwd, double *matrix_inv
   /* Write forward matrix to file */
   if(SHK_SAVE_ZMATRIX){
     //Set up file name
-    sprintf(outfile, SHKZER2SHKCEL_OUTFILE);
-    //Create output folder if it does not exist
-    strcpy(temp,outfile);
-    strcpy(path,dirname(temp));
-    if(stat(path, &st) == -1){
-      printf("SHK: creating folder %s\n",path);
-      recursive_mkdir(path, 0777);
-    }
-    //Open file
-    if((fd = fopen(outfile, "w")) == NULL){
-      perror("SHK: zern2shk fopen");
+    sprintf(filename, SHKZER2SHKCEL_OUTFILE);
+    //Write file
+    if(write_file(filename,dz_dxdy,sizeof(dz_dxdy))){
+      printf("SHK: ERROR: Could not write Zernike matrix file: %s\n",filename);
     }
     else{
-      //Write matrix
-      if(fwrite(dz_dxdy,sizeof(dz_dxdy),1,fd) !=1){
-	perror("SHK: zern2shk fwrite");
-	fclose(fd);
-      }else{
-	//Close file
-	fclose(fd);
-	if(SHK_DEBUG) printf("SHK: Wrote Zernike matrix file: %s\n",outfile);
-      }
+      if(SHK_DEBUG) printf("SHK: Wrote Zernike matrix file: %s\n",filename);
     }
   }
   
@@ -587,30 +559,15 @@ void shk_zernike_matrix(shkcell_t *cells, double *matrix_fwd, double *matrix_inv
   /* Write inverse matrix to file */
   if(SHK_SAVE_ZMATRIX){
     //Set up file name
-    sprintf(outfile, SHKCEL2SHKZER_OUTFILE);
-    //Create output folder if it does not exist
-    strcpy(temp,outfile);
-    strcpy(path,dirname(temp));
-    if (stat(path, &st) == -1){
-      printf("SHK: creating folder %s\n",path);
-      recursive_mkdir(path, 0777);
-    }
-    //Open file
-    if((fd = fopen(outfile, "w")) == NULL){
-      perror("SHK: shk2zern fopen");
+    sprintf(filename, SHKCEL2SHKZER_OUTFILE);
+    //Write file
+    if(write_file(filename,dxdy_dz,sizeof(dxdy_dz))){
+      printf("SHK: ERROR: Could not write Zernike matrix file: %s\n",filename);
     }
     else{
-      //Write matrix
-      if(fwrite(dxdy_dz,sizeof(dxdy_dz),1,fd) !=1){
-	perror("SHK: shk2zern fwrite");
-	fclose(fd);
-      }
-      else{
-	//Close file
-	fclose(fd);
-	if(SHK_DEBUG) printf("SHK: Wrote zernike matrix file: %s\n",outfile);
-      }
+      if(SHK_DEBUG) printf("SHK: Wrote Zernike matrix file: %s\n",filename);
     }
+    
   }
 }
 
@@ -676,9 +633,7 @@ void shk_zernike_ops(shkevent_t *shkevent, int fit_zernikes, int set_targets, in
 /*  - Convert SHK cell commands to ALPAO DM commands          */
 /**************************************************************/
 void shk_cells2alp(shkcell_t *cells, double *actuators, int reset){
-  FILE *matrix=NULL;
-  char matrix_file[MAX_FILENAME];
-  uint64 fsize,rsize;
+  char filename[]=SHKCEL2ALPACT_FILE;
   static int init=0;
   static double cells2alp_matrix[2*SHK_BEAM_NCELLS*ALP_NACT]={0};
   double shk_xydev[2*SHK_BEAM_NCELLS]={0};
@@ -686,38 +641,15 @@ void shk_cells2alp(shkcell_t *cells, double *actuators, int reset){
     
   /* Initialize */
   if(!init || reset){
-    /* Open matrix file */
-    //--setup filename
-    sprintf(matrix_file,SHKCEL2ALPACT_FILE);
-    //--open file
-    if((matrix = fopen(matrix_file,"r")) == NULL){
-      perror("SHK: cells2alp fopen");
-      goto end_of_init;
-    }
-    //--check file size
-    fseek(matrix, 0L, SEEK_END);
-    fsize = ftell(matrix);
-    rewind(matrix);
-    rsize = sizeof(cells2alp_matrix);
-    if(fsize != rsize){
-      printf("SHK: incorrect cells2alp matrix file size %lu != %lu\n",fsize,rsize);
-      fclose(matrix);
-      goto end_of_init;
-    }
-    //--read matrix
-    if(fread(cells2alp_matrix,sizeof(cells2alp_matrix),1,matrix) != 1){
-      perror("SHK: cells2alp fread");
-      fclose(matrix);
-      goto end_of_init;
-    }
-    //--close file
-    fclose(matrix);
-    printf("SHK: Read: %s\n",matrix_file);
+    //Read matrix file
+    if(read_file(filename,cells2alp_matrix,sizeof(cells2alp_matrix)))
+      memset(cells2alp_matrix,0,sizeof(cells2alp_matrix));
+    else
+      printf("SHK: Read: %s\n",filename);
     
-  end_of_init:
-    //--set init flag
+    //Set init flag
     init=1;
-    //--return if reset
+    //Return if reset
     if(reset) return;
   }
 

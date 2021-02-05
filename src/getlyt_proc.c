@@ -30,13 +30,10 @@ void getlytctrlC(int sig)
 
 void getlyt_proc(void){
   lytevent_t lytevent[LYT_NSAMPLES];
-  struct stat st = {0};
   int shmfd;
   FILE *out=NULL;
   unsigned long int count=0,clearcount=0;
   char outfile[MAX_FILENAME];
-  char temp[MAX_FILENAME];
-  char path[MAX_FILENAME];
 
   /* Open Shared Memory */
   sm_t *sm_p;
@@ -52,12 +49,7 @@ void getlyt_proc(void){
   //--setup filename
   sprintf(outfile,"%s",(char *)sm_p->calfile);
   //--create output folder if it does not exist
-  strcpy(temp,outfile);
-  strcpy(path,dirname(temp));
-  if (stat(path, &st) == -1){
-    printf("GETLYT: creating folder %s\n",path);
-    recursive_mkdir(path, 0777);
-  }
+  check_and_mkdir(outfile);
   //--open file
   if((out = fopen(outfile, "w")) == NULL){
     perror("GETLYT: fopen()\n");

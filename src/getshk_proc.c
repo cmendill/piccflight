@@ -30,13 +30,10 @@ void getshkctrlC(int sig)
 
 void getshk_proc(void){
   shkevent_t shkevent[SHK_NSAMPLES];
-  struct stat st = {0};
   int shmfd;
   FILE *out=NULL;
   unsigned long int count=0,clearcount=0;
   char outfile[MAX_FILENAME];
-  char temp[MAX_FILENAME];
-  char path[MAX_FILENAME];
 
   /* Open Shared Memory */
   sm_t *sm_p;
@@ -52,12 +49,7 @@ void getshk_proc(void){
   //--setup filename
   sprintf(outfile,"%s",(char *)sm_p->calfile);
   //--create output folder if it does not exist
-  strcpy(temp,outfile);
-  strcpy(path,dirname(temp));
-  if (stat(path, &st) == -1){
-    printf("GETSHK: creating folder %s\n",path);
-    recursive_mkdir(path, 0777);
-  }
+  check_and_mkdir(outfile);
   //--open file
   if((out = fopen(outfile, "w")) == NULL){
     perror("GETSHK: fopen()\n");

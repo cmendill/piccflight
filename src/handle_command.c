@@ -685,7 +685,7 @@ int handle_command(char *line, sm_t *sm_p){
       if(!strncasecmp(line,cmd,strlen(cmd))){
 	if(HEX_ENABLE){
 	  printf("CMD: Opening HEX driver\n");
-	  if(hex_init(&sm_p->hexfd)){
+	  if(hex_init((int *)&sm_p->hexfd)){
 	    sm_p->hex_ready = 0;
 	    printf("CMD: ERROR: HEX init failed!\n");
 	  }
@@ -1094,7 +1094,7 @@ int handle_command(char *line, sm_t *sm_p){
 	printf("CMD: Turning ON BMC HV\n");
 	printf("CMD: -- WARNING -- Only operate HV below 30 percent humidity\n");
 	// Start BMC controller, turn ON HV
-	if((ret=libbmc_hv_on(&sm_p->libbmc_device,BMC_RANGE)) < 0)
+	if((ret=libbmc_hv_on((libbmc_device_t *)&sm_p->libbmc_device,BMC_RANGE)) < 0)
 	  printf("CMD: Failed to start BMC controller : %s - %s \n", libbmc_error_name(ret), libbmc_strerror(ret));
 	else
 	  sm_p->bmc_hv_on = 1;
@@ -1116,7 +1116,7 @@ int handle_command(char *line, sm_t *sm_p){
 	printf("CMD: Turning OFF BMC HV\n");
 	printf("CMD: -- WARNING -- Only operate HV below 30 percent humidity\n");
 	// Stop BMC controller, turn OFF HV
-	if((ret=libbmc_hv_off(&sm_p->libbmc_device)) < 0)
+	if((ret=libbmc_hv_off((libbmc_device_t *)&sm_p->libbmc_device)) < 0)
 	  printf("CMD: Failed to stop BMC controller : %s - %s \n", libbmc_error_name(ret), libbmc_strerror(ret));
 	else
 	  sm_p->bmc_hv_on = 0;
