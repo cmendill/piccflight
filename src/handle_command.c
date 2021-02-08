@@ -851,7 +851,7 @@ int handle_command(char *line, sm_t *sm_p){
   }
   
   /****************************************
-   * ALPAO DM CONTROL
+   * ALP DM CONTROL
    ***************************************/
 
   //Set all ALP actuators to the same value
@@ -869,7 +869,7 @@ int handle_command(char *line, sm_t *sm_p){
 	printf("CMD: ALP bias must be between %f and %f \n",ALP_MIN_BIAS,ALP_MAX_BIAS);
     }
     else
-      printf("CMD: Manual ALPAO DM control disabled in this state\n");
+      printf("CMD: Manual ALP DM control disabled in this state\n");
     return(CMD_NORMAL);
   }
 
@@ -883,7 +883,7 @@ int handle_command(char *line, sm_t *sm_p){
 	  printf("CMD: ERROR: alp_revert_flat failed!\n");
     }
     else
-      printf("CMD: Manual ALPAO DM control disabled in this state\n");
+      printf("CMD: Manual ALP DM control disabled in this state\n");
     return(CMD_NORMAL);
   }
   
@@ -897,7 +897,7 @@ int handle_command(char *line, sm_t *sm_p){
 	  printf("CMD: ERROR: alp_revert_flat failed!\n");
     }
     else
-      printf("CMD: Manual ALPAO DM control disabled in this state\n");
+      printf("CMD: Manual ALP DM control disabled in this state\n");
     return(CMD_NORMAL);
   }
 
@@ -911,7 +911,7 @@ int handle_command(char *line, sm_t *sm_p){
 	  printf("CMD: ERROR: alp_save_flat failed!\n");
     }
     else
-      printf("CMD: Manual ALPAO DM control disabled in this state\n");
+      printf("CMD: Manual ALP DM control disabled in this state\n");
     return(CMD_NORMAL);
   }
 
@@ -925,7 +925,7 @@ int handle_command(char *line, sm_t *sm_p){
 	  printf("CMD: ERROR: alp_load_flat failed!\n");
     }
     else
-      printf("CMD: Manual ALPAO DM control disabled in this state\n");
+      printf("CMD: Manual ALP DM control disabled in this state\n");
     return(CMD_NORMAL);
   }
 
@@ -939,7 +939,7 @@ int handle_command(char *line, sm_t *sm_p){
 	  printf("CMD: ERROR: alp_set_random failed!\n");
     }
     else
-      printf("CMD: Manual ALPAO DM control disabled in this state\n");
+      printf("CMD: Manual ALP DM control disabled in this state\n");
     return(CMD_NORMAL);
   }
 
@@ -953,7 +953,7 @@ int handle_command(char *line, sm_t *sm_p){
 	  printf("CMD: ERROR: alp_set_zrandom failed!\n");
     }
     else
-      printf("CMD: Manual ALPAO DM control disabled in this state\n");
+      printf("CMD: Manual ALP DM control disabled in this state\n");
     return(CMD_NORMAL);
   }
 
@@ -1016,7 +1016,7 @@ int handle_command(char *line, sm_t *sm_p){
       }
     }
     else
-      printf("CMD: Manual ALPAO DM control disabled in this state\n");
+      printf("CMD: Manual ALP DM control disabled in this state\n");
     return CMD_NORMAL;
   }
 
@@ -1063,12 +1063,12 @@ int handle_command(char *line, sm_t *sm_p){
       }
     }
     else
-      printf("CMD: Manual ALPAO DM control disabled in this state\n");
+      printf("CMD: Manual ALP DM control disabled in this state\n");
     return CMD_NORMAL;
   }
 
   /****************************************
-   * BMC DM CONTROL
+   * BMC DM POWER
    **************************************/
 
   //HV control
@@ -1129,6 +1129,161 @@ int handle_command(char *line, sm_t *sm_p){
       printf("CMD: BMC controller not ready\n");
     }
     return(CMD_NORMAL);
+  }
+
+    /****************************************
+   * BMC DM CONTROL
+   ***************************************/
+
+  //Set all BMC actuators to the same value
+  sprintf(cmd,"bmc bias");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    if(sm_p->state_array[sm_p->state].bmc_commander == WATID){
+      ftemp = atof(line+strlen(cmd)+1);
+      if((ftemp >= BMC_VMIN) && (ftemp <= BMC_VMAX)){
+	printf("CMD: Setting BMC bias = %f\n",ftemp);
+	if(sm_p->bmc_ready && sm_p->bmc_hv_on){
+	  if(bmc_set_bias(sm_p,ftemp,WATID))
+	    printf("CMD: ERROR: bmc_set_random failed!\n");
+	}
+	else
+	  printf("CMD: BMC not ready. INIT[%d]  HV[%d]\n",sm_p->bmc_ready,sm_p->bmc_hv_on);
+      }
+      else
+	printf("CMD: BMC bias must be between %f and %f \n",BMC_VMIN,BMC_VMAX);
+    }
+    else
+      printf("CMD: Manual BMC DM control disabled in this state\n");
+    return(CMD_NORMAL);
+  }
+
+  //Set BMC to all ZEROS
+  sprintf(cmd,"bmc zero flat");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    if(sm_p->state_array[sm_p->state].bmc_commander == WATID){
+      printf("CMD: Setting BMC to all zeros\n");
+      if(sm_p->bmc_ready && sm_p->bmc_hv_on){
+	if(bmc_zero_flat(sm_p,WATID))
+	  printf("CMD: ERROR: bmc_revert_flat failed!\n");
+      }
+      else
+	printf("CMD: BMC not ready. INIT[%d]  HV[%d]\n",sm_p->bmc_ready,sm_p->bmc_hv_on);
+    }
+    else
+      printf("CMD: Manual BMC DM control disabled in this state\n");
+    return(CMD_NORMAL);
+  }
+  
+  //Revert BMC to default flat
+  sprintf(cmd,"bmc revert flat");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    if(sm_p->state_array[sm_p->state].bmc_commander == WATID){
+      printf("CMD: Reverting BMC flat to default\n");
+      if(sm_p->bmc_ready && sm_p->bmc_hv_on){
+	if(bmc_revert_flat(sm_p,WATID))
+	  printf("CMD: ERROR: bmc_revert_flat failed!\n");
+      }
+      else
+	printf("CMD: BMC not ready. INIT[%d]  HV[%d]\n",sm_p->bmc_ready,sm_p->bmc_hv_on);
+    }
+    else
+      printf("CMD: Manual BMC DM control disabled in this state\n");
+    return(CMD_NORMAL);
+  }
+
+  //Save current BMC command to disk
+  sprintf(cmd,"bmc save flat");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    if(sm_p->state_array[sm_p->state].bmc_commander == WATID){
+      printf("CMD: Saving current BMC command as flat\n");
+      if(bmc_save_flat(sm_p))
+	printf("CMD: ERROR: bmc_save_flat failed!\n");
+    }
+    else
+      printf("CMD: Manual BMC DM control disabled in this state\n");
+    return(CMD_NORMAL);
+  }
+
+  //Load BMC command from disk
+  sprintf(cmd,"bmc load flat");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    if(sm_p->state_array[sm_p->state].bmc_commander == WATID){
+      printf("CMD: Loading BMC flat from file\n");
+      if(sm_p->bmc_ready && sm_p->bmc_hv_on){
+	if(bmc_load_flat(sm_p,WATID))
+	  printf("CMD: ERROR: bmc_load_flat failed!\n");
+      }
+      else
+	printf("CMD: BMC not ready. INIT[%d]  HV[%d]\n",sm_p->bmc_ready,sm_p->bmc_hv_on);
+    }
+    else
+      printf("CMD: Manual BMC DM control disabled in this state\n");
+    return(CMD_NORMAL);
+  }
+
+  //Perturb BMC command with random actuator values
+  sprintf(cmd,"bmc random");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    if(sm_p->state_array[sm_p->state].bmc_commander == WATID){
+      printf("CMD: Sending random actuator pattern to BMC DM\n");
+      if(sm_p->bmc_ready && sm_p->bmc_hv_on){
+	if(bmc_set_random(sm_p,WATID))
+	  printf("CMD: ERROR: bmc_set_random failed!\n");
+      }
+      else
+	printf("CMD: BMC not ready. INIT[%d]  HV[%d]\n",sm_p->bmc_ready,sm_p->bmc_hv_on);
+    }
+    else
+      printf("CMD: Manual BMC DM control disabled in this state\n");
+    return(CMD_NORMAL);
+  }
+  
+
+  //Add a single actuator value to the current command
+  sprintf(cmd,"bmc actuator");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    if(sm_p->state_array[sm_p->state].bmc_commander == WATID){
+      pch = strtok(line+strlen(cmd)," ");
+      if(pch == NULL){
+	printf("CMD: Bad command format\n");
+	return CMD_NORMAL;
+      }
+      itemp  = atoi(pch);
+      pch = strtok(NULL," ");
+      if(pch == NULL){
+	printf("CMD: Bad command format\n");
+	return CMD_NORMAL;
+      }
+      ftemp  = atof(pch);
+      printf("CMD: Trying to change A[%d] by %f volts\n",itemp,ftemp);
+      if(itemp >= 0 && itemp < BMC_NACT && ftemp >= -50  && ftemp <= 50){
+	//Get current command
+	if(bmc_get_command(sm_p,&bmc)){
+	  printf("CMD: bmc_get_command failed!\n");
+	  return CMD_NORMAL;
+	}
+
+	//Add to current command
+	bmc.acmd[itemp] += ftemp;
+
+	//Send command
+	if(bmc_send_command(sm_p,&bmc,WATID,1)){
+	  printf("CMD: bmc_send_command failed\n");
+	  return CMD_NORMAL;
+	}
+	else{
+	  printf("CMD: Changed A[%d] by %f volts\n",itemp,ftemp);
+	  return CMD_NORMAL;
+	}	  
+      }
+      else{
+	printf("CMD: Actuator delta out of bounds [-50,50]\n");
+	return CMD_NORMAL;
+      }
+    }
+    else
+      printf("CMD: Manual BMC DM control disabled in this state\n");
+    return CMD_NORMAL;
   }
 
 

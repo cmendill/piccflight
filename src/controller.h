@@ -471,6 +471,8 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 #define BMC_NACT       952 //LIBBMC_NACT
 #define BMC_NTEST      11  //LIBBMC_NTSTPNT
 #define BMC_RANGE      LIBBMC_VOLT_RANGE_150V
+#define BMC_VMIN       0
+#define BMC_VMAX       150
 #define BMC_STROKE     1.5
 #define BMCXS          34
 #define BMCYS          34

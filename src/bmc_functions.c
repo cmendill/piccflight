@@ -57,6 +57,23 @@ void bmc_init_calmode(int calmode, calmode_t *bmc){
 }
 
 /**************************************************************/
+/* BMC_LIMIT_COMMAND                                          */
+/* - Limit BMC command to voltage limits                      */
+/**************************************************************/
+void bmc_limit_command(bmc_t *cmd){
+  int i;
+
+  for(i=0;i<BMC_NACT;i++){
+    cmd->acmd[i] = cmd->acmd[i] < BMC_VMIN ? BMC_VMIN : cmd->acmd[i];
+    cmd->acmd[i] = cmd->acmd[i] > BMC_VMAX ? BMC_VMAX : cmd->acmd[i];
+  }
+  for(i=0;i<BMC_NTEST;i++){
+    cmd->tcmd[i] = cmd->tcmd[i] < BMC_VMIN ? BMC_VMIN : cmd->tcmd[i];
+    cmd->tcmd[i] = cmd->tcmd[i] > BMC_VMAX ? BMC_VMAX : cmd->tcmd[i];
+  }
+}
+
+/**************************************************************/
 /* BMC_GET_COMMAND                                            */
 /* - Function to get the last command sent to the BMC DM      */
 /* - Use atomic operations to prevent two processes from      */
@@ -89,27 +106,34 @@ int bmc_get_command(sm_t *sm_p, bmc_t *cmd){
 int bmc_send_command(sm_t *sm_p, bmc_t *cmd, int proc_id){
   int retval = 1;
   
-  //Atomically test and set BMC command lock using GCC built-in function
-  if(__sync_lock_test_and_set(&sm_p->bmc_command_lock,1)==0){
+  //Apply command limits
+  bmc_limit_command(bmc_t *cmd);
+  
+  //Check if controller is ready
+  if(sm_p->bmc_ready && sm_p->bmc_hv_on){
+
+    //Atomically test and set BMC command lock using GCC built-in function
+    if(__sync_lock_test_and_set(&sm_p->bmc_command_lock,1)==0){
     
-    //Check if the commanding process is the BMC commander
-    if(proc_id == sm_p->state_array[sm_p->state].bmc_commander){
+      //Check if the commanding process is the BMC commander
+      if(proc_id == sm_p->state_array[sm_p->state].bmc_commander){
       
-      //Send the command
-      if(!libbmc_set_acts_tstpnts((libbmc_device_t *)&sm_p->libbmc_device, cmd->acmd, cmd->tcmd)){
-	//Copy command to current position
-	memcpy((bmc_t *)&sm_p->bmc_command,cmd,sizeof(bmc_t));
-	//Set retval for good command
-	retval = 0;
+	//Send the command
+	if(!libbmc_set_acts_tstpnts((libbmc_device_t *)&sm_p->libbmc_device, cmd->acmd, cmd->tcmd)){
+	  //Copy command to current position
+	  memcpy((bmc_t *)&sm_p->bmc_command,cmd,sizeof(bmc_t));
+	  //Set retval for good command
+	  retval = 0;
+	}
       }
-    }
     
-    //Release lock
-    __sync_lock_release(&sm_p->bmc_command_lock);
+      //Release lock
+      __sync_lock_release(&sm_p->bmc_command_lock);
+    }
   }
 
-  //Return
-  return retval;
+    //Return
+    return retval;
 }
 
 /**************************************************************/
