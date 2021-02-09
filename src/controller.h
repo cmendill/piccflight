@@ -193,6 +193,10 @@ enum bmccalmodes {BMC_CALMODE_NONE,
 #define BMC_CAL_B_FILE         "config/bmc_cal_b.dat"
 #define BMC_DEFAULT_FILE       "config/bmc_default.dat"
 #define BMC_FLAT_FILE          "config/bmc_flat.dat"
+#define HOWFS_RMATRIX0_FILE    "config/howfs_rmatrix0.dat"
+#define HOWFS_RMATRIX1_FILE    "config/howfs_rmatrix1.dat"
+#define HOWFS_IMATRIX0_FILE    "config/howfs_imatrix0.dat"
+#define HOWFS_IMATRIX1_FILE    "config/howfs_imatrix1.dat"
 #define EFC_MATRIX_FILE        "config/efc_matrix.dat"
 #define DATAPATH               "output/data/flight_data/folder_%5.5d/"
 #define DATANAME               "output/data/flight_data/folder_%5.5d/picture.%10.10ld.%s.%8.8d.dat"
@@ -456,6 +460,7 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 #define SCI_SEARCH            400 //px search diameter to find star in each band
 #define SCI_TEC_SETPOINT_MIN  -40 //C
 #define SCI_TEC_SETPOINT_MAX   35 //C
+#define SCI_EFC_GAIN         -0.5 //EFC gain
 
 /*************************************************
  * ACQ Camera Parameters

@@ -293,13 +293,50 @@ int sci_expose(sm_t *sm_p, flidev_t dev, uint16 *img_buffer){
 /**************************************************************/
 void sci_howfs_construct_field(sci_howfs_t *frames,sci_field_t *field){
   //NOTE: *field is a pointer to a SCI_NBANDS array of fields
-  int i,k;
+  static int init=0;
+  static int xind[SCI_NPIX], yind[SCI_NPIX];
+  static double rmatrix0[SCI_NPIX][SCI_NBANDS];
+  static double imatrix0[SCI_NPIX][SCI_NBANDS];
+  static double rmatrix1[SCI_NPIX][SCI_NBANDS];
+  static double imatrix1[SCI_NPIX][SCI_NBANDS];
+  int i,k,c;
+  char scimask[SCIXS][SCIYS];
+
+  //Initialize
+  if(!init){
+    //Read HOWFS matrix from file
+    if(read_file(HOWFS_RMATRIX0_FILE,rmatrix0,sizeof(rmatrix0)))
+      memset(rmatrix0,0,sizeof(rmatrix0));
+    if(read_file(HOWFS_RMATRIX1_FILE,rmatrix1,sizeof(rmatrix1)))
+      memset(rmatrix1,0,sizeof(rmatrix1));
+    if(read_file(HOWFS_IMATRIX0_FILE,imatrix0,sizeof(imatrix0)))
+      memset(imatrix0,0,sizeof(imatrix0));
+    if(read_file(HOWFS_IMATRIX1_FILE,imatrix1,sizeof(imatrix1)))
+      memset(imatrix1,0,sizeof(imatrix1));
+    //Read SCI pixel selection
+    if(read_file(SCI_MASK_FILE,&scimask[0][0],sizeof(scimask)))
+      memset(rmatrix0,0,sizeof(rmatrix0));
+    //Build index arrays
+    c=0;
+    for(i=0;i<SCIXS;i++){
+      for(j=0;j<SCIYS;j++){
+	if(scimask[i][j]){
+	  xind[c]=i;
+	  yind[c]=j;
+	  c++
+	}
+      }
+    }
+    init=1;
+  }
   
-  //Fake field
+  //Construct field
   for(k=0;k<SCI_NBANDS;k++){
     for(i=0;i<SCI_NPIX;i++){
-      field[k].r[i] = 1;
-      field[k].i[i] = 2;
+      field[k].r[i] = 0.25*(rmatrix0[i][k] * (frames->step[0].band[k].data[xind[i]][yind[i]] - frames->step[2].band[k].data[xind[i]][yind[i]]) +
+			    rmatrix1[i][k] * (frames->step[1].band[k].data[xind[i]][yind[i]] - frames->step[3].band[k].data[xind[i]][yind[i]]));
+      field[k].i[i] = 0.25*(imatrix0[i][k] * (frames->step[0].band[k].data[xind[i]][yind[i]] - frames->step[2].band[k].data[xind[i]][yind[i]]) +
+			    imatrix1[i][k] * (frames->step[1].band[k].data[xind[i]][yind[i]] - frames->step[3].band[k].data[xind[i]][yind[i]]));
     }
   }
   
@@ -315,6 +352,7 @@ void sci_howfs_efc(sci_field_t *field, double *delta_length){
   static int init=0;
   static double matrix[2*SCI_NPIX*SCI_NBANDS*BMC_NACT]={0};
   char filename[]=EFC_MATRIX_FILE;
+  int i;
   
   //Initialize
   if(!init){
@@ -327,6 +365,9 @@ void sci_howfs_efc(sci_field_t *field, double *delta_length){
   //Perform matrix multiply
   num_dgemv(matrix, (double *)field, delta_length, BMC_NACT, 2*SCI_NPIX*SCI_NBANDS);
 
+  //Apply gain
+  for(i=0;i<BMC_NACT;i++)
+    delta_length[i] *= SCI_EFC_GAIN;
   return;
 }
 
