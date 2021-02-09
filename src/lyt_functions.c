@@ -26,29 +26,19 @@
 /*  - Initialize reference image structure                    */
 /**************************************************************/
 void lyt_initref(lytref_t *lytref){
-  char   filename[MAX_FILENAME];
   
   /****** READ DEFAULT REFERENCE IMAGE FILE ******/
-  //--setup filename
-  sprintf(filename,LYTPIX2ALPZER_REFIMG_FILE);
-  //--read file
-  if(read_file(filename,&lytref->refdef[0][0],sizeof(lytref->refdef)))
+  if(read_file(LYTPIX2ALPZER_REFIMG_FILE,&lytref->refdef[0][0],sizeof(lytref->refdef)))
     memset(&lytref->refdef[0][0],0,sizeof(lytref->refdef));
   //--copy to current reference image
   memcpy(&lytref->refimg[0][0],&lytref->refdef[0][0],sizeof(lytref->refimg));
   
   /****** READ MODEL REFERENCE IMAGE FILE ******/
-  //--setup filename
-  sprintf(filename,LYTPIX2ALPZER_REFMOD_FILE);
-  //--read file
-  if(read_file(filename,&lytref->refmod[0][0],sizeof(lytref->refmod)))
+  if(read_file(LYTPIX2ALPZER_REFMOD_FILE,&lytref->refmod[0][0],sizeof(lytref->refmod)))
     memset(&lytref->refmod[0][0],0,sizeof(lytref->refmod));
   
   /****** READ PIXEL MASK FILE ******/
-  //--setup filename
-  sprintf(filename,LYTPIX2ALPZER_PXMASK_FILE);
-  //--read file
-  if(read_file(filename,&lytref->pxmask[0][0],sizeof(lytref->pxmask)))
+  if(read_file(LYTPIX2ALPZER_PXMASK_FILE,&lytref->pxmask[0][0],sizeof(lytref->pxmask)))
     memset(&lytref->pxmask[0][0],0,sizeof(lytref->pxmask));
 
   return;
@@ -59,13 +49,12 @@ void lyt_initref(lytref_t *lytref){
 /*  - Load reference image from file                          */
 /**************************************************************/
 void lyt_loadref(lytref_t *lytref){
-  char filename[]=LYT_REFIMG_FILE;
   double refimg[LYTXS][LYTYS];
 
   //Read file
-  if(read_file(filename,&refimg[0][0],sizeof(refimg)))
+  if(read_file(LYT_REFIMG_FILE,&refimg[0][0],sizeof(refimg)))
     return;
-  printf("LYT: Read: %s\n",filename);
+  printf("LYT: Read: %s\n",LYT_REFIMG_FILE);
 
   //Copy image into reference structure
   memcpy(&lytref->refimg[0][0],&refimg[0][0],sizeof(refimg));
@@ -76,12 +65,11 @@ void lyt_loadref(lytref_t *lytref){
 /*  - Save reference image to file                             */
 /***************************************************************/
 void lyt_saveref(lytref_t *lytref){
-  char filename[]=LYT_REFIMG_FILE;
-  
+
   //Write file
-  if(write_file(filename,&lytref->refimg[0][0],sizeof(lytref->refimg)))
+  if(write_file(LYT_REFIMG_FILE,&lytref->refimg[0][0],sizeof(lytref->refimg)))
     return;
-  printf("LYT: Wrote: %s\n",filename);
+  printf("LYT: Wrote: %s\n",LYT_REFIMG_FILE);
 
   return;
 }
@@ -91,13 +79,12 @@ void lyt_saveref(lytref_t *lytref){
 /*  - Load dark image from file                               */
 /**************************************************************/
 void lyt_loaddark(lytdark_t *lytdark){
-  char filename[]=LYT_DARKIMG_FILE;
   lytdark_t readimg;
 
   //Read file
-  if(read_file(filename,&readimg,sizeof(readimg)))
+  if(read_file(LYT_DARKIMG_FILE,&readimg,sizeof(readimg)))
     return;
-  printf("LYT: Read: %s\n",filename);
+  printf("LYT: Read: %s\n",LYT_DARKIMG_FILE);
 
   //Copy image
   memcpy(lytdark,&readimg,sizeof(lytdark_t));
@@ -108,13 +95,12 @@ void lyt_loaddark(lytdark_t *lytdark){
 /*  - Save dark image to file                                  */
 /***************************************************************/
 void lyt_savedark(lytdark_t *lytdark){
-  char filename[]=LYT_DARKIMG_FILE;
-    
+      
   //Write file
-  if(write_file(filename,lytdark,sizeof(lytdark_t)))
+  if(write_file(LYT_DARKIMG_FILE,lytdark,sizeof(lytdark_t)))
     return;
   
-  printf("LYT: Wrote: %s\n",filename);
+  printf("LYT: Wrote: %s\n",LYT_DARKIMG_FILE);
 
   return;
 }
@@ -204,7 +190,6 @@ int lyt_zernike_fit(lyt_t *image, lytref_t *lytref, double *zernikes, double *xc
   double yhist[LYTYS]={0};
   int    i,j,count;
   uint16 maxpix;
-  char   filename[]=LYTPIX2ALPZER_FILE;
 
   /* Initialize Fitting Matrix */
   if(!init || reset){
@@ -218,12 +203,12 @@ int lyt_zernike_fit(lyt_t *image, lytref_t *lytref, double *zernikes, double *xc
 
 
     /****** READ ZERNIKE MATRIX FILE ******/
-    if(read_file(filename,lyt2zern_matrix,lyt_npix*LOWFS_N_ZERNIKE*sizeof(double))){
+    if(read_file(LYTPIX2ALPZER_FILE,lyt2zern_matrix,lyt_npix*LOWFS_N_ZERNIKE*sizeof(double))){
       printf("LYT: ERROR reading lyt2zern file\n");
       memset(lyt2zern_matrix,0,sizeof(lyt2zern_matrix));
     }
     else
-      printf("LYT: Read: %s\n",filename);
+      printf("LYT: Read: %s\n",LYTPIX2ALPZER_FILE);
     
     //Set init flag
     init=1;

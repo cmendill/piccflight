@@ -156,17 +156,15 @@ void sci_findorigin(scievent_t *sci,uint16_t *img_buffer){
 /*  - Load band origins from file                             */
 /**************************************************************/
 void sci_loadorigin(scievent_t *sci){
-  char xfile[]=SCI_XORIGIN_FILE;
-  char yfile[]=SCI_YORIGIN_FILE;
   uint32 xorigin[SCI_NBANDS];
   uint32 yorigin[SCI_NBANDS];
   
   //Read files
-  if(read_file(xfile,xorigin,sizeof(xorigin))){
+  if(read_file(SCI_XORIGIN_FILE,xorigin,sizeof(xorigin))){
     printf("SCI: ERROR: X Origin read_file\n");
     return;
   }
-  if(read_file(yfile,yorigin,sizeof(yorigin))){
+  if(read_file(SCI_YORIGIN_FILE,yorigin,sizeof(yorigin))){
     printf("SCI: ERROR: Y Origin read_file\n");
     return;
   }
@@ -183,16 +181,14 @@ void sci_loadorigin(scievent_t *sci){
 /*  - Saves cell origins to file                               */
 /***************************************************************/
 void sci_saveorigin(scievent_t *sci){
-  char xfile[]=SCI_XORIGIN_FILE;
-  char yfile[]=SCI_YORIGIN_FILE;
 
   //Write files
-  if(write_file(xfile,sci->xorigin,sizeof(sci->xorigin)))
+  if(write_file(SCI_XORIGIN_FILE,sci->xorigin,sizeof(sci->xorigin)))
     printf("SCI: ERROR: X Origin write_file\n");
   else
     printf("SCI: Wrote file: %s\n",xfile);
   
-  if(write_file(yfile,sci->yorigin,sizeof(sci->yorigin)))
+  if(write_file(SCI_YORIGIN_FILE,sci->yorigin,sizeof(sci->yorigin)))
     printf("SCI: ERROR: Y Origin write_file\n");
   else
     printf("SCI: Wrote file: %s\n",yfile);
@@ -351,13 +347,12 @@ void sci_howfs_efc(sci_field_t *field, double *delta_length){
   //NOTE: *field is a pointer to a SCI_NBANDS array of fields
   static int init=0;
   static double matrix[2*SCI_NPIX*SCI_NBANDS*BMC_NACT]={0};
-  char filename[]=EFC_MATRIX_FILE;
   int i;
   
   //Initialize
   if(!init){
     //Read EFC matrix from file
-    if(read_file(filename,matrix,sizeof(matrix)))
+    if(read_file(EFC_MATRIX_FILE,matrix,sizeof(matrix)))
       memset(matrix,0,sizeof(matrix));
     init=1;
   }

@@ -196,10 +196,9 @@ int bmc_zero_flat(sm_t *sm_p, int proc_id){
 /***************************************************************/
 int bmc_revert_flat(sm_t *sm_p,int proc_id){
   bmc_t bmc;
-  char filename[]=BMC_DEFAULT_FILE;
 
   //Read flat file
-  read_file(filename,&bmc,sizeof(bmc));
+  read_file(BMC_DEFAULT_FILE,&bmc,sizeof(bmc));
   
   //Send flat to BMC
   return(bmc_send_command(sm_p,&bmc,proc_id));
@@ -212,15 +211,14 @@ int bmc_revert_flat(sm_t *sm_p,int proc_id){
 /**************************************************************/
 int bmc_save_flat(sm_t *sm_p){
   bmc_t bmc;
-  char filename[]=BMC_FLAT_FILE;
 
   //Get current command
   if(bmc_get_command(sm_p,&bmc))
     return 1;
 
   //Save command to file
-  check_and_mkdir(filename);
-  write_file(filename,&bmc,sizeof(bmc_t));
+  check_and_mkdir(BMC_FLAT_FILE);
+  write_file(BMC_FLAT_FILE,&bmc,sizeof(bmc_t));
   
   return 0;
 }
@@ -231,10 +229,9 @@ int bmc_save_flat(sm_t *sm_p){
 /***************************************************************/
 int bmc_load_flat(sm_t *sm_p,int proc_id){
   bmc_t bmc;
-  char filename[]=BMC_FLAT_FILE;
 
   //Read flat file
-  read_file(filename,&bmc,sizeof(bmc));
+  read_file(BMC_FLAT_FILE,&bmc,sizeof(bmc));
   
   //Send flat to BMC
   return(bmc_send_command(sm_p,&bmc,proc_id));

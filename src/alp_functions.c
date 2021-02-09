@@ -114,13 +114,12 @@ void alp_init_calmode(int calmode, calmode_t *alp){
 /*  - Convert zernike commands to ALPAO DM commands           */
 /**************************************************************/
 int alp_zern2alp(double *zernikes,double *actuators,int reset){
-  char filename[]=SHKZER2ALPACT_FILE;
   static int init=0;
   static double zern2alp_matrix[LOWFS_N_ZERNIKE*ALP_NACT]={0};
 
   if(!init || reset){
     //Read matrix file
-    if(read_file(filename,zern2alp_matrix,sizeof(zern2alp_matrix))){
+    if(read_file(SHKZER2ALPACT_FILE,zern2alp_matrix,sizeof(zern2alp_matrix))){
       memset(zern2alp_matrix,0,sizeof(zern2alp_matrix));
       return 1;
     }
@@ -324,9 +323,7 @@ int alp_revert_flat(sm_t *sm_p, int proc_id){
 /* - Save current ALP position to file                        */
 /**************************************************************/
 int alp_save_flat(sm_t *sm_p){
-  alp_t alp;
-  char filename[]=ALP_FLAT_FILE;
-  
+  alp_t alp;  
 
   //Get current command
   if(alp_get_command(sm_p,&alp))
@@ -336,9 +333,9 @@ int alp_save_flat(sm_t *sm_p){
   memset(alp.zcmd,0,sizeof(alp.zcmd));
 
   //Write output file
-  check_and_mkdir(filename);
-  write_file(filename,&alp,sizeof(alp));
-  printf("ALP: Wrote: %s\n",filename);
+  check_and_mkdir(ALP_FLAT_FILE);
+  write_file(ALP_FLAT_FILE,&alp,sizeof(alp));
+  printf("ALP: Wrote: %s\n",ALP_FLAT_FILE);
 
   return 0;
 }
@@ -348,11 +345,10 @@ int alp_save_flat(sm_t *sm_p){
 /*  - Loads ALP flat from file                                 */
 /***************************************************************/
 int alp_load_flat(sm_t *sm_p,int proc_id){
-  char filename[]=ALP_FLAT_FILE;
   alp_t alp;
     
   //Read file
-  if(read_file(filename,&alp,sizeof(alp)))
+  if(read_file(ALP_FLAT_FILE,&alp,sizeof(alp)))
     return 1;
   
   //Clear zernike commands
@@ -369,13 +365,12 @@ int alp_load_flat(sm_t *sm_p,int proc_id){
 /**************************************************************/
 void alp_init_calibration(sm_t *sm_p){
   int i;
-  char filename[]=ZERNIKE_ERRORS_FILE;
 
   //Zero out calibration struct
   memset((void *)&sm_p->alpcal,0,sizeof(alpcal_t));
 
   //Read Zernike errors file
-  if(read_file(filename,sm_p->alpcal.zernike_errors,sizeof(sm_p->alpcal.zernike_errors)))
+  if(read_file(ZERNIKE_ERRORS_FILE,sm_p->alpcal.zernike_errors,sizeof(sm_p->alpcal.zernike_errors)))
     memset(sm_p->alpcal.zernike_errors,0,sizeof(sm_p->alpcal.zernike_errors));
   
   /* Initialize other elements */
