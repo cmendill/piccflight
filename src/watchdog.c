@@ -572,15 +572,16 @@ int main(int argc,char **argv){
   if(BMC_ENABLE){
     /* Open Device */
     if((retval = libbmc_open_device((libbmc_device_t *)&sm_p->libbmc_device)) < 0){
-      printf("SCI: Failed to find the bmc device: %s - %s \n", libbmc_error_name(retval), libbmc_strerror(retval));
+      printf("WAT: Failed to find the bmc device: %s - %s \n", libbmc_error_name(retval), libbmc_strerror(retval));
       sm_p->bmc_ready = 0;
     }else{
-      printf("SCI: BMC device found and opened\n");
+      printf("WAT: BMC device found and opened\n");
       sm_p->bmc_ready = 1;
+      printf("WAT: BMC ready\n");
     }
     /* Turn off LEDs */
     if(libbmc_toggle_leds_off((libbmc_device_t *)&sm_p->libbmc_device))
-      printf("SCI: ERROR (libbmc_toggle_leds_off)\n");
+      printf("WAT: ERROR (libbmc_toggle_leds_off)\n");
     usleep(LIBBMC_LONG_USLEEP);
     /* Disable HV by default*/
     sm_p->bmc_hv_enable = 0;
@@ -762,6 +763,7 @@ int main(int argc,char **argv){
       libbmc_hv_off((libbmc_device_t *)&sm_p->libbmc_device);
       /* Close BMC device */
       libbmc_close_device((libbmc_device_t *)&sm_p->libbmc_device);
+      printf("WAT: BMC closed\n");
     }
   }
 

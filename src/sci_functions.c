@@ -186,12 +186,12 @@ void sci_saveorigin(scievent_t *sci){
   if(write_file(SCI_XORIGIN_FILE,sci->xorigin,sizeof(sci->xorigin)))
     printf("SCI: ERROR: X Origin write_file\n");
   else
-    printf("SCI: Wrote file: %s\n",xfile);
+    printf("SCI: Wrote file: %s\n",SCI_XORIGIN_FILE);
   
   if(write_file(SCI_YORIGIN_FILE,sci->yorigin,sizeof(sci->yorigin)))
     printf("SCI: ERROR: Y Origin write_file\n");
   else
-    printf("SCI: Wrote file: %s\n",yfile);
+    printf("SCI: Wrote file: %s\n",SCI_YORIGIN_FILE);
 
   return;
 }
@@ -250,7 +250,7 @@ int sci_expose(sm_t *sm_p, flidev_t dev, uint16 *img_buffer){
   while(1){
     /* Check if we've been asked to exit */
     if(sm_p->w[SCIID].die)
-      scictrlC(0);
+      return 2;
     
     /* Check in with the watchdog */
     checkin(sm_p,SCIID);
@@ -295,7 +295,7 @@ void sci_howfs_construct_field(sci_howfs_t *frames,sci_field_t *field){
   static double imatrix0[SCI_NPIX][SCI_NBANDS];
   static double rmatrix1[SCI_NPIX][SCI_NBANDS];
   static double imatrix1[SCI_NPIX][SCI_NBANDS];
-  int i,k,c;
+  int i,j,c;
   char scimask[SCIXS][SCIYS];
 
   //Initialize
@@ -319,7 +319,7 @@ void sci_howfs_construct_field(sci_howfs_t *frames,sci_field_t *field){
 	if(scimask[i][j]){
 	  xind[c]=i;
 	  yind[c]=j;
-	  c++
+	  c++;
 	}
       }
     }
@@ -327,12 +327,12 @@ void sci_howfs_construct_field(sci_howfs_t *frames,sci_field_t *field){
   }
   
   //Construct field
-  for(k=0;k<SCI_NBANDS;k++){
+  for(j=0;j<SCI_NBANDS;j++){
     for(i=0;i<SCI_NPIX;i++){
-      field[k].r[i] = 0.25*(rmatrix0[i][k] * (frames->step[0].band[k].data[xind[i]][yind[i]] - frames->step[2].band[k].data[xind[i]][yind[i]]) +
-			    rmatrix1[i][k] * (frames->step[1].band[k].data[xind[i]][yind[i]] - frames->step[3].band[k].data[xind[i]][yind[i]]));
-      field[k].i[i] = 0.25*(imatrix0[i][k] * (frames->step[0].band[k].data[xind[i]][yind[i]] - frames->step[2].band[k].data[xind[i]][yind[i]]) +
-			    imatrix1[i][k] * (frames->step[1].band[k].data[xind[i]][yind[i]] - frames->step[3].band[k].data[xind[i]][yind[i]]));
+      field[j].r[i] = 0.25*(rmatrix0[i][j] * (frames->step[0].band[j].data[xind[i]][yind[i]] - frames->step[2].band[j].data[xind[i]][yind[i]]) +
+			    rmatrix1[i][j] * (frames->step[1].band[j].data[xind[i]][yind[i]] - frames->step[3].band[j].data[xind[i]][yind[i]]));
+      field[j].i[i] = 0.25*(imatrix0[i][j] * (frames->step[0].band[j].data[xind[i]][yind[i]] - frames->step[2].band[j].data[xind[i]][yind[i]]) +
+			    imatrix1[i][j] * (frames->step[1].band[j].data[xind[i]][yind[i]] - frames->step[3].band[j].data[xind[i]][yind[i]]));
     }
   }
   
@@ -413,7 +413,7 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
   if(!init){
     memset(&scievent,0,sizeof(scievent));
     memcpy(&last,&start,sizeof(struct timespec));
-    sci_loadorigin(&scievent);
+    //sci_loadorigin(&scievent);
     frame_number=0;
     //Reset calibration routines
     bmc_calibrate(sm_p,0,NULL,NULL,SCIID,FUNCTION_RESET);
@@ -590,11 +590,11 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
     if(libbmc_get_status((libbmc_device_t *)&sm_p->libbmc_device))
       printf("SCI: Failed to get BMC status\n");
     else
-      memcpy(&scievent.bmc_status,&sm_p->libbmc_device.status,sizeof(bmc_status_t));
+      memcpy((void *)&scievent.bmc_status,(void *)&sm_p->libbmc_device.status,sizeof(bmc_status_t));
   }
   
   //Write SCIEVENT to circular buffer 
   if(sm_p->write_circbuf[BUFFER_SCIEVENT])
-    write_to_buffer(sm_p,(void *)&scievent,BUFFER_SCIEVENT);
+    write_to_buffer(sm_p,&scievent,BUFFER_SCIEVENT);
 }
 

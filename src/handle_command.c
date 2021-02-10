@@ -227,6 +227,7 @@ int handle_command(char *line, sm_t *sm_p){
   memset(&hexcmd,0,sizeof(hex_t));
   char *pch;
   alp_t alp;
+  bmc_t bmc;
   double dz[LOWFS_N_ZERNIKE] = {0};
   double da[ALP_NACT] = {0};
   int lyt_roi[2] = {0};
@@ -1131,7 +1132,7 @@ int handle_command(char *line, sm_t *sm_p){
     return(CMD_NORMAL);
   }
 
-    /****************************************
+  /****************************************
    * BMC DM CONTROL
    ***************************************/
 
@@ -1150,7 +1151,7 @@ int handle_command(char *line, sm_t *sm_p){
 	  printf("CMD: BMC not ready. INIT[%d]  HV[%d]\n",sm_p->bmc_ready,sm_p->bmc_hv_on);
       }
       else
-	printf("CMD: BMC bias must be between %f and %f \n",BMC_VMIN,BMC_VMAX);
+	printf("CMD: BMC bias must be between %d and %d \n",BMC_VMIN,BMC_VMAX);
     }
     else
       printf("CMD: Manual BMC DM control disabled in this state\n");
@@ -1267,7 +1268,7 @@ int handle_command(char *line, sm_t *sm_p){
 	bmc.acmd[itemp] += ftemp;
 
 	//Send command
-	if(bmc_send_command(sm_p,&bmc,WATID,1)){
+	if(bmc_send_command(sm_p,&bmc,WATID)){
 	  printf("CMD: bmc_send_command failed\n");
 	  return CMD_NORMAL;
 	}

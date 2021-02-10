@@ -107,7 +107,7 @@ int bmc_send_command(sm_t *sm_p, bmc_t *cmd, int proc_id){
   int retval = 1;
   
   //Apply command limits
-  bmc_limit_command(bmc_t *cmd);
+  bmc_limit_command(cmd);
   
   //Check if controller is ready
   if(sm_p->bmc_ready && sm_p->bmc_hv_on){

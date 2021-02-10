@@ -234,8 +234,12 @@ void sci_proc(void){
       /* Run Camera */
       if(camera_running){
 	/* Run Exposure */
-	if(sci_expose(sm_p,dev,img_buffer))
-	  printf("SCI: Exposure failed\n");
+	if((rc=sci_expose(sm_p,dev,img_buffer))){
+	  if(rc==1)
+	    printf("SCI: Exposure failed\n");
+	  if(rc==2)
+	    scictrlC(0);
+	}
 	else{
 	  /*Process Image*/
 	  sci_process_image(img_buffer,sm_p);
