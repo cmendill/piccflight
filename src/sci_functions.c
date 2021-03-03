@@ -413,7 +413,7 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
   if(!init){
     memset(&scievent,0,sizeof(scievent));
     memcpy(&last,&start,sizeof(struct timespec));
-    //sci_loadorigin(&scievent);
+    sci_loadorigin(&scievent);
     frame_number=0;
     //Reset calibration routines
     bmc_calibrate(sm_p,0,NULL,NULL,SCIID,FUNCTION_RESET);
