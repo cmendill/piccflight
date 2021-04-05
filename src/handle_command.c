@@ -534,7 +534,7 @@ int handle_command(char *line, sm_t *sm_p){
   sprintf(cmd,"alp timer length");
   if(!strncasecmp(line,cmd,strlen(cmd))){
     ftemp = atof(line+strlen(cmd)+1);
-    if(ftemp > 0 && ftemp <= ZERNIKE_ERRORS_LENGTH){
+    if(ftemp > 0 && ftemp <= ALP_CAL_TIMER_MAX){
       sm_p->alpcal.timer_length = ftemp;
       printf("CMD: Changed ALP calibration timer length to %.1f seconds\n",sm_p->alpcal.timer_length);
     }else{
@@ -547,7 +547,7 @@ int handle_command(char *line, sm_t *sm_p){
   sprintf(cmd,"alp cal scale");
   if(!strncasecmp(line,cmd,strlen(cmd))){
     ftemp = atof(line+strlen(cmd)+1);
-    if(ftemp >= 0 && ftemp <= 10){
+    if(ftemp >= 0 && ftemp <= ALP_CAL_SCALE_MAX){
       sm_p->alpcal.command_scale = ftemp;
       printf("CMD: Changed ALP calibration scale to %.3f\n",sm_p->alpcal.command_scale);
     }else{
@@ -556,6 +556,31 @@ int handle_command(char *line, sm_t *sm_p){
     return(CMD_NORMAL);
   }
   
+  //BMC timer length
+  sprintf(cmd,"bmc timer length");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    ftemp = atof(line+strlen(cmd)+1);
+    if(ftemp > 0 && ftemp <= BMC_CAL_TIMER_MAX){
+      sm_p->bmccal.timer_length = ftemp;
+      printf("CMD: Changed BMC calibration timer length to %.1f seconds\n",sm_p->bmccal.timer_length);
+    }else{
+      printf("CMD: BMC calibration timer out of bounds [%d,%d]\n",0,ZERNIKE_ERRORS_LENGTH);
+    }
+    return(CMD_NORMAL);
+  }
+  
+  //BMC calibration scale
+  sprintf(cmd,"bmc cal scale");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    ftemp = atof(line+strlen(cmd)+1);
+    if(ftemp >= 0 && ftemp <= BMC_CAL_SCALE_MAX){
+      sm_p->bmccal.command_scale = ftemp;
+      printf("CMD: Changed BMC calibration scale to %.3f\n",sm_p->bmccal.command_scale);
+    }else{
+      printf("CMD: BMC calibration scale out of bounds [%d,%d]\n",0,BMC_CAL_SCALE_MAX);
+    }
+    return(CMD_NORMAL);
+  }
   /****************************************
    * STATES
    ***************************************/
@@ -1068,10 +1093,10 @@ int handle_command(char *line, sm_t *sm_p){
     return CMD_NORMAL;
   }
 
-  /****************************************
-   * BMC DM POWER
-   **************************************/
 
+  /****************************************
+   * BMC DM CONTROL
+   ***************************************/
   //HV control
   sprintf(cmd,"bmc hv enable");
   if(!strncasecmp(line,cmd,strlen(cmd))){
@@ -1083,6 +1108,17 @@ int handle_command(char *line, sm_t *sm_p){
 
   sprintf(cmd,"bmc hv disable");
   if(!strncasecmp(line,cmd,strlen(cmd))){
+    if(sm_p->bmc_hv_on){
+      printf("CMD: Turning OFF BMC HV\n");
+      // Set all actuators to Zero
+      if(bmc_zero_flat(sm_p,WATID))
+	printf("CMD: ERROR: bmc_revert_flat failed!\n");
+      // Stop BMC controller, turn OFF HV
+      if((ret=libbmc_hv_off((libbmc_device_t *)&sm_p->libbmc_device)) < 0)
+	printf("CMD: Failed to stop BMC controller : %s - %s \n", libbmc_error_name(ret), libbmc_strerror(ret));
+      else
+	sm_p->bmc_hv_on = 0;
+    }
     printf("CMD: Disabling BMC HV\n");
     sm_p->bmc_hv_enable=0;
     return(CMD_NORMAL);
@@ -1116,7 +1152,10 @@ int handle_command(char *line, sm_t *sm_p){
       if(sm_p->bmc_hv_enable){
 	printf("CMD: Turning OFF BMC HV\n");
 	printf("CMD: -- WARNING -- Only operate HV below 30 percent humidity\n");
-	// Stop BMC controller, turn OFF HV
+	// Set all actuators to Zero
+	if(bmc_zero_flat(sm_p,WATID))
+	  printf("CMD: ERROR: bmc_revert_flat failed!\n");
+ 	// Stop BMC controller, turn OFF HV
 	if((ret=libbmc_hv_off((libbmc_device_t *)&sm_p->libbmc_device)) < 0)
 	  printf("CMD: Failed to stop BMC controller : %s - %s \n", libbmc_error_name(ret), libbmc_strerror(ret));
 	else
@@ -1132,9 +1171,6 @@ int handle_command(char *line, sm_t *sm_p){
     return(CMD_NORMAL);
   }
 
-  /****************************************
-   * BMC DM CONTROL
-   ***************************************/
 
   //Set all BMC actuators to the same value
   sprintf(cmd,"bmc bias");
@@ -1279,6 +1315,47 @@ int handle_command(char *line, sm_t *sm_p){
       }
       else{
 	printf("CMD: Actuator delta out of bounds [-50,50]\n");
+	return CMD_NORMAL;
+      }
+    }
+    else
+      printf("CMD: Manual BMC DM control disabled in this state\n");
+    return CMD_NORMAL;
+  }
+
+  //Add a HOWFS probe pattern to BMC
+  sprintf(cmd,"bmc probe");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    if(sm_p->state_array[sm_p->state].bmc_commander == WATID){
+      pch = strtok(line+strlen(cmd)," ");
+      if(pch == NULL){
+	printf("CMD: Bad command format\n");
+	return CMD_NORMAL;
+      }
+      itemp  = atoi(pch);
+      
+      if(itemp >= 0 && itemp < SCI_HOWFS_NPROBE){
+	//Get current command
+	if(bmc_get_command(sm_p,&bmc)){
+	  printf("CMD: bmc_get_command failed!\n");
+	  return CMD_NORMAL;
+	}
+
+	//Add probe pattern
+	bmc_add_probe(bmc.acmd,bmc.acmd,itemp);
+      
+	//Send command
+	if(bmc_send_command(sm_p,&bmc,WATID)){
+	  printf("CMD: bmc_send_command failed\n");
+	  return CMD_NORMAL;
+	}
+	else{
+	  printf("CMD: set BMC probe %d\n",itemp);
+	  return CMD_NORMAL;
+	}	  
+      }
+      else{
+	printf("CMD: Invalid probe index [0,1,2,3]\n");
 	return CMD_NORMAL;
       }
     }

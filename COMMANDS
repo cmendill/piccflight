@@ -92,11 +92,18 @@ cmd: tgt calmode [arg]
 
 cmd: alp timer length [arg]
         set the length of timed alp calmodes
-	these are used for ALP_CALMODE_TIMER & ALP_CALMODE_FLIGHT
 	arg = floating point seconds
 	
 cmd: alp cal scale [arg]
         scale the ALP calibration commands by [arg]
+	arg = floating point scale factor
+	
+cmd: bmc timer length [arg]
+        set the length of timed bmc calmodes
+	arg = floating point seconds
+	
+cmd: bmc cal scale [arg]
+        scale the BMC calibration commands by [arg]
 	arg = floating point scale factor
 	
 ------------------ STATES -----------------
@@ -208,6 +215,35 @@ cmd: bmc hv enable
 
 cmd: bmc hv disable
      	disable BMC high voltage
+
+cmd: bmc hv on
+     	turn BMC high voltage ON (HV must be enabled)
+
+cmd: bmc hv off
+     	turn BMC high voltage OFF (HV must be enabled)
+
+cmd: bmc bias [arg]
+        set all BMC actuators to the same value
+        arg = floating point actuator value [-1,+1] (power limited)
+
+cmd: bmc zero flat
+        set BMC actuators to all zeros
+
+cmd: bmc revert flat
+        revert BMC to #defined flat pattern
+
+cmd: bmc save flat
+        save current BMC command as default flat pattern (bmc_flat.dat)
+
+cmd: bmc load flat
+        load saved BMC flat pattern (bmc_flat.dat)
+
+cmd: bmc random
+     	applies a random actuator perturbation to the current BMC command
+
+cmd: bmc probe [arg]
+     	apply one of the HOWFS probe patterns to the BMC
+	arg = probe index [0,1,2,3]
 
 ------------- SENSOR CALIBRATION -------------
 

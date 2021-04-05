@@ -494,6 +494,9 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
   scievent.tec_power        = sm_p->sci_tec_power;
   scievent.tec_setpoint     = sm_p->sci_tec_setpoint;
   scievent.tec_enable       = sm_p->sci_tec_enable;
+
+  //Save calmodes
+  scievent.hed.bmc_calmode  = sm_p->bmc_calmode;
   
   //Fake data
   if(sm_p->w[SCIID].fakemode != FAKEMODE_NONE){
@@ -515,6 +518,14 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
   /********************  BMC DM Control Code  ******************/
   /*************************************************************/
   
+  //Get BMC command for user control
+  if(sm_p->state_array[state].bmc_commander == WATID){
+    if(bmc_get_command(sm_p,&bmc)){
+      //Skip this image
+      return;
+    }
+  }
+
   //Check if we will send a command
   if((sm_p->state_array[state].bmc_commander == SCIID) && sm_p->bmc_ready && sm_p->bmc_hv_on){
     
@@ -570,7 +581,6 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
       bmc_add_probe(bmc_flat.acmd,bmc_try.acmd,ihowfs);
     }
     
-    
     //Calibrate BMC
     if(scievent.hed.bmc_calmode != BMC_CALMODE_NONE)
       sm_p->bmc_calmode = bmc_calibrate(sm_p,scievent.hed.bmc_calmode,&bmc_try,&scievent.hed.bmc_calstep,SCIID,FUNCTION_NO_RESET);
@@ -585,8 +595,11 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
     }
   }
   
+  //Copy BMC command to scievent
+  memcpy(&scievent.bmc,&bmc,sizeof(bmc_t));
+
   //Get BMC Status
-  if((sm_p->state_array[state].bmc_commander == SCIID) && sm_p->bmc_ready){
+  if(sm_p->bmc_ready){
     if(libbmc_get_status((libbmc_device_t *)&sm_p->libbmc_device))
       printf("SCI: Failed to get BMC status\n");
     else

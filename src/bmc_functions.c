@@ -28,6 +28,7 @@ void bmc_init_calmode(int calmode, calmode_t *bmc){
   //DEFAULTS
   bmc->sci_ncalim = BMC_SCI_NCALIM;
   bmc->sci_poke   = BMC_SCI_POKE;
+  bmc->sci_vpoke  = BMC_SCI_VPOKE;
    
   //BMC_CALMODE_NONE
   if(calmode == BMC_CALMODE_NONE){
@@ -43,6 +44,11 @@ void bmc_init_calmode(int calmode, calmode_t *bmc){
   if(calmode == BMC_CALMODE_POKE){
     sprintf(bmc->name,"BMC_CALMODE_POKE");
     sprintf(bmc->cmd,"poke");
+  }
+  //BMC_CALMODE_VPOKE
+  if(calmode == BMC_CALMODE_VPOKE){
+    sprintf(bmc->name,"BMC_CALMODE_VPOKE");
+    sprintf(bmc->cmd,"vpoke");
   }
   //BMC_CALMODE_RAND
   if(calmode == BMC_CALMODE_RAND){
@@ -105,7 +111,6 @@ int bmc_get_command(sm_t *sm_p, bmc_t *cmd){
 /**************************************************************/
 int bmc_send_command(sm_t *sm_p, bmc_t *cmd, int proc_id){
   int retval = 1;
-  
   //Apply command limits
   bmc_limit_command(cmd);
   
@@ -198,7 +203,7 @@ int bmc_revert_flat(sm_t *sm_p,int proc_id){
   bmc_t bmc;
 
   //Read flat file
-  read_file(BMC_DEFAULT_FILE,&bmc,sizeof(bmc));
+  read_file(BMC_DEFAULT_FILE,bmc.acmd,sizeof(bmc.acmd));
   
   //Send flat to BMC
   return(bmc_send_command(sm_p,&bmc,proc_id));
@@ -219,7 +224,8 @@ int bmc_save_flat(sm_t *sm_p){
   //Save command to file
   check_and_mkdir(BMC_FLAT_FILE);
   write_file(BMC_FLAT_FILE,&bmc,sizeof(bmc_t));
-  
+    printf("BMC: Wrote: %s\n",BMC_FLAT_FILE);
+
   return 0;
 }
 
@@ -261,8 +267,8 @@ void bmc_init_calibration(sm_t *sm_p){
 /**************************************************************/
 void bmc_add_length(float *input, float *output, double *dl){
   int i;
-  double a[BMC_NACT]={0};
-  double b[BMC_NACT]={0};
+  static double a[BMC_NACT]={0};
+  static double b[BMC_NACT]={0};
   double l;
   static int init=0;
   //l = a*v^2 + b*v
@@ -276,9 +282,9 @@ void bmc_add_length(float *input, float *output, double *dl){
     init=1;
   }
   for(i=0;i<BMC_NACT;i++){
-    l    = a[i]*input[i]*input[i] + b[i]*input[i];
+    l    = a[i]*(double)input[i]*(double)input[i] + b[i]*(double)input[i];
     l   += dl[i];
-    output[i] = (sqrt(b[i]*b[i] + 4*a[i]*l) - b[i]) / (2*a[i]);
+    output[i] = (float)((sqrt(b[i]*b[i] + 4*a[i]*l) - b[i]) / (2*a[i]));
   }
   return;
 }
@@ -291,7 +297,7 @@ void bmc_add_length(float *input, float *output, double *dl){
 /**************************************************************/
 void bmc_add_probe(float *input, float *output, int ihowfs){
   static int init=0;
-  static double probe[BMC_NACT][SCI_HOWFS_NPROBE];
+  static double probe[SCI_HOWFS_NPROBE][BMC_NACT];
   char filename[MAX_FILENAME];
   int i,j;
 
@@ -300,17 +306,16 @@ void bmc_add_probe(float *input, float *output, int ihowfs){
     //Read probes
     for(i=0;i<SCI_HOWFS_NPROBE;i++){
       sprintf(filename,BMC_PROBE_FILE,i);
-      if(read_file(filename,&probe[0][i],sizeof(double)*BMC_NACT)){
+      if(read_file(filename,probe[i],sizeof(double)*BMC_NACT)){
 	memset(&probe[0][0],0,sizeof(probe));
 	break;
       }
     }
     init=1;
   }
-
+  
   //Add probe to flat
-  bmc_add_length(input,output,&probe[0][ihowfs]);
-    
+  bmc_add_length(input,output,probe[ihowfs]);
   return;
 }
 
@@ -329,7 +334,7 @@ int bmc_calibrate(sm_t *sm_p, int calmode, bmc_t *bmc, uint32_t *step, int proci
   time_t trand;
   double dt,step_fraction;
   double act[BMC_NACT];
-  double poke=0;
+  double poke=0,vpoke=0;
   int    ncalim=0;
   
   /* Reset & Quick Init*/
@@ -350,6 +355,7 @@ int bmc_calibrate(sm_t *sm_p, int calmode, bmc_t *bmc, uint32_t *step, int proci
   /* Set calibration parameters */
   if(procid == SCIID){
     poke   = bmccalmodes[calmode].sci_poke;
+    vpoke  = bmccalmodes[calmode].sci_vpoke;
     ncalim = bmccalmodes[calmode].sci_ncalim;
   }
     
@@ -417,6 +423,40 @@ int bmc_calibrate(sm_t *sm_p, int calmode, bmc_t *bmc, uint32_t *step, int proci
       memcpy(bmc,(bmc_t *)&sm_p->bmccal.bmc_start[calmode],sizeof(bmc_t));
       //Turn off calibration
       printf("BMC: Stopping BMC calmode BMC_CALMODE_POKE\n");
+      calmode = BMC_CALMODE_NONE;
+      init = 0;
+    }
+    
+    //Set step counter
+    *step = (sm_p->bmccal.countA[calmode]/ncalim);
+    
+    //Increment counter
+    sm_p->bmccal.countA[calmode]++;
+    
+    //Return calmode
+    return calmode;
+    
+  }
+
+  /* BMC_CALMODE_VPOKE: Scan through acuators poking one at a time.    */
+  /*                   Set to starting position in between each vpoke. */
+  if(calmode==BMC_CALMODE_VPOKE){
+    //Check counters
+    if(sm_p->bmccal.countA[calmode] >= 0 && sm_p->bmccal.countA[calmode] < (2*BMC_NACT*ncalim)){
+      //Set all BMC actuators to starting position
+      for(i=0;i<BMC_NACT;i++)
+	bmc->acmd[i]=sm_p->bmccal.bmc_start[calmode].acmd[i];
+      
+      //Poke one actuator
+      if((sm_p->bmccal.countA[calmode]/ncalim) % 2 == 1){
+	bmc->acmd[(sm_p->bmccal.countB[calmode]/ncalim) % BMC_NACT] += vpoke * sm_p->bmccal.command_scale;
+	sm_p->bmccal.countB[calmode]++;
+      }
+    }else{
+      //Set bmc back to starting position
+      memcpy(bmc,(bmc_t *)&sm_p->bmccal.bmc_start[calmode],sizeof(bmc_t));
+      //Turn off calibration
+      printf("BMC: Stopping BMC calmode BMC_CALMODE_VPOKE\n");
       calmode = BMC_CALMODE_NONE;
       init = 0;
     }
