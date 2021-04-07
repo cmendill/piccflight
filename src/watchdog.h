@@ -20,6 +20,7 @@
 
 //Circular Buffer Switches
 #define WRITE_SCIEVENT_DEFAULT     1
+#define WRITE_WFSEVENT_DEFAULT     1
 #define WRITE_SHKEVENT_DEFAULT     0
 #define WRITE_LYTEVENT_DEFAULT     0
 #define WRITE_ACQEVENT_DEFAULT     1
@@ -31,6 +32,7 @@
 #define WRITE_ACQFULL_DEFAULT      0
 
 #define SEND_SCIEVENT_DEFAULT      1
+#define SEND_WFSEVENT_DEFAULT      1
 #define SEND_SHKEVENT_DEFAULT      0
 #define SEND_LYTEVENT_DEFAULT      0
 #define SEND_ACQEVENT_DEFAULT      2 //2 means always send newest data
@@ -42,6 +44,7 @@
 #define SEND_ACQFULL_DEFAULT       0
 
 #define SAVE_SCIEVENT_DEFAULT      1
+#define SAVE_WFSEVENT_DEFAULT      1
 #define SAVE_SHKEVENT_DEFAULT      0
 #define SAVE_LYTEVENT_DEFAULT      0
 #define SAVE_ACQEVENT_DEFAULT      0

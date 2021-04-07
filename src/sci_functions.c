@@ -296,7 +296,7 @@ void sci_howfs_construct_field(sci_howfs_t *frames,sci_field_t *field){
   static double rmatrix1[SCI_NPIX][SCI_NBANDS];
   static double imatrix1[SCI_NPIX][SCI_NBANDS];
   int i,j,c;
-  char scimask[SCIXS][SCIYS];
+  uint8_t scimask[SCIXS][SCIYS];
 
   //Initialize
   if(!init){
@@ -556,6 +556,7 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
 
       //Save frames
       memcpy(&howfs_frames.step[ihowfs],&scievent.bands,sizeof(sci_bands_t));
+      printf("SCI: ihowfs = %d\n",ihowfs);
             
       //HOWFS Operations
       if(ihowfs == SCI_HOWFS_NSTEP-1){
@@ -573,8 +574,10 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
 	//Write WFSEVENT to circular buffer 
 	memcpy(&wfsevent.hed,&scievent.hed,sizeof(pkthed_t));
 	wfsevent.hed.type = BUFFER_WFSEVENT;
-	if(sm_p->write_circbuf[BUFFER_WFSEVENT])
+	if(sm_p->write_circbuf[BUFFER_WFSEVENT]){
 	  write_to_buffer(sm_p,(void *)&wfsevent,BUFFER_WFSEVENT);
+	  printf("SCI: Wrote WFSEVENT\n");
+	}
       }
 
       //Set BMC Probe: try = flat + probe

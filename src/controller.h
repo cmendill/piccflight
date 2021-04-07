@@ -442,9 +442,9 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 /*************************************************
  * SCI Camera Parameters
  *************************************************/
-#define SCI_NBANDS              5 //number of bands on a single SCI camera image
+#define SCI_NBANDS              1 //number of bands on a single SCI camera image
 #define SCI_NSAMPLES            1 //number of scievents to save in a single packet
-#define SCI_NPIX              830 //number of pixels in dark zone
+#define SCI_NPIX              728 //number of pixels in dark zone
 #define SCI_HOWFS_NPROBE        4 //number of HOWFS DM probe steps
 #define SCI_HOWFS_NSTEP         5 //number of HOWFS steps
 #define SCI_ROI_XSIZE        2840
@@ -1110,12 +1110,12 @@ typedef struct circbuf_struct{
   volatile void *buffer;
   uint32 read_offsets[NCLIENTS]; //last entry read
   uint32 write_offset; //last entry written
-  uint32 nbytes;   //number of bytes in structure
-  uint32 bufsize;  //number of structures in circular buffer
-  int    write;    //switch to enable writing to buffer
-  int    send;     //switch to enable TLM sending buffer
-  int    save;     //switch to enable TLM saving buffer
-  char name[128];  //name of buffer
+  uint32 nbytes;    //number of bytes in structure
+  uint32 bufsize;   //number of structures in circular buffer
+  int    write;     //switch to enable writing to buffer
+  int    send;      //switch to enable TLM sending buffer
+  int    save;      //switch to enable TLM saving buffer
+  char   name[128]; //name of buffer
 } circbuf_t;
 
 /*************************************************

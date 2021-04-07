@@ -77,6 +77,7 @@ void srv_proc(void) {
   
   /* Set data switches to defaults */
   sm_p->write_circbuf[BUFFER_SCIEVENT] = WRITE_SCIEVENT_DEFAULT;
+  sm_p->write_circbuf[BUFFER_WFSEVENT] = WRITE_WFSEVENT_DEFAULT;
   sm_p->write_circbuf[BUFFER_SHKEVENT] = WRITE_SHKEVENT_DEFAULT;
   sm_p->write_circbuf[BUFFER_LYTEVENT] = WRITE_LYTEVENT_DEFAULT;
   sm_p->write_circbuf[BUFFER_ACQEVENT] = WRITE_ACQEVENT_DEFAULT;

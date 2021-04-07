@@ -384,6 +384,13 @@ int main(int argc,char **argv){
   sm_p->circbuf[BUFFER_SCIEVENT].send    = SEND_SCIEVENT_DEFAULT;
   sm_p->circbuf[BUFFER_SCIEVENT].save    = SAVE_SCIEVENT_DEFAULT;
   sprintf((char *)sm_p->circbuf[BUFFER_SCIEVENT].name,"scievent");
+  sm_p->circbuf[BUFFER_WFSEVENT].buffer  = (void *)sm_p->wfsevent;
+  sm_p->circbuf[BUFFER_WFSEVENT].nbytes  = sizeof(wfsevent_t);
+  sm_p->circbuf[BUFFER_WFSEVENT].bufsize = WFSEVENTSIZE;
+  sm_p->circbuf[BUFFER_WFSEVENT].write   = WRITE_WFSEVENT_DEFAULT;
+  sm_p->circbuf[BUFFER_WFSEVENT].send    = SEND_WFSEVENT_DEFAULT;
+  sm_p->circbuf[BUFFER_WFSEVENT].save    = SAVE_WFSEVENT_DEFAULT;
+  sprintf((char *)sm_p->circbuf[BUFFER_WFSEVENT].name,"wfsevent");
   sm_p->circbuf[BUFFER_SHKEVENT].buffer  = (void *)sm_p->shkevent;
   sm_p->circbuf[BUFFER_SHKEVENT].nbytes  = sizeof(shkevent_t);
   sm_p->circbuf[BUFFER_SHKEVENT].bufsize = SHKEVENTSIZE;

@@ -275,7 +275,6 @@ void tlm_proc(void){
 	if(sm_p->circbuf[i].send == 2)
 	  if(read_newest_buffer(sm_p, buffer, i, TLMID))
 	    readdata=1;
-	
 	//Send & save data
 	if(readdata){
 	  //Send data
