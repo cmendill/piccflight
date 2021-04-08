@@ -790,6 +790,7 @@ int read_file(char *filename, void *dst, size_t nbytes){
   //--open file
   if((fd = fopen(filename,"r")) == NULL){
     perror("ERR: read_file --> fopen");
+    printf("ERR: %s\n",filename);
     return 1;
   }
 
@@ -799,6 +800,7 @@ int read_file(char *filename, void *dst, size_t nbytes){
   rewind(fd);
   if(fsize != nbytes){
     printf("ERR: read_file --> incorrect file size %lu != %lu\n",fsize,nbytes);
+    printf("ERR: %s\n",filename);
     fclose(fd);
     return 1;
   }
@@ -806,6 +808,7 @@ int read_file(char *filename, void *dst, size_t nbytes){
   //--read file
   if(fread(dst,nbytes,1,fd) != 1){
     perror("ERR: read_file --> fread");
+    printf("ERR: %s\n",filename);
     fclose(fd);
     return 1;
   }
@@ -825,11 +828,13 @@ int write_file(char *filename, void *src, size_t nbytes){
   //--open file
   if((fd = fopen(filename,"w")) == NULL){
     perror("ERR: write_file --> fopen");
+    printf("ERR: %s\n",filename);
     return 1;
   }
   //--write file
   if(fwrite(src,nbytes,1,fd) != 1){
     perror("ERR: write_file --> fwrite");
+    printf("ERR: %s\n",filename);
     fclose(fd);
     return 1;
   }

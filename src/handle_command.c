@@ -1304,7 +1304,7 @@ int handle_command(char *line, sm_t *sm_p){
 	bmc.acmd[itemp] += ftemp;
 
 	//Send command
-	if(bmc_send_command(sm_p,&bmc,WATID)){
+	if(bmc_send_command(sm_p,&bmc,WATID,BMC_NOSET_FLAT)){
 	  printf("CMD: bmc_send_command failed\n");
 	  return CMD_NORMAL;
 	}
@@ -1345,7 +1345,7 @@ int handle_command(char *line, sm_t *sm_p){
 	bmc_add_probe(bmc.acmd,bmc.acmd,itemp);
       
 	//Send command
-	if(bmc_send_command(sm_p,&bmc,WATID)){
+	if(bmc_send_command(sm_p,&bmc,WATID,BMC_NOSET_FLAT)){
 	  printf("CMD: bmc_send_command failed\n");
 	  return CMD_NORMAL;
 	}

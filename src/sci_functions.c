@@ -346,7 +346,9 @@ void sci_howfs_construct_field(sci_howfs_t *frames,sci_field_t *field){
 void sci_howfs_efc(sci_field_t *field, double *delta_length){
   //NOTE: *field is a pointer to a SCI_NBANDS array of fields
   static int init=0;
-  static double matrix[2*SCI_NPIX*SCI_NBANDS*BMC_NACT]={0};
+  static double matrix[2*SCI_NPIX*SCI_NBANDS*BMC_NACTIVE]={0};
+  static uint16 active2full[BMC_NACTIVE]={0};
+  double dl[BMC_NACTIVE]={0};
   int i;
   
   //Initialize
@@ -354,15 +356,20 @@ void sci_howfs_efc(sci_field_t *field, double *delta_length){
     //Read EFC matrix from file
     if(read_file(EFC_MATRIX_FILE,matrix,sizeof(matrix)))
       memset(matrix,0,sizeof(matrix));
+    //Read BMC active2full mapping
+    if(read_file(BMC_ACTIVE2FULL_FILE,active2full,sizeof(active2full)))
+      memset(active2full,0,sizeof(active2full));
     init=1;
   }
+
+  //NOTE: We don't have a reference field here (fine if its zero)
   
   //Perform matrix multiply
-  num_dgemv(matrix, (double *)field, delta_length, BMC_NACT, 2*SCI_NPIX*SCI_NBANDS);
+  num_dgemv(matrix, (double *)field, dl, BMC_NACTIVE, 2*SCI_NPIX*SCI_NBANDS);
 
-  //Apply gain
-  for(i=0;i<BMC_NACT;i++)
-    delta_length[i] *= SCI_EFC_GAIN;
+  //Apply gain and active2full mapping
+  for(i=0;i<BMC_NACTIVE;i++)
+    delta_length[active2full[i]] = dl[i] * SCI_EFC_GAIN;
   return;
 }
 
@@ -383,11 +390,13 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
   double delta_length[BMC_NACT]={0};
   uint16 fakepx=0;
   uint32 i,j,k;
-  static unsigned long frame_number=0,howfs_istart=0;
+  static unsigned long frame_number=0,howfs_istart=0,howfs_ilast=0,iefc=0;
   int ihowfs;
   int print_origin=0;
   int state;
-  static bmc_t bmc, bmc_try, bmc_flat;
+  static bmc_t bmc, bmc_flat;
+  int bmc_set_flat=BMC_NOSET_FLAT;
+  bmc_t bmc_try;
   int rc;
   time_t t;
   
@@ -518,9 +527,13 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
   /********************  BMC DM Control Code  ******************/
   /*************************************************************/
   
-  //Get BMC command for user control
-  if(sm_p->state_array[state].bmc_commander == WATID){
+  //Get BMC command & flat for telemetry & commands 
+  if((sm_p->state_array[state].bmc_commander == WATID) || (sm_p->state_array[state].bmc_commander == SCIID)){
     if(bmc_get_command(sm_p,&bmc)){
+      //Skip this image
+      return;
+    }
+    if(bmc_get_flat(sm_p,&bmc_flat)){
       //Skip this image
       return;
     }
@@ -529,26 +542,32 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
   //Check if we will send a command
   if((sm_p->state_array[state].bmc_commander == SCIID) && sm_p->bmc_ready && sm_p->bmc_hv_on){
     
-    //Get last BMC command
-    if(bmc_get_command(sm_p,&bmc)){
-      //Skip this image
-      return;
-    }
+    //Copy last BMC command
     memcpy(&bmc_try,&bmc,sizeof(bmc_t));
+
+    //Init BMC flat flag
+    bmc_set_flat = BMC_NOSET_FLAT;
 
     //Run HOWFS
     if(sm_p->state_array[state].sci.run_howfs){
+      //Reinitialize if there has been a break in the data
+      if(frame_number != howfs_ilast+1)
+	howfs_init=0;
+
+      //Init HOWFS
       if(!howfs_init){
 	//Set starting frame number
 	howfs_istart = frame_number;
-	//Save current BMC command as starting flat
-	memcpy(&bmc_flat,&bmc,sizeof(bmc_t));
+	//Initialize EFC counter
+	iefc=0;
 	//Set init
 	howfs_init = 1;
       }
+      
       //Define HOWFS index
       ihowfs = (frame_number - howfs_istart) % SCI_HOWFS_NSTEP;
-
+      howfs_ilast = frame_number;
+      
       //********** HOWFC Indexing ************
       //ihowfs:  0      1   2   3   4
       //dmcmd:   p0    p1  p2  p3  new_flat
@@ -556,7 +575,7 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
 
       //Save frames
       memcpy(&howfs_frames.step[ihowfs],&scievent.bands,sizeof(sci_bands_t));
-      printf("SCI: ihowfs = %d\n",ihowfs);
+      printf("SCI: iWFS = %d\n",ihowfs);
             
       //HOWFS Operations
       if(ihowfs == SCI_HOWFS_NSTEP-1){
@@ -567,8 +586,12 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
 	if(sm_p->state_array[state].sci.run_efc){
 	  //Get DM acuator deltas from field
 	  sci_howfs_efc(wfsevent.field,delta_length);
-	  //Add deltas to current flat
+	  //Add deltas to current flat (NOTE: Local copy will become global when command is sent)
 	  bmc_add_length(bmc_flat.acmd,bmc_flat.acmd,delta_length);
+	  //Set flat flag
+	  bmc_set_flat=BMC_SET_FLAT;
+	  printf("SCI: iEFC = %lu\n",iefc);
+	  iefc++;
 	}
 	
 	//Write WFSEVENT to circular buffer 
@@ -576,11 +599,10 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
 	wfsevent.hed.type = BUFFER_WFSEVENT;
 	if(sm_p->write_circbuf[BUFFER_WFSEVENT]){
 	  write_to_buffer(sm_p,(void *)&wfsevent,BUFFER_WFSEVENT);
-	  printf("SCI: Wrote WFSEVENT\n");
 	}
       }
 
-      //Set BMC Probe: try = flat + probe
+      //Set BMC Probe: try = flat + probe (NOTE: when ihowfs == 4, nothing is added to the flat)
       bmc_add_probe(bmc_flat.acmd,bmc_try.acmd,ihowfs);
     }
     
@@ -589,7 +611,7 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
       sm_p->bmc_calmode = bmc_calibrate(sm_p,scievent.hed.bmc_calmode,&bmc_try,&scievent.hed.bmc_calstep,SCIID,FUNCTION_NO_RESET);
     
     //Send command to BMC
-    if(bmc_send_command(sm_p,&bmc_try,SCIID)){
+    if(bmc_send_command(sm_p,&bmc_try,SCIID,bmc_set_flat)){
       // - command failed
       // - do nothing for now
     }else{

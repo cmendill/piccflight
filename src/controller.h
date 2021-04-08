@@ -188,11 +188,11 @@ enum bmccalmodes {BMC_CALMODE_NONE,
 #define SHK_CONFIG_FILE        "config/shk_2bin_2tap_8bit.cfg"
 #define LYT_CONFIG_FILE        "config/lyt.cfg"
 #define SCI_MASK_FILE          "config/howfs_scimask.dat"
-#define BMC_MASK_FILE          "config/howfs_bmcmask.dat"
 #define BMC_PROBE_FILE         "config/howfs_bmcprobe%d.dat"
 #define BMC_CAL_A_FILE         "config/bmc_cal_a.dat"
 #define BMC_CAL_B_FILE         "config/bmc_cal_b.dat"
 #define BMC_DEFAULT_FILE       "config/bmc_default.dat"
+#define BMC_ACTIVE2FULL_FILE   "config/bmc_active2full.dat"
 #define BMC_FLAT_FILE          "output/settings/bmc_flat.dat"
 #define HOWFS_RMATRIX0_FILE    "config/howfs_rmatrix0.dat"
 #define HOWFS_RMATRIX1_FILE    "config/howfs_rmatrix1.dat"
@@ -443,6 +443,10 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
  * SCI Camera Parameters
  *************************************************/
 #define SCI_NBANDS              1 //number of bands on a single SCI camera image
+//#define SCI_XORIGIN            {334,852,1363,1849,2327}; //band cutout x centers (relative to the ROI)
+//#define SCI_YORIGIN            {450,502,755,879,610};    //band cutout y centers (relative to the ROI)
+#define SCI_XORIGIN            {334}; //band cutout x centers (relative to the ROI)
+#define SCI_YORIGIN            {450}; //band cutout y centers (relative to the ROI)
 #define SCI_NSAMPLES            1 //number of scievents to save in a single packet
 #define SCI_NPIX              728 //number of pixels in dark zone
 #define SCI_HOWFS_NPROBE        4 //number of HOWFS DM probe steps
@@ -456,8 +460,6 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 #define SCI_LR_X (SCI_UL_X+(SCI_ROI_XSIZE/SCI_HBIN))
 #define SCI_LR_Y (SCI_UL_Y+(SCI_ROI_YSIZE/SCI_VBIN))
 #define SCI_NFLUSHES            4
-#define SCI_XORIGIN {334,852,1363,1849,2327}; //band cutout x centers (relative to the ROI)
-#define SCI_YORIGIN {450,502,755,879,610};    //band cutout y centers (relative to the ROI)
 #define SCI_SEARCH            400 //px search diameter to find star in each band
 #define SCI_TEC_SETPOINT_MIN  -40 //C
 #define SCI_TEC_SETPOINT_MAX   35 //C
@@ -476,6 +478,7 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
  *************************************************/
 #define BMC_NACT       952 //LIBBMC_NACT
 #define BMC_NTEST      11  //LIBBMC_NTSTPNT
+#define BMC_NACTIVE    856
 #define BMC_RANGE      LIBBMC_VOLT_RANGE_150V
 #define BMC_VMIN       0
 #define BMC_VMAX       150
@@ -488,6 +491,8 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 #define BMC_SCI_NCALIM 1
 #define BMC_SCI_POKE   10e-9 //meters
 #define BMC_SCI_VPOKE  10 //volts
+#define BMC_SET_FLAT   1
+#define BMC_NOSET_FLAT 0
 
 /*************************************************
  * ALPAO DM Parameters
@@ -1168,6 +1173,7 @@ typedef volatile struct {
   //BMC Command
   int   bmc_command_lock;
   bmc_t bmc_command;
+  bmc_t bmc_flat;
 
   //HEX Command
   int   hex_command_lock;

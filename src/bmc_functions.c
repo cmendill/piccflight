@@ -103,13 +103,36 @@ int bmc_get_command(sm_t *sm_p, bmc_t *cmd){
 }
 
 /**************************************************************/
+/* BMC_GET_FLAT                                               */
+/* - Function to get the last flat sent to the BMC DM         */
+/* - Use atomic operations to prevent two processes from      */
+/*   accessing the commands at the same time                  */
+/**************************************************************/
+int bmc_get_flat(sm_t *sm_p, bmc_t *cmd){
+  int retval = 1;
+  
+  //Atomically test and set BMC command lock using GCC built-in function
+  if(__sync_lock_test_and_set(&sm_p->bmc_command_lock,1)==0){
+    //Copy flat
+    memcpy(cmd,(bmc_t *)&sm_p->bmc_flat,sizeof(bmc_t));
+    //Release lock
+    __sync_lock_release(&sm_p->bmc_command_lock);
+    //Return 0 on success
+    retval = 0;
+  }
+  
+  //Return
+  return retval;
+}
+
+/**************************************************************/
 /* BMC_SEND_COMMAND                                           */
 /* - Function to command the BMC DM                           */
 /* - Use atomic operations to prevent two processes from      */
 /*   sending commands at the same time                        */
 /* - Return 0 if the command was sent and 1 if it wasn't      */
 /**************************************************************/
-int bmc_send_command(sm_t *sm_p, bmc_t *cmd, int proc_id){
+int bmc_send_command(sm_t *sm_p, bmc_t *cmd, int proc_id, int set_flat){
   int retval = 1;
   //Apply command limits
   bmc_limit_command(cmd);
@@ -127,6 +150,8 @@ int bmc_send_command(sm_t *sm_p, bmc_t *cmd, int proc_id){
 	if(!libbmc_set_acts_tstpnts((libbmc_device_t *)&sm_p->libbmc_device, cmd->acmd, cmd->tcmd)){
 	  //Copy command to current position
 	  memcpy((bmc_t *)&sm_p->bmc_command,cmd,sizeof(bmc_t));
+	  //Set flat
+	  if(set_flat) memcpy((bmc_t *)&sm_p->bmc_flat,cmd,sizeof(bmc_t));
 	  //Set retval for good command
 	  retval = 0;
 	}
@@ -154,7 +179,7 @@ int bmc_set_bias(sm_t *sm_p, float bias, int proc_id){
     bmc.acmd[i] = bias;
   
   //Send command
-  return(bmc_send_command(sm_p,&bmc,proc_id));
+  return(bmc_send_command(sm_p,&bmc,proc_id,BMC_NOSET_FLAT));
 }
 
 /**************************************************************/
@@ -182,7 +207,7 @@ int bmc_set_random(sm_t *sm_p, int proc_id){
   bmc_add_length(bmc.acmd,bmc.acmd,dl);
   
   //Send command
-  return(bmc_send_command(sm_p,&bmc,proc_id));
+  return(bmc_send_command(sm_p,&bmc,proc_id,BMC_NOSET_FLAT));
 }
 
 /**************************************************************/
@@ -192,7 +217,7 @@ int bmc_set_random(sm_t *sm_p, int proc_id){
 int bmc_zero_flat(sm_t *sm_p, int proc_id){
   bmc_t bmc;
   memset(&bmc,0,sizeof(bmc_t));
-  return(bmc_send_command(sm_p,&bmc,proc_id));
+  return(bmc_send_command(sm_p,&bmc,proc_id,BMC_SET_FLAT));
 }
 
 /***************************************************************/
@@ -206,7 +231,7 @@ int bmc_revert_flat(sm_t *sm_p,int proc_id){
   read_file(BMC_DEFAULT_FILE,bmc.acmd,sizeof(bmc.acmd));
   
   //Send flat to BMC
-  return(bmc_send_command(sm_p,&bmc,proc_id));
+  return(bmc_send_command(sm_p,&bmc,proc_id,BMC_SET_FLAT));
 }
 
 
@@ -240,7 +265,7 @@ int bmc_load_flat(sm_t *sm_p,int proc_id){
   read_file(BMC_FLAT_FILE,&bmc,sizeof(bmc));
   
   //Send flat to BMC
-  return(bmc_send_command(sm_p,&bmc,proc_id));
+  return(bmc_send_command(sm_p,&bmc,proc_id,BMC_SET_FLAT));
 }
 
 
