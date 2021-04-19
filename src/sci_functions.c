@@ -348,7 +348,9 @@ void sci_howfs_efc(sci_field_t *field, double *delta_length){
   static int init=0;
   static double matrix[2*SCI_NPIX*SCI_NBANDS*BMC_NACTIVE]={0};
   static uint16 active2full[BMC_NACTIVE]={0};
+  double field_pixels[2*SCI_NPIX];
   double dl[BMC_NACTIVE]={0};
+  double maxdl,mindl;
   int i;
   
   //Initialize
@@ -363,10 +365,21 @@ void sci_howfs_efc(sci_field_t *field, double *delta_length){
   }
 
   //NOTE: We don't have a reference field here (fine if its zero)
+  memcpy(&field_pixels[0],field->r,sizeof(field->r));
+  memcpy(&field_pixels[SCI_NPIX],field->i,sizeof(field->i));
   
   //Perform matrix multiply
-  num_dgemv(matrix, (double *)field, dl, BMC_NACTIVE, 2*SCI_NPIX*SCI_NBANDS);
-
+  num_dgemv(matrix, field_pixels, dl, BMC_NACTIVE, 2*SCI_NPIX*SCI_NBANDS);
+  maxdl = dl[0];
+  mindl = dl[0];
+  for(i=0;i<BMC_NACTIVE;i++){
+    if(dl[i] > maxdl)
+      maxdl = dl[i];
+    if(dl[i] < mindl)
+      mindl = dl[i];
+  }
+  printf("SCI: %f %f\n",mindl,maxdl);
+  
   //Apply gain and active2full mapping
   for(i=0;i<BMC_NACTIVE;i++)
     delta_length[active2full[i]] = dl[i] * SCI_EFC_GAIN;
