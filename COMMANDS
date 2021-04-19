@@ -245,6 +245,14 @@ cmd: bmc probe [arg]
      	apply one of the HOWFS probe patterns to the BMC
 	arg = probe index [0,1,2,3]
 
+cmd: bmc test [arg]
+     	apply a test pattern to the BMC
+	arg = test index
+	      0: xtilt
+	      1: ytilt
+	      2: xsine
+	      3: ysine
+
 ------------- SENSOR CALIBRATION -------------
 
 cmd: shk calibrate hex [arg]

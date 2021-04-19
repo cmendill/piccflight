@@ -311,11 +311,11 @@ void sci_howfs_construct_field(sci_howfs_t *frames,sci_field_t *field){
       memset(imatrix1,0,sizeof(imatrix1));
     //Read SCI pixel selection
     if(read_file(SCI_MASK_FILE,&scimask[0][0],sizeof(scimask)))
-      memset(rmatrix0,0,sizeof(rmatrix0));
+      memset(&scimask[0][0],0,sizeof(scimask));
     //Build index arrays
     c=0;
-    for(i=0;i<SCIXS;i++){
-      for(j=0;j<SCIYS;j++){
+    for(j=0;j<SCIYS;j++){
+      for(i=0;i<SCIXS;i++){
 	if(scimask[i][j]){
 	  xind[c]=i;
 	  yind[c]=j;
@@ -399,6 +399,8 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
   bmc_t bmc_try;
   int rc;
   time_t t;
+  uint8_t scimask[SCIXS][SCIYS];
+
   
   //Get time immidiately
   clock_gettime(CLOCK_REALTIME,&start);
@@ -427,6 +429,9 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
     //Reset calibration routines
     bmc_calibrate(sm_p,0,NULL,NULL,SCIID,FUNCTION_RESET);
     howfs_init=0;
+    //Read SCI pixel selection
+    if(read_file(SCI_MASK_FILE,&scimask[0][0],sizeof(scimask)))
+      memset(&scimask[0][0],0,sizeof(scimask));
     init=1;
     if(SCI_DEBUG) printf("SCI: Initialized\n");
   }
@@ -509,11 +514,22 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
   
   //Fake data
   if(sm_p->w[SCIID].fakemode != FAKEMODE_NONE){
-    if(sm_p->w[SCIID].fakemode == FAKEMODE_TEST_PATTERN)
+    if(sm_p->w[SCIID].fakemode == FAKEMODE_TEST_PATTERN){
       for(k=0;k<SCI_NBANDS;k++)
 	for(i=0;i<SCIXS;i++)
 	  for(j=0;j<SCIYS;j++)
 	    scievent.bands.band[k].data[i][j]=fakepx++;
+    }
+    if(sm_p->w[SCIID].fakemode == FAKEMODE_SCI_MASK){
+      //Cut out bands & apply mask
+      for(k=0;k<SCI_NBANDS;k++)
+	for(i=0;i<SCIXS;i++)
+	  for(j=0;j<SCIYS;j++)
+	    if(scimask[i][j])
+	      scievent.bands.band[k].data[i][j] = img_buffer[sci_xy2index(scievent.xorigin[k]-(SCIXS/2)+i,scievent.yorigin[k]-(SCIYS/2)+j)];
+	    else
+	      scievent.bands.band[k].data[i][j] = 0;
+    }
   }
   else{
     //Cut out bands 

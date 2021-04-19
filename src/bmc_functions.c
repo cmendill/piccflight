@@ -80,6 +80,27 @@ void bmc_limit_command(bmc_t *cmd){
 }
 
 /**************************************************************/
+/* BMC_ROTATE_COMMAND                                         */
+/* - Apply BMC command rotation                               */
+/**************************************************************/
+void bmc_rotate_command(bmc_t *cmd){
+  static int16_t bmcrot[BMC_NACT]={0};
+  static int init=0;
+  bmc_t rot;
+  int i;
+  if(!init){
+    if(read_file(BMC_ROTATE_FILE,bmcrot,sizeof(bmcrot)))
+      memset(bmcrot,0,sizeof(bmcrot));
+    init=1;
+  }
+  
+  for(i=0;i<BMC_NACT;i++)
+    rot.acmd[bmcrot[i]] = cmd->acmd[i];
+
+  memcpy(cmd,&rot,sizeof(bmc_t));
+}
+
+/**************************************************************/
 /* BMC_GET_COMMAND                                            */
 /* - Function to get the last command sent to the BMC DM      */
 /* - Use atomic operations to prevent two processes from      */
@@ -134,8 +155,14 @@ int bmc_get_flat(sm_t *sm_p, bmc_t *cmd){
 /**************************************************************/
 int bmc_send_command(sm_t *sm_p, bmc_t *cmd, int proc_id, int set_flat){
   int retval = 1;
-  //Apply command limits
+  bmc_t bmc_rotate;
+  
+  //Apply command limits -- preserved in command
   bmc_limit_command(cmd);
+  
+  //Apply rotation -- not preserved in command
+  memcpy(&bmc_rotate,cmd,sizeof(bmc_t));
+  bmc_rotate_command(&bmc_rotate);
   
   //Check if controller is ready
   if(sm_p->bmc_ready && sm_p->bmc_hv_on){
@@ -147,7 +174,7 @@ int bmc_send_command(sm_t *sm_p, bmc_t *cmd, int proc_id, int set_flat){
       if(proc_id == sm_p->state_array[sm_p->state].bmc_commander){
       
 	//Send the command
-	if(!libbmc_set_acts_tstpnts((libbmc_device_t *)&sm_p->libbmc_device, cmd->acmd, cmd->tcmd)){
+	if(!libbmc_set_acts_tstpnts((libbmc_device_t *)&sm_p->libbmc_device, bmc_rotate.acmd, bmc_rotate.tcmd)){
 	  //Copy command to current position
 	  memcpy((bmc_t *)&sm_p->bmc_command,cmd,sizeof(bmc_t));
 	  //Set flat
@@ -344,6 +371,31 @@ void bmc_add_probe(float *input, float *output, int ihowfs){
   return;
 }
 
+/**************************************************************/
+/* BMC_ADD_TEST                                               */
+/* - Add TEST pattern to BMC command                          */
+/* - Output can be same pointer as input                      */
+/**************************************************************/
+void bmc_add_test(float *input, float *output,int itest){
+  double dl[BMC_NACT]={0};
+
+  if(itest == 0)
+    if(read_file(BMC_XTILT_FILE,dl,sizeof(dl)))
+      memset(dl,0,sizeof(dl));
+  if(itest == 1)
+    if(read_file(BMC_YTILT_FILE,dl,sizeof(dl)))
+      memset(dl,0,sizeof(dl));
+  if(itest == 2)
+    if(read_file(BMC_XSINE_FILE,dl,sizeof(dl)))
+      memset(dl,0,sizeof(dl));
+  if(itest == 3)
+    if(read_file(BMC_YSINE_FILE,dl,sizeof(dl)))
+      memset(dl,0,sizeof(dl));
+  
+  //Add to flat
+  bmc_add_length(input,output,dl);
+  return;
+}
 
 
 /**************************************************************/

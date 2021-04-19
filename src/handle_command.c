@@ -906,7 +906,7 @@ int handle_command(char *line, sm_t *sm_p){
       printf("CMD: Setting ALP to all zeros\n");
       if(sm_p->alp_ready)
 	if(alp_zero_flat(sm_p,WATID))
-	  printf("CMD: ERROR: alp_revert_flat failed!\n");
+	  printf("CMD: ERROR: alp_zero_flat failed!\n");
     }
     else
       printf("CMD: Manual ALP DM control disabled in this state\n");
@@ -1112,7 +1112,7 @@ int handle_command(char *line, sm_t *sm_p){
       printf("CMD: Turning OFF BMC HV\n");
       // Set all actuators to Zero
       if(bmc_zero_flat(sm_p,WATID))
-	printf("CMD: ERROR: bmc_revert_flat failed!\n");
+	printf("CMD: ERROR: bmc_zero_flat failed!\n");
       // Stop BMC controller, turn OFF HV
       if((ret=libbmc_hv_off((libbmc_device_t *)&sm_p->libbmc_device)) < 0)
 	printf("CMD: Failed to stop BMC controller : %s - %s \n", libbmc_error_name(ret), libbmc_strerror(ret));
@@ -1154,7 +1154,7 @@ int handle_command(char *line, sm_t *sm_p){
 	printf("CMD: -- WARNING -- Only operate HV below 30 percent humidity\n");
 	// Set all actuators to Zero
 	if(bmc_zero_flat(sm_p,WATID))
-	  printf("CMD: ERROR: bmc_revert_flat failed!\n");
+	  printf("CMD: ERROR: bmc_zero_flat failed!\n");
  	// Stop BMC controller, turn OFF HV
 	if((ret=libbmc_hv_off((libbmc_device_t *)&sm_p->libbmc_device)) < 0)
 	  printf("CMD: Failed to stop BMC controller : %s - %s \n", libbmc_error_name(ret), libbmc_strerror(ret));
@@ -1201,7 +1201,7 @@ int handle_command(char *line, sm_t *sm_p){
       printf("CMD: Setting BMC to all zeros\n");
       if(sm_p->bmc_ready && sm_p->bmc_hv_on){
 	if(bmc_zero_flat(sm_p,WATID))
-	  printf("CMD: ERROR: bmc_revert_flat failed!\n");
+	  printf("CMD: ERROR: bmc_zero_flat failed!\n");
       }
       else
 	printf("CMD: BMC not ready. INIT[%d]  HV[%d]\n",sm_p->bmc_ready,sm_p->bmc_hv_on);
@@ -1364,6 +1364,40 @@ int handle_command(char *line, sm_t *sm_p){
     return CMD_NORMAL;
   }
 
+  //Add a TEST pattern to BMC
+  sprintf(cmd,"bmc test");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    if(sm_p->state_array[sm_p->state].bmc_commander == WATID){
+      pch = strtok(line+strlen(cmd)," ");
+      if(pch == NULL){
+	printf("CMD: Bad command format\n");
+	return CMD_NORMAL;
+      }
+      itemp  = atoi(pch);
+      
+      //Get current command
+      if(bmc_get_command(sm_p,&bmc)){
+	printf("CMD: bmc_get_command failed!\n");
+	return CMD_NORMAL;
+      }
+      
+      //Add test pattern
+      bmc_add_test(bmc.acmd,bmc.acmd,itemp);
+      
+      //Send command
+      if(bmc_send_command(sm_p,&bmc,WATID,BMC_NOSET_FLAT)){
+	printf("CMD: bmc_send_command failed\n");
+	return CMD_NORMAL;
+      }
+      else{
+	printf("CMD: set BMC test pattern %d\n",itemp);
+	return CMD_NORMAL;
+      }	  
+    }
+    else
+      printf("CMD: Manual BMC DM control disabled in this state\n");
+    return CMD_NORMAL;
+  }
 
   /****************************************
    * SENSOR CALIBRATION

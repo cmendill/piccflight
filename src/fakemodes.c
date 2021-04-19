@@ -35,4 +35,9 @@ void init_fakemode(int fakemode, calmode_t *fake){
     sprintf(fake->name,"FAKEMODE_TEST_PATTERN3");
     sprintf(fake->cmd,"pat3tern");
   }
+  //FAKEMODE_SCI_MASK
+  if(fakemode == FAKEMODE_SCI_MASK){
+    sprintf(fake->name,"FAKEMODE_SCI_MASK");
+    sprintf(fake->cmd,"scimask");
+  }
 }
