@@ -297,6 +297,8 @@ void sci_howfs_construct_field(sci_howfs_t *frames,sci_field_t *field){
   static double imatrix1[SCI_NPIX][SCI_NBANDS];
   int i,j,c;
   uint8_t scimask[SCIXS][SCIYS];
+  //const double scale = 6.2e-9;
+  const double scale = 1e-10;
 
   //Initialize
   if(!init){
@@ -329,10 +331,10 @@ void sci_howfs_construct_field(sci_howfs_t *frames,sci_field_t *field){
   //Construct field
   for(j=0;j<SCI_NBANDS;j++){
     for(i=0;i<SCI_NPIX;i++){
-      field[j].r[i] = 0.25*(rmatrix0[i][j] * (frames->step[0].band[j].data[xind[i]][yind[i]] - frames->step[2].band[j].data[xind[i]][yind[i]]) +
-			    rmatrix1[i][j] * (frames->step[1].band[j].data[xind[i]][yind[i]] - frames->step[3].band[j].data[xind[i]][yind[i]]));
-      field[j].i[i] = 0.25*(imatrix0[i][j] * (frames->step[0].band[j].data[xind[i]][yind[i]] - frames->step[2].band[j].data[xind[i]][yind[i]]) +
-			    imatrix1[i][j] * (frames->step[1].band[j].data[xind[i]][yind[i]] - frames->step[3].band[j].data[xind[i]][yind[i]]));
+      field[j].r[i] = 0.25*scale*(rmatrix0[i][j] * (frames->step[1].band[j].data[xind[i]][yind[i]] - frames->step[3].band[j].data[xind[i]][yind[i]]) +
+				  rmatrix1[i][j] * (frames->step[2].band[j].data[xind[i]][yind[i]] - frames->step[4].band[j].data[xind[i]][yind[i]]));
+      field[j].i[i] = 0.25*scale*(imatrix0[i][j] * (frames->step[1].band[j].data[xind[i]][yind[i]] - frames->step[3].band[j].data[xind[i]][yind[i]]) +
+				  imatrix1[i][j] * (frames->step[2].band[j].data[xind[i]][yind[i]] - frames->step[4].band[j].data[xind[i]][yind[i]]));
     }
   }
   
@@ -379,10 +381,12 @@ void sci_howfs_efc(sci_field_t *field, double *delta_length){
       mindl = dl[i];
   }
   printf("SCI: %f %f\n",mindl,maxdl);
+  write_file("output/data/calibration/dm_delta.dat",dl,sizeof(dl));
+  printf("Wrote: output/data/calibration/dm_delta.dat\n");
   
   //Apply gain and active2full mapping
   for(i=0;i<BMC_NACTIVE;i++)
-    delta_length[active2full[i]] = dl[i] * SCI_EFC_GAIN;
+    delta_length[active2full[i]] = dl[i] * SCI_EFC_GAIN * -1;
   return;
 }
 
@@ -413,7 +417,7 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
   int rc;
   time_t t;
   uint8_t scimask[SCIXS][SCIYS];
-
+  char filename[MAX_FILENAME];
   
   //Get time immidiately
   clock_gettime(CLOCK_REALTIME,&start);
@@ -602,6 +606,14 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
       //dmcmd:   p0    p1  p2  p3  new_flat
       //image:   flat  p0  p1  p2  p3
 
+      //Fake HOWFS Data
+      if(sm_p->w[SCIID].fakemode == FAKEMODE_SCI_PROBE){
+	sprintf(filename,SCI_FAKE_PROBE_FILE,ihowfs);
+	for(k=0;k<SCI_NBANDS;k++)
+	  read_file(filename,&scievent.bands.band[k].data[0][0],sizeof(sci_t));
+      }
+
+      
       //Save frames
       memcpy(&howfs_frames.step[ihowfs],&scievent.bands,sizeof(sci_bands_t));
       printf("SCI: iWFS = %d\n",ihowfs);

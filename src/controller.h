@@ -204,6 +204,7 @@ enum bmccalmodes {BMC_CALMODE_NONE,
 #define HOWFS_IMATRIX0_FILE    "config/howfs_imatrix0.dat"
 #define HOWFS_IMATRIX1_FILE    "config/howfs_imatrix1.dat"
 #define EFC_MATRIX_FILE        "config/efc_matrix.dat"
+#define SCI_FAKE_PROBE_FILE    "config/sci_fakedata_probe_%d.dat"
 #define DATAPATH               "output/data/flight_data/folder_%5.5d/"
 #define DATANAME               "output/data/flight_data/folder_%5.5d/picture.%10.10ld.%s.%8.8d.dat"
 #define SHK_HEX_CALFILE        "output/data/calibration/shk_hex_%s_%s_%s_caldata.dat"
@@ -494,7 +495,7 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 #define BMC_DMIN       0
 #define BMC_DMID       ((DM_DMIN+DM_DMAX)/2)
 #define BMC_SCI_NCALIM 1
-#define BMC_SCI_POKE   10e-9 //meters
+#define BMC_SCI_POKE   10 //nm
 #define BMC_SCI_VPOKE  10 //volts
 #define BMC_SET_FLAT   1
 #define BMC_NOSET_FLAT 0

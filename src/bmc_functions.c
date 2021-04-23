@@ -487,13 +487,22 @@ int bmc_calibrate(sm_t *sm_p, int calmode, bmc_t *bmc, uint32_t *step, int proci
     //Check counters
     if(sm_p->bmccal.countA[calmode] >= 0 && sm_p->bmccal.countA[calmode] < (2*BMC_NACT*ncalim)){
       //Set all BMC actuators to starting position
-      for(i=0;i<BMC_NACT;i++)
-	bmc->acmd[i]=sm_p->bmccal.bmc_start[calmode].acmd[i];
+      memcpy(bmc,(bmc_t *)&sm_p->bmccal.bmc_start[calmode],sizeof(bmc_t));
+      
+      //Zero command delta
+      memset(act,0,sizeof(act));
       
       //Poke one actuator
       if((sm_p->bmccal.countA[calmode]/ncalim) % 2 == 1){
-	bmc->acmd[(sm_p->bmccal.countB[calmode]/ncalim) % BMC_NACT] += poke * sm_p->bmccal.command_scale;
+	i = (sm_p->bmccal.countB[calmode]/ncalim) % BMC_NACT;
+	printf("BMC: %lu of %d\n",i,BMC_NACT);
+	act[i] = poke * sm_p->bmccal.command_scale;
+	bmc_add_length(bmc->acmd,bmc->acmd,act);
 	sm_p->bmccal.countB[calmode]++;
+      }
+      else{
+	printf("BMC: flat\n");
+
       }
     }else{
       //Set bmc back to starting position
@@ -526,8 +535,13 @@ int bmc_calibrate(sm_t *sm_p, int calmode, bmc_t *bmc, uint32_t *step, int proci
       
       //Poke one actuator
       if((sm_p->bmccal.countA[calmode]/ncalim) % 2 == 1){
-	bmc->acmd[(sm_p->bmccal.countB[calmode]/ncalim) % BMC_NACT] += vpoke * sm_p->bmccal.command_scale;
+	i = (sm_p->bmccal.countB[calmode]/ncalim) % BMC_NACT;
+	printf("BMC: %lu of %d\n",i,BMC_NACT);
+	bmc->acmd[i] += vpoke * sm_p->bmccal.command_scale;
 	sm_p->bmccal.countB[calmode]++;
+      }
+      else{
+	printf("BMC: flat\n");
       }
     }else{
       //Set bmc back to starting position
