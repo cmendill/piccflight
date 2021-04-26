@@ -914,7 +914,7 @@ typedef struct bmccal_struct{
 /*************************************************
  * Packet Header
  *************************************************/
-#define PICC_PKT_VERSION     32  //packet version number
+#define PICC_PKT_VERSION     33  //packet version number
 typedef struct pkthed_struct{
   uint16  version;       //packet version number
   uint16  type;          //packet ID word
@@ -1061,7 +1061,8 @@ typedef struct scievent_struct{
   float        backplane_temp;
   float        tec_power;
   int16        tec_setpoint;
-  uint16       tec_enable;  
+  uint8        tec_enable;
+  uint8        ihowfs;
   uint32       xorigin[SCI_NBANDS];
   uint32       yorigin[SCI_NBANDS];
   sci_bands_t  bands;

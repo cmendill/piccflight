@@ -295,10 +295,10 @@ void sci_howfs_construct_field(sci_howfs_t *frames,sci_field_t *field){
   static double imatrix0[SCI_NPIX][SCI_NBANDS];
   static double rmatrix1[SCI_NPIX][SCI_NBANDS];
   static double imatrix1[SCI_NPIX][SCI_NBANDS];
+  double px1,px2,px3,px4;
   int i,j,c;
   uint8_t scimask[SCIXS][SCIYS];
-  //const double scale = 6.2e-9;
-  const double scale = 1e-10;
+  const double scale[4] = {6.3408E-09,6.3485E-09,6.3405E-09,6.3472E-09};
 
   //Initialize
   if(!init){
@@ -329,12 +329,20 @@ void sci_howfs_construct_field(sci_howfs_t *frames,sci_field_t *field){
   }
   
   //Construct field
+  //NOTE: frame index: 0=flat, 1=probe1, 2=probe2, 3=probe3, 4=probe4
   for(j=0;j<SCI_NBANDS;j++){
-    for(i=0;i<SCI_NPIX;i++){
-      field[j].r[i] = 0.25*scale*(rmatrix0[i][j] * (frames->step[1].band[j].data[xind[i]][yind[i]] - frames->step[3].band[j].data[xind[i]][yind[i]]) +
-				  rmatrix1[i][j] * (frames->step[2].band[j].data[xind[i]][yind[i]] - frames->step[4].band[j].data[xind[i]][yind[i]]));
-      field[j].i[i] = 0.25*scale*(imatrix0[i][j] * (frames->step[1].band[j].data[xind[i]][yind[i]] - frames->step[3].band[j].data[xind[i]][yind[i]]) +
-				  imatrix1[i][j] * (frames->step[2].band[j].data[xind[i]][yind[i]] - frames->step[4].band[j].data[xind[i]][yind[i]]));
+    for(c=0;c<SCI_NPIX;c++){
+      px1 = scale[0] * frames->step[1].band[j].data[xind[c]][yind[c]];
+      px2 = scale[1] * frames->step[2].band[j].data[xind[c]][yind[c]];
+      px3 = scale[2] * frames->step[3].band[j].data[xind[c]][yind[c]];
+      px4 = scale[3] * frames->step[4].band[j].data[xind[c]][yind[c]];
+
+      //Debugging
+      if(c < 5) printf("SCI: %d | %8.2E %8.2E %8.2E %8.2E | %8.2E %8.2E %8.2E %8.2E\n",c,px1,px2,px3,px4,rmatrix0[c][j],rmatrix1[c][j],imatrix0[c][j],imatrix1[c][j]);
+      
+      field[j].r[c] = 0.25*((rmatrix0[c][j] * (px1 - px3)) + (rmatrix1[c][j] * (px2 - px4)));
+      field[j].i[c] = 0.25*((imatrix0[c][j] * (px1 - px3)) + (imatrix1[c][j] * (px2 - px4)));
+	     
     }
   }
   
@@ -386,7 +394,7 @@ void sci_howfs_efc(sci_field_t *field, double *delta_length){
   
   //Apply gain and active2full mapping
   for(i=0;i<BMC_NACTIVE;i++)
-    delta_length[active2full[i]] = dl[i] * SCI_EFC_GAIN * -1;
+    delta_length[active2full[i]] = -0.05 * dl[i] * SCI_EFC_GAIN;
   return;
 }
 
@@ -408,7 +416,7 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
   uint16 fakepx=0;
   uint32 i,j,k;
   static unsigned long frame_number=0,howfs_istart=0,howfs_ilast=0,iefc=0;
-  int ihowfs;
+  int ihowfs=0;
   int print_origin=0;
   int state;
   static bmc_t bmc, bmc_flat;
@@ -600,11 +608,12 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
       //Define HOWFS index
       ihowfs = (frame_number - howfs_istart) % SCI_HOWFS_NSTEP;
       howfs_ilast = frame_number;
+      scievent.ihowfs = ihowfs;
       
       //********** HOWFC Indexing ************
       //ihowfs:  0      1   2   3   4
-      //dmcmd:   p0    p1  p2  p3  new_flat
       //image:   flat  p0  p1  p2  p3
+      //dmcmd:   p0    p1  p2  p3  new_flat
 
       //Fake HOWFS Data
       if(sm_p->w[SCIID].fakemode == FAKEMODE_SCI_PROBE){
@@ -612,7 +621,6 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
 	for(k=0;k<SCI_NBANDS;k++)
 	  read_file(filename,&scievent.bands.band[k].data[0][0],sizeof(sci_t));
       }
-
       
       //Save frames
       memcpy(&howfs_frames.step[ihowfs],&scievent.bands,sizeof(sci_bands_t));

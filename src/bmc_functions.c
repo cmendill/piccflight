@@ -349,7 +349,7 @@ void bmc_add_length(float *input, float *output, double *dl){
 /**************************************************************/
 void bmc_add_probe(float *input, float *output, int ihowfs){
   static int init=0;
-  static double probe[SCI_HOWFS_NPROBE][BMC_NACT];
+  static double probe[SCI_HOWFS_NSTEP][BMC_NACT]={{0}}; //last probe is all zeros
   char filename[MAX_FILENAME];
   int i,j;
 
