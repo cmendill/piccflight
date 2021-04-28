@@ -499,6 +499,7 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 #define BMC_SCI_VPOKE  10 //volts
 #define BMC_SET_FLAT   1
 #define BMC_NOSET_FLAT 0
+#define BMC_EFC_MAX    10 //nm
 
 /*************************************************
  * ALPAO DM Parameters

@@ -287,7 +287,7 @@ int sci_expose(sm_t *sm_p, flidev_t dev, uint16 *img_buffer){
 /* SCI_HOWFS_CONSTRUCT_FIELD                                  */
 /*  - Construct field measurement from a series of probes     */
 /**************************************************************/
-void sci_howfs_construct_field(sci_howfs_t *frames,sci_field_t *field){
+void sci_howfs_construct_field(sci_howfs_t *frames,sci_field_t *field, int reset){
   //NOTE: *field is a pointer to a SCI_NBANDS array of fields
   static int init=0;
   static int xind[SCI_NPIX], yind[SCI_NPIX];
@@ -298,10 +298,10 @@ void sci_howfs_construct_field(sci_howfs_t *frames,sci_field_t *field){
   double px1,px2,px3,px4;
   int i,j,c;
   uint8_t scimask[SCIXS][SCIYS];
-  const double scale[4] = {6.3408E-09,6.3485E-09,6.3405E-09,6.3472E-09};
+  const double scale[4] = {6.1925973e-09,6.1938608e-09,6.1922417e-09,6.1919638e-09};
 
   //Initialize
-  if(!init){
+  if(!init || reset){
     //Read HOWFS matrix from file
     if(read_file(HOWFS_RMATRIX0_FILE,rmatrix0,sizeof(rmatrix0)))
       memset(rmatrix0,0,sizeof(rmatrix0));
@@ -314,6 +314,7 @@ void sci_howfs_construct_field(sci_howfs_t *frames,sci_field_t *field){
     //Read SCI pixel selection
     if(read_file(SCI_MASK_FILE,&scimask[0][0],sizeof(scimask)))
       memset(&scimask[0][0],0,sizeof(scimask));
+    printf("SCI: Read HOWFS matrix\n");
     //Build index arrays
     c=0;
     for(j=0;j<SCIYS;j++){
@@ -326,23 +327,27 @@ void sci_howfs_construct_field(sci_howfs_t *frames,sci_field_t *field){
       }
     }
     init=1;
+    if(reset) return;
   }
   
   //Construct field
   //NOTE: frame index: 0=flat, 1=probe1, 2=probe2, 3=probe3, 4=probe4
   for(j=0;j<SCI_NBANDS;j++){
     for(c=0;c<SCI_NPIX;c++){
-      px1 = scale[0] * frames->step[1].band[j].data[xind[c]][yind[c]];
-      px2 = scale[1] * frames->step[2].band[j].data[xind[c]][yind[c]];
-      px3 = scale[2] * frames->step[3].band[j].data[xind[c]][yind[c]];
-      px4 = scale[3] * frames->step[4].band[j].data[xind[c]][yind[c]];
-
-      //Debugging
-      if(c < 5) printf("SCI: %d | %8.2E %8.2E %8.2E %8.2E | %8.2E %8.2E %8.2E %8.2E\n",c,px1,px2,px3,px4,rmatrix0[c][j],rmatrix1[c][j],imatrix0[c][j],imatrix1[c][j]);
-      
-      field[j].r[c] = 0.25*((rmatrix0[c][j] * (px1 - px3)) + (rmatrix1[c][j] * (px2 - px4)));
-      field[j].i[c] = 0.25*((imatrix0[c][j] * (px1 - px3)) + (imatrix1[c][j] * (px2 - px4)));
-	     
+      field[j].r[c] = 0;
+      field[j].i[c] = 0;
+      if(frames->step[0].band[j].data[xind[c]][yind[c]] > 2000){
+	px1 = scale[0] * frames->step[1].band[j].data[xind[c]][yind[c]];
+	px2 = scale[1] * frames->step[2].band[j].data[xind[c]][yind[c]];
+	px3 = scale[2] * frames->step[3].band[j].data[xind[c]][yind[c]];
+	px4 = scale[3] * frames->step[4].band[j].data[xind[c]][yind[c]];
+	
+	//Debugging
+	//if(c < 5) printf("SCI: %d | %8.2E %8.2E %8.2E %8.2E | %8.2E %8.2E %8.2E %8.2E\n",c,px1,px2,px3,px4,rmatrix0[c][j],rmatrix1[c][j],imatrix0[c][j],imatrix1[c][j]);
+	
+	field[j].r[c] = 0.25*((rmatrix0[c][j] * (px1 - px3)) + (rmatrix1[c][j] * (px2 - px4)));
+	field[j].i[c] = 0.25*((imatrix0[c][j] * (px1 - px3)) + (imatrix1[c][j] * (px2 - px4)));
+      }
     }
   }
   
@@ -353,25 +358,27 @@ void sci_howfs_construct_field(sci_howfs_t *frames,sci_field_t *field){
 /* SCI_HOWFS_EFC                                              */
 /*  - Perform EFC matrix multiply                             */
 /**************************************************************/
-void sci_howfs_efc(sci_field_t *field, double *delta_length){
+void sci_howfs_efc(sci_field_t *field, double *delta_length, int reset){
   //NOTE: *field is a pointer to a SCI_NBANDS array of fields
   static int init=0;
   static double matrix[2*SCI_NPIX*SCI_NBANDS*BMC_NACTIVE]={0};
   static uint16 active2full[BMC_NACTIVE]={0};
   double field_pixels[2*SCI_NPIX];
   double dl[BMC_NACTIVE]={0};
-  double maxdl,mindl;
+  double maxdl,mindl,max,scale;
   int i;
   
   //Initialize
-  if(!init){
+  if(!init || reset){
     //Read EFC matrix from file
     if(read_file(EFC_MATRIX_FILE,matrix,sizeof(matrix)))
       memset(matrix,0,sizeof(matrix));
     //Read BMC active2full mapping
     if(read_file(BMC_ACTIVE2FULL_FILE,active2full,sizeof(active2full)))
       memset(active2full,0,sizeof(active2full));
+    printf("SCI: Read EFC matrix\n");
     init=1;
+    if(reset) return;
   }
 
   //NOTE: We don't have a reference field here (fine if its zero)
@@ -388,13 +395,29 @@ void sci_howfs_efc(sci_field_t *field, double *delta_length){
     if(dl[i] < mindl)
       mindl = dl[i];
   }
+  max = fabs(maxdl);
+  if(fabs(mindl) > max) max = fabs(mindl);
+  
+  if(max > BMC_EFC_MAX){
+    scale = BMC_EFC_MAX / max;
+    maxdl = dl[0]*scale;
+    mindl = dl[0]*scale;
+    for(i=0;i<BMC_NACTIVE;i++){
+      dl[i] *= scale;
+      if(dl[i] > maxdl)
+	maxdl = dl[i];
+      if(dl[i] < mindl)
+	mindl = dl[i];
+    }
+  }
+  
   printf("SCI: %f %f\n",mindl,maxdl);
   write_file("output/data/calibration/dm_delta.dat",dl,sizeof(dl));
   printf("Wrote: output/data/calibration/dm_delta.dat\n");
   
   //Apply gain and active2full mapping
   for(i=0;i<BMC_NACTIVE;i++)
-    delta_length[active2full[i]] = -0.05 * dl[i] * SCI_EFC_GAIN;
+    delta_length[active2full[i]] = dl[i] * SCI_EFC_GAIN;
   return;
 }
 
@@ -453,6 +476,8 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
     frame_number=0;
     //Reset calibration routines
     bmc_calibrate(sm_p,0,NULL,NULL,SCIID,FUNCTION_RESET);
+    sci_howfs_construct_field(NULL,NULL,FUNCTION_RESET);
+    sci_howfs_efc(NULL, NULL, FUNCTION_RESET);
     howfs_init=0;
     //Read SCI pixel selection
     if(read_file(SCI_MASK_FILE,&scimask[0][0],sizeof(scimask)))
@@ -629,12 +654,12 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
       //HOWFS Operations
       if(ihowfs == SCI_HOWFS_NSTEP-1){
 	//Calculate field
-	sci_howfs_construct_field(&howfs_frames,wfsevent.field);
+	sci_howfs_construct_field(&howfs_frames,wfsevent.field,FUNCTION_NO_RESET);
 
 	//Run EFC
 	if(sm_p->state_array[state].sci.run_efc){
 	  //Get DM acuator deltas from field
-	  sci_howfs_efc(wfsevent.field,delta_length);
+	  sci_howfs_efc(wfsevent.field,delta_length,FUNCTION_NO_RESET);
 	  //Add deltas to current flat (NOTE: Local copy will become global when command is sent)
 	  bmc_add_length(bmc_flat.acmd,bmc_flat.acmd,delta_length);
 	  //Set flat flag
