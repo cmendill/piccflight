@@ -983,10 +983,11 @@ int handle_command(char *line, sm_t *sm_p){
     return(CMD_NORMAL);
   }
 
-  //Reset user ALP zernike matrix
+  //Reset ALP functions
   sprintf(cmd,"alp reset");
   if(!strncasecmp(line,cmd,strlen(cmd))){
-    alp_zern2alp(NULL,NULL,FUNCTION_RESET);
+    printf("CMD: Resetting ALP functions\n");
+    alp_function_reset(sm_p);
     return(CMD_NORMAL);
   }
 
@@ -1097,6 +1098,14 @@ int handle_command(char *line, sm_t *sm_p){
   /****************************************
    * BMC DM CONTROL
    ***************************************/
+  //Reset BMC functions
+  sprintf(cmd,"bmc reset");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    printf("CMD: Resetting BMC functions\n");
+    bmc_function_reset(sm_p);
+    return(CMD_NORMAL);
+  }
+
   //HV control
   sprintf(cmd,"bmc hv enable");
   if(!strncasecmp(line,cmd,strlen(cmd))){
@@ -1342,7 +1351,7 @@ int handle_command(char *line, sm_t *sm_p){
 	}
 
 	//Add probe pattern
-	bmc_add_probe(bmc.acmd,bmc.acmd,itemp);
+	bmc_add_probe(bmc.acmd,bmc.acmd,itemp,FUNCTION_NO_RESET);
       
 	//Send command
 	if(bmc_send_command(sm_p,&bmc,WATID,BMC_NOSET_FLAT)){
@@ -1396,6 +1405,35 @@ int handle_command(char *line, sm_t *sm_p){
     }
     else
       printf("CMD: Manual BMC DM control disabled in this state\n");
+    return CMD_NORMAL;
+  }
+
+  
+  //Set EFC SCI threshold
+  sprintf(cmd,"efc sci thresh");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    pch = strtok(line+strlen(cmd)," ");
+    if(pch == NULL){
+      printf("CMD: Bad command format\n");
+      return CMD_NORMAL;
+    }
+    ftemp  = atof(pch);
+    sm_p->efc_sci_thresh = ftemp;
+    printf("CMD: EFC SCI threshold set to %f\n",sm_p->efc_sci_thresh);
+    return CMD_NORMAL;
+  }
+
+  //Set EFC BMC max
+  sprintf(cmd,"efc bmc max");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    pch = strtok(line+strlen(cmd)," ");
+    if(pch == NULL){
+      printf("CMD: Bad command format\n");
+      return CMD_NORMAL;
+    }
+    ftemp  = atof(pch);
+    sm_p->efc_bmc_max = ftemp;
+    printf("CMD: EFC BMC max set to %f\n",sm_p->efc_bmc_max);
     return CMD_NORMAL;
   }
 
@@ -2549,6 +2587,33 @@ int handle_command(char *line, sm_t *sm_p){
     printf("CMD: Loading SCI origin\n");
     sm_p->sci_loadorigin=1;
     return(CMD_NORMAL);
+  }
+  sprintf(cmd,"sci shift origin +x");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    printf("CMD: SCI shift origin +1px in X\n");
+    sm_p->sci_xshiftorigin = 1;
+    return CMD_NORMAL;
+  }
+
+  sprintf(cmd,"sci shift origin -x");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    printf("CMD: SCI shift origin -1px in X\n");
+    sm_p->sci_xshiftorigin = -1;
+    return CMD_NORMAL;
+  }
+
+  sprintf(cmd,"sci shift origin +y");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    printf("CMD: SCI shift origin +1px in Y\n");
+    sm_p->sci_yshiftorigin = 1;
+    return CMD_NORMAL;
+  }
+
+  sprintf(cmd,"sci shift origin -y");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    printf("CMD: SCI shift origin -1px in Y\n");
+    sm_p->sci_yshiftorigin = -1;
+    return CMD_NORMAL;
   }
 
   //TEC control

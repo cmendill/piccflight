@@ -495,11 +495,11 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 #define BMC_DMIN       0
 #define BMC_DMID       ((DM_DMIN+DM_DMAX)/2)
 #define BMC_SCI_NCALIM 1
-#define BMC_SCI_POKE   10 //nm
+#define BMC_SCI_POKE   50 //nm
 #define BMC_SCI_VPOKE  10 //volts
 #define BMC_SET_FLAT   1
 #define BMC_NOSET_FLAT 0
-#define BMC_EFC_MAX    10 //nm
+#define BMC_POLARITY   1
 
 /*************************************************
  * ALPAO DM Parameters
@@ -1275,6 +1275,10 @@ typedef volatile struct {
   int hex_spiral_autostop;
   int bmc_hv_enable;
   int bmc_hv_on;
+
+  //EFC Parameters
+  double efc_sci_thresh;
+  double efc_bmc_max;
   
   //Door Commands
   int open_door[MTR_NDOORS];

@@ -22,6 +22,16 @@
 #include "../drivers/phxdrv/picc_dio.h"
 
 /**************************************************************/
+/* ALP_FUNCTION_RESET                                         */
+/*  - Reset all ALP functions                                */
+/**************************************************************/
+void alp_function_reset(sm_t *sm_p){
+  alp_zern2alp(NULL,NULL,FUNCTION_RESET);
+  alp_calibrate(sm_p, 0, NULL, NULL, NULL, 0, FUNCTION_RESET);
+}
+
+  
+  /**************************************************************/
 /* ALP_INIT_CALMODE                                           */
 /*  - Initialize ALP calmode structure                        */
 /**************************************************************/
@@ -123,10 +133,11 @@ int alp_zern2alp(double *zernikes,double *actuators,int reset){
       memset(zern2alp_matrix,0,sizeof(zern2alp_matrix));
       return 1;
     }
+    printf("ALP: Read zern2alp file\n");
     
     //Set init flag
     init=1;
-
+    
     //Return if reset
     if(reset) return 0;
   }
@@ -413,6 +424,7 @@ int alp_calibrate(sm_t *sm_p, int calmode, alp_t *alp, uint32_t *step, double *z
     for(i=0;i<ALP_NCALMODES;i++)
       alp_init_calmode(i,&alpcalmodes[i]);
     init = 1;
+    printf("ALP: Calibration initialized\n");
     if(reset) return calmode;
   }
   

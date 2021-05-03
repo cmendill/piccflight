@@ -23,6 +23,16 @@
 #include "numeric.h"
 #include "sci_functions.h"
 
+
+/**************************************************************/
+/* SCI_FUNCTION_RESET                                         */
+/*  - Resets all SCI functions                                */
+/**************************************************************/
+void sci_function_reset(sm_t *sm_p){
+  sci_howfs_construct_field(sm_p,NULL,NULL,FUNCTION_RESET);
+  sci_howfs_efc(sm_p,NULL, NULL, FUNCTION_RESET);
+}
+
 /**************************************************************/
 /* SCI_XY2INDEX                                               */
 /*  - Convert image (x,y) to image buffer index               */
@@ -287,7 +297,7 @@ int sci_expose(sm_t *sm_p, flidev_t dev, uint16 *img_buffer){
 /* SCI_HOWFS_CONSTRUCT_FIELD                                  */
 /*  - Construct field measurement from a series of probes     */
 /**************************************************************/
-void sci_howfs_construct_field(sci_howfs_t *frames,sci_field_t *field, int reset){
+void sci_howfs_construct_field(sm_t *sm_p, sci_howfs_t *frames,sci_field_t *field, int reset){
   //NOTE: *field is a pointer to a SCI_NBANDS array of fields
   static int init=0;
   static int xind[SCI_NPIX], yind[SCI_NPIX];
@@ -336,7 +346,7 @@ void sci_howfs_construct_field(sci_howfs_t *frames,sci_field_t *field, int reset
     for(c=0;c<SCI_NPIX;c++){
       field[j].r[c] = 0;
       field[j].i[c] = 0;
-      if(frames->step[0].band[j].data[xind[c]][yind[c]] > 2000){
+      if(frames->step[0].band[j].data[xind[c]][yind[c]] > sm_p->efc_sci_thresh){
 	px1 = scale[0] * frames->step[1].band[j].data[xind[c]][yind[c]];
 	px2 = scale[1] * frames->step[2].band[j].data[xind[c]][yind[c]];
 	px3 = scale[2] * frames->step[3].band[j].data[xind[c]][yind[c]];
@@ -358,7 +368,7 @@ void sci_howfs_construct_field(sci_howfs_t *frames,sci_field_t *field, int reset
 /* SCI_HOWFS_EFC                                              */
 /*  - Perform EFC matrix multiply                             */
 /**************************************************************/
-void sci_howfs_efc(sci_field_t *field, double *delta_length, int reset){
+void sci_howfs_efc(sm_t *sm_p, sci_field_t *field, double *delta_length, int reset){
   //NOTE: *field is a pointer to a SCI_NBANDS array of fields
   static int init=0;
   static double matrix[2*SCI_NPIX*SCI_NBANDS*BMC_NACTIVE]={0};
@@ -397,17 +407,18 @@ void sci_howfs_efc(sci_field_t *field, double *delta_length, int reset){
   }
   max = fabs(maxdl);
   if(fabs(mindl) > max) max = fabs(mindl);
-  
-  if(max > BMC_EFC_MAX){
-    scale = BMC_EFC_MAX / max;
-    maxdl = dl[0]*scale;
-    mindl = dl[0]*scale;
-    for(i=0;i<BMC_NACTIVE;i++){
-      dl[i] *= scale;
-      if(dl[i] > maxdl)
+  if(sm_p->efc_bmc_max > 0){
+    if(max > sm_p->efc_bmc_max){
+      scale = sm_p->efc_bmc_max / max;
+      maxdl = dl[0]*scale;
+      mindl = dl[0]*scale;
+      for(i=0;i<BMC_NACTIVE;i++){
+	dl[i] *= scale;
+	if(dl[i] > maxdl)
 	maxdl = dl[i];
-      if(dl[i] < mindl)
-	mindl = dl[i];
+	if(dl[i] < mindl)
+	  mindl = dl[i];
+      }
     }
   }
   
@@ -474,10 +485,10 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
     memcpy(&last,&start,sizeof(struct timespec));
     sci_loadorigin(&scievent);
     frame_number=0;
-    //Reset calibration routines
-    bmc_calibrate(sm_p,0,NULL,NULL,SCIID,FUNCTION_RESET);
-    sci_howfs_construct_field(NULL,NULL,FUNCTION_RESET);
-    sci_howfs_efc(NULL, NULL, FUNCTION_RESET);
+    //Reset BMC & SCI functions
+    bmc_function_reset(sm_p);
+    sci_function_reset(sm_p);
+    
     howfs_init=0;
     //Read SCI pixel selection
     if(read_file(SCI_MASK_FILE,&scimask[0][0],sizeof(scimask)))
@@ -529,6 +540,26 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
     sm_p->sci_revertorigin=0;
     print_origin=1;
   }
+  //Command: Shift x origin
+  if(sm_p->sci_xshiftorigin){
+    for(k=0;k<SCI_NBANDS;k++){
+      scievent.xorigin[k] += sm_p->sci_xshiftorigin;
+    }
+    sm_p->sci_xshiftorigin = 0;
+    print_origin=1;
+  }
+  //Command: Shift y origin
+  if(sm_p->sci_yshiftorigin){
+    for(k=0;k<SCI_NBANDS;k++){
+      scievent.yorigin[k] += sm_p->sci_yshiftorigin;
+    }
+    sm_p->sci_yshiftorigin = 0;
+    print_origin=1;
+  }
+  
+  
+
+
   //Print origin
   if(print_origin){
     printf("SCI: Origin:");
@@ -654,14 +685,14 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
       //HOWFS Operations
       if(ihowfs == SCI_HOWFS_NSTEP-1){
 	//Calculate field
-	sci_howfs_construct_field(&howfs_frames,wfsevent.field,FUNCTION_NO_RESET);
+	sci_howfs_construct_field(sm_p,&howfs_frames,wfsevent.field,FUNCTION_NO_RESET);
 
 	//Run EFC
 	if(sm_p->state_array[state].sci.run_efc){
 	  //Get DM acuator deltas from field
-	  sci_howfs_efc(wfsevent.field,delta_length,FUNCTION_NO_RESET);
+	  sci_howfs_efc(sm_p,wfsevent.field,delta_length,FUNCTION_NO_RESET);
 	  //Add deltas to current flat (NOTE: Local copy will become global when command is sent)
-	  bmc_add_length(bmc_flat.acmd,bmc_flat.acmd,delta_length);
+	  bmc_add_length(bmc_flat.acmd,bmc_flat.acmd,delta_length,FUNCTION_NO_RESET);
 	  //Set flat flag
 	  bmc_set_flat=BMC_SET_FLAT;
 	  printf("SCI: iEFC = %lu\n",iefc);
@@ -677,7 +708,7 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
       }
 
       //Set BMC Probe: try = flat + probe (NOTE: when ihowfs == 4, nothing is added to the flat)
-      bmc_add_probe(bmc_flat.acmd,bmc_try.acmd,ihowfs);
+      bmc_add_probe(bmc_flat.acmd,bmc_try.acmd,ihowfs,FUNCTION_NO_RESET);
     }
     
     //Calibrate BMC

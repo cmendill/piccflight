@@ -19,6 +19,17 @@
 #include "bmc_functions.h"
 
 /**************************************************************/
+/* BMC_FUNCTION_RESET                                         */
+/* - Reset all BMC functions                                  */
+/**************************************************************/
+void bmc_function_reset(sm_t *sm_p){
+  bmc_rotate_command(NULL, FUNCTION_RESET);
+  bmc_add_length(NULL, NULL, NULL, FUNCTION_RESET);
+  bmc_add_probe(NULL, NULL, 0, FUNCTION_RESET);
+  bmc_calibrate(sm_p, 0, NULL, NULL, 0, FUNCTION_RESET);
+}
+
+/**************************************************************/
 /* BMC_INIT_CALMODE                                           */
 /*  - Initialize BMC calmode structure                        */
 /**************************************************************/
@@ -83,15 +94,17 @@ void bmc_limit_command(bmc_t *cmd){
 /* BMC_ROTATE_COMMAND                                         */
 /* - Apply BMC command rotation                               */
 /**************************************************************/
-void bmc_rotate_command(bmc_t *cmd){
+void bmc_rotate_command(bmc_t *cmd, int reset){
   static int16_t bmcrot[BMC_NACT]={0};
   static int init=0;
   bmc_t rot;
   int i;
-  if(!init){
+  if(!init || reset){
     if(read_file(BMC_ROTATE_FILE,bmcrot,sizeof(bmcrot)))
       memset(bmcrot,0,sizeof(bmcrot));
     init=1;
+    printf("BMC: Loaded rotation file\n");
+    if(reset) return;
   }
   
   for(i=0;i<BMC_NACT;i++)
@@ -162,7 +175,7 @@ int bmc_send_command(sm_t *sm_p, bmc_t *cmd, int proc_id, int set_flat){
   
   //Apply rotation -- not preserved in command
   memcpy(&bmc_rotate,cmd,sizeof(bmc_t));
-  bmc_rotate_command(&bmc_rotate);
+  bmc_rotate_command(&bmc_rotate,FUNCTION_NO_RESET);
   
   //Check if controller is ready
   if(sm_p->bmc_ready && sm_p->bmc_hv_on){
@@ -231,7 +244,7 @@ int bmc_set_random(sm_t *sm_p, int proc_id){
     dl[i] = (2*(rand() / (double) RAND_MAX) - 1) * BMC_SCI_POKE;
 
   //Add perturbations to command
-  bmc_add_length(bmc.acmd,bmc.acmd,dl);
+  bmc_add_length(bmc.acmd,bmc.acmd,dl,FUNCTION_NO_RESET);
   
   //Send command
   return(bmc_send_command(sm_p,&bmc,proc_id,BMC_NOSET_FLAT));
@@ -317,7 +330,7 @@ void bmc_init_calibration(sm_t *sm_p){
 /* - Add length command to current voltage command            */
 /* - Output can be same pointer as input                      */
 /**************************************************************/
-void bmc_add_length(float *input, float *output, double *dl){
+void bmc_add_length(float *input, float *output, double *dl, int reset){
   int i;
   static double a[BMC_NACT]={0};
   static double b[BMC_NACT]={0};
@@ -326,16 +339,18 @@ void bmc_add_length(float *input, float *output, double *dl){
   //l = a*v^2 + b*v
   //0 = a*v^2 + b*v - l
   //v = (sqrt(b^2 + 4*a*l) - b) / 2*a
-  if(!init){
+  if(!init || reset){
     if(read_file(BMC_CAL_A_FILE,a,sizeof(a)))
       memset(a,0,sizeof(a));
     if(read_file(BMC_CAL_B_FILE,b,sizeof(b)))
       memset(b,0,sizeof(b));
     init=1;
+    printf("BMC: Loaded calibration file\n");
+    if(reset) return;
   }
   for(i=0;i<BMC_NACT;i++){
     l    = a[i]*(double)input[i]*(double)input[i] + b[i]*(double)input[i];
-    l   += dl[i];
+    l   += BMC_POLARITY * dl[i];
     output[i] = (float)((sqrt(b[i]*b[i] + 4*a[i]*l) - b[i]) / (2*a[i]));
   }
   return;
@@ -347,14 +362,14 @@ void bmc_add_length(float *input, float *output, double *dl){
 /* - Add probe pattern to BMC command                         */
 /* - Output can be same pointer as input                      */
 /**************************************************************/
-void bmc_add_probe(float *input, float *output, int ihowfs){
+void bmc_add_probe(float *input, float *output, int ihowfs, int reset){
   static int init=0;
   static double probe[SCI_HOWFS_NSTEP][BMC_NACT]={{0}}; //last probe is all zeros
   char filename[MAX_FILENAME];
   int i,j;
 
   //Initialize
-  if(!init){
+  if(!init || reset){
     //Read probes
     for(i=0;i<SCI_HOWFS_NPROBE;i++){
       sprintf(filename,BMC_PROBE_FILE,i);
@@ -364,10 +379,12 @@ void bmc_add_probe(float *input, float *output, int ihowfs){
       }
     }
     init=1;
+    printf("BMC: Loaded probe files\n");
+    if(reset) return;
   }
   
   //Add probe to flat
-  bmc_add_length(input,output,probe[ihowfs]);
+  bmc_add_length(input,output,probe[ihowfs],FUNCTION_NO_RESET);
   return;
 }
 
@@ -393,7 +410,7 @@ void bmc_add_test(float *input, float *output,int itest){
       memset(dl,0,sizeof(dl));
   
   //Add to flat
-  bmc_add_length(input,output,dl);
+  bmc_add_length(input,output,dl,FUNCTION_NO_RESET);
   return;
 }
 
@@ -426,6 +443,7 @@ int bmc_calibrate(sm_t *sm_p, int calmode, bmc_t *bmc, uint32_t *step, int proci
     for(i=0;i<BMC_NCALMODES;i++)
       bmc_init_calmode(i,&bmccalmodes[i]);
     init = 1;
+    printf("BMC: Calibration initialized\n");
     if(reset) return calmode;
   }
   
@@ -497,7 +515,7 @@ int bmc_calibrate(sm_t *sm_p, int calmode, bmc_t *bmc, uint32_t *step, int proci
 	i = (sm_p->bmccal.countB[calmode]/ncalim) % BMC_NACT;
 	printf("BMC: %lu of %d\n",i,BMC_NACT);
 	act[i] = poke * sm_p->bmccal.command_scale;
-	bmc_add_length(bmc->acmd,bmc->acmd,act);
+	bmc_add_length(bmc->acmd,bmc->acmd,act,FUNCTION_NO_RESET);
 	sm_p->bmccal.countB[calmode]++;
       }
       else{
@@ -598,7 +616,7 @@ int bmc_calibrate(sm_t *sm_p, int calmode, bmc_t *bmc, uint32_t *step, int proci
       //Set all BMC actuators to starting position
       memcpy(bmc,(bmc_t *)&sm_p->bmccal.bmc_start[calmode],sizeof(bmc_t));
       //Add probe pattern
-      bmc_add_probe(bmc->acmd,bmc->acmd,sm_p->bmccal.countA[calmode]/ncalim);
+      bmc_add_probe(bmc->acmd,bmc->acmd,sm_p->bmccal.countA[calmode]/ncalim,FUNCTION_NO_RESET);
     }else{
       //Set bmc back to starting position
       memcpy(bmc,(bmc_t *)&sm_p->bmccal.bmc_start[calmode],sizeof(bmc_t));

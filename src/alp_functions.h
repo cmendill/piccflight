@@ -2,6 +2,7 @@
 #define _ALP_FUNCTIONS
 
 //Function prototypes
+void alp_function_reset(sm_t *sm_p);
 void alp_init_calmode(int calmode, calmode_t *alp);
 int  alp_zern2alp(double *zernikes,double *actuators,int reset);
 int  alp_get_command(sm_t *sm_p, alp_t *cmd);
