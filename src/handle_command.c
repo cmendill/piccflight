@@ -2638,7 +2638,7 @@ int handle_command(char *line, sm_t *sm_p){
   if(!strncasecmp(line,cmd,strlen(cmd))){
     if(sm_p->sci_tec_enable){
       itemp = atoi(line+strlen(cmd)+1);
-      if(itemp > SCI_TEC_SETPOINT_MIN && itemp <= SCI_TEC_SETPOINT_MAX){
+      if(itemp >= SCI_TEC_SETPOINT_MIN && itemp <= SCI_TEC_SETPOINT_MAX){
 	sm_p->sci_tec_setpoint = itemp;
 	sm_p->sci_reset_camera=1;
 	printf("CMD: Changed SCI TEC setpoint to %d C\n",sm_p->sci_tec_setpoint);
