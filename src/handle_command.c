@@ -2650,6 +2650,7 @@ int handle_command(char *line, sm_t *sm_p){
   sprintf(cmd,"sci tec disable");
   if(!strncasecmp(line,cmd,strlen(cmd))){
     printf("CMD: Disabling SCI TEC\n");
+    sm_p->sci_tec_setpoint=SCI_TEC_SETPOINT_MAX;
     sm_p->sci_tec_enable=0;
     sm_p->sci_reset_camera=1;
     return(CMD_NORMAL);

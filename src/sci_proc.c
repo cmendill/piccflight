@@ -146,6 +146,13 @@ void sci_proc(void){
       }else{
 	if(SCI_DEBUG) printf("SCI: FLI temperature set to %d\n",sm_p->sci_tec_setpoint);
       }
+    }else{
+      /* Disable TEC */
+      if((err = FLISetTemperature(dev, SCI_TEC_SETPOINT_MAX))){
+	fprintf(stderr, "SCI: Error FLISetTemperature: %s\n", strerror((int)-err));
+      }else{
+	if(SCI_DEBUG) printf("SCI: FLI TEC Disabled\n");
+      }
     }
     
     /* Set exposure time */
