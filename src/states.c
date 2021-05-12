@@ -10,13 +10,14 @@
 /* piccflight headers */
 #include "controller.h"
 #include "watchdog.h"
+#include "bmc_functions.h"
 
 /*************************************************
  * CHANGE_STATE
  *  - Change state and setup system settings
  *************************************************/
 void change_state(sm_t *sm_p, int state){
-  int i;
+  int i,ret;
   uint8 procrun[NCLIENTS] = PROCRUN;
   
   //Set process run flags -- do not override defaults or enable flags
@@ -25,6 +26,31 @@ void change_state(sm_t *sm_p, int state){
   
   //Change state
   sm_p->state = state;
+
+  /* State specific actions */
+
+  //Turn off BMC HV in STATE_LOW_POWER
+  if(state == STATE_LOW_POWER){
+    if(sm_p->bmc_ready){
+      if(sm_p->bmc_hv_enable){
+	printf("WAT: Turning OFF BMC HV\n");
+	// Set all actuators to Zero -- NOTE: This will fail in states where WATID is not the BMC commander
+	if(bmc_zero_flat(sm_p,WATID))
+	  printf("WAT: ERROR: bmc_zero_flat failed!\n");
+ 	// Stop BMC controller, turn OFF HV
+	if((ret=libbmc_hv_off((libbmc_device_t *)&sm_p->libbmc_device)) < 0)
+	  printf("WAT: Failed to stop BMC controller : %s - %s \n", libbmc_error_name(ret), libbmc_strerror(ret));
+	else
+	  sm_p->bmc_hv_on = 0;
+      }
+      else{
+	printf("WAT: BMC HV not enabled\n");
+      }
+    }
+    else{
+      printf("WAT: BMC controller not ready\n");
+    }
+  }
 }
 
 /*************************************************

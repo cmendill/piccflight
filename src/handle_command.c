@@ -1160,7 +1160,6 @@ int handle_command(char *line, sm_t *sm_p){
     if(sm_p->bmc_ready){
       if(sm_p->bmc_hv_enable){
 	printf("CMD: Turning OFF BMC HV\n");
-	printf("CMD: -- WARNING -- Only operate HV below 30 percent humidity\n");
 	// Set all actuators to Zero -- NOTE: This will fail in states where WATID is not the BMC commander
 	if(bmc_zero_flat(sm_p,WATID))
 	  printf("CMD: ERROR: bmc_zero_flat failed!\n");
