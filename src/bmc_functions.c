@@ -282,8 +282,8 @@ int bmc_revert_flat(sm_t *sm_p,int proc_id){
 int bmc_save_flat(sm_t *sm_p){
   bmc_t bmc;
 
-  //Get current command
-  if(bmc_get_command(sm_p,&bmc))
+  //Get current flat
+  if(bmc_get_flat(sm_p,&bmc))
     return 1;
 
   //Save command to file

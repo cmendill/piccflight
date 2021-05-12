@@ -1161,7 +1161,7 @@ int handle_command(char *line, sm_t *sm_p){
       if(sm_p->bmc_hv_enable){
 	printf("CMD: Turning OFF BMC HV\n");
 	printf("CMD: -- WARNING -- Only operate HV below 30 percent humidity\n");
-	// Set all actuators to Zero
+	// Set all actuators to Zero -- NOTE: This will fail in states where WATID is not the BMC commander
 	if(bmc_zero_flat(sm_p,WATID))
 	  printf("CMD: ERROR: bmc_zero_flat failed!\n");
  	// Stop BMC controller, turn OFF HV
@@ -1240,13 +1240,9 @@ int handle_command(char *line, sm_t *sm_p){
   //Save current BMC command to disk
   sprintf(cmd,"bmc save flat");
   if(!strncasecmp(line,cmd,strlen(cmd))){
-    if(sm_p->state_array[sm_p->state].bmc_commander == WATID){
-      printf("CMD: Saving current BMC command as flat\n");
-      if(bmc_save_flat(sm_p))
-	printf("CMD: ERROR: bmc_save_flat failed!\n");
-    }
-    else
-      printf("CMD: Manual BMC DM control disabled in this state\n");
+    printf("CMD: Saving current BMC command to disk as flat\n");
+    if(bmc_save_flat(sm_p))
+      printf("CMD: ERROR: bmc_save_flat failed!\n");
     return(CMD_NORMAL);
   }
 
