@@ -194,10 +194,8 @@ enum bmccalmodes {BMC_CALMODE_NONE,
 #define BMC_DEFAULT_FILE       "config/bmc_default.dat"
 #define BMC_ACTIVE2FULL_FILE   "config/bmc_active2full.dat"
 #define BMC_ROTATE_FILE        "config/bmc_rotate.dat"
-#define BMC_XTILT_FILE         "config/bmc_xtilt.dat"
-#define BMC_YTILT_FILE         "config/bmc_ytilt.dat"
-#define BMC_XSINE_FILE         "config/bmc_xsine.dat"
-#define BMC_YSINE_FILE         "config/bmc_ysine.dat"
+#define BMC_POLARITY_FILE      "config/bmc_polarity.dat"
+#define BMC_TEST_FILE          "config/bmc_test_%d.dat"
 #define BMC_FLAT_FILE          "output/settings/bmc_flat.dat"
 #define HOWFS_RMATRIX0_FILE    "config/howfs_rmatrix0.dat"
 #define HOWFS_RMATRIX1_FILE    "config/howfs_rmatrix1.dat"
@@ -499,7 +497,6 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 #define BMC_SCI_VPOKE  10 //volts
 #define BMC_SET_FLAT   1
 #define BMC_NOSET_FLAT 0
-#define BMC_POLARITY   1
 
 /*************************************************
  * ALPAO DM Parameters

@@ -347,16 +347,16 @@ void sci_howfs_construct_field(sm_t *sm_p, sci_howfs_t *frames,sci_field_t *fiel
       field[j].r[c] = 0;
       field[j].i[c] = 0;
       if(frames->step[0].band[j].data[xind[c]][yind[c]] > sm_p->efc_sci_thresh){
-	px1 = scale[0] * frames->step[1].band[j].data[xind[c]][yind[c]];
-	px2 = scale[1] * frames->step[2].band[j].data[xind[c]][yind[c]];
-	px3 = scale[2] * frames->step[3].band[j].data[xind[c]][yind[c]];
-	px4 = scale[3] * frames->step[4].band[j].data[xind[c]][yind[c]];
+	px1 = scale[0] * (double)frames->step[1].band[j].data[xind[c]][yind[c]];
+	px2 = scale[1] * (double)frames->step[2].band[j].data[xind[c]][yind[c]];
+	px3 = scale[2] * (double)frames->step[3].band[j].data[xind[c]][yind[c]];
+	px4 = scale[3] * (double)frames->step[4].band[j].data[xind[c]][yind[c]];
 	
 	//Debugging
 	//if(c < 5) printf("SCI: %d | %8.2E %8.2E %8.2E %8.2E | %8.2E %8.2E %8.2E %8.2E\n",c,px1,px2,px3,px4,rmatrix0[c][j],rmatrix1[c][j],imatrix0[c][j],imatrix1[c][j]);
 	
-	field[j].r[c] = 0.25*((rmatrix0[c][j] * (px1 - px3)) + (rmatrix1[c][j] * (px2 - px4)));
-	field[j].i[c] = 0.25*((imatrix0[c][j] * (px1 - px3)) + (imatrix1[c][j] * (px2 - px4)));
+	field[j].r[c] = 10*0.25*((rmatrix0[c][j] * (px1 - px3)) + (rmatrix1[c][j] * (px2 - px4)));
+	field[j].i[c] = 10*0.25*((imatrix0[c][j] * (px1 - px3)) + (imatrix1[c][j] * (px2 - px4)));
       }
     }
   }

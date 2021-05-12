@@ -1267,6 +1267,27 @@ int handle_command(char *line, sm_t *sm_p){
     return(CMD_NORMAL);
   }
 
+  //Set current command as flat
+  sprintf(cmd,"bmc set flat");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    if(sm_p->state_array[sm_p->state].bmc_commander == WATID){
+      printf("CMD: Setting current BMC command as flat\n");
+      //Get current command
+      if(bmc_get_command(sm_p,&bmc)){
+	printf("CMD: bmc_get_command failed!\n");
+	return CMD_NORMAL;
+      }
+      //Send command
+      if(bmc_send_command(sm_p,&bmc,WATID,BMC_SET_FLAT)){
+	printf("CMD: bmc_send_command failed\n");
+	return CMD_NORMAL;
+      }
+    }
+    else
+      printf("CMD: Manual BMC DM control disabled in this state\n");
+    return(CMD_NORMAL);
+  }
+
   //Perturb BMC command with random actuator values
   sprintf(cmd,"bmc random");
   if(!strncasecmp(line,cmd,strlen(cmd))){
@@ -1394,7 +1415,7 @@ int handle_command(char *line, sm_t *sm_p){
       bmc_add_test(bmc.acmd,bmc.acmd,itemp);
       
       //Send command
-      if(bmc_send_command(sm_p,&bmc,WATID,BMC_NOSET_FLAT)){
+      if(bmc_send_command(sm_p,&bmc,WATID,BMC_SET_FLAT)){
 	printf("CMD: bmc_send_command failed\n");
 	return CMD_NORMAL;
       }

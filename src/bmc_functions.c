@@ -334,6 +334,7 @@ void bmc_add_length(float *input, float *output, double *dl, int reset){
   int i;
   static double a[BMC_NACT]={0};
   static double b[BMC_NACT]={0};
+  static double polarity=0;
   double l;
   static int init=0;
   //l = a*v^2 + b*v
@@ -344,13 +345,16 @@ void bmc_add_length(float *input, float *output, double *dl, int reset){
       memset(a,0,sizeof(a));
     if(read_file(BMC_CAL_B_FILE,b,sizeof(b)))
       memset(b,0,sizeof(b));
+    if(read_file(BMC_POLARITY_FILE,&polarity,sizeof(polarity)))
+      polarity = 0;
     init=1;
     printf("BMC: Loaded calibration file\n");
+    printf("BMC: Polarity is %f\n",polarity);
     if(reset) return;
   }
   for(i=0;i<BMC_NACT;i++){
     l    = a[i]*(double)input[i]*(double)input[i] + b[i]*(double)input[i];
-    l   += BMC_POLARITY * dl[i];
+    l   += polarity * dl[i];
     output[i] = (float)((sqrt(b[i]*b[i] + 4*a[i]*l) - b[i]) / (2*a[i]));
   }
   return;
@@ -395,19 +399,12 @@ void bmc_add_probe(float *input, float *output, int ihowfs, int reset){
 /**************************************************************/
 void bmc_add_test(float *input, float *output,int itest){
   double dl[BMC_NACT]={0};
+  char filename[MAX_FILENAME];
 
-  if(itest == 0)
-    if(read_file(BMC_XTILT_FILE,dl,sizeof(dl)))
-      memset(dl,0,sizeof(dl));
-  if(itest == 1)
-    if(read_file(BMC_YTILT_FILE,dl,sizeof(dl)))
-      memset(dl,0,sizeof(dl));
-  if(itest == 2)
-    if(read_file(BMC_XSINE_FILE,dl,sizeof(dl)))
-      memset(dl,0,sizeof(dl));
-  if(itest == 3)
-    if(read_file(BMC_YSINE_FILE,dl,sizeof(dl)))
-      memset(dl,0,sizeof(dl));
+  sprintf(filename,BMC_TEST_FILE,itest);
+  if(read_file(filename,dl,sizeof(dl)))
+    memset(dl,0,sizeof(dl));
+  
   
   //Add to flat
   bmc_add_length(input,output,dl,FUNCTION_NO_RESET);
