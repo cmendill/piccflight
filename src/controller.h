@@ -468,6 +468,7 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 #define SCI_TEC_SETPOINT_MIN  -40 //C
 #define SCI_TEC_SETPOINT_MAX   35 //C
 #define SCI_EFC_GAIN         -0.5 //EFC gain
+#define SCI_SATURATION      65535 //SCI saturation
 
 /*************************************************
  * ACQ Camera Parameters

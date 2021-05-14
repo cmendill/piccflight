@@ -305,7 +305,8 @@ void sci_howfs_construct_field(sm_t *sm_p, sci_howfs_t *frames,sci_field_t *fiel
   static double imatrix0[SCI_NPIX][SCI_NBANDS];
   static double rmatrix1[SCI_NPIX][SCI_NBANDS];
   static double imatrix1[SCI_NPIX][SCI_NBANDS];
-  double px1,px2,px3,px4;
+  uint16_t px1,px2,px3,px4;
+  double dpx1,dpx2,dpx3,dpx4;
   int i,j,c;
   uint8_t scimask[SCIXS][SCIYS];
   const double scale[4] = {6.1925973e-09,6.1938608e-09,6.1922417e-09,6.1919638e-09};
@@ -347,16 +348,28 @@ void sci_howfs_construct_field(sm_t *sm_p, sci_howfs_t *frames,sci_field_t *fiel
       field[j].r[c] = 0;
       field[j].i[c] = 0;
       if(frames->step[0].band[j].data[xind[c]][yind[c]] > sm_p->efc_sci_thresh){
-	px1 = scale[0] * (double)frames->step[1].band[j].data[xind[c]][yind[c]];
-	px2 = scale[1] * (double)frames->step[2].band[j].data[xind[c]][yind[c]];
-	px3 = scale[2] * (double)frames->step[3].band[j].data[xind[c]][yind[c]];
-	px4 = scale[3] * (double)frames->step[4].band[j].data[xind[c]][yind[c]];
+	px1 = frames->step[1].band[j].data[xind[c]][yind[c]];
+	px2 = frames->step[2].band[j].data[xind[c]][yind[c]];
+	px3 = frames->step[3].band[j].data[xind[c]][yind[c]];
+	px4 = frames->step[4].band[j].data[xind[c]][yind[c]];
+
+	dpx1 = scale[0] * (double)px1;
+	dpx2 = scale[1] * (double)px2;
+	dpx3 = scale[2] * (double)px3;
+	dpx4 = scale[3] * (double)px4;
 	
 	//Debugging
-	//if(c < 5) printf("SCI: %d | %8.2E %8.2E %8.2E %8.2E | %8.2E %8.2E %8.2E %8.2E\n",c,px1,px2,px3,px4,rmatrix0[c][j],rmatrix1[c][j],imatrix0[c][j],imatrix1[c][j]);
-	
-	field[j].r[c] = 10*0.25*((rmatrix0[c][j] * (px1 - px3)) + (rmatrix1[c][j] * (px2 - px4)));
-	field[j].i[c] = 10*0.25*((imatrix0[c][j] * (px1 - px3)) + (imatrix1[c][j] * (px2 - px4)));
+	//if(c < 5) printf("SCI: %d | %8.2E %8.2E %8.2E %8.2E | %8.2E %8.2E %8.2E %8.2E\n",c,dpx1,dpx2,dpx3,dpx4,rmatrix0[c][j],rmatrix1[c][j],imatrix0[c][j],imatrix1[c][j]);
+
+	//Calculate field
+	field[j].r[c] = 10*0.25*((rmatrix0[c][j] * (dpx1 - dpx3)) + (rmatrix1[c][j] * (dpx2 - dpx4)));
+	field[j].i[c] = 10*0.25*((imatrix0[c][j] * (dpx1 - dpx3)) + (imatrix1[c][j] * (dpx2 - dpx4)));
+
+	//Saturation check
+	if((px1 == SCI_SATURATION) || (px2 == SCI_SATURATION) || (px3 == SCI_SATURATION) || (px4 == SCI_SATURATION)){
+	  field[j].r[c] = 0;
+	  field[j].i[c] = 0;
+	}
       }
     }
   }
