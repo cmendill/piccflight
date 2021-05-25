@@ -723,35 +723,43 @@ int main(int argc,char **argv){
   }
 
   //Cleanup RTD ALP
-  if(sm_p->alp_ready){
-    if(rtd_alp_cleanup(p_rtd_alp_board))
-      perror("rtd_alp_cleanup");
+  if(ALP_ENABLE){
+    if(sm_p->alp_ready){
+      if(rtd_alp_cleanup(p_rtd_alp_board))
+	perror("rtd_alp_cleanup");
+    }
   }
   
   //Cleanup RTD TLM
-  if(sm_p->tlm_ready){
-    if(rtd_tlm_cleanup(p_rtd_tlm_board))
-      perror("rtd_tlm_cleanup");
+  if(TLM_ENABLE){
+    if(sm_p->tlm_ready){
+      if(rtd_tlm_cleanup(p_rtd_tlm_board))
+	perror("rtd_tlm_cleanup");
+    }
   }
   
   //Close RTD ALP driver
-  if(sm_p->alp_ready){
-    if(rtd_close(p_rtd_alp_board))
-      perror("rtd_close");
-    else
-      printf("WAT: RTD ALP closed\n");
+  if(ALP_ENABLE){
+    if(sm_p->alp_ready){
+      if(rtd_close(p_rtd_alp_board))
+	perror("rtd_close");
+      else
+	printf("WAT: RTD ALP closed\n");
+    }
   }
   
   //Close RTD TLM driver
-  if(sm_p->tlm_ready){
-    if(RTD_TLM_BOARD_MINOR == RTD_ALP_BOARD_MINOR && sm_p->alp_ready){
-      //Using a single RTD board and it was already closed by ALP
-      printf("WAT: RTD TLM closed\n");
-    }else{
-      if(rtd_close(p_rtd_tlm_board))
-	perror("rtd_close");
-      else
+  if(TLM_ENABLE){
+    if(sm_p->tlm_ready){
+      if(RTD_TLM_BOARD_MINOR == RTD_ALP_BOARD_MINOR && sm_p->alp_ready){
+	//Using a single RTD board and it was already closed by ALP
 	printf("WAT: RTD TLM closed\n");
+      }else{
+	if(rtd_close(p_rtd_tlm_board))
+	  perror("rtd_close");
+	else
+	  printf("WAT: RTD TLM closed\n");
+      }
     }
   }
   

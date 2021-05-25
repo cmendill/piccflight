@@ -417,6 +417,34 @@ int read_from_socket(int s,void *buf,int num){
 
 
 /******************************************************************************
+        WRITE TO A SOCKET UDP
+******************************************************************************/
+int write_to_socket_udp(int s,struct addrinfo *ai,void *buf,int num){
+  int l;
+  int n;
+  int m;
+  l = 0; //number of bytes to send
+  n = 0; //number of bytes sent in a single sendto command
+  m = 0; //total number of bytes sent
+  while(m<num){
+    l = (num-m) > TLM_UDP_MAX_SIZE ? TLM_UDP_MAX_SIZE : (num-m);
+    n=sendto(s,buf+m,l,0,ai->ai_addr,ai->ai_addrlen);
+    if(n==0){
+#if ETH_DEBUG      
+      printf("write_to_socket_udp: socket %d hung up\n", s);
+#endif      
+      return(0);
+    }
+    if(n<0){
+      perror("sendto");
+      return(-1);
+    }
+    m+=n;
+  }
+  return(m);
+}
+
+/******************************************************************************
         GET SOCKADDR, IPv4 or IPv6
 ******************************************************************************/
 void *get_in_addr(struct sockaddr *sa){

@@ -1,4 +1,6 @@
 #include <sys/socket.h>
+#include <netdb.h>
+#include <arpa/inet.h>
 
 #ifndef _COMMON_FUNCTIONS
 #define _COMMON_FUNCTIONS
@@ -21,6 +23,7 @@ int  opensock_send(char *hostname,char *port);
 int  opensock_recv(char *hostname,char *port);
 int  write_to_socket(int s,void *buf,int num);
 int  read_from_socket(int s,void *buf,int num);
+int write_to_socket_udp(int s,struct addrinfo *ai,void *buf,int num);
 void *get_in_addr(struct sockaddr *sa);
 int  eth_send(char *addr,char *port,void *data,int nbytes);
 void recursive_mkdir(const char *dir, mode_t mode);

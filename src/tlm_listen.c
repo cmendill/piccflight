@@ -19,7 +19,7 @@
 #include "common_functions.h"
 
 /* Globals */
-extern volatile int ethfd;
+extern volatile int tcpfd;
 
 void *tlm_listen(void *t) {
   /* Start Networking Code */
@@ -136,8 +136,8 @@ void *tlm_listen(void *t) {
 	  nbytes = read_from_socket(i,(void *)&recvcmd,sizeof(recvcmd));
 	  if (nbytes <= 0) {
 	    printf("TLM: Closing socket %d\n",i);
-	    if(i==ethfd)
-	      ethfd=-1;
+	    if(i==tcpfd)
+	      tcpfd=-1;
 	    close(i); //close this socket
 	    FD_CLR(i, &master); //remove from master set
 	  } 
@@ -146,7 +146,7 @@ void *tlm_listen(void *t) {
 	    recvcmd = ntohl(recvcmd);
 	    if(recvcmd == CMD_SENDDATA){
 	      printf("TLM: Listener got CMD: Send Data\n");
-	      ethfd = i;
+	      tcpfd = i;
 	    }
 	  }
 	} // END handle data from client

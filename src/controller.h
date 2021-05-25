@@ -150,13 +150,13 @@ enum bmccalmodes {BMC_CALMODE_NONE,
 /*************************************************
 * Master Enable Switches
 *************************************************/
-#define ALP_ENABLE      1 // ALPAO DM
+#define ALP_ENABLE      1 // ALPAO DM over RTD
 #define BMC_ENABLE      1 // BMC DM
 #define HEX_ENABLE      1 // Hexapod
 #define LED_ENABLE      1 // LED
 #define HTR_ENABLE      1 // Heaters
 #define MTR_ENABLE      1 // Motors
-#define TLM_ENABLE      1 // Telemetry
+#define TLM_ENABLE      0 // Telemetry over RTD
 
 /*************************************************
  * Actuator IDs
@@ -615,7 +615,9 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 #define TLM_POSTSYNC       0xDEADBEEF            //TLM packet post sync word
 #define TLM_BUFFER_LENGTH  (TLM_DATA_RATE/250)   //TLM DMA buffer length (250 updates/sec)
 #define TLM_BUFFER_SIZE    (TLM_BUFFER_LENGTH*2) //TLM DMA buffer size
-
+#define TLM_UDP_ADDR       "192.168.0.4"
+#define TLM_UDP_PORT       "1337"
+#define TLM_UDP_MAX_SIZE   65000                 //Maximum UDP packet size (bytes)
 /*************************************************
  * Motor Parameters
  *************************************************/

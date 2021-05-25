@@ -12,6 +12,11 @@
 #include <sys/stat.h>
 #include <dm7820_library.h>
 
+/* Networking */
+#include <sys/socket.h>
+#include <netdb.h>
+#include <arpa/inet.h>
+
 /* piccflight headers */
 #include "controller.h"
 #include "common_functions.h"
@@ -24,8 +29,10 @@
 /* Globals */
 //--shared memory
 int tlm_shmfd;
-//--ethernet server
-volatile int ethfd=-1;
+//--tcp server
+volatile int tcpfd=-1;
+//--udp server
+volatile int udpfd=-1;
 
 /* Listener Setup */
 void *tlm_listen(void *t);
@@ -35,54 +42,69 @@ pthread_t listener_thread;
 /* CTRL-C Function */
 void tlmctrlC(int sig){
   close(tlm_shmfd);
-  close(ethfd);
+  close(tcpfd);
+  close(udpfd);
 #if MSG_CTRLC
   printf("TLM: exiting\n");
 #endif
   exit(sig);
 }
 
-/* Send data over TM*/
-void write_block(DM7820_Board_Descriptor* p_rtd_board, char *buf, uint32 num, int flush){
+/* Send data over TM */
+void write_block(sm_t *sm_p, struct addrinfo *udp_ai, char *buf, uint32 num, int flush){
   static uint32 presync  = TLM_PRESYNC;
   static uint32 postsync = TLM_POSTSYNC;
+  int tcpsend=0;
   
-  /*Send TM over ethernet*/
-  if(ethfd >= 0){
+  
+  /*Send TM over UDP ethernet*/
+  if(udpfd >= 0){
     /*Write presync to socket */
-    write_to_socket(ethfd,&presync,sizeof(presync));
+    write_to_socket_udp(udpfd,udp_ai,&presync,sizeof(presync));
     /*Write buffer to socket */
-    write_to_socket(ethfd,buf,num);
+    write_to_socket_udp(udpfd,udp_ai,buf,num);
     /*Write postsync to socket */
-    write_to_socket(ethfd,&postsync,sizeof(postsync));
-    
+    write_to_socket_udp(udpfd,udp_ai,&postsync,sizeof(postsync));
 #if TLM_DEBUG
-    printf("TLM: write_block sent over ethernet\n");
+    printf("TLM: write_block sent over UDP\n");
 #endif
   }
-  else{
-    /*Send TM over RTD*/
-    if(p_rtd_board != NULL){
-      /*Write presync to RTD FPGA*/
-      if(rtd_send_tlm(p_rtd_board, (char *)&presync,sizeof(presync),0)){
-	printf("TLM: rtd_send_tlm failed!\n");
-	return;
-      }
-      /*Write buffer to RTD FPGA*/
-      if(rtd_send_tlm(p_rtd_board, buf, num, 0)){
-	printf("TLM: rtd_send_tlm failed!\n");
-	return;
-      }
-      /*Write postsync to RTD FPGA*/
-      if(rtd_send_tlm(p_rtd_board, (char *)&postsync,sizeof(postsync),flush)){
-	printf("TLM: rtd_send_tlm failed!\n");
-	return;
-      }
-      
+  
+  /*Send TM over TCP ethernet*/
+  if(tcpfd >= 0){
+    /*Write presync to socket */
+    write_to_socket(tcpfd,&presync,sizeof(presync));
+    /*Write buffer to socket */
+    write_to_socket(tcpfd,buf,num);
+    /*Write postsync to socket */
+    write_to_socket(tcpfd,&postsync,sizeof(postsync));
+    tcpsend=1;
 #if TLM_DEBUG
-      printf("TLM: write_block sent over RTD\n");
+    printf("TLM: write_block sent over TCP\n");
 #endif
+  }
+
+  
+  /*Send TM over RTD*/
+  if(sm_p->tlm_ready && !tcpsend){
+    /*Write presync to RTD FPGA*/
+    if(rtd_send_tlm(sm_p->p_rtd_tlm_board, (char *)&presync,sizeof(presync),0)){
+      printf("TLM: rtd_send_tlm failed!\n");
+      return;
     }
+    /*Write buffer to RTD FPGA*/
+    if(rtd_send_tlm(sm_p->p_rtd_tlm_board, buf, num, 0)){
+      printf("TLM: rtd_send_tlm failed!\n");
+      return;
+    }
+    /*Write postsync to RTD FPGA*/
+    if(rtd_send_tlm(sm_p->p_rtd_tlm_board, (char *)&postsync,sizeof(postsync),flush)){
+      printf("TLM: rtd_send_tlm failed!\n");
+      return;
+    }
+#if TLM_DEBUG
+    printf("TLM: write_block sent over RTD\n");
+#endif
   }
 }
 
@@ -135,6 +157,8 @@ void tlm_proc(void){
   struct timespec now,delta,last[NCIRCBUF],last_send;
   double dt,dt_send;
   int fakeflush=0;
+  struct addrinfo hints, *ai, *p,*udp_ai;
+  int rv;
   
   /* Open Shared Memory */
   sm_t *sm_p;
@@ -145,7 +169,32 @@ void tlm_proc(void){
 
   /* Set soft interrupt handler */
   sigset(SIGINT, tlmctrlC);	/* usually ^C */
-  
+
+  /* Start UDP connection */
+  memset(&hints, 0, sizeof hints);
+  hints.ai_family   = AF_UNSPEC;
+  hints.ai_socktype = SOCK_DGRAM;
+  hints.ai_flags    = AI_PASSIVE;
+  if ((rv = getaddrinfo(TLM_UDP_ADDR, TLM_UDP_PORT, &hints, &ai)) != 0) {
+    printf("TLM: getaddrinfo error\n");
+    fprintf(stderr, "TLM: %s\n", gai_strerror(rv));
+    tlmctrlC(0);
+  }
+  // -- loop through all the results and make a socket
+  for(p = ai; p != NULL; p = p->ai_next) {
+    if ((udpfd = socket(p->ai_family, p->ai_socktype,p->ai_protocol)) == -1) {
+      perror("TLM: socket");
+      continue;
+    }
+    break;
+  }
+  if (p == NULL) {
+    fprintf(stderr, "TLM: failed to create UDP socket\n");
+    tlmctrlC(0);
+  }
+  udp_ai = p; //set final UDP AI struct
+  printf("TLM: Opened UDP socket\n");
+ 
   /* Start listener */
   printf("TLM: Starting listener\n");
   pthread_create(&listener_thread,NULL,tlm_listen,(void *)0);
@@ -170,7 +219,6 @@ void tlm_proc(void){
     printf("TLM: buffer malloc failed!\n");
     tlmctrlC(0);
   }
-
   
   /* Check if we are saving any data */
   for(i=0;i<NCIRCBUF;i++)
@@ -227,8 +275,8 @@ void tlm_proc(void){
       checkin(sm_p,TLMID);
       
       /*Write Data*/
-      if(ethfd >= 0){
-	write_to_socket(ethfd,fakeword,sizeof(uint16)*NFAKE);
+      if(tcpfd >= 0){
+	write_to_socket(tcpfd,fakeword,sizeof(uint16)*NFAKE);
 	//sleep (time @ 250000 Wps)
 	usleep((long)(ONE_MILLION * ((double)NFAKE / (double)TLM_DATA_RATE)));
 	
@@ -279,11 +327,9 @@ void tlm_proc(void){
 	if(readdata){
 	  //Send data
 	  if(sm_p->circbuf[i].send){
-	    if(sm_p->tlm_ready){
-	      write_block(sm_p->p_rtd_tlm_board,buffer,sm_p->circbuf[i].nbytes,(dt_send > 0.5));
-	      //save last send time
-	      memcpy(&last_send,&now,sizeof(struct timespec));
-	    }
+	    write_block(sm_p,udp_ai,buffer,sm_p->circbuf[i].nbytes,(dt_send > 0.5));
+	    //save last send time
+	    memcpy(&last_send,&now,sizeof(struct timespec));
 	  }
 	  //Save data
 	  if(sm_p->circbuf[i].save){
