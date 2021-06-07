@@ -339,12 +339,11 @@ void init_state(int state_number, state_t *state){
     state->bmc_commander = SCIID;
     state->sci.run_howfs = 1;
     state->sci.run_efc   = 0;
-    //Set LYTID as alp commander
-    state->alp_commander = LYTID;
-    //LYT Settings
-    state->lyt.fit_zernikes = 1;
-    //for(i=0;i<LOWFS_N_ZERNIKE;i++)
-       //  state->lyt.zernike_control[i] = ACTUATOR_ALP;
+    //Set SHKID as alp commander
+    state->alp_commander = SHKID;
+    //SHK Settings
+    state->shk.fit_zernikes = 1;
+    state->shk.cell_control = ACTUATOR_ALP;
     return;
   }
 
@@ -358,12 +357,11 @@ void init_state(int state_number, state_t *state){
     state->bmc_commander = SCIID;
     state->sci.run_howfs = 1;
     state->sci.run_efc   = 1;
-    //Set LYTID as alp commander
-    state->alp_commander = LYTID;
-    //LYT Settings
-    state->lyt.fit_zernikes = 1;
-    //for(i=0;i<LOWFS_N_ZERNIKE;i++)
-    //  state->lyt.zernike_control[i] = ACTUATOR_ALP;
+    //Set SHKID as alp commander
+    state->alp_commander = SHKID;
+    //SHK Settings
+    state->shk.fit_zernikes = 1;
+    state->shk.cell_control = ACTUATOR_ALP;
     return;
   }
 }

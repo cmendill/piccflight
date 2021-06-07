@@ -1262,19 +1262,14 @@ int handle_command(char *line, sm_t *sm_p){
     return(CMD_NORMAL);
   }
 
-  //Set current command as flat
+  //Set current flat
   sprintf(cmd,"bmc set flat");
   if(!strncasecmp(line,cmd,strlen(cmd))){
     if(sm_p->state_array[sm_p->state].bmc_commander == WATID){
-      printf("CMD: Setting current BMC command as flat\n");
-      //Get current command
-      if(bmc_get_command(sm_p,&bmc)){
-	printf("CMD: bmc_get_command failed!\n");
-	return CMD_NORMAL;
-      }
-      //Send command
-      if(bmc_send_command(sm_p,&bmc,WATID,BMC_SET_FLAT)){
-	printf("CMD: bmc_send_command failed\n");
+      printf("CMD: Setting current BMC flat\n");
+      //Set flat
+      if(bmc_set_flat(sm_p,WATID)){
+	printf("CMD: bmc_set_flat failed\n");
 	return CMD_NORMAL;
       }
     }
@@ -2087,6 +2082,20 @@ int handle_command(char *line, sm_t *sm_p){
   }
 
   //LYT Dark Image Commands
+  sprintf(cmd,"lyt sub dark enable");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    printf("CMD: Enabling LYT dark subtraction\n");
+    sm_p->lyt_subdark=1;
+    return(CMD_NORMAL);
+  }
+
+  sprintf(cmd,"lyt sub dark disable");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    printf("CMD: Disabling LYT dark subtraction\n");
+    sm_p->lyt_subdark=0;
+    return(CMD_NORMAL);
+  }
+
   sprintf(cmd,"lyt set dark");
   if(!strncasecmp(line,cmd,strlen(cmd))){
     printf("CMD: Setting current LYT image as dark\n");

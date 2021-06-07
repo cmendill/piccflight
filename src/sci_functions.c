@@ -435,7 +435,7 @@ void sci_howfs_efc(sm_t *sm_p, sci_field_t *field, double *delta_length, int res
     }
   }
   
-  printf("SCI: %f %f\n",mindl,maxdl);
+  printf("SCI: DM MIN | MAX = %f | %f\n",mindl,maxdl);
   write_file("output/data/calibration/dm_delta.dat",dl,sizeof(dl));
   printf("Wrote: output/data/calibration/dm_delta.dat\n");
   
@@ -682,6 +682,7 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
       //********** HOWFC Indexing ************
       //ihowfs:  0      1   2   3   4
       //image:   flat  p0  p1  p2  p3
+      //pktcmd:  flat  p0  p1  p2  p3
       //dmcmd:   p0    p1  p2  p3  new_flat
 
       //Fake HOWFS Data
@@ -734,7 +735,8 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
       // - do nothing for now
     }else{
       // - copy command to current position
-      memcpy(&bmc,&bmc_try,sizeof(bmc_t));
+      //memcpy(&bmc,&bmc_try,sizeof(bmc_t));
+      //Don't do this, last command will be saved with packet (command for this image)
     }
   }
   

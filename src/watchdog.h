@@ -66,8 +66,8 @@
 #define ACQ_FRMTIME_DEFAULT        0.200
 
 //LYT Settings
-#define LYT_XORIGIN_DEFAULT        16
-#define LYT_YORIGIN_DEFAULT        16
+#define LYT_XORIGIN_DEFAULT        24
+#define LYT_YORIGIN_DEFAULT        24
 #define LYT_CEN_ENABLE_DEFAULT     1
 
 //Shack-Hartmann Settings

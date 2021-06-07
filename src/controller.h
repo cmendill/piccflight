@@ -303,8 +303,8 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 #define SHKXS           512
 #define SHKYS           512
 #define SHKBIN          2
-#define LYTXS           32
-#define LYTYS           32
+#define LYTXS           16
+#define LYTYS           16
 #define LYTREADXS       64   
 #define LYTREADYS       64 
 #define ACQREADXS       1280
@@ -1259,6 +1259,7 @@ typedef volatile struct {
   int lyt_zerodark;
   int lyt_savedark;
   int lyt_loaddark;
+  int lyt_subdark;
   
   //Camera Telemetry
   float shk_ccd_temp;

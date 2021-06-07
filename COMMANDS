@@ -405,6 +405,25 @@ cmd: lyt save ref
 cmd: lyt load ref
 	load current reference image fron disk
 
+------------- LYT Dark Image Commands -------------
+
+cmd: lyt sub dark enable
+	enable dark subtraction
+	
+cmd: lyt sub dark disable
+	disable dark subtraction
+	
+cmd: lyt set dark
+	record current dark image
+
+cmd: lyt zero dark
+        zero out current dark image
+
+cmd: lyt save dark
+        save current dark image to file
+
+cmd: lyt load dark
+        load dark image from file
 
 ------------- ZERNIKE TARGETS -------------
 

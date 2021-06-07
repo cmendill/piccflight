@@ -481,12 +481,17 @@ int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
       }
     }else{
       //Cut out ROI & measure background -- transpose origin offsets
-      for(i=0;i<LYTREADXS;i++)
-	for(j=0;j<LYTREADYS;j++)
-	  if((i >= lytevent.yorigin) && (i < lytevent.yorigin+LYTXS) && (j >= lytevent.xorigin) && (j < lytevent.xorigin+LYTYS))
-	    lytevent.image.data[i-lytevent.yorigin][j-lytevent.xorigin]=(double)readimage.data[i][j] - darkimage.data[i][j];
-	  else
+      for(i=0;i<LYTREADXS;i++){
+	for(j=0;j<LYTREADYS;j++){
+	  if((i >= lytevent.yorigin) && (i < lytevent.yorigin+LYTXS) && (j >= lytevent.xorigin) && (j < lytevent.xorigin+LYTYS)){
+	    lytevent.image.data[i-lytevent.yorigin][j-lytevent.xorigin]=(double)readimage.data[i][j];
+	    if(sm_p->lyt_subdark) lytevent.image.data[i-lytevent.yorigin][j-lytevent.xorigin] -= darkimage.data[i][j]; //dark subtraction
+	  }
+	  else{
 	    background += readimage.data[i][j];
+	  }
+	}
+      }
       //Take average
       lytevent.background = background / nbkg;
     }

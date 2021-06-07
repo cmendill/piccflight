@@ -308,6 +308,22 @@ int bmc_load_flat(sm_t *sm_p,int proc_id){
   return(bmc_send_command(sm_p,&bmc,proc_id,BMC_SET_FLAT));
 }
 
+/**************************************************************/
+/* BMC_SET_FLAT                                               */
+/* - Set current flat to BMC                                  */
+/**************************************************************/
+int bmc_set_flat(sm_t *sm_p,int proc_id){
+  bmc_t bmc;
+
+  //Get current flat
+  if(bmc_get_flat(sm_p,&bmc))
+    return 1;
+
+  //Send flat to BMC
+  return(bmc_send_command(sm_p,&bmc,proc_id,BMC_SET_FLAT));
+
+  return 0;
+}
 
 /**************************************************************/
 /* BMC_INIT_CALIBRATION                                       */
