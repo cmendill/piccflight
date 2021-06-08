@@ -29,10 +29,6 @@ void change_state(sm_t *sm_p, int state){
 
   /* State specific actions */
 
-  //Reset SHK & LYT on all state changes
-  sm_p->shk_reset = 1;
-  sm_p->lyt_reset = 1;
-
   //Turn off BMC HV in STATE_LOW_POWER
   if(state == STATE_LOW_POWER){
     if(sm_p->bmc_ready){
