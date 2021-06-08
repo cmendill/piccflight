@@ -185,9 +185,9 @@ int lyt_zernike_fit(lyt_t *image, lytref_t *lytref, double *zernikes, double *xc
   static double lyt2zern_matrix[LYTXS*LYTYS*LOWFS_N_ZERNIKE]={0}; //zernike fitting matrix (max size)
   static int lyt_npix=0;
   double lyt_delta[LYTXS*LYTYS]={0}; //measured image - reference (max size)
-  double img_total,ref_total,cen_total,value,xnum,ynum;
-  double xhist[LYTXS]={0};
-  double yhist[LYTYS]={0};
+  double img_total,ref_total,value,xnum,ynum,xnum_ref,ynum_ref;
+  double xhist[LYTXS]={0},xhist_ref[LYTXS]={0};
+  double yhist[LYTYS]={0},yhist_ref[LYTYS]={0};
   int    i,j,count;
   uint16 maxpix;
 
@@ -219,7 +219,6 @@ int lyt_zernike_fit(lyt_t *image, lytref_t *lytref, double *zernikes, double *xc
   //Get image totals for normalization & histograms for centroid
   img_total=0;
   ref_total=0;
-  cen_total=0;
   maxpix=0;
   for(i=0;i<LYTXS;i++){
     for(j=0;j<LYTYS;j++){
@@ -229,26 +228,33 @@ int lyt_zernike_fit(lyt_t *image, lytref_t *lytref, double *zernikes, double *xc
       if(lytref->pxmask[i][j]){
 	img_total += value;
 	ref_total += lytref->refimg[i][j];
+	//Build x,y histograms 
+	xhist[i]     += value;
+	yhist[j]     += value;
+	xhist_ref[i] += lytref->refimg[i][j];
+	yhist_ref[j] += lytref->refimg[i][j];
       }
-      //Build x,y histograms over full image
-      xhist[i]  += value;
-      yhist[j]  += value;
-      cen_total += value;
     }
   }
-
+  
   //Weight histograms
   xnum  = 0;
   ynum  = 0;
-  for(i=0;i<LYTXS;i++)
-    xnum += (i - LYTXS/2) * xhist[i];
-  for(j=0;j<LYTYS;j++)
-    ynum += (j - LYTYS/2) * yhist[j];
-  
-  //Calculate centroid
-  if(cen_total > 0){
-    *xcentroid = xnum/cen_total;
-    *ycentroid = ynum/cen_total;
+  xnum_ref  = 0;
+  ynum_ref  = 0;
+  for(i=0;i<LYTXS;i++){
+    xnum     += (i - LYTXS/2) * xhist[i];
+    xnum_ref += (i - LYTXS/2) * xhist_ref[i];
+  }
+  for(j=0;j<LYTYS;j++){
+    ynum     += (j - LYTYS/2) * yhist[j];
+    ynum_ref += (j - LYTYS/2) * yhist_ref[j];
+  }
+
+  //Calculate centroid relative to reference image
+  if(img_total > 0){
+    *xcentroid = (xnum/img_total) - (xnum_ref/ref_total);
+    *ycentroid = (ynum/img_total) - (ynum_ref/ref_total);
   }else{
     *xcentroid = 0;
     *ycentroid = 0;
