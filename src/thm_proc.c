@@ -31,6 +31,7 @@
 #define ADC_NAVG        10   //Number of temperature reads to average
 #define ADC_VREF_SENSOR 15
 
+
 /* temperature conversion */
 #define VREF_DEFAULT    5.0     //volts
 #define ADC1_R1         1000.0  //ohms
@@ -82,7 +83,6 @@ int find_humidity(void){
     sprintf(filename,"/sys/bus/i2c/devices/i2c-%d/name",i);
     if((fd = fopen(filename,"r")) == NULL){
       perror("COM: geti2c fopen");
-      fclose(fd);
       return(-1);
     }
     //Read file
