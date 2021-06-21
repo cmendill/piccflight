@@ -786,6 +786,28 @@ int handle_command(char *line, sm_t *sm_p){
 	  printf("CMD: hex_send_command failed\n");
 	return(CMD_NORMAL);
       }
+      //Save current position
+      sprintf(cmd,"hex savepos");
+      if(!strncasecmp(line,cmd,strlen(cmd))){
+	if(!sm_p->hex_ready){
+	  printf("CMD: HEX not ready\n");
+	  return(CMD_NORMAL);
+	}
+	printf("CMD: Saving hexapod position\n");
+	hex_savepos(sm_p);
+	return(CMD_NORMAL);
+      }
+      //Load hex position from file
+      sprintf(cmd,"hex loadpos");
+      if(!strncasecmp(line,cmd,strlen(cmd))){
+	if(!sm_p->hex_ready){
+	  printf("CMD: HEX not ready\n");
+	  return(CMD_NORMAL);
+	}
+	printf("CMD: Loading hexapod position\n");
+	hex_loadpos(sm_p,WATID);
+	return(CMD_NORMAL);
+      }
       //Move in a single axis
       sprintf(cmd,"hex move");
       if(!strncasecmp(line,cmd,strlen(cmd))){

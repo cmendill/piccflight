@@ -218,10 +218,11 @@ enum bmccalmodes {BMC_CALMODE_NONE,
 #define SCI_OUTFILE            "output/data/calibration/sci_output_%s.dat"
 #define SHK_ORIGIN_FILE        "output/settings/shk_origin.dat"
 #define ALP_FLAT_FILE          "output/settings/alp_flat.dat"
-#define SCI_XORIGIN_FILE        "output/settings/sci_xorigin.dat"
-#define SCI_YORIGIN_FILE        "output/settings/sci_yorigin.dat"
+#define SCI_XORIGIN_FILE       "output/settings/sci_xorigin.dat"
+#define SCI_YORIGIN_FILE       "output/settings/sci_yorigin.dat"
 #define LYT_REFIMG_FILE        "output/settings/lyt_refimg.dat"
 #define LYT_DARKIMG_FILE       "output/settings/lyt_darkimg.dat"
+#define HEX_POS_FILE           "output/settings/hex_pos.dat"
 #define CMD_ERASE_FLIGHT_DATA  "rm -r output/data/flight_data/*"
 #define CMD_ERASE_CAL_DATA     "rm -r output/data/calibration/*"
 
@@ -557,7 +558,7 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 #define HEX_AXIS_V       4
 #define HEX_AXIS_W       5
 #define HEX_POS_HOME     {0,0,0,0,0,0}
-#define HEX_POS_DEFAULT  {-1.213673,3.527778,-0.157447,0.228300,0.437629,0.001699}
+#define HEX_POS_DEFAULT  {-4.229551,2.788085,-0.018239,0.571493,0.740424,0.001713}
 #define HEX_TRL_POKE      0.01
 #define HEX_ROT_POKE      0.001
 #define HEX_X_CAL_POKE    0.01

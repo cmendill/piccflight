@@ -159,6 +159,12 @@ cmd: hex gohome
 cmd: hex godef
 	move hexapod to #defined default position
 
+cmd: hex savepos
+     	save current hexapod position to file
+
+cmd: hex loadpos
+        load hexapod position from file
+
 cmd: hex move [arg]
 	move the hexapod one step in the given direction
 	arg = +x, -x, +y, -y, +z, -z, +u, -u, +v, -v, +w, -w

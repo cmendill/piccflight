@@ -9,6 +9,8 @@ void hex_get_error(int id);
 int  hex_init(int *hexfd);
 int  hex_get_command(sm_t *sm_p, hex_t *cmd);
 int  hex_send_command(sm_t *sm_p, hex_t *cmd, int proc_id);
+int  hex_savepos(sm_t *sm_p);
+int  hex_loadpos(sm_t *sm_p,int procid);
 int  hex_hex2scope(double *position, double *result);
 int  hex_scope2hex(double *position, double *result);
 int  hex_move(int id, double *pos);

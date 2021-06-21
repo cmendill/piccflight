@@ -151,63 +151,65 @@ int hex_init(int *hexfd){
   }
   printf("HEX: Pivot point set\n");
 
-  /* Get Debugging Info */
-  if(!PI_qCST(*hexfd,NULL,text,256)){
-    PI_TranslateError(PI_GetError(*hexfd),msg,PI_ERR_LENGTH);
-    printf("HEX: PI_qCST error: %s\n",msg);
-  }else{
-    printf("HEX: CST %s\n",text);
-  }
-  if(!PI_qVER(*hexfd,text,256)){
-    PI_TranslateError(PI_GetError(*hexfd),msg,PI_ERR_LENGTH);
-    printf("HEX: PI_qVER error: %s\n",msg);
-  }else{
-    printf("HEX: VER %s\n",text);
-  }
-  if(!PI_qIDN(*hexfd,text,256)){
-    PI_TranslateError(PI_GetError(*hexfd),msg,PI_ERR_LENGTH);
-    printf("HEX: PI_qIDN error: %s\n",msg);
-  }else{
-    printf("HEX: IDN %s\n",text);
-  }
-  
-  if(!PI_GcsCommandset(*hexfd,"DIA? 1")){
-    PI_TranslateError(PI_GetError(*hexfd),msg,PI_ERR_LENGTH);
-    printf("HEX: PI_GcsCommandset error: %s\n",msg);
-  }else{
-    while(1){
-      if(!PI_GcsGetAnswerSize(*hexfd,&answer_size)){
-	PI_TranslateError(PI_GetError(*hexfd),msg,PI_ERR_LENGTH);
-	printf("HEX: PI_GcsGetAnswerSize error: %s\n",msg);
-	break;
-      }
-      if(answer_size == 0) break;
-      if(!PI_GcsGetAnswer(*hexfd,text,256)){
-	PI_TranslateError(PI_GetError(*hexfd),msg,PI_ERR_LENGTH);
-	printf("HEX: PI_GcsGetAnswer error: %s\n",msg);
-	break;
-      }
-      printf("HEX: DIA %s\n",text);
+  if(HEX_DEBUG){
+    /* Get Debugging Info */
+    if(!PI_qCST(*hexfd,NULL,text,256)){
+      PI_TranslateError(PI_GetError(*hexfd),msg,PI_ERR_LENGTH);
+      printf("HEX: PI_qCST error: %s\n",msg);
+    }else{
+      printf("HEX: CST %s\n",text);
     }
-  }
+    if(!PI_qVER(*hexfd,text,256)){
+      PI_TranslateError(PI_GetError(*hexfd),msg,PI_ERR_LENGTH);
+      printf("HEX: PI_qVER error: %s\n",msg);
+    }else{
+      printf("HEX: VER %s\n",text);
+    }
+    if(!PI_qIDN(*hexfd,text,256)){
+      PI_TranslateError(PI_GetError(*hexfd),msg,PI_ERR_LENGTH);
+      printf("HEX: PI_qIDN error: %s\n",msg);
+    }else{
+      printf("HEX: IDN %s\n",text);
+    }
   
-  if(!PI_GcsCommandset(*hexfd,"DIA? 2")){
-    PI_TranslateError(PI_GetError(*hexfd),msg,PI_ERR_LENGTH);
-    printf("HEX: PI_GcsCommandset error: %s\n",msg);
-  }else{
-    while(1){
-      if(!PI_GcsGetAnswerSize(*hexfd,&answer_size)){
-	PI_TranslateError(PI_GetError(*hexfd),msg,PI_ERR_LENGTH);
-	printf("HEX: PI_GcsGetAnswerSize error: %s\n",msg);
-	break;
+    if(!PI_GcsCommandset(*hexfd,"DIA? 1")){
+      PI_TranslateError(PI_GetError(*hexfd),msg,PI_ERR_LENGTH);
+      printf("HEX: PI_GcsCommandset error: %s\n",msg);
+    }else{
+      while(1){
+	if(!PI_GcsGetAnswerSize(*hexfd,&answer_size)){
+	  PI_TranslateError(PI_GetError(*hexfd),msg,PI_ERR_LENGTH);
+	  printf("HEX: PI_GcsGetAnswerSize error: %s\n",msg);
+	  break;
+	}
+	if(answer_size == 0) break;
+	if(!PI_GcsGetAnswer(*hexfd,text,256)){
+	  PI_TranslateError(PI_GetError(*hexfd),msg,PI_ERR_LENGTH);
+	  printf("HEX: PI_GcsGetAnswer error: %s\n",msg);
+	  break;
+	}
+	printf("HEX: DIA %s\n",text);
       }
-      if(answer_size == 0) break;
-      if(!PI_GcsGetAnswer(*hexfd,text,256)){
-	PI_TranslateError(PI_GetError(*hexfd),msg,PI_ERR_LENGTH);
-	printf("HEX: PI_GcsGetAnswer error: %s\n",msg);
-	break;
+    }
+  
+    if(!PI_GcsCommandset(*hexfd,"DIA? 2")){
+      PI_TranslateError(PI_GetError(*hexfd),msg,PI_ERR_LENGTH);
+      printf("HEX: PI_GcsCommandset error: %s\n",msg);
+    }else{
+      while(1){
+	if(!PI_GcsGetAnswerSize(*hexfd,&answer_size)){
+	  PI_TranslateError(PI_GetError(*hexfd),msg,PI_ERR_LENGTH);
+	  printf("HEX: PI_GcsGetAnswerSize error: %s\n",msg);
+	  break;
+	}
+	if(answer_size == 0) break;
+	if(!PI_GcsGetAnswer(*hexfd,text,256)){
+	  PI_TranslateError(PI_GetError(*hexfd),msg,PI_ERR_LENGTH);
+	  printf("HEX: PI_GcsGetAnswer error: %s\n",msg);
+	  break;
+	}
+	printf("HEX: DIA %s\n",text);
       }
-      printf("HEX: DIA %s\n",text);
     }
   }
   
@@ -424,6 +426,48 @@ int hex_printpos(int id){
   printf("HEX: V = %f \n",scopepos[4]);
   printf("HEX: W = %f \n",scopepos[5]);
   printf("HEX: {%f,%f,%f,%f,%f,%f}\n",scopepos[0],scopepos[1],scopepos[2],scopepos[3],scopepos[4],scopepos[5]);
+
+  return 0;
+}
+
+/**************************************************************/
+/* HEX_SAVEPOS                                                */
+/*  - Get position of all hexapod axes and save them to file  */
+/**************************************************************/
+int hex_savepos(sm_t *sm_p){
+  hex_t hexcmd;
+  //Get current command
+  if(hex_get_command(sm_p,&hexcmd)){
+    printf("HEX: hex_get_command failed\n");
+    return(1);
+  }
+  //Write command to file
+  if(write_file(HEX_POS_FILE,&hexcmd,sizeof(hexcmd)))
+    printf("HEX: ERROR: Could not write position file %s\n",HEX_POS_FILE);
+  else
+    printf("HEX: Wrote %s\n",HEX_POS_FILE);
+  
+  return 0;
+}
+
+/**************************************************************/
+/* HEX_LOADPOS                                                */
+/*  - Load hexapod position from file                         */
+/**************************************************************/
+int hex_loadpos(sm_t *sm_p,int procid){
+  hex_t hexcmd;
+  
+  //Read hexapod position from file
+  if(read_file(HEX_POS_FILE,&hexcmd,sizeof(hexcmd))){
+    printf("HEX: ERROR: Could not read position file %s\n",HEX_POS_FILE);
+    return 1;
+  }
+  else
+    printf("HEX: Read %s\n",HEX_POS_FILE);
+  
+  //Send command to move hexapod
+  if(hex_send_command(sm_p,&hexcmd,procid))
+    printf("HEX: ERROR: hex_send_command\n");
 
   return 0;
 }
