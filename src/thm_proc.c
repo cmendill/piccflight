@@ -118,7 +118,7 @@ void thm_proc(void){
   uint16_t htr_command;           // heater command word
   unsigned char htr_lsb=0,htr_msb=0;
   const long htr_sleep = ONE_MILLION / HTR_NSTEPS / HTR_NCYCLES; //us
-  int i, j, k, iavg;
+  int i, j, k, iavg, dev;
   static int pulse_index[HTR_NSTEPS];
   int htr_pulse[SSR_NCHAN][HTR_NSTEPS];
   int state;
@@ -175,8 +175,8 @@ void thm_proc(void){
   sigset(SIGINT, thmctrlC);	/* usually ^C */
 
   /* Init humidity sensors */
-  if((i = find_humidity()) >= 0){
-    sprintf(hum_device,"/dev/i2c-%d",i);
+  if((dev = find_humidity()) >= 0){
+    sprintf(hum_device,"/dev/i2c-%d",dev);
     printf("THM: found humidity sensors on %s\n",hum_device);
     if((thm_humfd=hdc_open(hum_device)) >= 0){
       for(i=0;i<HUM_NSENSORS;i++){
@@ -193,7 +193,9 @@ void thm_proc(void){
   }else{
     printf("THM: could not find humidity sensors!\n");
   }
-
+  for(i=0;i<HUM_NSENSORS;i++)
+    printf("THM: Humidity sensor %d status: %d\n",i,hum_ready[i]); 
+  
   /* Init CPU temp sensors */
   if(sensors_init(NULL) == 0){
     if((chip = sensors_get_detected_chips(NULL, &chip_nr))){
