@@ -797,6 +797,7 @@ int shk_process_image(stImageBuff *buffer,sm_t *sm_p){
   int offload_switch[LOWFS_N_ZERNIKE] = {0};
   uint32_t n_dither=1;
   int reset_zernike=0;
+  
     
   //Get time immidiately
   clock_gettime(CLOCK_REALTIME,&start);
@@ -903,7 +904,7 @@ int shk_process_image(stImageBuff *buffer,sm_t *sm_p){
   
   //Save zernike targets
   memcpy(shkevent.zernike_target,(void *)sm_p->shk_zernike_target,sizeof(shkevent.zernike_target));
-  
+
   //Run target calibration
   if(sm_p->state_array[state].alp_commander == SHKID)
     if(shkevent.hed.tgt_calmode != TGT_CALMODE_NONE)
@@ -1021,6 +1022,7 @@ int shk_process_image(stImageBuff *buffer,sm_t *sm_p){
 	if(sm_p->shk_zernike_control[i] && sm_p->state_array[state].shk.zernike_control[i] == ACTUATOR_HEX){
 	  zernike_switch[i] = 1;
 	  zernike_control = 1;
+	  shkpkt.zernike_control[i] = ACTUATOR_HEX;
 	}
 	if(sm_p->shk_zernike_control[i] && sm_p->state_array[state].shk.alp_zernike_offload[i] == ACTUATOR_HEX){
 	  offload_switch[i] = 1;
@@ -1062,6 +1064,7 @@ int shk_process_image(stImageBuff *buffer,sm_t *sm_p){
       }else{
 	// - copy command to current position
 	memcpy(&hex,&hex_try,sizeof(hex_t));
+	printf("HEX: {%f,%f,%f,%f,%f,%f}\n",hex.acmd[0],hex.acmd[1],hex.acmd[2],hex.acmd[3],hex.acmd[4],hex.acmd[5]);
       }
       
       //Reset time
@@ -1099,6 +1102,7 @@ int shk_process_image(stImageBuff *buffer,sm_t *sm_p){
       if(sm_p->shk_zernike_control[i] && sm_p->state_array[state].shk.zernike_control[i] == ACTUATOR_ALP){
 	zernike_switch[i] = 1;
 	zernike_control = 1;
+	shkpkt.zernike_control[i] = ACTUATOR_ALP;
       }
     }
     
@@ -1136,6 +1140,7 @@ int shk_process_image(stImageBuff *buffer,sm_t *sm_p){
       // - add actuator deltas to ALP command
       for(i=0;i<ALP_NACT;i++)
 	alp_try.acmd[i] += alp_delta.acmd[i];
+
     }
 
     //Calibrate ALP
@@ -1238,6 +1243,17 @@ int shk_process_image(stImageBuff *buffer,sm_t *sm_p){
 	}
       }
 
+      //Set SHKPKT zernike control flags
+      for(i=0;i<LOWFS_N_ZERNIKE;i++){
+	shkpkt.zernike_control[i] = 0;
+	if(sm_p->shk_zernike_control[i] && sm_p->state_array[state].shk.zernike_control[i] == ACTUATOR_HEX)
+	  shkpkt.zernike_control[i] = ACTUATOR_HEX;
+	if(sm_p->shk_zernike_control[i] && sm_p->state_array[state].shk.zernike_control[i] == ACTUATOR_ALP)
+	  shkpkt.zernike_control[i] = ACTUATOR_ALP;
+	if(sm_p->state_array[state].shk.cell_control == ACTUATOR_ALP)
+	  shkpkt.zernike_control[i] = ACTUATOR_ALP;
+      }
+      
       //Actuator commands
       for(i=0;i<ALP_NACT;i++){
 	shkpkt.alp_acmd[i] = shkevent.alp.acmd[i];

@@ -558,7 +558,7 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 #define HEX_AXIS_V       4
 #define HEX_AXIS_W       5
 #define HEX_POS_HOME     {0,0,0,0,0,0}
-#define HEX_POS_DEFAULT  {-4.229551,2.788085,-0.018239,0.571493,0.740424,0.001713}
+#define HEX_POS_DEFAULT  {-0.242341,-0.567020,0.229075,0.096319,0.525447,0.001772}
 #define HEX_TRL_POKE      0.01
 #define HEX_ROT_POKE      0.001
 #define HEX_X_CAL_POKE    0.01
@@ -916,7 +916,7 @@ typedef struct bmccal_struct{
 /*************************************************
  * Packet Header
  *************************************************/
-#define PICC_PKT_VERSION     34  //packet version number
+#define PICC_PKT_VERSION     35  //packet version number
 typedef struct pkthed_struct{
   uint16  version;       //packet version number
   uint16  type;          //packet ID word
@@ -1017,8 +1017,10 @@ typedef struct shkpkt_struct{
   float     alp_zcmd[LOWFS_N_ZERNIKE];
   float     hex_acmd[HEX_NAXES];
   float     hex_zcmd[LOWFS_N_ZERNIKE];
+  uint8     zernike_control[LOWFS_N_ZERNIKE];
+  uint8     padding1;
   uint32    nsamples;
-  uint32    padding;
+  uint32    padding2;
 } shkpkt_t;
 
 typedef struct lytevent_struct{
@@ -1054,6 +1056,8 @@ typedef struct lytpkt_struct{
   float     alp_acmd[ALP_NACT];
   float     alp_zcmd[LOWFS_N_ZERNIKE][LYT_NSAMPLES];
   uint32    nsamples;
+  uint8     zernike_control[LOWFS_N_ZERNIKE];
+  uint8     padding1;
   lyt_t     image;
 } lytpkt_t;
 

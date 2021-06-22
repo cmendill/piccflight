@@ -709,6 +709,13 @@ int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
 	lytpkt.alp_acmd[i] = lytevent.alp.acmd[i];
       }
       
+      //Set LYTPKT zernike control flags
+      for(i=0;i<LOWFS_N_ZERNIKE;i++){
+	lytpkt.zernike_control[i] = 0;
+	if(sm_p->lyt_zernike_control[i] && sm_p->state_array[state].lyt.zernike_control[i] == ACTUATOR_ALP)
+	  lytpkt.zernike_control[i] = ACTUATOR_ALP;
+      }
+
       //CCD Temp
       lytpkt.ccd_temp = lytevent.ccd_temp;
 
