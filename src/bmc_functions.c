@@ -141,14 +141,23 @@ int bmc_get_command(sm_t *sm_p, bmc_t *cmd){
 /* - Function to get the last flat sent to the BMC DM         */
 /* - Use atomic operations to prevent two processes from      */
 /*   accessing the commands at the same time                  */
+/* - iflat==0 --> the last flat written                       */
+/* - iflat==1 --> the second to last flat written             */
 /**************************************************************/
-int bmc_get_flat(sm_t *sm_p, bmc_t *cmd){
+int bmc_get_flat(sm_t *sm_p, bmc_t *cmd, int iflat){
   int retval = 1;
+  int bmc_iflat = (sm_p->bmc_iflat - iflat) % BMC_NFLAT;
+  if((bmc_iflat >= BMC_NFLAT) || (bmc_iflat < 0) || (((int64_t)sm_p->bmc_iflat - iflat) < 0)){
+    printf("BMC: Bad iflat argument %d\n",iflat);
+    return 1;
+  }
+  //printf("BMC: iflat = %d  |  index = %d  | counter = %d\n",iflat,bmc_iflat,sm_p->bmc_iflat);
+  
   
   //Atomically test and set BMC command lock using GCC built-in function
   if(__sync_lock_test_and_set(&sm_p->bmc_command_lock,1)==0){
     //Copy flat
-    memcpy(cmd,(bmc_t *)&sm_p->bmc_flat,sizeof(bmc_t));
+    memcpy(cmd,(bmc_t *)&sm_p->bmc_flat[bmc_iflat],sizeof(bmc_t));
     //Release lock
     __sync_lock_release(&sm_p->bmc_command_lock);
     //Return 0 on success
@@ -191,7 +200,8 @@ int bmc_send_command(sm_t *sm_p, bmc_t *cmd, int proc_id, int set_flat){
 	  //Copy command to current position
 	  memcpy((bmc_t *)&sm_p->bmc_command,cmd,sizeof(bmc_t));
 	  //Set flat
-	  if(set_flat) memcpy((bmc_t *)&sm_p->bmc_flat,cmd,sizeof(bmc_t));
+	  if(set_flat == BMC_SET_FLAT) memcpy((bmc_t *)&sm_p->bmc_flat[++sm_p->bmc_iflat % BMC_NFLAT],cmd,sizeof(bmc_t));
+	  if(set_flat == BMC_OW_FLAT)  memcpy((bmc_t *)&sm_p->bmc_flat[sm_p->bmc_iflat % BMC_NFLAT],cmd,sizeof(bmc_t));
 	  //Set retval for good command
 	  retval = 0;
 	}
@@ -283,7 +293,7 @@ int bmc_save_flat(sm_t *sm_p){
   bmc_t bmc;
 
   //Get current flat
-  if(bmc_get_flat(sm_p,&bmc))
+  if(bmc_get_flat(sm_p,&bmc,sm_p->bmc_iflat))
     return 1;
 
   //Save command to file
@@ -312,15 +322,15 @@ int bmc_load_flat(sm_t *sm_p,int proc_id){
 /* BMC_SET_FLAT                                               */
 /* - Set current flat to BMC                                  */
 /**************************************************************/
-int bmc_set_flat(sm_t *sm_p,int proc_id){
+int bmc_set_flat(sm_t *sm_p,int proc_id, int iflat){
   bmc_t bmc;
-
+  
   //Get current flat
-  if(bmc_get_flat(sm_p,&bmc))
+  if(bmc_get_flat(sm_p,&bmc,iflat))
     return 1;
 
   //Send flat to BMC
-  return(bmc_send_command(sm_p,&bmc,proc_id,BMC_SET_FLAT));
+  return(bmc_send_command(sm_p,&bmc,proc_id,BMC_OW_FLAT));
 
   return 0;
 }

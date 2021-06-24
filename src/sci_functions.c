@@ -643,7 +643,7 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
       //Skip this image
       return;
     }
-    if(bmc_get_flat(sm_p,&bmc_flat)){
+    if(bmc_get_flat(sm_p,&bmc_flat,0)){
       //Skip this image
       return;
     }

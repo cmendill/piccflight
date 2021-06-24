@@ -1288,9 +1288,19 @@ int handle_command(char *line, sm_t *sm_p){
   sprintf(cmd,"bmc set flat");
   if(!strncasecmp(line,cmd,strlen(cmd))){
     if(sm_p->state_array[sm_p->state].bmc_commander == WATID){
-      printf("CMD: Setting current BMC flat\n");
+      pch = strtok(line+strlen(cmd)," ");
+      if(pch == NULL){
+	printf("CMD: Bad command format\n");
+	return CMD_NORMAL;
+      }
+      itemp  = atoi(pch);
+      if((itemp >= BMC_NFLAT) || (itemp < 0)){
+	printf("CMD: BMC flat position must be within: [%d,%d]\n",0,BMC_NFLAT-1);
+	return(CMD_NORMAL);
+      }
+      printf("CMD: Setting BMC flat to position %d\n",itemp);
       //Set flat
-      if(bmc_set_flat(sm_p,WATID)){
+      if(bmc_set_flat(sm_p,WATID,itemp)){
 	printf("CMD: bmc_set_flat failed\n");
 	return CMD_NORMAL;
       }

@@ -497,8 +497,10 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 #define BMC_SCI_NCALIM 1
 #define BMC_SCI_POKE   50 //nm
 #define BMC_SCI_VPOKE  10 //volts
+#define BMC_OW_FLAT    2
 #define BMC_SET_FLAT   1
 #define BMC_NOSET_FLAT 0
+#define BMC_NFLAT      10
 
 /*************************************************
  * ALPAO DM Parameters
@@ -1186,7 +1188,8 @@ typedef volatile struct {
   //BMC Command
   int   bmc_command_lock;
   bmc_t bmc_command;
-  bmc_t bmc_flat;
+  bmc_t bmc_flat[BMC_NFLAT];
+  uint32_t bmc_iflat;
 
   //HEX Command
   int   hex_command_lock;
