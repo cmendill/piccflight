@@ -338,7 +338,9 @@ int main(int argc,char **argv){
   sm_p->hex_spiral_autostop = HEX_SPIRAL_AUTOSTOP_DEFAULT;
   sm_p->lyt_mag_enable      = 0;
   sm_p->lyt_mag             = 1;
-  
+  sm_p->efc_bmc_max         = EFC_BMC_MAX_DEFAULT;
+  sm_p->efc_sci_thresh      = EFC_SCI_THRESH_DEFAULT;
+
   //Zernike control defaults
   //--SHK
   for(i=0;i<LOWFS_N_ZERNIKE;i++)

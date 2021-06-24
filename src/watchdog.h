@@ -65,6 +65,10 @@
 #define ACQ_EXPTIME_DEFAULT        0.200
 #define ACQ_FRMTIME_DEFAULT        0.200
 
+//EFC Settings
+#define EFC_BMC_MAX_DEFAULT        5 //nm
+#define EFC_SCI_THRESH_DEFAULT     0 //ADU
+
 //LYT Settings
 #define LYT_XORIGIN_DEFAULT        24
 #define LYT_YORIGIN_DEFAULT        24
