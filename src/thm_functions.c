@@ -157,11 +157,11 @@ void thm_init_heater(int h, htr_t *htr){
   }
 
 
-  //HTR11: 5CCB
+  //HTR11: M2GL
   if(h == 11){
-    sprintf(htr->name,"5CCB");
+    sprintf(htr->name,"M2GL");
     htr->adc      = 1;
-    htr->ch       = 8;
+    htr->ch       = 1;
     htr->maxpower = 50;
     htr->setpoint = 20;
     htr->deadband = 1;
