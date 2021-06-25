@@ -183,6 +183,23 @@ void print_lyt_zernikes(sm_t *sm_p){
 }
 
 /**************************************************************/
+/* PRINT_ALP_ZERNIKES                                             */
+/*  - Print out ALP zernike control status                        */
+/**************************************************************/
+void print_alp_zernikes(sm_t *sm_p){
+  int i;
+  printf("************ ALP Zernike Control ************\n");
+  printf("Zernike   Controlled\n");
+  for(i=0;i<LOWFS_N_ZERNIKE;i++){
+    if(sm_p->alp_zernike_control[i] == 1) printf("%02d        YES\n",i);        
+     else
+   if(sm_p->alp_zernike_control[i] == 0) printf("%02d        NO\n",i);
+  }
+  printf("******************************************\n");
+
+}
+
+/**************************************************************/
 /* PRINT_HTR_STATUS                                           */
 /*  - Print out current heater status                         */
 /**************************************************************/
@@ -1014,7 +1031,7 @@ int handle_command(char *line, sm_t *sm_p){
   }
 
   //Add a zernike to the current ALP command
-  sprintf(cmd,"alp zernike");
+  sprintf(cmd,"alp set zernike");
   if(!strncasecmp(line,cmd,strlen(cmd))){
     if(sm_p->state_array[sm_p->state].alp_commander == WATID){
       pch = strtok(line+strlen(cmd)," ");
@@ -1070,7 +1087,7 @@ int handle_command(char *line, sm_t *sm_p){
   }
 
   //Add a single actuator value to the current command
-  sprintf(cmd,"alp actuator");
+  sprintf(cmd,"alp set actuator");
   if(!strncasecmp(line,cmd,strlen(cmd))){
     if(sm_p->state_array[sm_p->state].alp_commander == WATID){
       pch = strtok(line+strlen(cmd)," ");
@@ -1329,7 +1346,7 @@ int handle_command(char *line, sm_t *sm_p){
   
 
   //Add a single actuator value to the current command
-  sprintf(cmd,"bmc actuator");
+  sprintf(cmd,"bmc set actuator");
   if(!strncasecmp(line,cmd,strlen(cmd))){
     if(sm_p->state_array[sm_p->state].bmc_commander == WATID){
       pch = strtok(line+strlen(cmd)," ");
@@ -2390,6 +2407,63 @@ int handle_command(char *line, sm_t *sm_p){
       pch = strtok(NULL," ");
     }
     print_lyt_zernikes(sm_p);
+    return CMD_NORMAL;
+  }
+  
+  //ALP Zernike control commands
+  sprintf(cmd,"alp zernike status");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    print_alp_zernikes(sm_p);
+    return CMD_NORMAL;
+  }
+  sprintf(cmd,"alp zernike disable all");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    printf("CMD: Disabling ALP control of ALL Zernikes\n\n");
+    for(i=0;i<LOWFS_N_ZERNIKE;i++)
+      sm_p->alp_zernike_control[i]=0;
+    print_alp_zernikes(sm_p);
+    return CMD_NORMAL;
+  }
+  sprintf(cmd,"alp zernike enable all");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    printf("CMD: Enabling ALP control of ALL Zernikes\n\n");
+    for(i=0;i<LOWFS_N_ZERNIKE;i++)
+      sm_p->alp_zernike_control[i]=1;
+    print_alp_zernikes(sm_p);
+    return CMD_NORMAL;
+  }
+  sprintf(cmd,"alp zernike disable");
+  if(!strncasecmp(line,cmd,strlen(cmd)) && strlen(line) > strlen(cmd)){
+    pch = strtok(line+strlen(cmd)," ");
+    while(pch != NULL){
+      itemp  = atoi(pch);
+      if(itemp >= 0 && itemp < LOWFS_N_ZERNIKE){
+	sm_p->alp_zernike_control[itemp]=0;
+	printf("CMD: Disabling ALP control of Zernike %d\n",itemp);
+      }
+      else{
+	printf("CMD: Invalid Zernike %d\n",itemp);
+      }
+      pch = strtok(NULL," ");
+    }
+    print_alp_zernikes(sm_p);
+    return CMD_NORMAL;
+  }
+  sprintf(cmd,"alp zernike enable");
+  if(!strncasecmp(line,cmd,strlen(cmd)) && strlen(line) > strlen(cmd)){
+    pch = strtok(line+strlen(cmd)," ");
+    while(pch != NULL){
+      itemp  = atoi(pch);
+      if(itemp >= 0 && itemp < LOWFS_N_ZERNIKE){
+	sm_p->alp_zernike_control[itemp]=1;
+	printf("CMD: Enabling ALP control of Zernike %d\n",itemp);
+      }
+      else{
+	printf("CMD: Invalid Zernike %d\n",itemp);
+      }
+      pch = strtok(NULL," ");
+    }
+    print_alp_zernikes(sm_p);
     return CMD_NORMAL;
   }
   

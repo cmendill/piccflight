@@ -205,12 +205,12 @@ cmd: alp reset
         reload the user command ALP-to-Zernike matrix
 	reset all alp functions
 
-cmd: alp zernike [arg1] [arg2]
+cmd: alp set zernike [arg1] [arg2]
 	add a zernike delta to the current ALP command
 	arg1 = zernike index [0,1,2,3,...,22]
 	arg2 = zernike wavefront amplitude [microns RMS]
 
-cmd: alp actuator [arg1] [arg2]
+cmd: alp set actuator [arg1] [arg2]
 	add a single actuator delta to the current ALP command
 	arg1 = actuator index [0,1,2,3,...,96]
 	arg2 = actuator delta in analog command units [-1 to +1] 
@@ -262,7 +262,7 @@ cmd: bmc test [arg]
 	      1: ytilt
 	      2: xsine
 	      3: ysine
-cmd: bmc actuator [arg1] [arg2]
+cmd: bmc set actuator [arg1] [arg2]
 	add a single actuator delta (volts) to the current BMC command
 	arg1 = actuator index [0,1,2,3,...,951]
 	arg2 = actuator delta in volts [-50 to +50] 
@@ -447,26 +447,27 @@ cmd: [cam] inc target [arg1] [arg2]
 
 
 ------------- ZERNIKE CONTROL SWITCHES -------------
+NOTE: use cam = "alp" to control zernikes in alp calmode flight only
 
 cmd: [cam] zernike status
-        cam = "shk" or "lyt"
+        cam = "shk" or "lyt" or "alp"
         print out which zernikes are enabled and which are disabled
 
 cmd: [cam] zernike enable all
-        cam = "shk" or "lyt"
+        cam = "shk" or "lyt" or "alp"
         enable control of all zernikes
 
 cmd: [cam] zernike enable [arg]
-        cam = "shk" or "lyt"
+        cam = "shk" or "lyt" or "alp"
         enable control of a single zernike
 	arg = zernike index
 
 cmd: [cam] zernike disable all
-        cam = "shk" or "lyt"
+        cam = "shk" or "lyt" or "alp"
         disable control of all zernikes
 
 cmd: [cam] zernike disable [arg]
-        cam = "shk" or "lyt"
+        cam = "shk" or "lyt" or "alp"
         disable control of a single zernike
 	arg = zernike index
 

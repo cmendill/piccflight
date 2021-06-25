@@ -291,10 +291,14 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 /*************************************************
  * Zernike Errors
  *************************************************/
-#define ZERNIKE_ERRORS_FILE   "config/picture_c_pointing_data_20200310_newfilter_zernike_errors.dat"
-#define ZERNIKE_ERRORS_NUMBER 200000
-#define ZERNIKE_ERRORS_PERIOD 0.00200000
-#define ZERNIKE_ERRORS_LENGTH 400
+#define ZERNIKE_ERRORS_FILE   "config/measured_zernike_errors.dat"
+#define ZERNIKE_ERRORS_NUMBER 3001
+#define ZERNIKE_ERRORS_PERIOD 0.010000000
+#define ZERNIKE_ERRORS_LENGTH 30.010000
+//#define ZERNIKE_ERRORS_FILE   "config/picture_c_pointing_data_20200310_newfilter_zernike_errors.dat"
+//#define ZERNIKE_ERRORS_NUMBER 200000
+//#define ZERNIKE_ERRORS_PERIOD 0.00200000
+//#define ZERNIKE_ERRORS_LENGTH 400
 
 /*************************************************
  * Camera Settings -- Keep sizes divisible by 4 (packets)
@@ -1304,6 +1308,7 @@ typedef volatile struct {
   //Zernike control switches
   int shk_zernike_control[LOWFS_N_ZERNIKE];
   int lyt_zernike_control[LOWFS_N_ZERNIKE];
+  int alp_zernike_control[LOWFS_N_ZERNIKE]; //for calibration
 
   //Events circular buffers
   scievent_t scievent[SCIEVENTSIZE];

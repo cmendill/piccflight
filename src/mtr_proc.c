@@ -40,7 +40,7 @@
 #define DOOR_STATUS_STOPPED (1 << 4)
 
 /* Door Parameters */
-#define DOOR_TIMEOUT        {170,7,7,1}
+#define DOOR_TIMEOUT        {185,7,7,1}
 
 
 /* Process File Descriptor */

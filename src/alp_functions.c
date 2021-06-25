@@ -764,7 +764,8 @@ int alp_calibrate(sm_t *sm_p, int calmode, alp_t *alp, uint32_t *step, double *z
       for(i=0;i<LOWFS_N_ZERNIKE;i++){
 	this_zernike[i] = 0.5*((1-step_fraction)*sm_p->alpcal.zernike_errors[i][index] + step_fraction*sm_p->alpcal.zernike_errors[i][index+1]);
 	this_zernike[i] *= sm_p->alpcal.command_scale;
-	dz[i] = this_zernike[i] - sm_p->alpcal.last_zernike[i];
+	if(sm_p->alp_zernike_control[i])
+	  dz[i] = this_zernike[i] - sm_p->alpcal.last_zernike[i];
       }
       
       //Wait for the 2nd iteration to move the mirror to prevent large deltas

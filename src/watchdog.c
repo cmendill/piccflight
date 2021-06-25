@@ -348,6 +348,9 @@ int main(int argc,char **argv){
   //--LYT
   sm_p->lyt_zernike_control[0] = 1;
   sm_p->lyt_zernike_control[1] = 1;
+  //--ALP
+  for(i=0;i<LOWFS_N_ZERNIKE;i++)
+    sm_p->alp_zernike_control[i] = 1;
 
   //SHK PID Gains
   double shk_gain_alp_zern[LOWFS_N_ZERNIKE][LOWFS_N_PID] = SHK_GAIN_ALP_ZERN_DEFAULT;
