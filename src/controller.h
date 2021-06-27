@@ -95,6 +95,7 @@ enum states { STATE_STANDBY,
 	      STATE_SHK_CELL_LOWFC,
 	      STATE_LYT_ALP_CALIBRATE,
 	      STATE_LYT_ZERN_LOWFC,
+	      STATE_HYB_ZERN_LOWFC,
 	      STATE_LYT_TT_LOWFC,
 	      STATE_SCI_BMC_CALIBRATE,
 	      STATE_HOWFS,
@@ -698,6 +699,7 @@ typedef struct shkctrl_struct{
   int fit_zernikes;
   int zernike_control[LOWFS_N_ZERNIKE];
   int cell_control;
+  int shk2lyt;
   int alp_zernike_offload[LOWFS_N_ZERNIKE];
 } shkctrl_t;
 
@@ -922,7 +924,7 @@ typedef struct bmccal_struct{
 /*************************************************
  * Packet Header
  *************************************************/
-#define PICC_PKT_VERSION     35  //packet version number
+#define PICC_PKT_VERSION     36  //packet version number
 typedef struct pkthed_struct{
   uint16  version;       //packet version number
   uint16  type;          //packet ID word
@@ -1020,13 +1022,12 @@ typedef struct shkpkt_struct{
   float     zernike_target[LOWFS_N_ZERNIKE];
   float     zernike_measured[LOWFS_N_ZERNIKE][SHK_NSAMPLES];
   float     alp_acmd[ALP_NACT];
-  float     alp_zcmd[LOWFS_N_ZERNIKE];
+  float     alp_zcmd[LOWFS_N_ZERNIKE][SHK_NSAMPLES];
   float     hex_acmd[HEX_NAXES];
   float     hex_zcmd[LOWFS_N_ZERNIKE];
   uint8     zernike_control[LOWFS_N_ZERNIKE];
   uint8     padding1;
   uint32    nsamples;
-  uint32    padding2;
 } shkpkt_t;
 
 typedef struct lytevent_struct{
@@ -1188,6 +1189,10 @@ typedef volatile struct {
   alp_t alp_command;
   int   alp_proc_id;
   int   alp_n_dither;
+  alp_t alp_shk2lyt;
+  int   alp_shk2lyt_lock;
+  int   alp_shk2lyt_set;
+  
 
   //BMC Command
   int   bmc_command_lock;

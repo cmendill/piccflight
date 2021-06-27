@@ -5,6 +5,9 @@
 void alp_function_reset(sm_t *sm_p);
 void alp_init_calmode(int calmode, calmode_t *alp);
 int  alp_zern2alp(double *zernikes,double *actuators,int reset);
+int  alp_alp2zern(double *actuators,double *zernikes,int reset);
+int  alp_set_shk2lyt(sm_t *sm_p, alp_t *cmd);
+int  alp_get_shk2lyt(sm_t *sm_p, alp_t *cmd);
 int  alp_get_command(sm_t *sm_p, alp_t *cmd);
 int  alp_send_command(sm_t *sm_p, alp_t *cmd, int proc_id, int n_dither);
 int  alp_revert_flat(sm_t *sm_p, int proc_id);

@@ -119,8 +119,8 @@ void lyt_alp_zernpid(lytevent_t *lytevent, double *zernike_delta, int *zernike_s
 
   //Centroid settings
   static int usezern=0;
-  const double minthresh = 1;  //Switch to zernikes when centroid crosses minthresh going in
-  const double maxthresh = 2;  //Switch to centroid when centroid crosses maxthresh going out
+  const double minthresh = 1.0;  //Switch to zernikes when centroid crosses minthresh going in
+  const double maxthresh = 2.0;  //Switch to centroid when centroid crosses maxthresh going out
   const double dCYdZ0 =  32.5; //pixels/micron  
   const double dCXdZ1 = -48.0; //pixels/micron
   const double cgain  = -0.5;  //centroid control gain
@@ -253,8 +253,8 @@ int lyt_zernike_fit(lyt_t *image, lytref_t *lytref, double *zernikes, double *xc
 
   //Calculate centroid relative to reference image
   if(img_total > 0){
-    *xcentroid = (xnum/img_total) - (xnum_ref/ref_total);
-    *ycentroid = (ynum/img_total) - (ynum_ref/ref_total);
+    *xcentroid = (xnum/img_total);// - (xnum_ref/ref_total);
+    *ycentroid = (ynum/img_total);// - (ynum_ref/ref_total);
   }else{
     *xcentroid = 0;
     *ycentroid = 0;
@@ -281,7 +281,8 @@ int lyt_zernike_fit(lyt_t *image, lytref_t *lytref, double *zernikes, double *xc
       zernikes[i] = zernikes[i] > LYT_ZERNIKE_MAX ? LYT_ZERNIKE_MAX : zernikes[i];
     }
 
-  }else{
+  }
+  else{
     //Zero out zernikes
     for(i=0;i<LOWFS_N_ZERNIKE;i++)
       zernikes[i] = 0;
@@ -486,7 +487,7 @@ int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
 	}
       }
     }else{
-      //Cut out ROI & measure background -- transpose origin offsets
+      //Cut out ROI & measure background -- transpose origin offsets to match ROI coordinates. Image is transposed during readout.
       for(i=0;i<LYTREADXS;i++){
 	for(j=0;j<LYTREADYS;j++){
 	  if((i >= lytevent.yorigin) && (i < lytevent.yorigin+LYTXS) && (j >= lytevent.xorigin) && (j < lytevent.xorigin+LYTYS)){

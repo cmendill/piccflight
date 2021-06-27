@@ -27,6 +27,7 @@
 /**************************************************************/
 void alp_function_reset(sm_t *sm_p){
   alp_zern2alp(NULL,NULL,FUNCTION_RESET);
+  alp_alp2zern(NULL,NULL,FUNCTION_RESET);
   alp_calibrate(sm_p, 0, NULL, NULL, NULL, 0, FUNCTION_RESET);
 }
 
@@ -121,7 +122,7 @@ void alp_init_calmode(int calmode, calmode_t *alp){
 
 /**************************************************************/
 /* ALP_ZERN2ALP                                               */
-/*  - Convert zernike commands to ALPAO DM commands           */
+/*  - Convert zernike commands to ALP actuator commands       */
 /**************************************************************/
 int alp_zern2alp(double *zernikes,double *actuators,int reset){
   static int init=0;
@@ -149,6 +150,35 @@ int alp_zern2alp(double *zernikes,double *actuators,int reset){
 }
 
 /**************************************************************/
+/* ALP_ALP2ZERN                                               */
+/*  - Convert ALP actuator commands to zernike commands       */
+/**************************************************************/
+int alp_alp2zern(double *actuators, double *zernikes,int reset){
+  static int init=0;
+  static double alp2zern_matrix[LOWFS_N_ZERNIKE*ALP_NACT]={0};
+
+  if(!init || reset){
+    //Read matrix file
+    if(read_file(SHKZER2ALPACT_FILE,alp2zern_matrix,sizeof(alp2zern_matrix))){
+      memset(alp2zern_matrix,0,sizeof(alp2zern_matrix));
+      return 1;
+    }
+    printf("ALP: Read alp2zern file\n");
+    
+    //Set init flag
+    init=1;
+    
+    //Return if reset
+    if(reset) return 0;
+  }
+
+  //Do Matrix Multiply
+  num_dgemv(alp2zern_matrix,actuators,zernikes, LOWFS_N_ZERNIKE, ALP_NACT);
+
+  return 0;
+}
+
+/**************************************************************/
 /* ALP_GET_COMMAND                                            */
 /* - Function to get the last command sent to the ALPAO DM    */
 /* - Use atomic operations to prevent two processes from      */
@@ -165,6 +195,62 @@ int alp_get_command(sm_t *sm_p, alp_t *cmd){
     __sync_lock_release(&sm_p->alp_command_lock);
     //Return 0 on success
     retval = 0;
+  }
+  
+  //Return
+  return retval;
+}
+
+/**************************************************************/
+/* ALP_SET_SHK2LYT                                            */
+/* - Function to send Zernike commands from SHK to LYT        */
+/* - Use atomic operations to prevent two processes from      */
+/*   accessing the commands at the same time                  */
+/**************************************************************/
+int alp_set_shk2lyt(sm_t *sm_p, alp_t *cmd){
+  int retval = 1;
+  
+  //Atomically test and set ALP command lock using GCC built-in function
+  if(__sync_lock_test_and_set(&sm_p->alp_shk2lyt_lock,1)==0){
+    //Check if command is empty
+    if(!sm_p->alp_shk2lyt_set){
+      //Copy command
+      memcpy((alp_t *)&sm_p->alp_shk2lyt,cmd,sizeof(alp_t));
+      //Set command
+      sm_p->alp_shk2lyt_set = 1;
+      //Return 0 on success
+      retval = 0;
+    }
+    //Release lock
+    __sync_lock_release(&sm_p->alp_shk2lyt_lock);
+  }
+  
+  //Return
+  return retval;
+}
+
+/**************************************************************/
+/* ALP_GET_SHK2LYT                                            */
+/* - Function to receive Zernike commands from SHK to LYT     */
+/* - Use atomic operations to prevent two processes from      */
+/*   accessing the commands at the same time                  */
+/**************************************************************/
+int alp_get_shk2lyt(sm_t *sm_p, alp_t *cmd){
+  int retval = 1;
+  
+  //Atomically test and set ALP command lock using GCC built-in function
+  if(__sync_lock_test_and_set(&sm_p->alp_shk2lyt_lock,1)==0){
+    //Check if command is set
+    if(sm_p->alp_shk2lyt_set){
+      //Copy command
+      memcpy(cmd,(alp_t *)&sm_p->alp_shk2lyt,sizeof(alp_t));
+      //Unset command
+      sm_p->alp_shk2lyt_set = 0;
+      //Return 0 on success
+      retval = 0;
+    }
+    //Release lock
+    __sync_lock_release(&sm_p->alp_shk2lyt_lock);
   }
   
   //Return

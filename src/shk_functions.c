@@ -830,6 +830,7 @@ int shk_process_image(stImageBuff *buffer,sm_t *sm_p){
     shk_cells2alp(shkevent.cells,NULL,FUNCTION_RESET);
     //Reset zern2alp mapping
     alp_zern2alp(NULL,NULL,FUNCTION_RESET);
+    alp_alp2zern(NULL,NULL,FUNCTION_RESET);
     //Reset calibration routines
     alp_calibrate(sm_p,0,NULL,NULL,NULL,SHKID,FUNCTION_RESET);
     hex_calibrate(0,NULL,NULL,SHKID,FUNCTION_RESET);
@@ -1119,7 +1120,7 @@ int shk_process_image(stImageBuff *buffer,sm_t *sm_p){
       // - convert zernike deltas to actuator deltas
       alp_zern2alp(alp_delta.zcmd,alp_delta.acmd,FUNCTION_NO_RESET);
 
-      // - add Zernike PID output deltas to ALP command
+      // - add Zernike deltas to ALP command
       for(i=0;i<LOWFS_N_ZERNIKE;i++)
 	if(zernike_switch[i])
 	  alp_try.zcmd[i] += alp_delta.zcmd[i];
@@ -1137,10 +1138,17 @@ int shk_process_image(stImageBuff *buffer,sm_t *sm_p){
       // - convert cell commands to actuator deltas
       shk_cells2alp(shkevent.cells,alp_delta.acmd,FUNCTION_NO_RESET);
       
+      // - convert actuator deltas to zernike deltas
+      alp_alp2zern(alp_delta.acmd,alp_delta.zcmd,FUNCTION_NO_RESET);
+
+      // - add Zernike deltas to ALP command
+      for(i=0;i<LOWFS_N_ZERNIKE;i++)
+	alp_try.zcmd[i] += alp_delta.zcmd[i];
+      
       // - add actuator deltas to ALP command
       for(i=0;i<ALP_NACT;i++)
 	alp_try.acmd[i] += alp_delta.acmd[i];
-
+      
     }
 
     //Calibrate ALP
@@ -1203,6 +1211,7 @@ int shk_process_image(stImageBuff *buffer,sm_t *sm_p){
     }
     for(i=0;i<LOWFS_N_ZERNIKE;i++){
       shkpkt.zernike_measured[i][sample]        = shkevent.zernike_measured[i];
+      shkpkt.alp_zcmd[i][sample]                = shkevent.alp.zcmd[i];
     }
 
     //Increment sample counter
@@ -1237,7 +1246,6 @@ int shk_process_image(stImageBuff *buffer,sm_t *sm_p){
       for(i=0;i<LOWFS_N_ZERNIKE;i++){
 	shkpkt.zernike_target[i] = shkevent.zernike_target[i];
 	shkpkt.hex_zcmd[i]       = shkevent.hex.zcmd[i];
-	shkpkt.alp_zcmd[i]       = shkevent.alp.zcmd[i];
 	for(j=0;j<LOWFS_N_PID;j++){
 	  shkpkt.gain_alp_zern[i][j] = shkevent.gain_alp_zern[i][j];
 	}
