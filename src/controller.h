@@ -292,10 +292,14 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 /*************************************************
  * Zernike Errors
  *************************************************/
-#define ZERNIKE_ERRORS_FILE   "config/picture_c_pointing_data_requirement_zernike_errors.dat"
-#define ZERNIKE_ERRORS_NUMBER 200000
-#define ZERNIKE_ERRORS_PERIOD 0.00200000
-#define ZERNIKE_ERRORS_LENGTH 400
+//#define ZERNIKE_ERRORS_FILE   "config/picture_c_pointing_data_requirement_zernike_errors.dat"
+//#define ZERNIKE_ERRORS_NUMBER 200000
+//#define ZERNIKE_ERRORS_PERIOD 0.00200000
+//#define ZERNIKE_ERRORS_LENGTH 400
+#define ZERNIKE_ERRORS_FILE   "config/measured_zernike_errors.dat"
+#define ZERNIKE_ERRORS_NUMBER 12441
+#define ZERNIKE_ERRORS_PERIOD 0.0011000000
+#define ZERNIKE_ERRORS_LENGTH 13.685100
 
 /*************************************************
  * Camera Settings -- Keep sizes divisible by 4 (packets)

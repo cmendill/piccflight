@@ -1094,9 +1094,9 @@ int shk_process_image(stImageBuff *buffer,sm_t *sm_p){
     }
   }
   
-  //Check if we will send a command
-  if((sm_p->state_array[state].alp_commander == SHKID) && sm_p->alp_ready){
-
+  //Check if we will send a command or use shk2lyt
+  if(((sm_p->state_array[state].alp_commander == SHKID) || sm_p->state_array[state].shk.shk2lyt) && sm_p->alp_ready){
+    
     //Get last ALP command
     if(alp_get_command(sm_p,&alp)){
       //Skip this image
@@ -1141,45 +1141,56 @@ int shk_process_image(stImageBuff *buffer,sm_t *sm_p){
       alp_alp2zern(alp_delta.acmd,alp_delta.zcmd,FUNCTION_NO_RESET);
     }
 
-    //Apply command according to PID type
-    if(sm_p->shk_alp_pid_type == PID_SINGLE_INTEGRATOR){
-      // - Initialize command
-      if(!pid_single_init){
-	memcpy(&alp_first,&alp,sizeof(alp_t));
-	pid_single_init=1;
-	printf("SHK: PID Single Init\n");
+    //Check SHK2LYT
+    if(sm_p->state_array[state].shk.shk2lyt){
+      if(alp_set_shk2lyt(sm_p,&alp_delta)){
+	//error, do nothing
       }
-      // - SET Zernike PID output deltas to ALP command
-      for(i=0;i<LOWFS_N_ZERNIKE;i++)
-	if(zernike_switch[i])
-	  alp_try.zcmd[i] = alp_first.zcmd[i] + alp_delta.zcmd[i];
+    }
+
+    //Check if SHK is actually sending a command
+    if(sm_p->state_array[state].alp_commander == SHKID){
       
-      // - SET actuator deltas to ALP command
-      for(i=0;i<ALP_NACT;i++)
-	alp_try.acmd[i] = alp_first.acmd[i] + alp_delta.acmd[i];
-    }
-    if(sm_p->shk_alp_pid_type == PID_DOUBLE_INTEGRATOR){
-      // - ADD Zernike PID output deltas to ALP command
-      for(i=0;i<LOWFS_N_ZERNIKE;i++)
-	if(zernike_switch[i])
-	  alp_try.zcmd[i] += alp_delta.zcmd[i];
+      //Apply command according to PID type
+      if(sm_p->shk_alp_pid_type == PID_SINGLE_INTEGRATOR){
+	// - Initialize command
+	if(!pid_single_init){
+	  memcpy(&alp_first,&alp,sizeof(alp_t));
+	  pid_single_init=1;
+	  printf("SHK: PID Single Init\n");
+	}
+	// - SET Zernike PID output deltas to ALP command
+	for(i=0;i<LOWFS_N_ZERNIKE;i++)
+	  if(zernike_switch[i])
+	    alp_try.zcmd[i] = alp_first.zcmd[i] + alp_delta.zcmd[i];
+      
+	// - SET actuator deltas to ALP command
+	for(i=0;i<ALP_NACT;i++)
+	  alp_try.acmd[i] = alp_first.acmd[i] + alp_delta.acmd[i];
+      }
+      if(sm_p->shk_alp_pid_type == PID_DOUBLE_INTEGRATOR){
+	// - ADD Zernike PID output deltas to ALP command
+	for(i=0;i<LOWFS_N_ZERNIKE;i++)
+	  if(zernike_switch[i])
+	    alp_try.zcmd[i] += alp_delta.zcmd[i];
 	
-      // - ADD actuator deltas to ALP command
-      for(i=0;i<ALP_NACT;i++)
-	alp_try.acmd[i] += alp_delta.acmd[i];
-    }
+	// - ADD actuator deltas to ALP command
+	for(i=0;i<ALP_NACT;i++)
+	  alp_try.acmd[i] += alp_delta.acmd[i];
+      }
     
-    //Calibrate ALP
-    if(shkevent.hed.alp_calmode != ALP_CALMODE_NONE)
-      sm_p->alp_calmode = alp_calibrate(sm_p,shkevent.hed.alp_calmode,&alp_try,&shkevent.hed.alp_calstep,shkevent.zernike_calibrate,SHKID,FUNCTION_NO_RESET);
+      //Calibrate ALP
+      if(shkevent.hed.alp_calmode != ALP_CALMODE_NONE)
+	sm_p->alp_calmode = alp_calibrate(sm_p,shkevent.hed.alp_calmode,&alp_try,&shkevent.hed.alp_calstep,shkevent.zernike_calibrate,SHKID,FUNCTION_NO_RESET);
     
-    //Send command to ALP
-    if(alp_send_command(sm_p,&alp_try,SHKID,n_dither)){
-      // - command failed
-      // - do nothing for now
-    }else{
-      // - copy command to current position
-      memcpy(&alp,&alp_try,sizeof(alp_t));
+      //Send command to ALP
+      if(alp_send_command(sm_p,&alp_try,SHKID,n_dither)){
+	// - command failed
+	// - do nothing for now
+      }else{
+	// - copy command to current position
+	memcpy(&alp,&alp_try,sizeof(alp_t));
+      }
     }
   }
   
