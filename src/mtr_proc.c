@@ -247,7 +247,7 @@ void mtr_proc(void){
     mtrevent.hed.end_nsec   = end.tv_nsec;
 
     /* Write event to circular buffer */
-    if(sm_p->write_circbuf[BUFFER_MTREVENT]) write_to_buffer(sm_p,&mtrevent,BUFFER_MTREVENT);
+    if(sm_p->circbuf[BUFFER_MTREVENT].write) write_to_buffer(sm_p,&mtrevent,BUFFER_MTREVENT);
 
     /* Print status messages */
     for(i=0;i<MTR_NDOORS;i++){

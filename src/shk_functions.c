@@ -780,9 +780,6 @@ int shk_process_image(stImageBuff *buffer,sm_t *sm_p){
   static shkfull_t shkfull;
   static shkevent_t shkevent;
   static shkpkt_t shkpkt;
-  shkfull_t  *shkfull_p;
-  shkevent_t *shkevent_p;
-  shkpkt_t   *shkpkt_p;
   static calmode_t alpcalmodes[ALP_NCALMODES];
   static calmode_t hexcalmodes[HEX_NCALMODES];
   static calmode_t bmccalmodes[BMC_NCALMODES];
@@ -1206,31 +1203,13 @@ int shk_process_image(stImageBuff *buffer,sm_t *sm_p){
   shkevent.hed.end_nsec = end.tv_nsec;
   
   //Write SHKEVENT to circular buffer
-  if(sm_p->write_circbuf[BUFFER_SHKEVENT]){
-    
-    //Open SHKEVENT circular buffer
-    shkevent_p=(shkevent_t *)open_buffer(sm_p,BUFFER_SHKEVENT);
-    
-    //Copy data
-    memcpy(shkevent_p,&shkevent,sizeof(shkevent_t));;
-    
-    //Get final timestamp
-    clock_gettime(CLOCK_REALTIME,&end);
-    shkevent_p->hed.end_sec  = end.tv_sec;
-    shkevent_p->hed.end_nsec = end.tv_nsec;
-    
-    //Close buffer
-    close_buffer(sm_p,BUFFER_SHKEVENT);
-    
-    //Save end timestamps for full image code
-    shkevent.hed.end_sec  = end.tv_sec;
-    shkevent.hed.end_nsec = end.tv_nsec;
-  }
-
+  if(sm_p->circbuf[BUFFER_SHKEVENT].write)
+    write_to_buffer(sm_p,&shkevent,BUFFER_SHKEVENT);
+  
   /*************************************************************/
   /**********************  SHK Packet Code  ********************/
   /*************************************************************/
-  if(sm_p->write_circbuf[BUFFER_SHKPKT]){
+  if(sm_p->circbuf[BUFFER_SHKPKT].write){
     //Samples, collected each time through
     for(i=0;i<SHK_BEAM_NCELLS;i++){
       shkpkt.cells[i].xtarget_deviation[sample] = shkevent.cells[i].xtarget_deviation;
@@ -1312,24 +1291,13 @@ int shk_process_image(stImageBuff *buffer,sm_t *sm_p){
       
       //Number of samples
       shkpkt.nsamples = sample;
-            
-      //Open SHKPKT circular buffer
-      shkpkt_p=(shkpkt_t *)open_buffer(sm_p,BUFFER_SHKPKT);
+
+      //Write SHKPKT to circular buffer
+      write_to_buffer(sm_p,&shkpkt,BUFFER_SHKPKT);
       
-      //Copy data
-      memcpy(shkpkt_p,&shkpkt,sizeof(shkpkt_t));;
-    
-      //Get final timestamp
-      clock_gettime(CLOCK_REALTIME,&end);
-      shkpkt_p->hed.end_sec  = end.tv_sec;
-      shkpkt_p->hed.end_nsec = end.tv_nsec;
-    
-      //Close buffer
-      close_buffer(sm_p,BUFFER_SHKPKT);
-
-      //Copy final timestamp
-      memcpy(&pkt_last,&end,sizeof(struct timespec));
-
+      //Reset time
+      memcpy(&pkt_last,&start,sizeof(struct timespec));
+      
       //Reset sample counter
       sample = 0;
     }
@@ -1338,7 +1306,7 @@ int shk_process_image(stImageBuff *buffer,sm_t *sm_p){
   /*************************************************************/
   /**********************  Full Image Code  ********************/
   /*************************************************************/
-  if(sm_p->write_circbuf[BUFFER_SHKFULL]){
+  if(sm_p->circbuf[BUFFER_SHKFULL].write){
     if(timespec_subtract(&delta,&start,&full_last))
       printf("SHK: shk_process_image --> timespec_subtract error!\n");
     ts2double(&delta,&dt);
@@ -1358,24 +1326,13 @@ int shk_process_image(stImageBuff *buffer,sm_t *sm_p){
 	//Copy full image
 	memcpy(&(shkfull.image.data[0][0]),buffer->pvAddress,sizeof(shk_t));
       }
-    
+      
       //Copy shkevent
       memcpy(&shkfull.shkevent,&shkevent,sizeof(shkevent_t));
-    
-      //Open SHKFULL circular buffer
-      shkfull_p=(shkfull_t *)open_buffer(sm_p,BUFFER_SHKFULL);
 
-      //Copy data
-      memcpy(shkfull_p,&shkfull,sizeof(shkfull_t));;
-    
-      //Get final timestamp
-      clock_gettime(CLOCK_REALTIME,&end);
-      shkfull_p->hed.end_sec  = end.tv_sec;
-      shkfull_p->hed.end_nsec = end.tv_nsec;
-    
-      //Close buffer
-      close_buffer(sm_p,BUFFER_SHKFULL);
-    
+      //Write SHKFULL to circular buffer
+      write_to_buffer(sm_p,&shkfull,BUFFER_SHKFULL);
+
       //Reset time
       memcpy(&full_last,&start,sizeof(struct timespec));
     }

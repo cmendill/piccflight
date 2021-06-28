@@ -28,10 +28,10 @@ void init_fakemode(int fakemode, calmode_t *fake);
 void change_state(sm_t *sm_p, int state);
 
 /**************************************************************/
-/* PRINT_PROCSTATUS                                           */
+/* PRINT_PROC_STATUS                                          */
 /*  - Print out current process status                        */
 /**************************************************************/
-void print_procstatus(sm_t *sm_p){
+void print_proc_status(sm_t *sm_p){
   int i;
   char run[10];
   char ena[10];
@@ -43,6 +43,82 @@ void print_procstatus(sm_t *sm_p){
     printf("%-10s %-10s %-10s\n",sm_p->w[i].name,ena,run);
   }
   printf("******************************************\n");
+}
+
+/**************************************************************/
+/* PRINT_CIRCBUF_STATUS                                       */
+/*  - Print out current circular buffer status                */
+/**************************************************************/
+void print_circbuf_status(sm_t *sm_p){
+  int i;
+  char write[10];
+  char read[10];
+  char save[10];
+  char send[10];
+  printf("******************* Buffer Status *******************\n");
+  printf("%-10s %-10s %-10s %-10s %-10s\n","Buffer","Write","Read","Save","Send");
+  for(i=0;i<NCIRCBUF;i++){
+    if(sm_p->circbuf[i].write) sprintf(write,"YES"); else sprintf(write,"NO");
+    if(sm_p->circbuf[i].save) sprintf(save,"YES"); else sprintf(save,"NO");
+    if(sm_p->circbuf[i].send) sprintf(send,"YES"); else sprintf(send,"NO");
+    if(sm_p->circbuf[i].read==0) sprintf(read,"NO");
+    if(sm_p->circbuf[i].read==1) sprintf(read,"YES");
+    if(sm_p->circbuf[i].read==2) sprintf(read,"NEW");
+    
+    printf("%-10s %-10s %-10s %-10s %-10s\n",sm_p->circbuf[i].name,write,read,save,send);
+  }
+  printf("*****************************************************\n");
+}
+
+/**************************************************************/
+/* RESET_CIRCBUF                                              */
+/*  - Resets circular buffer settings                         */
+/**************************************************************/
+void reset_circbuf(sm_t *sm_p){
+  sm_p->circbuf[BUFFER_SCIEVENT].write   = WRITE_SCIEVENT_DEFAULT;
+  sm_p->circbuf[BUFFER_SCIEVENT].read    = READ_SCIEVENT_DEFAULT;
+  sm_p->circbuf[BUFFER_SCIEVENT].send    = SEND_SCIEVENT_DEFAULT;
+  sm_p->circbuf[BUFFER_SCIEVENT].save    = SAVE_SCIEVENT_DEFAULT;
+  sm_p->circbuf[BUFFER_WFSEVENT].write   = WRITE_WFSEVENT_DEFAULT;
+  sm_p->circbuf[BUFFER_WFSEVENT].read    = READ_WFSEVENT_DEFAULT;
+  sm_p->circbuf[BUFFER_WFSEVENT].send    = SEND_WFSEVENT_DEFAULT;
+  sm_p->circbuf[BUFFER_WFSEVENT].save    = SAVE_WFSEVENT_DEFAULT;
+  sm_p->circbuf[BUFFER_SHKEVENT].write   = WRITE_SHKEVENT_DEFAULT;
+  sm_p->circbuf[BUFFER_SHKEVENT].read    = READ_SHKEVENT_DEFAULT;
+  sm_p->circbuf[BUFFER_SHKEVENT].send    = SEND_SHKEVENT_DEFAULT;
+  sm_p->circbuf[BUFFER_SHKEVENT].save    = SAVE_SHKEVENT_DEFAULT;
+  sm_p->circbuf[BUFFER_LYTEVENT].write   = WRITE_LYTEVENT_DEFAULT;
+  sm_p->circbuf[BUFFER_LYTEVENT].read    = READ_LYTEVENT_DEFAULT;
+  sm_p->circbuf[BUFFER_LYTEVENT].send    = SEND_LYTEVENT_DEFAULT;
+  sm_p->circbuf[BUFFER_LYTEVENT].save    = SAVE_LYTEVENT_DEFAULT;
+  sm_p->circbuf[BUFFER_ACQEVENT].write   = WRITE_ACQEVENT_DEFAULT;
+  sm_p->circbuf[BUFFER_ACQEVENT].read    = READ_ACQEVENT_DEFAULT;
+  sm_p->circbuf[BUFFER_ACQEVENT].send    = SEND_ACQEVENT_DEFAULT;
+  sm_p->circbuf[BUFFER_ACQEVENT].save    = SAVE_ACQEVENT_DEFAULT;
+  sm_p->circbuf[BUFFER_THMEVENT].write   = WRITE_THMEVENT_DEFAULT;
+  sm_p->circbuf[BUFFER_THMEVENT].read    = READ_THMEVENT_DEFAULT;
+  sm_p->circbuf[BUFFER_THMEVENT].send    = SEND_THMEVENT_DEFAULT;
+  sm_p->circbuf[BUFFER_THMEVENT].save    = SAVE_THMEVENT_DEFAULT;
+  sm_p->circbuf[BUFFER_MTREVENT].write   = WRITE_MTREVENT_DEFAULT;
+  sm_p->circbuf[BUFFER_MTREVENT].read    = READ_MTREVENT_DEFAULT;
+  sm_p->circbuf[BUFFER_MTREVENT].send    = SEND_MTREVENT_DEFAULT;
+  sm_p->circbuf[BUFFER_MTREVENT].save    = SAVE_MTREVENT_DEFAULT;
+  sm_p->circbuf[BUFFER_SHKPKT].write     = WRITE_SHKPKT_DEFAULT;
+  sm_p->circbuf[BUFFER_SHKPKT].read      = READ_SHKPKT_DEFAULT;
+  sm_p->circbuf[BUFFER_SHKPKT].send      = SEND_SHKPKT_DEFAULT;
+  sm_p->circbuf[BUFFER_SHKPKT].save      = SAVE_SHKPKT_DEFAULT;
+  sm_p->circbuf[BUFFER_LYTPKT].write     = WRITE_LYTPKT_DEFAULT;
+  sm_p->circbuf[BUFFER_LYTPKT].read      = READ_LYTPKT_DEFAULT;
+  sm_p->circbuf[BUFFER_LYTPKT].send      = SEND_LYTPKT_DEFAULT;
+  sm_p->circbuf[BUFFER_LYTPKT].save      = SAVE_LYTPKT_DEFAULT;
+  sm_p->circbuf[BUFFER_SHKFULL].write    = WRITE_SHKFULL_DEFAULT;
+  sm_p->circbuf[BUFFER_SHKFULL].read     = READ_SHKFULL_DEFAULT;
+  sm_p->circbuf[BUFFER_SHKFULL].send     = SEND_SHKFULL_DEFAULT;
+  sm_p->circbuf[BUFFER_SHKFULL].save     = SAVE_SHKFULL_DEFAULT;
+  sm_p->circbuf[BUFFER_ACQFULL].write    = WRITE_ACQFULL_DEFAULT;
+  sm_p->circbuf[BUFFER_ACQFULL].read     = READ_ACQFULL_DEFAULT;
+  sm_p->circbuf[BUFFER_ACQFULL].send     = SEND_ACQFULL_DEFAULT;
+  sm_p->circbuf[BUFFER_ACQFULL].save     = SAVE_ACQFULL_DEFAULT;
 }
 
 /**************************************************************/
@@ -441,9 +517,96 @@ int handle_command(char *line, sm_t *sm_p){
   //Get process status
   sprintf(cmd,"proc status");
   if(!strncasecmp(line,cmd,strlen(cmd))){
-    print_procstatus(sm_p);
+    print_proc_status(sm_p);
     return(CMD_NORMAL);
   }
+
+  /****************************************
+   * CIRCULAR BUFFER SETTINGS
+   ***************************************/
+  //Buffer control commands
+  for(i=0;i<NCIRCBUF;i++){
+    //Write ON
+    sprintf(cmd,"circbuf %s write on",sm_p->circbuf[i].name);
+    if(!strncasecmp(line,cmd,strlen(cmd))){
+      printf("CMD: Turning circbuf %s write ON\n",sm_p->circbuf[i].name);
+      sm_p->circbuf[i].write = 1;
+      return(CMD_NORMAL);
+    }
+    //Write OFF
+    sprintf(cmd,"circbuf %s write off",sm_p->circbuf[i].name);
+    if(!strncasecmp(line,cmd,strlen(cmd))){
+      printf("CMD: Turning circbuf %s write OFF\n",sm_p->circbuf[i].name);
+      sm_p->circbuf[i].write = 0;
+      return(CMD_NORMAL);
+    }
+    //Read ON
+    sprintf(cmd,"circbuf %s read on",sm_p->circbuf[i].name);
+    if(!strncasecmp(line,cmd,strlen(cmd))){
+      printf("CMD: Turning circbuf %s read ON\n",sm_p->circbuf[i].name);
+      sm_p->circbuf[i].read = 1;
+      return(CMD_NORMAL);
+    }
+    //Read NEW
+    sprintf(cmd,"circbuf %s read new",sm_p->circbuf[i].name);
+    if(!strncasecmp(line,cmd,strlen(cmd))){
+      printf("CMD: Turning circbuf %s read NEWEST\n",sm_p->circbuf[i].name);
+      sm_p->circbuf[i].read = 2;
+      return(CMD_NORMAL);
+    }
+     //Read OFF
+    sprintf(cmd,"circbuf %s read off",sm_p->circbuf[i].name);
+    if(!strncasecmp(line,cmd,strlen(cmd))){
+      printf("CMD: Turning circbuf %s read OFF\n",sm_p->circbuf[i].name);
+      sm_p->circbuf[i].read = 0;
+      return(CMD_NORMAL);
+    }
+    //Save ON
+    sprintf(cmd,"circbuf %s save on",sm_p->circbuf[i].name);
+    if(!strncasecmp(line,cmd,strlen(cmd))){
+      printf("CMD: Turning circbuf %s save ON\n",sm_p->circbuf[i].name);
+      sm_p->circbuf[i].save = 1;
+      return(CMD_NORMAL);
+    }
+    //Save OFF
+    sprintf(cmd,"circbuf %s save off",sm_p->circbuf[i].name);
+    if(!strncasecmp(line,cmd,strlen(cmd))){
+      printf("CMD: Turning circbuf %s save OFF\n",sm_p->circbuf[i].name);
+      sm_p->circbuf[i].save = 0;
+      return(CMD_NORMAL);
+    }
+    //Send ON
+    sprintf(cmd,"circbuf %s send on",sm_p->circbuf[i].name);
+    if(!strncasecmp(line,cmd,strlen(cmd))){
+      printf("CMD: Turning circbuf %s send ON\n",sm_p->circbuf[i].name);
+      sm_p->circbuf[i].send = 1;
+      return(CMD_NORMAL);
+    }
+    //Send OFF
+    sprintf(cmd,"circbuf %s send off",sm_p->circbuf[i].name);
+    if(!strncasecmp(line,cmd,strlen(cmd))){
+      printf("CMD: Turning circbuf %s send OFF\n",sm_p->circbuf[i].name);
+      sm_p->circbuf[i].send = 0;
+      return(CMD_NORMAL);
+    }
+  }
+  
+  //Get circbuf status
+  sprintf(cmd,"circbuf status");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    print_circbuf_status(sm_p);
+    return(CMD_NORMAL);
+  }
+
+  //Reset circbuf to defaults
+  sprintf(cmd,"circbuf reset");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    printf("CMD: Resetting circular buffer defaults\n");
+    reset_circbuf(sm_p);
+    print_circbuf_status(sm_p);
+    return(CMD_NORMAL);
+  }
+  
 
   /****************************************
    * FAKE DATA MODES

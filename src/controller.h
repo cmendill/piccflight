@@ -1144,6 +1144,7 @@ typedef struct circbuf_struct{
   uint32 nbytes;    //number of bytes in structure
   uint32 bufsize;   //number of structures in circular buffer
   int    write;     //switch to enable writing to buffer
+  int    read;      //switch to enable TLM reading buffer
   int    send;      //switch to enable TLM sending buffer
   int    save;      //switch to enable TLM saving buffer
   char   name[128]; //name of buffer
@@ -1337,10 +1338,7 @@ typedef volatile struct {
   //Full frame circular buffers
   shkfull_t shkfull[SHKFULLSIZE];
   acqfull_t acqfull[ACQFULLSIZE];
-  
-  //Circular buffer switches
-  int write_circbuf[NCIRCBUF];
-  
+    
   //Circular buffer package
   circbuf_t circbuf[NCIRCBUF];
 

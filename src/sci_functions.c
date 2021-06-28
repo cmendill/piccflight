@@ -716,9 +716,9 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
 	//Write WFSEVENT to circular buffer 
 	memcpy(&wfsevent.hed,&scievent.hed,sizeof(pkthed_t));
 	wfsevent.hed.type = BUFFER_WFSEVENT;
-	if(sm_p->write_circbuf[BUFFER_WFSEVENT]){
-	  write_to_buffer(sm_p,(void *)&wfsevent,BUFFER_WFSEVENT);
-	}
+	if(sm_p->circbuf[BUFFER_WFSEVENT].write)
+	  write_to_buffer(sm_p,&wfsevent,BUFFER_WFSEVENT);
+	
       }
 
       //Set BMC Probe: try = flat + probe (NOTE: when ihowfs == 4, nothing is added to the flat)
@@ -752,7 +752,7 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
   }
   
   //Write SCIEVENT to circular buffer 
-  if(sm_p->write_circbuf[BUFFER_SCIEVENT])
+  if(sm_p->circbuf[BUFFER_SCIEVENT].write)
     write_to_buffer(sm_p,&scievent,BUFFER_SCIEVENT);
 }
 

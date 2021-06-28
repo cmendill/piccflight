@@ -639,7 +639,7 @@ void thm_proc(void){
     thmevent.hed.end_nsec = end.tv_nsec;
     
     /* Write data to circular buffer */
-    if(sm_p->write_circbuf[BUFFER_THMEVENT]) write_to_buffer(sm_p,&thmevent,BUFFER_THMEVENT);
+    if(sm_p->circbuf[BUFFER_THMEVENT].write) write_to_buffer(sm_p,&thmevent,BUFFER_THMEVENT);
   }
 
 

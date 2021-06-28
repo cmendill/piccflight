@@ -34,6 +34,7 @@ void getshk_proc(void){
   FILE *out=NULL;
   unsigned long int count=0,clearcount=0;
   char outfile[MAX_FILENAME];
+  int write_state;
 
   /* Open Shared Memory */
   sm_t *sm_p;
@@ -58,7 +59,8 @@ void getshk_proc(void){
   }
 
   /* Start circular buffer */
-  sm_p->write_circbuf[BUFFER_SHKEVENT] = 1;
+  write_state = sm_p->circbuf[BUFFER_SHKEVENT].write;
+  sm_p->circbuf[BUFFER_SHKEVENT].write = 1;
   
   /* Enter loop to read SHK events */
   while(1){
@@ -82,7 +84,7 @@ void getshk_proc(void){
   }
   
   /* Set circular buffer back to default */
-  sm_p->write_circbuf[BUFFER_SHKEVENT] = WRITE_SHKEVENT_DEFAULT;
+  sm_p->circbuf[BUFFER_SHKEVENT].write = write_state;
 
   /* Cleanup and exit */
   printf("GETSHK: %lu to %s\n",count,outfile);

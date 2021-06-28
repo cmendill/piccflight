@@ -150,7 +150,6 @@ void tlm_proc(void){
   struct stat st;
   char *buffer;
   int maxsize=0;
-  int savedata=0;
   int sentdata=0;
   int readdata=0;
   uint32 savecount[NCIRCBUF]={0};
@@ -220,24 +219,16 @@ void tlm_proc(void){
     tlmctrlC(0);
   }
   
-  /* Check if we are saving any data */
-  for(i=0;i<NCIRCBUF;i++)
-    if(sm_p->circbuf[i].save)
-      savedata=1;
-
   /* Create folder for saved data */
-  if(savedata){
-    while(1){
-      sprintf(datpath,DATAPATH,folderindex);
-      if(stat(datpath,&st))
-	break;
-      folderindex++;
-    }
-    recursive_mkdir(datpath, 0777);
-
-    printf("TLM: Saving data to: %s\n",datpath);
+  while(1){
+    sprintf(datpath,DATAPATH,folderindex);
+    if(stat(datpath,&st))
+      break;
+    folderindex++;
   }
-
+  recursive_mkdir(datpath, 0777);
+  printf("TLM: Saving data to: %s\n",datpath);
+  
   /* Init last data times */
   clock_gettime(CLOCK_REALTIME,&last_send);
   for(i=0;i<NCIRCBUF;i++)
@@ -314,13 +305,12 @@ void tlm_proc(void){
 	if(timespec_subtract(&delta,&now,&last_send))
 	  printf("SRV: timespec_subtract error!\n");
 	ts2double(&delta,&dt_send);
-	
 	//Read data
 	readdata=0;
-	if(sm_p->circbuf[i].send == 1)
+	if((sm_p->circbuf[i].read == 1))
 	  if(read_from_buffer(sm_p, buffer, i, TLMID))
 	    readdata=1;
-	if(sm_p->circbuf[i].send == 2)
+	if(sm_p->circbuf[i].read == 2)
 	  if(read_newest_buffer(sm_p, buffer, i, TLMID))
 	    readdata=1;
 	//Send & save data

@@ -46,7 +46,6 @@ extern void tlm_proc(void); //telemetry
 extern void acq_proc(void); //acquisition camera
 extern void mtr_proc(void); //motor controller
 extern void thm_proc(void); //thermal controller
-extern void srv_proc(void); //data server
 extern void dia_proc(void); //diagnostic program
 
 /* Kill Process */
@@ -310,7 +309,6 @@ int main(int argc,char **argv){
     case ACQID:sm_p->w[i].launch = acq_proc; break;
     case MTRID:sm_p->w[i].launch = mtr_proc; break;
     case THMID:sm_p->w[i].launch = thm_proc; break;
-    case SRVID:sm_p->w[i].launch = srv_proc; break;
     case DIAID:sm_p->w[i].launch = dia_proc; break;
     }
   }
@@ -388,6 +386,7 @@ int main(int argc,char **argv){
   sm_p->circbuf[BUFFER_SCIEVENT].nbytes  = sizeof(scievent_t);
   sm_p->circbuf[BUFFER_SCIEVENT].bufsize = SCIEVENTSIZE;
   sm_p->circbuf[BUFFER_SCIEVENT].write   = WRITE_SCIEVENT_DEFAULT;
+  sm_p->circbuf[BUFFER_SCIEVENT].read    = READ_SCIEVENT_DEFAULT;
   sm_p->circbuf[BUFFER_SCIEVENT].send    = SEND_SCIEVENT_DEFAULT;
   sm_p->circbuf[BUFFER_SCIEVENT].save    = SAVE_SCIEVENT_DEFAULT;
   sprintf((char *)sm_p->circbuf[BUFFER_SCIEVENT].name,"scievent");
@@ -395,6 +394,7 @@ int main(int argc,char **argv){
   sm_p->circbuf[BUFFER_WFSEVENT].nbytes  = sizeof(wfsevent_t);
   sm_p->circbuf[BUFFER_WFSEVENT].bufsize = WFSEVENTSIZE;
   sm_p->circbuf[BUFFER_WFSEVENT].write   = WRITE_WFSEVENT_DEFAULT;
+  sm_p->circbuf[BUFFER_WFSEVENT].read    = READ_WFSEVENT_DEFAULT;
   sm_p->circbuf[BUFFER_WFSEVENT].send    = SEND_WFSEVENT_DEFAULT;
   sm_p->circbuf[BUFFER_WFSEVENT].save    = SAVE_WFSEVENT_DEFAULT;
   sprintf((char *)sm_p->circbuf[BUFFER_WFSEVENT].name,"wfsevent");
@@ -402,6 +402,7 @@ int main(int argc,char **argv){
   sm_p->circbuf[BUFFER_SHKEVENT].nbytes  = sizeof(shkevent_t);
   sm_p->circbuf[BUFFER_SHKEVENT].bufsize = SHKEVENTSIZE;
   sm_p->circbuf[BUFFER_SHKEVENT].write   = WRITE_SHKEVENT_DEFAULT;
+  sm_p->circbuf[BUFFER_SHKEVENT].read    = READ_SHKEVENT_DEFAULT;
   sm_p->circbuf[BUFFER_SHKEVENT].send    = SEND_SHKEVENT_DEFAULT;
   sm_p->circbuf[BUFFER_SHKEVENT].save    = SAVE_SHKEVENT_DEFAULT;
   sprintf((char *)sm_p->circbuf[BUFFER_SHKEVENT].name,"shkevent");
@@ -409,6 +410,7 @@ int main(int argc,char **argv){
   sm_p->circbuf[BUFFER_LYTEVENT].nbytes  = sizeof(lytevent_t);
   sm_p->circbuf[BUFFER_LYTEVENT].bufsize = LYTEVENTSIZE;
   sm_p->circbuf[BUFFER_LYTEVENT].write   = WRITE_LYTEVENT_DEFAULT;
+  sm_p->circbuf[BUFFER_LYTEVENT].read    = READ_LYTEVENT_DEFAULT;
   sm_p->circbuf[BUFFER_LYTEVENT].send    = SEND_LYTEVENT_DEFAULT;
   sm_p->circbuf[BUFFER_LYTEVENT].save    = SAVE_LYTEVENT_DEFAULT;
   sprintf((char *)sm_p->circbuf[BUFFER_LYTEVENT].name,"lytevent");
@@ -416,6 +418,7 @@ int main(int argc,char **argv){
   sm_p->circbuf[BUFFER_ACQEVENT].nbytes  = sizeof(acqevent_t);
   sm_p->circbuf[BUFFER_ACQEVENT].bufsize = ACQEVENTSIZE;
   sm_p->circbuf[BUFFER_ACQEVENT].write   = WRITE_ACQEVENT_DEFAULT;
+  sm_p->circbuf[BUFFER_ACQEVENT].read    = READ_ACQEVENT_DEFAULT;
   sm_p->circbuf[BUFFER_ACQEVENT].send    = SEND_ACQEVENT_DEFAULT;
   sm_p->circbuf[BUFFER_ACQEVENT].save    = SAVE_ACQEVENT_DEFAULT;
   sprintf((char *)sm_p->circbuf[BUFFER_ACQEVENT].name,"acqevent");
@@ -423,6 +426,7 @@ int main(int argc,char **argv){
   sm_p->circbuf[BUFFER_THMEVENT].nbytes  = sizeof(thmevent_t);
   sm_p->circbuf[BUFFER_THMEVENT].bufsize = THMEVENTSIZE;
   sm_p->circbuf[BUFFER_THMEVENT].write   = WRITE_THMEVENT_DEFAULT;
+  sm_p->circbuf[BUFFER_THMEVENT].read    = READ_THMEVENT_DEFAULT;
   sm_p->circbuf[BUFFER_THMEVENT].send    = SEND_THMEVENT_DEFAULT;
   sm_p->circbuf[BUFFER_THMEVENT].save    = SAVE_THMEVENT_DEFAULT;
   sprintf((char *)sm_p->circbuf[BUFFER_THMEVENT].name,"thmevent");
@@ -430,6 +434,7 @@ int main(int argc,char **argv){
   sm_p->circbuf[BUFFER_MTREVENT].nbytes  = sizeof(mtrevent_t);
   sm_p->circbuf[BUFFER_MTREVENT].bufsize = MTREVENTSIZE;
   sm_p->circbuf[BUFFER_MTREVENT].write   = WRITE_MTREVENT_DEFAULT;
+  sm_p->circbuf[BUFFER_MTREVENT].read    = READ_MTREVENT_DEFAULT;
   sm_p->circbuf[BUFFER_MTREVENT].send    = SEND_MTREVENT_DEFAULT;
   sm_p->circbuf[BUFFER_MTREVENT].save    = SAVE_MTREVENT_DEFAULT;
   sprintf((char *)sm_p->circbuf[BUFFER_MTREVENT].name,"mtrevent");
@@ -439,6 +444,7 @@ int main(int argc,char **argv){
   sm_p->circbuf[BUFFER_SHKPKT].nbytes  = sizeof(shkpkt_t);
   sm_p->circbuf[BUFFER_SHKPKT].bufsize = SHKPKTSIZE;
   sm_p->circbuf[BUFFER_SHKPKT].write   = WRITE_SHKPKT_DEFAULT;
+  sm_p->circbuf[BUFFER_SHKPKT].read    = READ_SHKPKT_DEFAULT;
   sm_p->circbuf[BUFFER_SHKPKT].send    = SEND_SHKPKT_DEFAULT;
   sm_p->circbuf[BUFFER_SHKPKT].save    = SAVE_SHKPKT_DEFAULT;
   sprintf((char *)sm_p->circbuf[BUFFER_SHKPKT].name,"shkpkt");
@@ -446,6 +452,7 @@ int main(int argc,char **argv){
   sm_p->circbuf[BUFFER_LYTPKT].nbytes  = sizeof(lytpkt_t);
   sm_p->circbuf[BUFFER_LYTPKT].bufsize = LYTPKTSIZE;
   sm_p->circbuf[BUFFER_LYTPKT].write   = WRITE_LYTPKT_DEFAULT;
+  sm_p->circbuf[BUFFER_LYTPKT].read    = READ_LYTPKT_DEFAULT;
   sm_p->circbuf[BUFFER_LYTPKT].send    = SEND_LYTPKT_DEFAULT;
   sm_p->circbuf[BUFFER_LYTPKT].save    = SAVE_LYTPKT_DEFAULT;
   sprintf((char *)sm_p->circbuf[BUFFER_LYTPKT].name,"lytpkt");
@@ -455,6 +462,7 @@ int main(int argc,char **argv){
   sm_p->circbuf[BUFFER_SHKFULL].nbytes  = sizeof(shkfull_t);
   sm_p->circbuf[BUFFER_SHKFULL].bufsize = SHKFULLSIZE;
   sm_p->circbuf[BUFFER_SHKFULL].write   = WRITE_SHKFULL_DEFAULT;
+  sm_p->circbuf[BUFFER_SHKFULL].read    = READ_SHKFULL_DEFAULT;
   sm_p->circbuf[BUFFER_SHKFULL].send    = SEND_SHKFULL_DEFAULT;
   sm_p->circbuf[BUFFER_SHKFULL].save    = SAVE_SHKFULL_DEFAULT;
   sprintf((char *)sm_p->circbuf[BUFFER_SHKFULL].name,"shkfull");
@@ -462,6 +470,7 @@ int main(int argc,char **argv){
   sm_p->circbuf[BUFFER_ACQFULL].nbytes  = sizeof(acqfull_t);
   sm_p->circbuf[BUFFER_ACQFULL].bufsize = ACQFULLSIZE;
   sm_p->circbuf[BUFFER_ACQFULL].write   = WRITE_ACQFULL_DEFAULT;
+  sm_p->circbuf[BUFFER_ACQFULL].read    = READ_ACQFULL_DEFAULT;
   sm_p->circbuf[BUFFER_ACQFULL].send    = SEND_ACQFULL_DEFAULT;
   sm_p->circbuf[BUFFER_ACQFULL].save    = SAVE_ACQFULL_DEFAULT;
   sprintf((char *)sm_p->circbuf[BUFFER_ACQFULL].name,"acqfull");

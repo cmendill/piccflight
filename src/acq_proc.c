@@ -89,8 +89,6 @@ void acq_build_gif(unsigned char *input, unsigned char *build_output, int *build
 void acq_process_image(uvc_frame_t *frame, sm_t *sm_p) {
   static acqevent_t acqevent;
   static acqfull_t acqfull;
-  acqfull_t *acqfull_p;
-  acqevent_t *acqevent_p;
   static struct timespec start,end,delta,last,full_last,hex_last;
   static int init=0;
   hex_t hex,hex_try,hex_delta;
@@ -233,27 +231,13 @@ void acq_process_image(uvc_frame_t *frame, sm_t *sm_p) {
   }
 
   //Write ACQEVENT to circular buffer 
-  if(sm_p->write_circbuf[BUFFER_ACQEVENT]){
-    //Open circular buffer
-    acqevent_p=(acqevent_t *)open_buffer(sm_p,BUFFER_ACQEVENT);
-
-    //Copy acqevent
-    memcpy(acqevent_p,&acqevent,sizeof(acqevent_t));;
-
-    //Get final timestamp
-    clock_gettime(CLOCK_REALTIME,&end);
-    acqevent_p->hed.end_sec = end.tv_sec;
-    acqevent_p->hed.end_nsec = end.tv_nsec;
-
-    //Close buffer
-    close_buffer(sm_p,BUFFER_ACQEVENT);
-  }
-
+  if(sm_p->circbuf[BUFFER_ACQEVENT].write)
+    write_to_buffer(sm_p,&acqevent,BUFFER_ACQEVENT);
   
   /*************************************************************/
   /**********************  Full Image Code  ********************/
   /*************************************************************/
-  if(sm_p->write_circbuf[BUFFER_ACQFULL]){
+  if(sm_p->circbuf[BUFFER_ACQFULL].write){
     if(timespec_subtract(&delta,&start,&full_last))
       printf("ACQ: acq_process_image --> timespec_subtract error!\n");
     ts2double(&delta,&dt);
@@ -280,20 +264,9 @@ void acq_process_image(uvc_frame_t *frame, sm_t *sm_p) {
 	    acqfull.image.data[j][i] = full_image[i][j];
       }
 
-      //Open circular buffer
-      acqfull_p=(acqfull_t *)open_buffer(sm_p,BUFFER_ACQFULL);
-    
-      //Copy data
-      memcpy(acqfull_p,&acqfull,sizeof(acqfull_t));;
-
-      //Get final timestamp
-      clock_gettime(CLOCK_REALTIME,&end);
-      acqfull_p->hed.end_sec = end.tv_sec;
-      acqfull_p->hed.end_nsec = end.tv_nsec;
-
-      //Close buffer
-      close_buffer(sm_p,BUFFER_ACQFULL);
-
+      //Write ACQFULL to circular buffer
+      write_to_buffer(sm_p,&acqfull,BUFFER_ACQFULL);
+ 
       //Reset time
       memcpy(&full_last,&start,sizeof(struct timespec));
     }

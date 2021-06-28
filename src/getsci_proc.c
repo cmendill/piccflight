@@ -34,6 +34,7 @@ void getsci_proc(void){
   FILE *out=NULL;
   unsigned long int count=0,clearcount=0;
   char outfile[MAX_FILENAME];
+  int write_state;
 
   /* Open Shared Memory */
   sm_t *sm_p;
@@ -58,7 +59,8 @@ void getsci_proc(void){
   }
 
   /* Start circular buffer */
-  sm_p->write_circbuf[BUFFER_SCIEVENT] = 1;
+  write_state = sm_p->circbuf[BUFFER_SCIEVENT].write;
+  sm_p->circbuf[BUFFER_SCIEVENT].write = 1;
   
   /* Enter loop to read SCI events */
   while(1){
@@ -81,8 +83,8 @@ void getsci_proc(void){
     }
   }
   
-  /* Set circular buffer back to default */
-  sm_p->write_circbuf[BUFFER_SCIEVENT] = WRITE_SCIEVENT_DEFAULT;
+  /* Set circular buffer back to original state */
+  sm_p->circbuf[BUFFER_SCIEVENT].write = write_state;
 
   /* Cleanup and exit */
   printf("GETSCI: %lu to %s\n",count,outfile);

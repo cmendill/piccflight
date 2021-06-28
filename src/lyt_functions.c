@@ -306,8 +306,6 @@ int lyt_zernike_fit(lyt_t *image, lytref_t *lytref, double *zernikes, double *xc
 int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
   static lytevent_t lytevent;
   static lytpkt_t lytpkt;
-  lytevent_t *lytevent_p;
-  lytpkt_t *lytpkt_p;
   static calmode_t alpcalmodes[ALP_NCALMODES];
   static calmode_t hexcalmodes[HEX_NCALMODES];
   static calmode_t bmccalmodes[BMC_NCALMODES];
@@ -681,26 +679,13 @@ int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
   memcpy(&lytevent.alp,&alp,sizeof(alp_t));
   
   //Write LYTEVENT circular buffer
-  if(sm_p->write_circbuf[BUFFER_LYTEVENT]){
-    //Open LYTEVENT circular buffer
-    lytevent_p=(lytevent_t *)open_buffer(sm_p,BUFFER_LYTEVENT);
+  if(sm_p->circbuf[BUFFER_LYTEVENT].write)
+    write_to_buffer(sm_p,&lytevent,BUFFER_LYTEVENT);
     
-    //Copy data
-    memcpy(lytevent_p,&lytevent,sizeof(lytevent_t));;
-    
-    //Get final timestamp
-    clock_gettime(CLOCK_REALTIME,&end);
-    lytevent_p->hed.end_sec  = end.tv_sec;
-    lytevent_p->hed.end_nsec = end.tv_nsec;
-    
-    //Close buffer
-    close_buffer(sm_p,BUFFER_LYTEVENT);
-  }
-  
   /*************************************************************/
   /**********************  LYT Packet Code  ********************/
   /*************************************************************/
-  if(sm_p->write_circbuf[BUFFER_LYTPKT]){
+  if(sm_p->circbuf[BUFFER_LYTPKT].write){
     //Samples, collected each time through
     for(i=0;i<LOWFS_N_ZERNIKE;i++){
       lytpkt.zernike_measured[i][sample] = lytevent.zernike_measured[i];
@@ -763,24 +748,13 @@ int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
       //Number of samples
       lytpkt.nsamples = sample;
       sample = 0;
+
+      //Write LYTPKT to circular buffer
+      write_to_buffer(sm_p,&lytpkt,BUFFER_LYTPKT);
+          
+      //Reset time
+      memcpy(&pkt_last,&start,sizeof(struct timespec));
       
-      //Open LYTPKT circular buffer
-      lytpkt_p=(lytpkt_t *)open_buffer(sm_p,BUFFER_LYTPKT);
-
-      //Copy data
-      memcpy(lytpkt_p,&lytpkt,sizeof(lytpkt_t));;
-    
-      //Get final timestamp
-      clock_gettime(CLOCK_REALTIME,&end);
-      lytpkt_p->hed.end_sec  = end.tv_sec;
-      lytpkt_p->hed.end_nsec = end.tv_nsec;
-    
-      //Close buffer
-      close_buffer(sm_p,BUFFER_LYTPKT);
-
-      //Copy final timestamp
-      memcpy(&pkt_last,&end,sizeof(struct timespec));
-
       //Reset sample counter
       sample = 0;
     }

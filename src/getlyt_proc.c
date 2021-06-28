@@ -42,6 +42,7 @@ void getlyt_proc(void){
   struct timespec start,end,delta;
   int circbuf_save[NCIRCBUF];
   int i;
+  int write_state;
   
   /* Open Shared Memory */
   sm_t *sm_p;
@@ -72,7 +73,8 @@ void getlyt_proc(void){
   }
 
   /* Start circular buffer */
-  sm_p->write_circbuf[BUFFER_LYTEVENT] = 1;
+  write_state = sm_p->circbuf[BUFFER_LYTEVENT].write;
+  sm_p->circbuf[BUFFER_LYTEVENT].write=1;
 
   /* Clear the circular buffer to prevent stale data */
   while(clearcount < (2*LYTEVENTSIZE))
@@ -106,10 +108,10 @@ void getlyt_proc(void){
     }
   }
   
-  /* Set circular buffer back to default */
-  sm_p->write_circbuf[BUFFER_LYTEVENT] = WRITE_LYTEVENT_DEFAULT;
+  /* Set circular buffer back to original state */
+  sm_p->circbuf[BUFFER_LYTEVENT].write=write_state;
 
-  /* Enable tlm_proc data saving */
+  /* Reset tlm_proc data saving */
   for(i=0;i<NCIRCBUF;i++){
     sm_p->circbuf[i].save = circbuf_save[i];
   }

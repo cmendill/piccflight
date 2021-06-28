@@ -57,6 +57,50 @@ cmd: xxx_proc restart
 cmd: proc status
 	prints the current status of all available processes
 
+------------- CIRCULAR BUFFER CONTROL -------------
+
+cmd: circbuf xxx write on
+        turns circbuf xxx writing on
+	xxx = scievent, shkevent, lytevent...
+
+cmd: circbuf xxx write off
+        turns circbuf xxx writing off
+	xxx = scievent, shkevent, lytevent...
+
+cmd: circbuf xxx read on
+        turns circbuf xxx reading on
+	xxx = scievent, shkevent, lytevent...
+
+cmd: circbuf xxx read new
+        turns circbuf xxx reading on, read newest data
+	xxx = scievent, shkevent, lytevent...
+
+cmd: circbuf xxx read off
+        turns circbuf xxx reading off
+	xxx = scievent, shkevent, lytevent...
+
+cmd: circbuf xxx save on
+        turns circbuf xxx saving on
+	xxx = scievent, shkevent, lytevent...
+
+cmd: circbuf xxx save off
+        turns circbuf xxx saving off
+	xxx = scievent, shkevent, lytevent...
+
+cmd: circbuf xxx send on
+        turns circbuf xxx sending on
+	xxx = scievent, shkevent, lytevent...
+
+cmd: circbuf xxx send off
+        turns circbuf xxx sending off
+	xxx = scievent, shkevent, lytevent...
+
+cmd: circbuf reset
+        resets circbuf settings to defaults
+
+cmd: circbuf status
+        prints the status of each circular buffer
+
 ------------- FAKE DATA MODES -------------
 
 cmd: xxx fakemode [arg]

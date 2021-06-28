@@ -6,12 +6,12 @@
  *************************************************/
 
 /*!!!!!!!!!! ALL NUMBERS MUST BE < 255 !!!!!!!!!*/
-//      procids {WATID, SCIID, SHKID, LYTID, TLMID, ACQID, MTRID, THMID, SRVID, DIAID};
-#define PROCRUN {    1,     1,     1,     1,     1,     1,     1,     1,     1,     0}
-#define PROCASK {    0,     0,     0,     0,     0,     0,     0,     0,     0,     1}
-#define PROCTMO {   10,    10,    10,    10,    10,    10,    10,    10,    10,    10}
-#define PROCNAM {"WAT", "SCI", "SHK", "LYT", "TLM", "ACQ", "MTR", "THM", "SRV", "DIA"}
-#define PROCPER {    1,     1,     1,     1,     1,     1,     1,     1,     1,     1}
+//      procids {WATID, SCIID, SHKID, LYTID, TLMID, ACQID, MTRID, THMID, DIAID};
+#define PROCRUN {    1,     1,     1,     1,     1,     1,     1,     1,     0}
+#define PROCASK {    0,     0,     0,     0,     0,     0,     0,     0,     1}
+#define PROCTMO {   10,    10,    10,    10,    10,    10,    10,    10,    10}
+#define PROCNAM {"WAT", "SCI", "SHK", "LYT", "TLM", "ACQ", "MTR", "THM", "DIA"}
+#define PROCPER {    1,     1,     1,     1,     1,     1,     1,     1,     1}
 
 
 /*************************************************
@@ -31,11 +31,23 @@
 #define WRITE_SHKFULL_DEFAULT      0
 #define WRITE_ACQFULL_DEFAULT      0
 
+#define READ_SCIEVENT_DEFAULT      1
+#define READ_WFSEVENT_DEFAULT      1
+#define READ_SHKEVENT_DEFAULT      0
+#define READ_LYTEVENT_DEFAULT      0
+#define READ_ACQEVENT_DEFAULT      2 //2 means always read newest data
+#define READ_THMEVENT_DEFAULT      1
+#define READ_MTREVENT_DEFAULT      1
+#define READ_SHKPKT_DEFAULT        1
+#define READ_LYTPKT_DEFAULT        1
+#define READ_SHKFULL_DEFAULT       0
+#define READ_ACQFULL_DEFAULT       0
+
 #define SEND_SCIEVENT_DEFAULT      1
 #define SEND_WFSEVENT_DEFAULT      1
 #define SEND_SHKEVENT_DEFAULT      0
 #define SEND_LYTEVENT_DEFAULT      0
-#define SEND_ACQEVENT_DEFAULT      2 //2 means always send newest data
+#define SEND_ACQEVENT_DEFAULT      1
 #define SEND_THMEVENT_DEFAULT      1
 #define SEND_MTREVENT_DEFAULT      1
 #define SEND_SHKPKT_DEFAULT        1
