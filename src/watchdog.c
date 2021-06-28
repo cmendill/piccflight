@@ -340,6 +340,8 @@ int main(int argc,char **argv){
   sm_p->lyt_mag             = 1;
   sm_p->efc_bmc_max         = EFC_BMC_MAX_DEFAULT;
   sm_p->efc_sci_thresh      = EFC_SCI_THRESH_DEFAULT;
+  sm_p->shk_alp_pid_type    = PID_DOUBLE_INTEGRATOR;
+  sm_p->lyt_alp_pid_type    = PID_DOUBLE_INTEGRATOR;
 
   //Zernike control defaults
   //--SHK

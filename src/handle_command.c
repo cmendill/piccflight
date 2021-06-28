@@ -2667,6 +2667,35 @@ int handle_command(char *line, sm_t *sm_p){
   }
 
   /****************************************
+   * PID CONTROLLER TYPE
+   **************************************/
+  sprintf(cmd,"shk alp pid single");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    printf("CMD: Setting SHK PID to single integrator\n");
+    sm_p->shk_alp_pid_type=PID_SINGLE_INTEGRATOR;
+    return(CMD_NORMAL);
+  }
+  sprintf(cmd,"shk alp pid double");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    printf("CMD: Setting SHK PID to double integrator\n");
+    sm_p->shk_alp_pid_type=PID_DOUBLE_INTEGRATOR;
+    return(CMD_NORMAL);
+  }
+  sprintf(cmd,"lyt alp pid single");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    printf("CMD: Setting LYT PID to single integrator\n");
+    sm_p->lyt_alp_pid_type=PID_SINGLE_INTEGRATOR;
+    return(CMD_NORMAL);
+  }
+  sprintf(cmd,"lyt alp pid double");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    printf("CMD: Setting LYT PID to double integrator\n");
+    sm_p->lyt_alp_pid_type=PID_DOUBLE_INTEGRATOR;
+    return(CMD_NORMAL);
+  }
+ 
+
+  /****************************************
    * SCI CAMERA SETTINGS
    **************************************/
 

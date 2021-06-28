@@ -292,14 +292,10 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 /*************************************************
  * Zernike Errors
  *************************************************/
-#define ZERNIKE_ERRORS_FILE   "config/measured_zernike_errors.dat"
-#define ZERNIKE_ERRORS_NUMBER 3001
-#define ZERNIKE_ERRORS_PERIOD 0.010000000
-#define ZERNIKE_ERRORS_LENGTH 30.010000
-//#define ZERNIKE_ERRORS_FILE   "config/picture_c_pointing_data_20200310_newfilter_zernike_errors.dat"
-//#define ZERNIKE_ERRORS_NUMBER 200000
-//#define ZERNIKE_ERRORS_PERIOD 0.00200000
-//#define ZERNIKE_ERRORS_LENGTH 400
+#define ZERNIKE_ERRORS_FILE   "config/picture_c_pointing_data_requirement_zernike_errors.dat"
+#define ZERNIKE_ERRORS_NUMBER 200000
+#define ZERNIKE_ERRORS_PERIOD 0.00200000
+#define ZERNIKE_ERRORS_LENGTH 400
 
 /*************************************************
  * Camera Settings -- Keep sizes divisible by 4 (packets)
@@ -401,10 +397,10 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 #define SHK_YMAX              (SHKYS-1)
 #define SHK_BOXSIZE_CMD_STD   0  //use the current runtime boxsize
 #define SHK_BOXSIZE_CMD_MAX   1  //use the maximum boxsize
-#define SHK_ALP_CELL_INT_MAX  1
-#define SHK_ALP_CELL_INT_MIN -1
-#define SHK_ALP_ZERN_INT_MAX  0.1
-#define SHK_ALP_ZERN_INT_MIN -0.1
+#define SHK_ALP_CELL_INT_MAX  27
+#define SHK_ALP_CELL_INT_MIN -27
+#define SHK_ALP_ZERN_INT_MAX  5
+#define SHK_ALP_ZERN_INT_MIN -5
 #define SHK_SAVE_ZMATRIX      0
 #define SHK_SHKPKT_TIME       1.1 //Maximum time between writing shkpkt
 #define SHK_NSAMPLES          40  //Number of samples per shkpkt
@@ -656,6 +652,12 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 #define HUM1_ADDR        0x40
 #define HUM2_ADDR        0x41
 #define HUM3_ADDR        0x43
+
+/*************************************************
+ * Control System Parameters
+ *************************************************/
+#define PID_DOUBLE_INTEGRATOR 0
+#define PID_SINGLE_INTEGRATOR 1
 
 /*************************************************
  * Other Parameters
@@ -1224,6 +1226,7 @@ typedef volatile struct {
   double shk_gain_alp_cell[LOWFS_N_PID];                   //SHK ALP cell gains
   double shk_gain_alp_zern[LOWFS_N_ZERNIKE][LOWFS_N_PID];  //SHK ALP zern gains
   double shk_gain_hex_zern[LOWFS_N_PID];                   //SHK HEX zern gains
+  int    shk_alp_pid_type;                                 //Double or single integrator
 
   //Lyot LOWFS Settings
   double lyt_gain_alp_zern[LOWFS_N_ZERNIKE][LOWFS_N_PID];  //LYT ALP zernike PID gains
@@ -1233,6 +1236,7 @@ typedef volatile struct {
   double lyt_mag;                                          //LYT Magnification
   int    lyt_roi[4];                                       //LYT ROI
   int    lyt_cen_enable;                                   //LYT Enable centroid control
+  int    lyt_alp_pid_type;                                 //Double or single integrator
   
   //Camera Process Reset Commands
   int shk_reset;
