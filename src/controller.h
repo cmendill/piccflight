@@ -78,7 +78,7 @@ typedef int8_t int8;
 /*************************************************
  * Process ID Numbers
  *************************************************/
-enum procids {WATID, SCIID, SHKID, LYTID, TLMID, ACQID, MTRID, THMID, SRVID, DIAID, NCLIENTS};
+enum procids {WATID, SCIID, SHKID, LYTID, TLMID, ACQID, MTRID, THMID, DIAID, NCLIENTS};
 
 /*************************************************
  * States
@@ -231,7 +231,6 @@ enum bmccalmodes {BMC_CALMODE_NONE,
  * Network Addresses & Ports
  *************************************************/
 #define TLM_PORT     "1337"
-#define SRV_PORT     "14000"
 #define CMD_SENDDATA  0x0ABACABB
 
 /*************************************************
@@ -292,14 +291,14 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 /*************************************************
  * Zernike Errors
  *************************************************/
-#define ZERNIKE_ERRORS_FILE   "config/picture_c_pointing_data_20200727_ansys_stiff_epsUma_window_zernike_errors.dat"
-#define ZERNIKE_ERRORS_NUMBER 174006
-#define ZERNIKE_ERRORS_PERIOD 0.00200000
-#define ZERNIKE_ERRORS_LENGTH 348.012
-//#define ZERNIKE_ERRORS_FILE   "config/picture_c_pointing_data_requirement_zernike_errors.dat"
-//#define ZERNIKE_ERRORS_NUMBER 200000
-//#define ZERNIKE_ERRORS_PERIOD 0.0020000
-//#define ZERNIKE_ERRORS_LENGTH 400
+//#define ZERNIKE_ERRORS_FILE   "config/picture_c_pointing_data_20200727_ansys_stiff_epsUma_window_zernike_errors.dat"
+//#define ZERNIKE_ERRORS_NUMBER 174006
+//#define ZERNIKE_ERRORS_PERIOD 0.00200000
+//#define ZERNIKE_ERRORS_LENGTH 348.012
+#define ZERNIKE_ERRORS_FILE   "config/picture_c_pointing_data_requirement_zernike_errors.dat"
+#define ZERNIKE_ERRORS_NUMBER 200000
+#define ZERNIKE_ERRORS_PERIOD 0.0020000
+#define ZERNIKE_ERRORS_LENGTH 400
 //#define ZERNIKE_ERRORS_FILE   "config/measured_zernike_errors.dat"
 //#define ZERNIKE_ERRORS_NUMBER 12441
 //#define ZERNIKE_ERRORS_PERIOD 0.0011000000
@@ -359,7 +358,6 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 #define ACQ_DEBUG       0 // print acq messages
 #define MTR_DEBUG       0 // print mtr messages
 #define THM_DEBUG       0 // print thm messages
-#define SRV_DEBUG       0 // print srv messages
 #define HEX_DEBUG       0 // print hex messages
 #define DIA_DEBUG       0 // print dia messages
 
@@ -405,10 +403,10 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 #define SHK_YMAX              (SHKYS-1)
 #define SHK_BOXSIZE_CMD_STD   0  //use the current runtime boxsize
 #define SHK_BOXSIZE_CMD_MAX   1  //use the maximum boxsize
-#define SHK_ALP_CELL_INT_MAX  27
-#define SHK_ALP_CELL_INT_MIN -27
-#define SHK_ALP_ZERN_INT_MAX  5
-#define SHK_ALP_ZERN_INT_MIN -5
+#define SHK_ALP_CELL_INT_MAX  1
+#define SHK_ALP_CELL_INT_MIN -1
+#define SHK_ALP_ZERN_INT_MAX  0.1
+#define SHK_ALP_ZERN_INT_MIN -0.1
 #define SHK_SAVE_ZMATRIX      0
 #define SHK_SHKPKT_TIME       1.1 //Maximum time between writing shkpkt
 #define SHK_NSAMPLES          40  //Number of samples per shkpkt

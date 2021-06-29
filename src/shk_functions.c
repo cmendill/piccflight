@@ -1138,13 +1138,6 @@ int shk_process_image(stImageBuff *buffer,sm_t *sm_p){
       alp_alp2zern(alp_delta.acmd,alp_delta.zcmd,FUNCTION_NO_RESET);
     }
 
-    //Check SHK2LYT
-    if(sm_p->state_array[state].shk.shk2lyt){
-      if(alp_set_shk2lyt(sm_p,&alp_delta)){
-	//error, do nothing
-      }
-    }
-
     //Check if SHK is actually sending a command
     if(sm_p->state_array[state].alp_commander == SHKID){
       
@@ -1175,18 +1168,24 @@ int shk_process_image(stImageBuff *buffer,sm_t *sm_p){
 	for(i=0;i<ALP_NACT;i++)
 	  alp_try.acmd[i] += alp_delta.acmd[i];
       }
-    
+
       //Calibrate ALP
       if(shkevent.hed.alp_calmode != ALP_CALMODE_NONE)
 	sm_p->alp_calmode = alp_calibrate(sm_p,shkevent.hed.alp_calmode,&alp_try,&shkevent.hed.alp_calstep,shkevent.zernike_calibrate,SHKID,FUNCTION_NO_RESET);
-    
+      
+      //Send command to LYT
+      if(sm_p->state_array[state].shk.shk2lyt){
+	if(alp_set_shk2lyt(sm_p,&alp_try)){
+	  //error, do nothing
+	}
+      }
+      
       //Send command to ALP
-      if(alp_send_command(sm_p,&alp_try,SHKID,n_dither)){
-	// - command failed
-	// - do nothing for now
-      }else{
-	// - copy command to current position
-	memcpy(&alp,&alp_try,sizeof(alp_t));
+      if(sm_p->state_array[state].alp_commander == SHKID){
+	if(alp_send_command(sm_p,&alp_try,SHKID,n_dither)==0){
+	  // - copy command to current position
+	  memcpy(&alp,&alp_try,sizeof(alp_t));
+	}
       }
     }
   }

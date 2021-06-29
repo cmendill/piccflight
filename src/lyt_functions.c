@@ -324,7 +324,7 @@ int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
   uint16_t fakepx=0;
   int state;
   alp_t alp,alp_try,alp_delta={},alp_shk2lyt={};
-  static alp_t alp_first;
+  static alp_t alp_base={};
   int zernike_control=0;
   int zernike_switch[LOWFS_N_ZERNIKE] = {0};
   uint32_t n_dither=1;
@@ -597,7 +597,7 @@ int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
       return 0;
     }
     memcpy(&alp_try,&alp,sizeof(alp_t));
-
+    
     //Check if ALP is controlling any Zernikes
     for(i=0;i<LOWFS_N_ZERNIKE;i++){
       if(sm_p->lyt_zernike_control[i] && (sm_p->state_array[state].lyt.zernike_control[i] == ACTUATOR_ALP)){
@@ -614,51 +614,41 @@ int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
     
     //Run Zernike control
     if(zernike_control){
-      // - run Zernike PID
+      //Run Zernike PID
       lyt_alp_zernpid(&lytevent, alp_delta.zcmd, zernike_switch, sm_p->lyt_cen_enable,sm_p->lyt_alp_pid_type, pid_reset);
       pid_reset = FUNCTION_NO_RESET;
       
-      // - zero out uncontrolled Zernikes
+      //Zero out uncontrolled Zernikes
       for(i=0;i<LOWFS_N_ZERNIKE;i++)
 	if(!zernike_switch[i])
 	  alp_delta.zcmd[i] = 0;
-
-      // - get shk2lyt zernike deltas and add to local deltas
-      if(sm_p->state_array[state].shk.shk2lyt)
-	if(alp_get_shk2lyt(sm_p,&alp_shk2lyt) == 0)
-	  for(i=0;i<LOWFS_N_ZERNIKE;i++)
-	    alp_delta.zcmd[i] += alp_shk2lyt.zcmd[i];
       
-      // - convert zernike deltas to actuator deltas
+      //Convert zernike deltas to actuator deltas
       alp_zern2alp(alp_delta.zcmd,alp_delta.acmd,FUNCTION_NO_RESET);
       
-      // - apply command according to PID type
+      //Set base command
+      // - double integrator: update base with current position every time
+      if(sm_p->lyt_alp_pid_type == PID_DOUBLE_INTEGRATOR)
+	memcpy(&alp_base,&alp,sizeof(alp_t));
+      // - single integrator: update base with current position on the first time only
       if(sm_p->lyt_alp_pid_type == PID_SINGLE_INTEGRATOR){
-	// - Initialize command
 	if(!pid_single_init){
-	  memcpy(&alp_first,&alp,sizeof(alp_t));
+	  memcpy(&alp_base,&alp,sizeof(alp_t));
 	  pid_single_init=1;
-	  printf("LYT: PID Single Init\n");
 	}
-	// - SET Zernike PID output deltas to ALP command
-	for(i=0;i<LOWFS_N_ZERNIKE;i++)
-	  if(zernike_switch[i])
-	    alp_try.zcmd[i] = alp_first.zcmd[i] + alp_delta.zcmd[i];
-	
-	// - SET actuator deltas to ALP command
-	for(i=0;i<ALP_NACT;i++)
-	  alp_try.acmd[i] = alp_first.acmd[i] + alp_delta.acmd[i];
       }
-      if(sm_p->lyt_alp_pid_type == PID_DOUBLE_INTEGRATOR){
-	// - ADD Zernike PID output deltas to ALP command
-	for(i=0;i<LOWFS_N_ZERNIKE;i++)
-	  if(zernike_switch[i])
-	    alp_try.zcmd[i] += alp_delta.zcmd[i];
-	
-	// - ADD actuator deltas to ALP command
-	for(i=0;i<ALP_NACT;i++)
-	  alp_try.acmd[i] += alp_delta.acmd[i];
-      }
+      // - shk2lyt: update base with SHK command everytime a new one is ready
+      if(sm_p->state_array[state].shk.shk2lyt)
+	if(alp_get_shk2lyt(sm_p,&alp_shk2lyt) == 0)
+	  memcpy(&alp_base,&alp_shk2lyt,sizeof(alp_t));
+      
+      //Apply Zernike commands
+      for(i=0;i<LOWFS_N_ZERNIKE;i++)
+	alp_try.zcmd[i] = alp_base.zcmd[i] + alp_delta.zcmd[i];
+      
+      //Apply actuator commands
+      for(i=0;i<ALP_NACT;i++)
+	alp_try.acmd[i] = alp_base.acmd[i] + alp_delta.acmd[i];
     }
     
     //Calibrate ALP

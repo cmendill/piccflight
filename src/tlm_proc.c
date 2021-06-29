@@ -300,10 +300,10 @@ void tlm_proc(void){
 	//Get time
 	clock_gettime(CLOCK_REALTIME,&now);
 	if(timespec_subtract(&delta,&now,&last[i]))
-	  printf("SRV: timespec_subtract error!\n");
+	  printf("TLM: timespec_subtract error!\n");
 	ts2double(&delta,&dt);
 	if(timespec_subtract(&delta,&now,&last_send))
-	  printf("SRV: timespec_subtract error!\n");
+	  printf("TLM: timespec_subtract error!\n");
 	ts2double(&delta,&dt_send);
 	//Read data
 	readdata=0;
