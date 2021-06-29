@@ -1241,6 +1241,8 @@ typedef volatile struct {
   int    lyt_yorigin;                                      //LYT ROI bottom-left Y
   int    lyt_mag_enable;                                   //LYT Magnification switch
   double lyt_mag;                                          //LYT Magnification
+  double lyt_mag_xoff;                                     //LYT Magnification X offset
+  double lyt_mag_yoff;                                     //LYT Magnification Y offset
   int    lyt_roi[4];                                       //LYT ROI
   int    lyt_cen_enable;                                   //LYT Enable centroid control
   int    lyt_alp_pid_type;                                 //Double or single integrator

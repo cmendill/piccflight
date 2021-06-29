@@ -2242,6 +2242,22 @@ int handle_command(char *line, sm_t *sm_p){
     return(CMD_NORMAL);
   }
 
+  sprintf(cmd,"lyt xoff");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    ftemp = atof(line+strlen(cmd)+1);
+    sm_p->lyt_mag_xoff = ftemp;
+    printf("CMD: Setting LYT magnification X-offset to %f\n",sm_p->lyt_mag_xoff);
+    return(CMD_NORMAL);
+  }
+
+  sprintf(cmd,"lyt yoff");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    ftemp = atof(line+strlen(cmd)+1);
+    sm_p->lyt_mag_yoff = ftemp;
+    printf("CMD: Setting LYT magnification Y-offset to %f\n",sm_p->lyt_mag_yoff);
+    return(CMD_NORMAL);
+  }
+
   //LYT Centroid Control
   sprintf(cmd,"lyt enable cen");
   if(!strncasecmp(line,cmd,strlen(cmd))){

@@ -468,8 +468,8 @@ int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
       for(i=0;i<LYTXS;i++){
 	for(j=0;j<LYTYS;j++){
 	  //Define location of interpolated pixel -- transpose origin offsets
-	  x = (i - LYTXS/2)/sm_p->lyt_mag + (LYTREADXS/2) + lytevent.yorigin - (LYTREADXS-LYTXS)/2;
-	  y = (j - LYTYS/2)/sm_p->lyt_mag + (LYTREADYS/2) + lytevent.xorigin - (LYTREADYS-LYTYS)/2;
+	  x = (i - LYTXS/2)/sm_p->lyt_mag + (LYTREADXS/2) + lytevent.yorigin + sm_p->lyt_mag_yoff - (LYTREADXS-LYTXS)/2;
+	  y = (j - LYTYS/2)/sm_p->lyt_mag + (LYTREADYS/2) + lytevent.xorigin + sm_p->lyt_mag_xoff - (LYTREADYS-LYTYS)/2;
 	  
 	  //Pick 4 pixels for interpolation
 	  x1 = (int)x;

@@ -434,6 +434,14 @@ cmd: lyt mag [arg]
         set lyt image magnification
 	arg = magnification [0.1 - 10.0]
 
+cmd: lyt xoff [arg]
+        set lyt image magnification xoffset
+	arg = sub-pixel shift
+
+cmd: lyt yoff [arg]
+        set lyt image magnification xoffset
+	arg = sub-pixel shift
+
 cmd: lyt enable cen
         enable lyt centroid control
 	
