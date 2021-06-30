@@ -3295,8 +3295,8 @@ int handle_command(char *line, sm_t *sm_p){
       ftemp = atof(line+strlen(cmd)+1);
       if(ftemp >= 0 && ftemp <= 5){
 	printf("CMD: Turning LED ON %f volts \n",ftemp);
-	led = (ftemp/5.0) * 2048 + 2048;
-	outb((led & 0x00FF),ADC1_BASE+4);
+	led = (ftemp/5.0) * 0x0FFF;
+ 	outb((led & 0x00FF),ADC1_BASE+4);
 	outb(((led & 0xFF00) >> 8),ADC1_BASE+5);
       }else{
 	printf("CMD: LED voltage range = [0,5]\n");
@@ -3310,9 +3310,8 @@ int handle_command(char *line, sm_t *sm_p){
   if(!strncasecmp(line,cmd,strlen(cmd))){
     if(LED_ENABLE){
       printf("CMD: Turning LED OFF\n");
-      led = (0.0/5.0) * 2048 + 2048;
-      outb((led & 0x00FF),ADC1_BASE+4);
-      outb(((led & 0xFF00) >> 8),ADC1_BASE+5);
+      outb(0x00,ADC1_BASE+4);
+      outb(0x00,ADC1_BASE+5);
     }else{
       printf("CMD: LED Disabled\n");
     }
