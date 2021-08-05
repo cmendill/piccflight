@@ -120,7 +120,7 @@ void lyt_alp_zernpid(lytevent_t *lytevent, double *zernike_delta, int *zernike_s
   //Centroid settings
   static int usezern=0;
   const double minthresh = 1.0;  //Switch to zernikes when centroid crosses minthresh going in
-  const double maxthresh = 2.0;  //Switch to centroid when centroid crosses maxthresh going out
+  const double maxthresh = 3.0;  //Switch to centroid when centroid crosses maxthresh going out
   const double dCYdZ0 =  32.5; //pixels/micron  
   const double dCXdZ1 = -48.0; //pixels/micron
   const double cgain  = -0.5;  //centroid control gain
@@ -133,9 +133,9 @@ void lyt_alp_zernpid(lytevent_t *lytevent, double *zernike_delta, int *zernike_s
   }
 
   //Check centroid
-  if(!usezern && ((abs(lytevent->xcentroid) < minthresh) && (abs(lytevent->ycentroid) < minthresh)))
+  if(!usezern && ((fabs(lytevent->xcentroid) < minthresh) && (fabs(lytevent->ycentroid) < minthresh)))
     usezern=1;
-  if(usezern && ((abs(lytevent->xcentroid) > maxthresh) || (abs(lytevent->ycentroid) > maxthresh)))
+  if(usezern && ((fabs(lytevent->xcentroid) > maxthresh) || (fabs(lytevent->ycentroid) > maxthresh)))
     usezern=0;
   
   //Check centroid enable
