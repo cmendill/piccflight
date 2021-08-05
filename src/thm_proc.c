@@ -123,6 +123,9 @@ void thm_proc(void){
   int htr_pulse[SSR_NCHAN][HTR_NSTEPS];
   int state;
   char hum_device[128];
+  double delta;
+  double power[SSR_NCHAN]={0};
+
   
   //Humidity sensors
   hdc_config config;
@@ -152,6 +155,7 @@ void thm_proc(void){
   /* Initialize */
   if(!init){
     memset(&thmevent,0,sizeof(thmevent));
+    memset(power,0,sizeof(power));
     count=0;
     //Get dither indicies for heater control
     if(ditherfill(pulse_index,HTR_NSTEPS)){
@@ -558,6 +562,7 @@ void thm_proc(void){
       thmevent.htr[i].setpoint = sm_p->htr[i].setpoint;
       thmevent.htr[i].deadband = sm_p->htr[i].deadband;
       thmevent.htr[i].override = sm_p->htr[i].override;
+      thmevent.htr[i].gain     = sm_p->htr[i].gain;
       //Copy temperatures from adc arrays
       if(thmevent.htr[i].adc == 1) thmevent.htr[i].temp = thmevent.adc1_temp[thmevent.htr[i].ch];
       if(thmevent.htr[i].adc == 2) thmevent.htr[i].temp = thmevent.adc2_temp[thmevent.htr[i].ch];
@@ -570,29 +575,29 @@ void thm_proc(void){
     /* Run Temperature Control */
     for(i=0;i<SSR_NCHAN;i++){
       if(!thmevent.htr[i].override){
-	//check for power increase
-	if((thmevent.htr[i].temp < thmevent.htr[i].setpoint - thmevent.htr[i].deadband) && (thmevent.htr[i].power < thmevent.htr[i].maxpower))
-	  thmevent.htr[i].power++;
-	//check for power decrease
-	if((thmevent.htr[i].temp > thmevent.htr[i].setpoint + thmevent.htr[i].deadband) && (thmevent.htr[i].power > 0))
-	  thmevent.htr[i].power--;
+	//run proportional controller
+	delta = thmevent.htr[i].temp - thmevent.htr[i].setpoint;
+	//change power if delta is greater than deadband
+	if(fabs(delta) > thmevent.htr[i].deadband)
+	  power[i] += -1.0 * delta * thmevent.htr[i].gain; //gain is % per degree C
       }
       else{
 	//User override command
-	thmevent.htr[i].power = sm_p->htr[i].overpower;
+	power[i] = sm_p->htr[i].overpower;
       }
     }
     
     /* Check Heater Enable */
     for(i=0;i<SSR_NCHAN;i++)
       if(!thmevent.htr[i].enable)
-	thmevent.htr[i].power = 0;
+	power[i] = 0;
 
-    /* Limit Heater Power (safety only, this should never do anything) */
+    /* Limit Heater Power & Set Integer Power */
     for(i=0;i<SSR_NCHAN;i++){
-      thmevent.htr[i].power = thmevent.htr[i].power > thmevent.htr[i].maxpower ? thmevent.htr[i].maxpower : thmevent.htr[i].power;
-      thmevent.htr[i].power = thmevent.htr[i].power < 0 ? 0 : thmevent.htr[i].power;
-      thmevent.htr[i].power = thmevent.htr[i].power > HTR_POWER_MAX ? HTR_POWER_MAX : thmevent.htr[i].power;
+      power[i] = power[i] > thmevent.htr[i].maxpower ? thmevent.htr[i].maxpower : power[i];
+      power[i] = power[i] < 0 ? 0 : power[i];
+      power[i] = power[i] > HTR_POWER_MAX ? HTR_POWER_MAX : power[i];
+      thmevent.htr[i].power = power[i];
     }
     
     /* Fill out Heater Pulses */

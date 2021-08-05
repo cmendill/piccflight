@@ -283,9 +283,9 @@ void print_htr_status(sm_t *sm_p){
   int i;
 
   printf("******************************** Heater Status *********************************\n");
-  printf("%3s%7s%7s%7s%7s%7s%7s%7s%7s%7s%7s\n","#","Name","Enable","Over","Power","Max","ADC","CH","Temp","SetP","DeadB");
+  printf("%3s%7s%7s%7s%7s%7s%7s%7s%7s%7s%7s%7s\n","#","Name","Enable","Over","Power","Max","ADC","CH","Temp","SetP","DeadB","Gain");
   for(i=0;i<SSR_NCHAN;i++)
-    printf("%3d%7s%7d%7d%7d%7d%7d%7d%7.2f%7.2f%7.2f\n",i,sm_p->htr[i].name,sm_p->htr[i].enable,sm_p->htr[i].override,sm_p->htr[i].power,sm_p->htr[i].maxpower,sm_p->htr[i].adc,sm_p->htr[i].ch,sm_p->htr[i].temp,sm_p->htr[i].setpoint,sm_p->htr[i].deadband);
+    printf("%3d%7s%7d%7d%7d%7d%7d%7d%7.2f%7.2f%7.2f%7.2f\n",i,sm_p->htr[i].name,sm_p->htr[i].enable,sm_p->htr[i].override,sm_p->htr[i].power,sm_p->htr[i].maxpower,sm_p->htr[i].adc,sm_p->htr[i].ch,sm_p->htr[i].temp,sm_p->htr[i].setpoint,sm_p->htr[i].deadband,sm_p->htr[i].gain);
   printf("********************************************************************************\n");
 
 }
@@ -449,13 +449,13 @@ int handle_command(char *line, sm_t *sm_p){
   //Sleep
   sprintf(cmd,"sleep");
   if(!strncasecmp(line,cmd,strlen(cmd))){
-    itemp = atoi(line+strlen(cmd)+1);
-    if(itemp >= 1 && itemp <= 5){
-      printf("CMD: Input console sleeping for %d seconds\n",itemp);
-      sleep(itemp);
+    ftemp = atof(line+strlen(cmd)+1);
+    if(ftemp >= 0 && ftemp <= 5){
+      printf("CMD: Input console sleeping for %f seconds\n",ftemp);
+      usleep(ftemp*ONE_MILLION);
     }
     else
-      printf("CMD: sleep range = [1,5] seconds\n");
+      printf("CMD: sleep range = [0,5] seconds\n");
     return(CMD_NORMAL);
   }
   
@@ -1048,6 +1048,72 @@ int handle_command(char *line, sm_t *sm_p){
 	}
 	if(!strncasecmp(line+strlen(cmd)+1,"-w",2)){
 	  hex_poke = -rot_poke;
+	  hex_axis = HEX_AXIS_W;
+	  goto move_hex;
+	}
+	if(!strncasecmp(line+strlen(cmd)+1,"dx",2)){
+	  pch = strtok(line+strlen(cmd)+3," ");
+	  if(pch == NULL){
+	    printf("CMD: Bad command format\n");
+	    return CMD_NORMAL;
+	  }
+	  ftemp  = atof(pch);
+	  hex_poke = ftemp;
+	  hex_axis = HEX_AXIS_X;
+	  goto move_hex;
+	}
+	if(!strncasecmp(line+strlen(cmd)+1,"dy",2)){
+	  pch = strtok(line+strlen(cmd)+3," ");
+	  if(pch == NULL){
+	    printf("CMD: Bad command format\n");
+	    return CMD_NORMAL;
+	  }
+	  ftemp  = atof(pch);
+	  hex_poke = ftemp;
+	  hex_axis = HEX_AXIS_Y;
+	  goto move_hex;
+	}
+	if(!strncasecmp(line+strlen(cmd)+1,"dz",2)){
+	  pch = strtok(line+strlen(cmd)+3," ");
+	  if(pch == NULL){
+	    printf("CMD: Bad command format\n");
+	    return CMD_NORMAL;
+	  }
+	  ftemp  = atof(pch);
+	  hex_poke = ftemp;
+	  hex_axis = HEX_AXIS_Z;
+	  goto move_hex;
+	}
+	if(!strncasecmp(line+strlen(cmd)+1,"du",2)){
+	  pch = strtok(line+strlen(cmd)+3," ");
+	  if(pch == NULL){
+	    printf("CMD: Bad command format\n");
+	    return CMD_NORMAL;
+	  }
+	  ftemp  = atof(pch);
+	  hex_poke = ftemp;
+	  hex_axis = HEX_AXIS_U;
+	  goto move_hex;
+	}
+	if(!strncasecmp(line+strlen(cmd)+1,"dv",2)){
+	  pch = strtok(line+strlen(cmd)+3," ");
+	  if(pch == NULL){
+	    printf("CMD: Bad command format\n");
+	    return CMD_NORMAL;
+	  }
+	  ftemp  = atof(pch);
+	  hex_poke = ftemp;
+	  hex_axis = HEX_AXIS_V;
+	  goto move_hex;
+	}
+	if(!strncasecmp(line+strlen(cmd)+1,"dw",2)){
+	  pch = strtok(line+strlen(cmd)+3," ");
+	  if(pch == NULL){
+	    printf("CMD: Bad command format\n");
+	    return CMD_NORMAL;
+	  }
+	  ftemp  = atof(pch);
+	  hex_poke = ftemp;
 	  hex_axis = HEX_AXIS_W;
 	  goto move_hex;
 	}
@@ -3200,6 +3266,20 @@ int handle_command(char *line, sm_t *sm_p){
 	}
 	else{
 	  printf("CMD: Heater deadband out of bounds [%d-%d]\n",HTR_DEADBAND_MIN,HTR_DEADBAND_MAX);
+	  return CMD_NORMAL;
+	}
+      }
+      sprintf(cmd,"htr %d gain",i);
+      if(!strncasecmp(line,cmd,strlen(cmd))){
+	ftemp = atof(line+strlen(cmd)+1);
+	if(ftemp >= HTR_GAIN_MIN && ftemp <= HTR_GAIN_MAX){
+	  sm_p->htr[i].gain = ftemp;
+	  printf("CMD: Setting heater %d gain to %f C\n",i,sm_p->htr[i].gain);
+	  print_htr_status(sm_p);
+	  return CMD_NORMAL;
+	}
+	else{
+	  printf("CMD: Heater gain out of bounds [%d-%d]\n",HTR_GAIN_MIN,HTR_GAIN_MAX);
 	  return CMD_NORMAL;
 	}
       }

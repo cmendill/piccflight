@@ -625,8 +625,8 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 #define TLM_POSTSYNC       0xDEADBEEF            //TLM packet post sync word
 #define TLM_BUFFER_LENGTH  (TLM_DATA_RATE/250)   //TLM DMA buffer length (250 updates/sec)
 #define TLM_BUFFER_SIZE    (TLM_BUFFER_LENGTH*2) //TLM DMA buffer size
-#define TLM_UDP_ADDR       "192.168.0.4"
-#define TLM_UDP_PORT       "1337"
+#define TLM_UDP_ADDR       "192.168.0.4"         //UDP sendto address
+#define TLM_UDP_PORT       "1337"                //UDP sendto port
 #define TLM_UDP_MAX_SIZE   65000                 //Maximum UDP packet size (bytes)
 /*************************************************
  * Motor Parameters
@@ -642,6 +642,8 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 #define HTR_SETPOINT_MAX   80
 #define HTR_DEADBAND_MIN   0
 #define HTR_DEADBAND_MAX   10
+#define HTR_GAIN_MIN       0
+#define HTR_GAIN_MAX       100
 #define HTR_ADC_MIN        1
 #define HTR_ADC_MAX        3
 
@@ -829,7 +831,7 @@ typedef struct htr_struct{
   uint8  overpower; //User override power
   uint8  enable;    //Heater enable flag
   uint8  pad1;   
-  uint32 pad2;
+  float  gain;     //Control gain
   float  temp;     //Sensor temperature [C]
   float  setpoint; //Sensor setpoint [C]
   float  deadband; //Control deadband [C]
@@ -932,7 +934,7 @@ typedef struct bmccal_struct{
 /*************************************************
  * Packet Header
  *************************************************/
-#define PICC_PKT_VERSION     36  //packet version number
+#define PICC_PKT_VERSION     37  //packet version number
 typedef struct pkthed_struct{
   uint16  version;       //packet version number
   uint16  type;          //packet ID word

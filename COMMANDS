@@ -213,6 +213,11 @@ cmd: hex move [arg]
 	move the hexapod one step in the given direction
 	arg = +x, -x, +y, -y, +z, -z, +u, -u, +v, -v, +w, -w
 
+cmd: hex move [arg1] [arg2]
+	move the hexapod one step in the given direction
+	arg1 = dx,dy,dz,du,dv,dw
+	arg2 = amount to move
+	
 cmd: hex spiral autostop on
       	turn hex spiral search autostop on
 	search will stop when star is found
@@ -682,6 +687,11 @@ cmd: htr [arg1] deadband [arg2]
 	set heater [arg1] temperature deadband to [arg2]
 	arg1 = 0-15
 	arg2 = deg C
+
+cmd: htr [arg1] gain [arg2]
+	set heater [arg1] control gain to [arg2]
+	arg1 = 0-15
+	arg2 = 0-100 [%/deg C]
 	
 cmd: htr [arg1] sensor [arg2] [arg3]
 	set heater [arg1] sensor routing to adc [arg2] channel [arg3]

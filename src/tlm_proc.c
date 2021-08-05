@@ -158,6 +158,7 @@ void tlm_proc(void){
   int fakeflush=0;
   struct addrinfo hints, *ai, *p,*udp_ai;
   int rv;
+  int broadcast=1;
   
   /* Open Shared Memory */
   sm_t *sm_p;
@@ -192,6 +193,13 @@ void tlm_proc(void){
     tlmctrlC(0);
   }
   udp_ai = p; //set final UDP AI struct
+
+  //Set BROADCAST
+  if (setsockopt(udpfd, SOL_SOCKET, SO_BROADCAST, &broadcast,sizeof(broadcast)) < 0) {
+    perror("TLM: setsockopt (SO_BROADCAST)");
+    tlmctrlC(0);
+  }
+  
   printf("TLM: Opened UDP socket\n");
  
   /* Start listener */

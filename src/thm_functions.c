@@ -31,7 +31,8 @@ void thm_init_heater(int h, htr_t *htr){
     htr->ch       = 5;
     htr->maxpower = 50;
     htr->setpoint = 20;
-    htr->deadband = 1;
+    htr->deadband = 0;
+    htr->gain     = 10;
     htr->override = 0;
     htr->enable   = 0;
   }
@@ -43,7 +44,8 @@ void thm_init_heater(int h, htr_t *htr){
     htr->ch       = 9; 
     htr->maxpower = 50;
     htr->setpoint = 20;
-    htr->deadband = 1;
+    htr->deadband = 0;
+    htr->gain     = 10;
     htr->override = 0;
     htr->enable   = 0;
   }
@@ -55,7 +57,8 @@ void thm_init_heater(int h, htr_t *htr){
     htr->ch       = 11;
     htr->maxpower = 50;
     htr->setpoint = 20;
-    htr->deadband = 1;
+    htr->deadband = 0;
+    htr->gain     = 10;
     htr->override = 0;
     htr->enable   = 0;
   }
@@ -67,7 +70,8 @@ void thm_init_heater(int h, htr_t *htr){
     htr->ch       = 3; 
     htr->maxpower = 50;
     htr->setpoint = 20;
-    htr->deadband = 1;
+    htr->deadband = 0;
+    htr->gain     = 10;
     htr->override = 0;
     htr->enable   = 0;
   }
@@ -79,7 +83,8 @@ void thm_init_heater(int h, htr_t *htr){
     htr->ch       = 7; 
     htr->maxpower = 50;
     htr->setpoint = 20;
-    htr->deadband = 1;
+    htr->deadband = 0;
+    htr->gain     = 10;
     htr->override = 0;
     htr->enable   = 0;
   }
@@ -91,7 +96,8 @@ void thm_init_heater(int h, htr_t *htr){
     htr->ch       = 13;
     htr->maxpower = 50;
     htr->setpoint = 20;
-    htr->deadband = 1;
+    htr->deadband = 0;
+    htr->gain     = 10;
     htr->override = 0;
     htr->enable   = 0;
   }
@@ -103,7 +109,8 @@ void thm_init_heater(int h, htr_t *htr){
     htr->ch       = 27;
     htr->maxpower = 50;
     htr->setpoint = 20;
-    htr->deadband = 1;
+    htr->deadband = 0;
+    htr->gain     = 10;
     htr->override = 0;
     htr->enable   = 0;
   }
@@ -115,7 +122,8 @@ void thm_init_heater(int h, htr_t *htr){
     htr->ch       = 28;
     htr->maxpower = 50;
     htr->setpoint = 20;
-    htr->deadband = 1;
+    htr->deadband = 0;
+    htr->gain     = 10;
     htr->override = 0;
     htr->enable   = 0;
   }
@@ -127,7 +135,8 @@ void thm_init_heater(int h, htr_t *htr){
     htr->ch       = 29;
     htr->maxpower = 50;
     htr->setpoint = 20;
-    htr->deadband = 1;
+    htr->deadband = 0;
+    htr->gain     = 10;
     htr->override = 0;
     htr->enable   = 0;
   }
@@ -139,7 +148,8 @@ void thm_init_heater(int h, htr_t *htr){
     htr->ch       = 30;
     htr->maxpower = 50;
     htr->setpoint = 20;
-    htr->deadband = 1;
+    htr->deadband = 0;
+    htr->gain     = 10;
     htr->override = 0;
     htr->enable   = 0;
   }
@@ -151,7 +161,8 @@ void thm_init_heater(int h, htr_t *htr){
     htr->ch       = 31;
     htr->maxpower = 50;
     htr->setpoint = 20;
-    htr->deadband = 1;
+    htr->deadband = 0;
+    htr->gain     = 10;
     htr->override = 0;
     htr->enable   = 0;
   }
@@ -164,7 +175,8 @@ void thm_init_heater(int h, htr_t *htr){
     htr->ch       = 1;
     htr->maxpower = 50;
     htr->setpoint = 20;
-    htr->deadband = 1;
+    htr->deadband = 0;
+    htr->gain     = 10;
     htr->override = 0;
     htr->enable   = 0;
   }
@@ -176,7 +188,8 @@ void thm_init_heater(int h, htr_t *htr){
     htr->ch       = 0;
     htr->maxpower = 50;
     htr->setpoint = 20;
-    htr->deadband = 1;
+    htr->deadband = 0;
+    htr->gain     = 10;
     htr->override = 0;
     htr->enable   = 0;
   }
@@ -188,7 +201,8 @@ void thm_init_heater(int h, htr_t *htr){
     htr->ch       = 4;
     htr->maxpower = 50;
     htr->setpoint = 20;
-    htr->deadband = 1;
+    htr->deadband = 0;
+    htr->gain     = 10;
     htr->override = 0;
     htr->enable   = 0;
   }
@@ -200,7 +214,8 @@ void thm_init_heater(int h, htr_t *htr){
     htr->ch       = 6;
     htr->maxpower = 50;
     htr->setpoint = 20;
-    htr->deadband = 1;
+    htr->deadband = 0;
+    htr->gain     = 10;
     htr->override = 0;
     htr->enable   = 0;
   }
@@ -212,7 +227,8 @@ void thm_init_heater(int h, htr_t *htr){
     htr->ch       = 2;
     htr->maxpower = 50;
     htr->setpoint = 20;
-    htr->deadband = 1;
+    htr->deadband = 0;
+    htr->gain     = 10;
     htr->override = 0;
     htr->enable   = 0;
   }
