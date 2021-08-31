@@ -84,6 +84,8 @@
 //LYT Settings
 #define LYT_XORIGIN_DEFAULT        24
 #define LYT_YORIGIN_DEFAULT        24
+#define LYT_ROI_X_DEFAULT          0
+#define LYT_ROI_Y_DEFAULT          30
 #define LYT_CEN_ENABLE_DEFAULT     1
 #define LYT_ALP_PID_TYPE_DEFAULT   PID_SINGLE_INTEGRATOR
 

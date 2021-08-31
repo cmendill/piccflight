@@ -372,10 +372,10 @@ int main(int argc,char **argv){
 
 
   //LYT ROI
-  sm_p->lyt_roi[0] = 0;
-  sm_p->lyt_roi[1] = 12;
-  sm_p->lyt_roi[2] = 64;
-  sm_p->lyt_roi[3] = 64;
+  sm_p->lyt_roi[0] = LYT_ROI_X_DEFAULT;
+  sm_p->lyt_roi[1] = LYT_ROI_Y_DEFAULT;
+  sm_p->lyt_roi[2] = LYTREADXS;
+  sm_p->lyt_roi[3] = LYTREADYS;
 
   //LYT Centroid Control
   sm_p->lyt_cen_enable = LYT_CEN_ENABLE_DEFAULT;
