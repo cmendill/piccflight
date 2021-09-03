@@ -625,9 +625,13 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 #define TLM_POSTSYNC       0xDEADBEEF            //TLM packet post sync word
 #define TLM_BUFFER_LENGTH  (TLM_DATA_RATE/250)   //TLM DMA buffer length (250 updates/sec)
 #define TLM_BUFFER_SIZE    (TLM_BUFFER_LENGTH*2) //TLM DMA buffer size
-#define TLM_UDP_ADDR       "192.168.0.4"         //UDP sendto address
-#define TLM_UDP_PORT       "1337"                //UDP sendto port
+#define TLM_UDP_MULTICAST  0                     //1:multicast, 0:unicast
+#define TLM_UDP_UNI_ADDR   "192.168.0.4"         //UDP unicast sendto address
+#define TLM_UDP_UNI_PORT   "1337"                //UDP unicast sendto port
+#define TLM_UDP_MULTI_ADDR "224.255.0.1"         //UDP multicast sendto address (group)
+#define TLM_UDP_MULTI_PORT "20000"               //UDP multicast sendto port
 #define TLM_UDP_MAX_SIZE   65000                 //Maximum UDP packet size (bytes)
+
 /*************************************************
  * Motor Parameters
  *************************************************/

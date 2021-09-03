@@ -156,10 +156,11 @@ void tlm_proc(void){
   struct timespec now,delta,last[NCIRCBUF],last_send;
   double dt,dt_send;
   int fakeflush=0;
-  struct addrinfo hints, *ai, *p,*udp_ai;
+  struct addrinfo hints, *udp_ai;
+  struct in_addr localInterface;
   int rv;
-  int broadcast=1;
-  
+  char loopch;
+
   /* Open Shared Memory */
   sm_t *sm_p;
   if((sm_p = openshm(&tlm_shmfd)) == NULL){
@@ -171,37 +172,53 @@ void tlm_proc(void){
   sigset(SIGINT, tlmctrlC);	/* usually ^C */
 
   /* Start UDP connection */
-  memset(&hints, 0, sizeof hints);
-  hints.ai_family   = AF_UNSPEC;
-  hints.ai_socktype = SOCK_DGRAM;
-  hints.ai_flags    = AI_PASSIVE;
-  if ((rv = getaddrinfo(TLM_UDP_ADDR, TLM_UDP_PORT, &hints, &ai)) != 0) {
-    printf("TLM: getaddrinfo error\n");
-    fprintf(stderr, "TLM: %s\n", gai_strerror(rv));
-    tlmctrlC(0);
-  }
-  // -- loop through all the results and make a socket
-  for(p = ai; p != NULL; p = p->ai_next) {
-    if ((udpfd = socket(p->ai_family, p->ai_socktype,p->ai_protocol)) == -1) {
-      perror("TLM: socket");
-      continue;
+  if(TLM_UDP_MULTICAST == 0){
+    //UNICAST
+    // -- use hints to fill out addrinfo structure
+    memset(&hints, 0, sizeof hints);
+    hints.ai_family   = AF_INET;
+    hints.ai_socktype = SOCK_DGRAM;
+    hints.ai_flags    = AI_PASSIVE;
+    if ((rv = getaddrinfo(TLM_UDP_UNI_ADDR, TLM_UDP_UNI_PORT, &hints, &udp_ai)) != 0){
+      printf("TLM: getaddrinfo error\n");
+      fprintf(stderr, "TLM: %s\n", gai_strerror(rv));
+      tlmctrlC(0);
     }
-    break;
+    // -- open socket
+    if ((udpfd = socket(udp_ai->ai_family, udp_ai->ai_socktype,udp_ai->ai_protocol)) == -1){
+      perror("TLM: socket");
+      tlmctrlC(0);
+    }
+    printf("TLM: Opened UDP socket in unicast mode sending to %s:%s\n",TLM_UDP_UNI_ADDR,TLM_UDP_UNI_PORT);
   }
-  if (p == NULL) {
-    fprintf(stderr, "TLM: failed to create UDP socket\n");
-    tlmctrlC(0);
-  }
-  udp_ai = p; //set final UDP AI struct
-
-  //Set BROADCAST
-  if (setsockopt(udpfd, SOL_SOCKET, SO_BROADCAST, &broadcast,sizeof(broadcast)) < 0) {
-    perror("TLM: setsockopt (SO_BROADCAST)");
-    tlmctrlC(0);
+  if(TLM_UDP_MULTICAST == 1){
+    //MULTICAST
+    // -- use hints to fill out addrinfo structure
+    memset(&hints, 0, sizeof hints);
+    hints.ai_family   = AF_INET;
+    hints.ai_socktype = SOCK_DGRAM;
+    hints.ai_flags    = AI_PASSIVE;
+    if ((rv = getaddrinfo(TLM_UDP_MULTI_ADDR, TLM_UDP_MULTI_PORT, &hints, &udp_ai)) != 0){
+      printf("TLM: getaddrinfo error\n");
+      fprintf(stderr, "TLM: %s\n", gai_strerror(rv));
+      tlmctrlC(0);
+    }
+    // -- open socket
+    if ((udpfd = socket(udp_ai->ai_family, udp_ai->ai_socktype,udp_ai->ai_protocol)) == -1){
+      perror("TLM: socket");
+      tlmctrlC(0);
+    }
+    // -- disable loopback
+    loopch=0;
+    if(setsockopt(udpfd, IPPROTO_IP, IP_MULTICAST_LOOP, &loopch, sizeof(loopch)) < 0){
+	perror("TLM: Setting IP_MULTICAST_LOOP error");
+	close(udpfd);
+	tlmctrlC(0);
+    }
+    
+    printf("TLM: Opened UDP socket in multicast mode sending to %s:%s\n",TLM_UDP_MULTI_ADDR,TLM_UDP_MULTI_PORT);
   }
   
-  printf("TLM: Opened UDP socket\n");
- 
   /* Start listener */
   printf("TLM: Starting listener\n");
   pthread_create(&listener_thread,NULL,tlm_listen,(void *)0);
