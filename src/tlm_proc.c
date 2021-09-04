@@ -215,7 +215,14 @@ void tlm_proc(void){
 	close(udpfd);
 	tlmctrlC(0);
     }
-    
+    // -- configure interface
+    localInterface.s_addr = inet_addr("192.168.0.1");
+    if(setsockopt(sd, IPPROTO_IP, IP_MULTICAST_IF, (char *)&localInterface, sizeof(localInterface)) < 0){
+      perror("TLM: Setting IP_MULTICAST_IF error");
+      close(udpfd);
+      tlmctrlC(0);
+    }
+       
     printf("TLM: Opened UDP socket in multicast mode sending to %s:%s\n",TLM_UDP_MULTI_ADDR,TLM_UDP_MULTI_PORT);
   }
   
