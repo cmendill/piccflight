@@ -9,9 +9,8 @@ doc
 *.o
 *.ko
 bin/watchdog
-bin/output/calibration
-bin/output/flight_data
-bin/output.txt
+bin/output/data/calibration
+bin/output/data/flight_data
 lib/libuvc/build/*
 lib/libuvc/CMakeFiles
 libfli.a

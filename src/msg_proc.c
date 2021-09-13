@@ -53,7 +53,7 @@ void msg_proc(void){
 
   /* Open input file */
   //--open file
-  if((input = fopen("output.txt","r")) == NULL){
+  if((input = fopen("output/data/output.txt","r")) == NULL){
     perror("MSG: fopen()\n");
     close(shmfd);
     msgctrlC(0);
