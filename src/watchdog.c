@@ -46,6 +46,7 @@ extern void tlm_proc(void); //telemetry
 extern void acq_proc(void); //acquisition camera
 extern void mtr_proc(void); //motor controller
 extern void thm_proc(void); //thermal controller
+extern void msg_proc(void); //message capture
 extern void dia_proc(void); //diagnostic program
 
 /* Kill Process */
@@ -277,6 +278,8 @@ int main(int argc,char **argv){
   /* Erase Shared Memory */
   memset((char *)sm_p,0,sizeof(sm_t));
 
+  /* Set stdout to line buffering */
+  setvbuf(stdout,NULL,_IOLBF,0);
 
   /* Initialize Watchdog Structure */
   uint8 proctmo[NCLIENTS]  = PROCTMO;
@@ -309,6 +312,7 @@ int main(int argc,char **argv){
     case ACQID:sm_p->w[i].launch = acq_proc; break;
     case MTRID:sm_p->w[i].launch = mtr_proc; break;
     case THMID:sm_p->w[i].launch = thm_proc; break;
+    case MSGID:sm_p->w[i].launch = msg_proc; break;
     case DIAID:sm_p->w[i].launch = dia_proc; break;
     }
   }
@@ -445,6 +449,14 @@ int main(int argc,char **argv){
   sm_p->circbuf[BUFFER_MTREVENT].send    = SEND_MTREVENT_DEFAULT;
   sm_p->circbuf[BUFFER_MTREVENT].save    = SAVE_MTREVENT_DEFAULT;
   sprintf((char *)sm_p->circbuf[BUFFER_MTREVENT].name,"mtrevent");
+  sm_p->circbuf[BUFFER_MSGEVENT].buffer  = (void *)sm_p->msgevent;
+  sm_p->circbuf[BUFFER_MSGEVENT].nbytes  = sizeof(msgevent_t);
+  sm_p->circbuf[BUFFER_MSGEVENT].bufsize = MSGEVENTSIZE;
+  sm_p->circbuf[BUFFER_MSGEVENT].write   = WRITE_MSGEVENT_DEFAULT;
+  sm_p->circbuf[BUFFER_MSGEVENT].read    = READ_MSGEVENT_DEFAULT;
+  sm_p->circbuf[BUFFER_MSGEVENT].send    = SEND_MSGEVENT_DEFAULT;
+  sm_p->circbuf[BUFFER_MSGEVENT].save    = SAVE_MSGEVENT_DEFAULT;
+  sprintf((char *)sm_p->circbuf[BUFFER_MSGEVENT].name,"msgevent");
 
   //-- Packet buffers
   sm_p->circbuf[BUFFER_SHKPKT].buffer  = (void *)sm_p->shkpkt;

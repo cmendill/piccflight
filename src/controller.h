@@ -63,6 +63,7 @@ typedef int8_t int8;
 #define RAD2AS       206264.81
 #define LAMBDA       0.600         // Central Wavelength [microns]
 #define PHASE_RAD2NM (LAMBDA*1000./TWOPI)
+#define MAX_LINE     128
 #define MAX_FILENAME 128
 #define MAX_COMMAND  32
 
@@ -78,7 +79,7 @@ typedef int8_t int8;
 /*************************************************
  * Process ID Numbers
  *************************************************/
-enum procids {WATID, SCIID, SHKID, LYTID, TLMID, ACQID, MTRID, THMID, DIAID, NCLIENTS};
+enum procids {WATID, SCIID, SHKID, LYTID, TLMID, ACQID, MTRID, THMID, MSGID, DIAID, NCLIENTS};
 
 /*************************************************
  * States
@@ -261,7 +262,7 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 	     BUFFER_THMEVENT, BUFFER_MTREVENT,
 	     BUFFER_SHKPKT,   BUFFER_LYTPKT,
 	     BUFFER_SHKFULL,  BUFFER_ACQFULL,
-	     BUFFER_WFSEVENT, NCIRCBUF};
+	     BUFFER_WFSEVENT, BUFFER_MSGEVENT, NCIRCBUF};
 
 #define SCIEVENTSIZE     5
 #define SHKEVENTSIZE     20
@@ -274,6 +275,7 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 #define SHKFULLSIZE      5
 #define ACQFULLSIZE      5
 #define WFSEVENTSIZE     5
+#define MSGEVENTSIZE     100
 
 /*************************************************
  * LOWFS Settings
@@ -1127,6 +1129,11 @@ typedef struct mtrevent_struct{
   uint16_t  door_status[MTR_NDOORS];
 } mtrevent_t;
 
+typedef struct msgevent_struct{
+  pkthed_t  hed;
+  char      message[MAX_LINE];
+} msgevent_t;
+
 /*************************************************
  * Full Frame Structures
  *************************************************/
@@ -1342,6 +1349,7 @@ typedef volatile struct {
   acqevent_t acqevent[ACQEVENTSIZE];
   thmevent_t thmevent[THMEVENTSIZE];
   mtrevent_t mtrevent[MTREVENTSIZE];
+  msgevent_t msgevent[MSGEVENTSIZE];
   shkpkt_t   shkpkt[SHKPKTSIZE];
   lytpkt_t   lytpkt[LYTPKTSIZE];
 

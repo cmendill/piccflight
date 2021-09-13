@@ -11,6 +11,7 @@ doc
 bin/watchdog
 bin/output/calibration
 bin/output/flight_data
+bin/output.txt
 lib/libuvc/build/*
 lib/libuvc/CMakeFiles
 libfli.a
