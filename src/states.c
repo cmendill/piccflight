@@ -363,7 +363,23 @@ void init_state(int state_number, state_t *state){
     //LYT Settings
     for(i=0;i<LOWFS_N_ZERNIKE;i++)
       state->lyt.zernike_control[i] = ACTUATOR_ALP;
-    
+    return;
+  }
+
+  //STATE_SHK_EFC
+  if(state_number == STATE_SHK_EFC){
+    //Set name
+    sprintf(state->name,"STATE_SHK_EFC");
+    //Set cmd
+    sprintf(state->cmd,"sfc");
+    //Set options
+    state->bmc_commander = SCIID;
+    state->sci.run_howfs = 1;
+    state->sci.run_efc   = 1;
+    //Set SHKID as alp commander
+    state->alp_commander = SHKID;
+    //SHK Settings
+    state->shk.cell_control = ACTUATOR_ALP;
     return;
   }
 }
