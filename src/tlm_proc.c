@@ -217,7 +217,7 @@ void tlm_proc(void){
     }
     // -- configure interface
     localInterface.s_addr = inet_addr("192.168.0.1");
-    if(setsockopt(sd, IPPROTO_IP, IP_MULTICAST_IF, (char *)&localInterface, sizeof(localInterface)) < 0){
+    if(setsockopt(udpfd, IPPROTO_IP, IP_MULTICAST_IF, (char *)&localInterface, sizeof(localInterface)) < 0){
       perror("TLM: Setting IP_MULTICAST_IF error");
       close(udpfd);
       tlmctrlC(0);
