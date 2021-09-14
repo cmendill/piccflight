@@ -266,6 +266,9 @@ cmd: alp set actuator [arg1] [arg2]
 
 ------------- BMC DM CONTROL -------------
 
+cmd: bmc reset
+        reset all bmc functions
+
 cmd: bmc hv enable
         enable BMC high voltage
 
@@ -316,9 +319,14 @@ cmd: bmc set actuator [arg1] [arg2]
 	arg1 = actuator index [0,1,2,3,...,951]
 	arg2 = actuator delta in volts [-50 to +50] 
 
-cmd: bmc reset
-        reset all bmc functions
+cmd: sci thresh [arg]
+        set SCI pixel threshold for EFC inclusion
+	arg = pixel ADU, set to 0 to disable
 
+cmd: efc bmc max [arg]
+        set maximum actuator delta for BMC DM during EFC
+	arg = max actuator delta in nm, set to 0 to disable
+	
 ------------- SENSOR CALIBRATION -------------
 
 cmd: shk calibrate hex [arg]
@@ -390,14 +398,13 @@ cmd: lyt reset
      	reset lyt_process_image function
 	reloads calibration files
 
-cmd: acq reset
-     	reset acq_process_image function
-	reloads calibration files
-
 cmd: sci reset
      	reset sci_process_image function
 	reloads calibration files
 
+cmd: acq reset
+     	reset acq_process_image function
+	reloads calibration files
 
 ------------- SHACK-HARTMANN LOWFS SETTINGS -------------
 
@@ -495,6 +502,10 @@ cmd: [cam] target [arg1] [arg2]
         set the arg1 zernike target to arg2	
 	arg1 = zernike index [0,1,2,3,...,22]
 	arg2 = zernike wavefront amplitude [microns RMS]
+
+cmd: [cam] target reset
+     	cam = "shk" or "lyt"
+	reset targets to defaults
 
 cmd: [cam] inc target [arg1] [arg2]
 	cam = "shk" or "lyt"
