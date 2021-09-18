@@ -102,6 +102,7 @@ enum states { STATE_STANDBY,
 	      STATE_HOWFS,
 	      STATE_EFC,
 	      STATE_SHK_EFC,
+	      STATE_HYB_EFC,
 	      NSTATES};
 
 /*************************************************
@@ -941,7 +942,7 @@ typedef struct bmccal_struct{
 /*************************************************
  * Packet Header
  *************************************************/
-#define PICC_PKT_VERSION     38  //packet version number
+#define PICC_PKT_VERSION     39  //packet version number
 typedef struct pkthed_struct{
   uint16  version;       //packet version number
   uint16  type;          //packet ID word

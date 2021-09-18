@@ -372,7 +372,7 @@ void init_state(int state_number, state_t *state){
     sprintf(state->name,"STATE_SHK_EFC");
     //Set cmd
     sprintf(state->cmd,"sfc");
-    //Set options
+    //Set SCIID as bmc commander
     state->bmc_commander = SCIID;
     state->sci.run_howfs = 1;
     state->sci.run_efc   = 1;
@@ -382,4 +382,32 @@ void init_state(int state_number, state_t *state){
     state->shk.cell_control = ACTUATOR_ALP;
     return;
   }
+
+
+  //STATE_HYB_EFC
+  if(state_number == STATE_HYB_EFC){
+    //Set name
+    sprintf(state->name,"STATE_HYB_EFC");
+    //Set cmd
+    sprintf(state->cmd,"hfc");
+    //Set SCIID as bmc commander
+    state->bmc_commander = SCIID;
+    state->sci.run_howfs = 1;
+    state->sci.run_efc   = 1;
+    //Set LYTID as alp commander
+    state->alp_commander = LYTID;
+    //LYT Settings
+    state->lyt.zernike_control[0] = ACTUATOR_ALP;
+    state->lyt.zernike_control[1] = ACTUATOR_ALP;
+    //SHK Settings
+    for(i=2;i<LOWFS_N_ZERNIKE;i++)
+      state->shk.zernike_control[i] = ACTUATOR_ALP;
+    //Set SHK2LYT
+    state->shk.shk2lyt=1;
+    return;
+  }
+
+
+
+
 }
