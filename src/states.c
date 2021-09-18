@@ -127,7 +127,7 @@ void init_state(int state_number, state_t *state){
     //Configure Cameras
     state->proc_run[SHKID] = 0;
     state->proc_run[LYTID] = 0;
-    state->proc_run[SCIID] = 0;
+    state->proc_run[SCIID] = 1;
     state->proc_run[ACQID] = 1;
     return;
   }
@@ -147,7 +147,7 @@ void init_state(int state_number, state_t *state){
     //Configure Cameras
     state->proc_run[SHKID] = 0;
     state->proc_run[LYTID] = 0;
-    state->proc_run[SCIID] = 0;
+    state->proc_run[SCIID] = 1;
     state->proc_run[ACQID] = 1;
     return;
   }
