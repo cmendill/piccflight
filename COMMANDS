@@ -297,8 +297,9 @@ cmd: bmc save flat
 cmd: bmc load flat
         load saved BMC flat pattern (bmc_flat.dat)
 
-cmd: bmc set flat
-     	set current command as flat
+cmd: bmc set flat [arg]
+     	load a previous flat onto the DM going arg steps into the past
+	arg = 0-9 (0--> last flat, 1--> one before last flat, 2--> two before last flat, etc..)
 
 cmd: bmc random
      	applies a random actuator perturbation to the current BMC command
