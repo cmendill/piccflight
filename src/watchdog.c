@@ -682,6 +682,9 @@ int main(int argc,char **argv){
     FD_SET(STDIN,&readset); //console input
     FD_SET(fdcmd,&readset); //command uplink
 
+    //Clear line
+    memset(line,0,sizeof(line));
+    
     //Select on readset with no timeout (blocking)
     if(select(FD_SETSIZE,&readset,NULL,NULL,NULL) < 0){
       perror("select");

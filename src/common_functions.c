@@ -720,6 +720,7 @@ int read_uplink(char *cmd, int max, int fd){
   uint8_t etx;
   uint8_t num;
   int n,m;
+  memset(data,0,sizeof(data));
   
   //Read DLE (presync)
   if(read(fd,&dle,1) != 1){
