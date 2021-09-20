@@ -254,6 +254,7 @@ void wat_proc(void){
  *********************************/
 int main(int argc,char **argv){
   char line[CMD_MAX_LENGTH];
+  char *pch;
   int i;
   int retval;
   int shutdown=0;
@@ -695,8 +696,14 @@ int main(int argc,char **argv){
 	}
 	if(i == fdcmd){
 	  //Process uplink command
-	  if(read_uplink(line,CMD_MAX_LENGTH,fdcmd) > 0)
-	    retval = handle_command(line,sm_p);
+	  if(read_uplink(line,CMD_MAX_LENGTH,fdcmd) > 0){
+	    //Loop over embedded carriage returns
+	    pch = strtok(line,"\n");
+	    while(pch != NULL){
+	      retval = handle_command(pch,sm_p);
+	      pch = strtok(NULL,"\n");
+	    }
+	  }
 	  break;
 	}
       }
