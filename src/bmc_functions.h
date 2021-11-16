@@ -20,5 +20,6 @@ void bmc_init_calibration(sm_t *sm_p);
 void bmc_add_length(float *input, float *output, double *dl, int reset);
 void bmc_add_probe(float *input, float *output, int ihowfs, int reset);
 void bmc_add_test(float *input, float *output, int itest);
+void bmc_add_sine(float *input, float *output,int isine);
 int bmc_calibrate(sm_t *sm_p, int calmode, bmc_t *bmc, uint32_t *step, int procid, int reset);
 #endif

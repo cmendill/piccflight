@@ -71,6 +71,11 @@ void bmc_init_calmode(int calmode, calmode_t *bmc){
     sprintf(bmc->name,"BMC_CALMODE_PROBE");
     sprintf(bmc->cmd,"probe");
   }
+  //BMC_CALMODE_SINE
+  if(calmode == BMC_CALMODE_SINE){
+    sprintf(bmc->name,"BMC_CALMODE_SINE");
+    sprintf(bmc->cmd,"sine");
+  }
 }
 
 /**************************************************************/
@@ -431,6 +436,23 @@ void bmc_add_test(float *input, float *output,int itest){
   if(read_file(filename,dl,sizeof(dl)))
     memset(dl,0,sizeof(dl));
   
+  //Add to flat
+  bmc_add_length(input,output,dl,FUNCTION_NO_RESET);
+  return;
+}
+
+/**************************************************************/
+/* BMC_ADD_SINE                                               */
+/* - Add SINE pattern to BMC command                          */
+/* - Output can be same pointer as input                      */
+/**************************************************************/
+void bmc_add_sine(float *input, float *output,int isine){
+  double dl[BMC_NACT]={0};
+  char filename[MAX_FILENAME];
+
+  sprintf(filename,BMC_SINE_FILE,isine);
+  if(read_file(filename,dl,sizeof(dl)))
+    memset(dl,0,sizeof(dl));
   
   //Add to flat
   bmc_add_length(input,output,dl,FUNCTION_NO_RESET);
@@ -645,6 +667,34 @@ int bmc_calibrate(sm_t *sm_p, int calmode, bmc_t *bmc, uint32_t *step, int proci
       memcpy(bmc,(bmc_t *)&sm_p->bmccal.bmc_start[calmode],sizeof(bmc_t));
       //Turn off calibration
       printf("BMC: Stopping BMC calmode BMC_CALMODE_PROBE\n");
+      calmode = BMC_CALMODE_NONE;
+      init = 0;
+    }
+    
+    //Set step counter
+    *step = (sm_p->bmccal.countA[calmode]/ncalim);
+
+    //Increment counter
+    sm_p->bmccal.countA[calmode]++;
+    
+    //Return calmode
+    return calmode;
+    
+  }
+
+  /* BMC_CALMODE_SINE: Step through sine patterns */
+  if(calmode==BMC_CALMODE_SINE){
+    //Check counters
+    if(sm_p->bmccal.countA[calmode] >= 0 && sm_p->bmccal.countA[calmode] < ncalim*BMC_NSINE){
+      //Set all BMC actuators to starting position
+      memcpy(bmc,(bmc_t *)&sm_p->bmccal.bmc_start[calmode],sizeof(bmc_t));
+      //Add sine pattern
+      bmc_add_sine(bmc->acmd,bmc->acmd,sm_p->bmccal.countA[calmode]/ncalim);
+    }else{
+      //Set bmc back to starting position
+      memcpy(bmc,(bmc_t *)&sm_p->bmccal.bmc_start[calmode],sizeof(bmc_t));
+      //Turn off calibration
+      printf("BMC: Stopping BMC calmode BMC_CALMODE_SINE\n");
       calmode = BMC_CALMODE_NONE;
       init = 0;
     }
