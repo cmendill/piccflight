@@ -461,10 +461,10 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
  * SCI Camera Parameters
  *************************************************/
 #define SCI_NBANDS              1 //number of bands on a single SCI camera image
-//#define SCI_XORIGIN            {334,852,1363,1849,2327}; //band cutout x centers (relative to the ROI)
-//#define SCI_YORIGIN            {450,502,755,879,610};    //band cutout y centers (relative to the ROI)
-#define SCI_XORIGIN            {334}; //band cutout x centers (relative to the ROI)
-#define SCI_YORIGIN            {450}; //band cutout y centers (relative to the ROI)
+//#define SCI_XORIGIN            {334,852,1363,1849,2327} //band cutout x centers (relative to the ROI)
+//#define SCI_YORIGIN            {450,502,755,879,610}    //band cutout y centers (relative to the ROI)
+#define SCI_XORIGIN         {334} //band cutout x centers (relative to the ROI)
+#define SCI_YORIGIN         {450} //band cutout y centers (relative to the ROI)
 #define SCI_NSAMPLES            1 //number of scievents to save in a single packet
 #define SCI_NPIX              728 //number of pixels in dark zone
 #define SCI_HOWFS_NPROBE        4 //number of HOWFS DM probe steps
@@ -483,6 +483,8 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 #define SCI_TEC_SETPOINT_MAX   35 //C
 #define SCI_EFC_GAIN         -0.5 //EFC gain
 #define SCI_SATURATION      65535 //SCI saturation
+#define SCI_SIM_MAX         {0.3} //[SCI_NBANDS] Maximum pixel value of unocculted image simulation (for field normalization)
+#define SCI_SCALE_DEFAULT {6.19e-9}//[SCI_NBANDS] Default image normalization for field calculation
 
 /*************************************************
  * ACQ Camera Parameters
@@ -514,7 +516,7 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 #define BMC_SET_FLAT   1
 #define BMC_NOSET_FLAT 0
 #define BMC_NFLAT      10
-#define BMC_NSINE      180
+#define BMC_NSINE      108
 
 /*************************************************
  * ALPAO DM Parameters
@@ -780,6 +782,11 @@ typedef struct sci_field_struct{
   double r[SCI_NPIX];
   double i[SCI_NPIX];
 } sci_field_t;
+
+typedef struct sci_ref_struct{
+  int update;
+  sci_bands_t bands;
+} sci_ref_t;
 
 typedef struct shk_struct{
   uint8 data[SHKXS][SHKYS];
@@ -1277,7 +1284,7 @@ typedef volatile struct {
   int sci_reset_camera;
   int lyt_reset_camera;
   
-  //SCI Origin Commands
+  //SCI Commands
   int sci_setorigin;
   int sci_findorigin;
   int sci_trackorigin;
@@ -1286,8 +1293,9 @@ typedef volatile struct {
   int sci_loadorigin;
   int sci_xshiftorigin;
   int sci_yshiftorigin;
+  int sci_setref;
 
-  //SHK Origin Commands
+  //SHK Commands
   int shk_setorigin;
   int shk_revertorigin;
   int shk_saveorigin;
@@ -1295,14 +1303,12 @@ typedef volatile struct {
   int shk_xshiftorigin;
   int shk_yshiftorigin;
   
-  //LYT Reference Image Commands
+  //LYT Commands
   int lyt_setref;
   int lyt_defref;
   int lyt_modref;
   int lyt_saveref;
   int lyt_loadref;
-
-  //LYT Dark Image Commands
   int lyt_setdark;
   int lyt_zerodark;
   int lyt_savedark;

@@ -484,6 +484,8 @@ int bmc_calibrate(sm_t *sm_p, int calmode, bmc_t *bmc, uint32_t *step, int proci
     //Reset random numbers
     srand((unsigned) time(&trand));
     for(i=0;i<BMC_NACT;i++) arand[i] = (2*(rand() / (double) RAND_MAX) - 1);
+    //Init calibration
+    bmc_init_calibration(sm_p);
     //Init BMC calmodes
     for(i=0;i<BMC_NCALMODES;i++)
       bmc_init_calmode(i,&bmccalmodes[i]);
@@ -526,7 +528,8 @@ int bmc_calibrate(sm_t *sm_p, int calmode, bmc_t *bmc, uint32_t *step, int proci
     if(timespec_subtract(&delta,&this,(struct timespec *)&sm_p->bmccal.start[calmode]))
       printf("BMC: bmc_calibrate --> timespec_subtract error!\n");
     ts2double(&delta,&dt);
-    
+    //Print status
+    printf("BMC: %f/%f seconds\n",dt,sm_p->bmccal.timer_length);
     if(dt > sm_p->bmccal.timer_length){
       //Turn off calibration
       printf("BMC: Stopping BMC calmode BMC_CALMODE_TIMER\n");
@@ -662,7 +665,9 @@ int bmc_calibrate(sm_t *sm_p, int calmode, bmc_t *bmc, uint32_t *step, int proci
       memcpy(bmc,(bmc_t *)&sm_p->bmccal.bmc_start[calmode],sizeof(bmc_t));
       //Add probe pattern
       bmc_add_probe(bmc->acmd,bmc->acmd,sm_p->bmccal.countA[calmode]/ncalim,FUNCTION_NO_RESET);
-    }else{
+      //Print status
+      printf("BMC: %lu/%d steps\n",sm_p->bmccal.countA[calmode]/ncalim + 1,SCI_HOWFS_NPROBE);
+     }else{
       //Set bmc back to starting position
       memcpy(bmc,(bmc_t *)&sm_p->bmccal.bmc_start[calmode],sizeof(bmc_t));
       //Turn off calibration
@@ -690,6 +695,8 @@ int bmc_calibrate(sm_t *sm_p, int calmode, bmc_t *bmc, uint32_t *step, int proci
       memcpy(bmc,(bmc_t *)&sm_p->bmccal.bmc_start[calmode],sizeof(bmc_t));
       //Add sine pattern
       bmc_add_sine(bmc->acmd,bmc->acmd,sm_p->bmccal.countA[calmode]/ncalim);
+      //Print status
+      printf("BMC: %lu/%d steps\n",sm_p->bmccal.countA[calmode]/ncalim + 1,BMC_NSINE);
     }else{
       //Set bmc back to starting position
       memcpy(bmc,(bmc_t *)&sm_p->bmccal.bmc_start[calmode],sizeof(bmc_t));

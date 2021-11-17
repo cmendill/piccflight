@@ -3038,6 +3038,14 @@ int handle_command(char *line, sm_t *sm_p){
     return CMD_NORMAL;
   }
 
+  //SCI Reference Image
+  sprintf(cmd,"sci set ref");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    printf("CMD: Setting SCI reference image\n");
+    sm_p->sci_setref=1;
+    return(CMD_NORMAL);
+  }
+  
   //TEC control
   sprintf(cmd,"sci tec enable");
   if(!strncasecmp(line,cmd,strlen(cmd))){

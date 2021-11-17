@@ -627,6 +627,9 @@ cmd: sci shift origin [arg1] [arg2]
 	arg1 = 0,1,2,3,4 (NOT FUNCTIONAL)
 	arg2 = +x, -x, +y, -y
 
+cmd: sci set ref
+        set reference image for sci field normalization
+
 cmd: sci tec enable
         enables the sci tec
 
