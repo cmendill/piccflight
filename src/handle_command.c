@@ -791,11 +791,13 @@ int handle_command(char *line, sm_t *sm_p){
   if(!strncasecmp(line,cmd,strlen(cmd))){
     sm_p->state_array[sm_p->state].bmc_commander = SCIID;
     printf("CMD: State %s BMC commander set to SCI\n",sm_p->state_array[sm_p->state].name);
+    return(CMD_NORMAL);
   }
   sprintf(cmd,"bmc commander wat");
   if(!strncasecmp(line,cmd,strlen(cmd))){
     sm_p->state_array[sm_p->state].bmc_commander = WATID;
     printf("CMD: State %s BMC commander set to WAT\n",sm_p->state_array[sm_p->state].name);
+    return(CMD_NORMAL);
   }
   
   /****************************************
