@@ -480,7 +480,6 @@ void sci_howfs_efc(sm_t *sm_p, sci_field_t *field, double *delta_length, int res
 void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
   static scievent_t scievent;
   static wfsevent_t wfsevent;
-  scievent_t* scievent_p;
   static struct timespec start,end,delta,last;
   static int init = 0;
   static int howfs_init = 0;
@@ -495,6 +494,8 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
   int ihowfs=0;
   int print_origin=0;
   int state;
+  int bmc_calibrate_advance=1;
+  int bmc_calibrate_delta=0;
   static bmc_t bmc, bmc_flat;
   int bmc_set_flat=BMC_NOSET_FLAT;
   bmc_t bmc_try;
@@ -502,6 +503,8 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
   time_t t;
   uint8_t scimask[SCIXS][SCIYS];
   char filename[MAX_FILENAME];
+  int bmc_calmode_temp;
+  int bmc_calmode_change;
   
   //Get time immidiately
   clock_gettime(CLOCK_REALTIME,&start);
@@ -630,7 +633,10 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
   scievent.tec_enable       = sm_p->sci_tec_enable;
 
   //Save calmodes
-  scievent.hed.bmc_calmode  = sm_p->bmc_calmode;
+  bmc_calmode_temp          = sm_p->bmc_calmode;
+  bmc_calmode_change        = 0;
+  if(bmc_calmode_temp != scievent.hed.bmc_calmode) bmc_calmode_change=1;
+  scievent.hed.bmc_calmode  = bmc_calmode_temp;
   
   //Fake data
   if(sm_p->w[SCIID].fakemode != FAKEMODE_NONE){
@@ -695,9 +701,17 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
     //Run HOWFS
     if(sm_p->state_array[state].sci.run_howfs){
       //Reinitialize if there has been a break in the data
-      if(frame_number != howfs_ilast+1)
-	howfs_init=0;
+      if(frame_number != howfs_ilast+1) howfs_init=0;
 
+      //Reinitialize if bmc calmode has changed
+      if(bmc_calmode_change) howfs_init=0;
+      
+      //Disable BMC calibrate advance by default when HOWFS is running
+      bmc_calibrate_advance = 0;
+
+      //Enable BMC calibrate delta -- during HOWFS we want to only add deltas, not reset to the flat
+      bmc_calibrate_delta = 1;
+      
       //Init HOWFS
       if(!howfs_init){
 	//Set starting frame number
@@ -734,7 +748,7 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
       if(ihowfs == SCI_HOWFS_NSTEP-1){
 	//Calculate field
 	sci_howfs_construct_field(sm_p,&howfs_frames,&sciref,wfsevent.field,FUNCTION_NO_RESET);
-
+	
 	//Run EFC
 	if(sm_p->state_array[state].sci.run_efc){
 	  //Get DM acuator deltas from field
@@ -746,35 +760,34 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
 	  printf("SCI: iEFC = %lu\n",iefc);
 	  iefc++;
 	}
-	
+
 	//Write WFSEVENT to circular buffer 
 	memcpy(&wfsevent.hed,&scievent.hed,sizeof(pkthed_t));
 	wfsevent.hed.type = BUFFER_WFSEVENT;
 	if(sm_p->circbuf[BUFFER_WFSEVENT].write)
 	  write_to_buffer(sm_p,&wfsevent,BUFFER_WFSEVENT);
 	
+	//Allow BMC calibration to advance
+	bmc_calibrate_advance = 1;
       }
 
       //Set BMC Probe: try = flat + probe (NOTE: when ihowfs == 4, nothing is added to the flat)
       bmc_add_probe(bmc_flat.acmd,bmc_try.acmd,ihowfs,FUNCTION_NO_RESET);
     }
+
     
     //Calibrate BMC
     if(scievent.hed.bmc_calmode != BMC_CALMODE_NONE)
-      sm_p->bmc_calmode = bmc_calibrate(sm_p,scievent.hed.bmc_calmode,&bmc_try,&scievent.hed.bmc_calstep,SCIID,FUNCTION_NO_RESET);
+      sm_p->bmc_calmode = bmc_calibrate(sm_p,scievent.hed.bmc_calmode,&bmc_try,&scievent.hed.bmc_calstep,bmc_calibrate_advance,bmc_calibrate_delta,SCIID,FUNCTION_NO_RESET);
     
     //Send command to BMC
-    if(bmc_send_command(sm_p,&bmc_try,SCIID,bmc_set_flat)){
-      // - command failed
-      // - do nothing for now
-    }else{
-      // - copy command to current position
-      //memcpy(&bmc,&bmc_try,sizeof(bmc_t));
-      //Don't do this, last command will be saved with packet (command for this image)
-    }
+    if(bmc_send_command(sm_p,&bmc_try,SCIID,bmc_set_flat))
+      printf("SCI: BMC_SEND_COMMAND failed\n");
+    
   }
   
   //Copy BMC command to scievent
+  //NOTE: We save the command from the last iteration so that the image will match the command
   memcpy(&scievent.bmc,&bmc,sizeof(bmc_t));
 
   //Get BMC Status

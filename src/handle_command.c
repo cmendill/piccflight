@@ -1703,6 +1703,41 @@ int handle_command(char *line, sm_t *sm_p){
     return CMD_NORMAL;
   }
 
+  //Add a SINE pattern to BMC
+  sprintf(cmd,"bmc sine");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    if(sm_p->state_array[sm_p->state].bmc_commander == WATID){
+      pch = strtok(line+strlen(cmd)," ");
+      if(pch == NULL){
+	printf("CMD: Bad command format\n");
+	return CMD_NORMAL;
+      }
+      itemp  = atoi(pch);
+      
+      //Get current command
+      if(bmc_get_command(sm_p,&bmc)){
+	printf("CMD: bmc_get_command failed!\n");
+	return CMD_NORMAL;
+      }
+      
+      //Add sine pattern
+      bmc_add_sine(bmc.acmd,bmc.acmd,itemp);
+      
+      //Send command
+      if(bmc_send_command(sm_p,&bmc,WATID,BMC_SET_FLAT)){
+	printf("CMD: bmc_send_command failed\n");
+	return CMD_NORMAL;
+      }
+      else{
+	printf("CMD: set BMC sine pattern %d\n",itemp);
+	return CMD_NORMAL;
+      }	  
+    }
+    else
+      printf("CMD: Manual BMC DM control disabled in this state\n");
+    return CMD_NORMAL;
+  }
+
   
   //Set EFC SCI threshold
   sprintf(cmd,"efc sci thresh");

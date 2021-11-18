@@ -26,7 +26,7 @@ void bmc_function_reset(sm_t *sm_p){
   bmc_rotate_command(NULL, FUNCTION_RESET);
   bmc_add_length(NULL, NULL, NULL, FUNCTION_RESET);
   bmc_add_probe(NULL, NULL, 0, FUNCTION_RESET);
-  bmc_calibrate(sm_p, 0, NULL, NULL, 0, FUNCTION_RESET);
+  bmc_calibrate(sm_p, 0, NULL, NULL, 0, 0, 0, FUNCTION_RESET);
 }
 
 /**************************************************************/
@@ -464,7 +464,7 @@ void bmc_add_sine(float *input, float *output,int isine){
 /* BMC_CALIBRATE                                              */
 /* - Run calibration routines for BMC DM                      */
 /**************************************************************/
-int bmc_calibrate(sm_t *sm_p, int calmode, bmc_t *bmc, uint32_t *step, int procid, int reset){
+int bmc_calibrate(sm_t *sm_p, int calmode, bmc_t *bmc, uint32_t *step, int advance, int delta_only, int procid, int reset){
   static int init=0;
   static double arand[BMC_NACT]={0};
   static calmode_t bmccalmodes[BMC_NCALMODES];
@@ -541,7 +541,7 @@ int bmc_calibrate(sm_t *sm_p, int calmode, bmc_t *bmc, uint32_t *step, int proci
     *step = sm_p->bmccal.countA[calmode];
     
     //Increment counter
-    sm_p->bmccal.countA[calmode]++;
+    if(advance) sm_p->bmccal.countA[calmode]++;
     
     //Return calmode
     return calmode;
@@ -553,7 +553,7 @@ int bmc_calibrate(sm_t *sm_p, int calmode, bmc_t *bmc, uint32_t *step, int proci
     //Check counters
     if(sm_p->bmccal.countA[calmode] >= 0 && sm_p->bmccal.countA[calmode] < (2*BMC_NACT*ncalim)){
       //Set all BMC actuators to starting position
-      memcpy(bmc,(bmc_t *)&sm_p->bmccal.bmc_start[calmode],sizeof(bmc_t));
+      if(!delta_only) memcpy(bmc,(bmc_t *)&sm_p->bmccal.bmc_start[calmode],sizeof(bmc_t));
       
       //Zero command delta
       memset(act,0,sizeof(act));
@@ -564,7 +564,7 @@ int bmc_calibrate(sm_t *sm_p, int calmode, bmc_t *bmc, uint32_t *step, int proci
 	printf("BMC: %lu of %d\n",i,BMC_NACT);
 	act[i] = poke * sm_p->bmccal.command_scale;
 	bmc_add_length(bmc->acmd,bmc->acmd,act,FUNCTION_NO_RESET);
-	sm_p->bmccal.countB[calmode]++;
+	if(advance) sm_p->bmccal.countB[calmode]++;
       }
       else{
 	printf("BMC: flat\n");
@@ -572,7 +572,7 @@ int bmc_calibrate(sm_t *sm_p, int calmode, bmc_t *bmc, uint32_t *step, int proci
       }
     }else{
       //Set bmc back to starting position
-      memcpy(bmc,(bmc_t *)&sm_p->bmccal.bmc_start[calmode],sizeof(bmc_t));
+      if(!delta_only) memcpy(bmc,(bmc_t *)&sm_p->bmccal.bmc_start[calmode],sizeof(bmc_t));
       //Turn off calibration
       printf("BMC: Stopping BMC calmode BMC_CALMODE_POKE\n");
       calmode = BMC_CALMODE_NONE;
@@ -583,7 +583,7 @@ int bmc_calibrate(sm_t *sm_p, int calmode, bmc_t *bmc, uint32_t *step, int proci
     *step = (sm_p->bmccal.countA[calmode]/ncalim);
     
     //Increment counter
-    sm_p->bmccal.countA[calmode]++;
+    if(advance) sm_p->bmccal.countA[calmode]++;
     
     //Return calmode
     return calmode;
@@ -596,22 +596,23 @@ int bmc_calibrate(sm_t *sm_p, int calmode, bmc_t *bmc, uint32_t *step, int proci
     //Check counters
     if(sm_p->bmccal.countA[calmode] >= 0 && sm_p->bmccal.countA[calmode] < (2*BMC_NACT*ncalim)){
       //Set all BMC actuators to starting position
-      for(i=0;i<BMC_NACT;i++)
-	bmc->acmd[i]=sm_p->bmccal.bmc_start[calmode].acmd[i];
+      if(!delta_only)
+	for(i=0;i<BMC_NACT;i++)
+	  bmc->acmd[i]=sm_p->bmccal.bmc_start[calmode].acmd[i];
       
       //Poke one actuator
       if((sm_p->bmccal.countA[calmode]/ncalim) % 2 == 1){
 	i = (sm_p->bmccal.countB[calmode]/ncalim) % BMC_NACT;
 	printf("BMC: %lu of %d\n",i,BMC_NACT);
 	bmc->acmd[i] += vpoke * sm_p->bmccal.command_scale;
-	sm_p->bmccal.countB[calmode]++;
+	if(advance) sm_p->bmccal.countB[calmode]++;
       }
       else{
 	printf("BMC: flat\n");
       }
     }else{
       //Set bmc back to starting position
-      memcpy(bmc,(bmc_t *)&sm_p->bmccal.bmc_start[calmode],sizeof(bmc_t));
+      if(!delta_only) memcpy(bmc,(bmc_t *)&sm_p->bmccal.bmc_start[calmode],sizeof(bmc_t));
       //Turn off calibration
       printf("BMC: Stopping BMC calmode BMC_CALMODE_VPOKE\n");
       calmode = BMC_CALMODE_NONE;
@@ -622,7 +623,7 @@ int bmc_calibrate(sm_t *sm_p, int calmode, bmc_t *bmc, uint32_t *step, int proci
     *step = (sm_p->bmccal.countA[calmode]/ncalim);
     
     //Increment counter
-    sm_p->bmccal.countA[calmode]++;
+    if(advance) sm_p->bmccal.countA[calmode]++;
     
     //Return calmode
     return calmode;
@@ -633,14 +634,18 @@ int bmc_calibrate(sm_t *sm_p, int calmode, bmc_t *bmc, uint32_t *step, int proci
   if(calmode == BMC_CALMODE_RAND){
     //Check counters
     if(sm_p->bmccal.countA[calmode] >= 0 && sm_p->bmccal.countA[calmode] < (2*ncalim)){
+
+      //Set all BMC actuators to starting position
+      if(!delta_only) memcpy(bmc,(bmc_t *)&sm_p->bmccal.bmc_start[calmode],sizeof(bmc_t));
+
       //Poke all actuators by random amount (just once)
       if(sm_p->bmccal.countA[calmode] == ncalim){
 	for(i=0; i<BMC_NACT; i++)
-	  bmc->acmd[i] = sm_p->bmccal.bmc_start[calmode].acmd[i] + poke * arand[i] * sm_p->bmccal.command_scale;
+	  bmc->acmd[i] += poke * arand[i] * sm_p->bmccal.command_scale;
       }
     }else{
       //Set bmc back to starting position
-      memcpy(bmc,(bmc_t *)&sm_p->bmccal.bmc_start[calmode],sizeof(bmc_t));
+      if(!delta_only) memcpy(bmc,(bmc_t *)&sm_p->bmccal.bmc_start[calmode],sizeof(bmc_t));
       //Turn off calibration
       printf("BMC: Stopping calmode BMC_CALMODE_RAND\n");
       calmode = BMC_CALMODE_NONE;
@@ -651,7 +656,7 @@ int bmc_calibrate(sm_t *sm_p, int calmode, bmc_t *bmc, uint32_t *step, int proci
     *step = (sm_p->bmccal.countA[calmode]/ncalim);
     
     //Increment counter
-    sm_p->bmccal.countA[calmode]++;
+    if(advance) sm_p->bmccal.countA[calmode]++;
 
     //Return calmode
     return calmode;
@@ -662,14 +667,14 @@ int bmc_calibrate(sm_t *sm_p, int calmode, bmc_t *bmc, uint32_t *step, int proci
     //Check counters
     if(sm_p->bmccal.countA[calmode] >= 0 && sm_p->bmccal.countA[calmode] < ncalim*SCI_HOWFS_NPROBE){
       //Set all BMC actuators to starting position
-      memcpy(bmc,(bmc_t *)&sm_p->bmccal.bmc_start[calmode],sizeof(bmc_t));
+      if(!delta_only) memcpy(bmc,(bmc_t *)&sm_p->bmccal.bmc_start[calmode],sizeof(bmc_t));
       //Add probe pattern
       bmc_add_probe(bmc->acmd,bmc->acmd,sm_p->bmccal.countA[calmode]/ncalim,FUNCTION_NO_RESET);
       //Print status
       printf("BMC: %lu/%d steps\n",sm_p->bmccal.countA[calmode]/ncalim + 1,SCI_HOWFS_NPROBE);
      }else{
       //Set bmc back to starting position
-      memcpy(bmc,(bmc_t *)&sm_p->bmccal.bmc_start[calmode],sizeof(bmc_t));
+      if(!delta_only) memcpy(bmc,(bmc_t *)&sm_p->bmccal.bmc_start[calmode],sizeof(bmc_t));
       //Turn off calibration
       printf("BMC: Stopping BMC calmode BMC_CALMODE_PROBE\n");
       calmode = BMC_CALMODE_NONE;
@@ -680,7 +685,7 @@ int bmc_calibrate(sm_t *sm_p, int calmode, bmc_t *bmc, uint32_t *step, int proci
     *step = (sm_p->bmccal.countA[calmode]/ncalim);
 
     //Increment counter
-    sm_p->bmccal.countA[calmode]++;
+    if(advance) sm_p->bmccal.countA[calmode]++;
     
     //Return calmode
     return calmode;
@@ -692,14 +697,14 @@ int bmc_calibrate(sm_t *sm_p, int calmode, bmc_t *bmc, uint32_t *step, int proci
     //Check counters
     if(sm_p->bmccal.countA[calmode] >= 0 && sm_p->bmccal.countA[calmode] < ncalim*BMC_NSINE){
       //Set all BMC actuators to starting position
-      memcpy(bmc,(bmc_t *)&sm_p->bmccal.bmc_start[calmode],sizeof(bmc_t));
+      if(!delta_only) memcpy(bmc,(bmc_t *)&sm_p->bmccal.bmc_start[calmode],sizeof(bmc_t));
       //Add sine pattern
       bmc_add_sine(bmc->acmd,bmc->acmd,sm_p->bmccal.countA[calmode]/ncalim);
       //Print status
       printf("BMC: %lu/%d steps\n",sm_p->bmccal.countA[calmode]/ncalim + 1,BMC_NSINE);
     }else{
       //Set bmc back to starting position
-      memcpy(bmc,(bmc_t *)&sm_p->bmccal.bmc_start[calmode],sizeof(bmc_t));
+      if(!delta_only) memcpy(bmc,(bmc_t *)&sm_p->bmccal.bmc_start[calmode],sizeof(bmc_t));
       //Turn off calibration
       printf("BMC: Stopping BMC calmode BMC_CALMODE_SINE\n");
       calmode = BMC_CALMODE_NONE;
@@ -710,7 +715,7 @@ int bmc_calibrate(sm_t *sm_p, int calmode, bmc_t *bmc, uint32_t *step, int proci
     *step = (sm_p->bmccal.countA[calmode]/ncalim);
 
     //Increment counter
-    sm_p->bmccal.countA[calmode]++;
+    if(advance) sm_p->bmccal.countA[calmode]++;
     
     //Return calmode
     return calmode;

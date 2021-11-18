@@ -310,11 +310,16 @@ cmd: bmc probe [arg]
 
 cmd: bmc test [arg]
      	apply a test pattern to the BMC
-	arg = test index
+	arg = test index (see export_howfc.pro)
 	      0: xtilt
 	      1: ytilt
 	      2: xsine
 	      3: ysine
+
+cmd: bmc sine [arg]
+     	apply a sinewave pattern to the BMC
+	arg = sine pattern index (see export_howfc.pro)
+
 cmd: bmc set actuator [arg1] [arg2]
 	add a single actuator delta (volts) to the current BMC command
 	arg1 = actuator index [0,1,2,3,...,951]
