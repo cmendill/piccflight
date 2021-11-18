@@ -297,7 +297,7 @@ int sci_expose(sm_t *sm_p, flidev_t dev, uint16 *img_buffer){
 /* SCI_HOWFS_CONSTRUCT_FIELD                                  */
 /*  - Construct field measurement from a series of probes     */
 /**************************************************************/
-void sci_howfs_construct_field(sm_t *sm_p,sci_howfs_t *frames,sci_ref_t *sciref,sci_field_t *field,int reset){
+void sci_howfs_construct_field(sm_t *sm_p,sci_howfs_t *frames,scievent_t *scievent,sci_field_t *field,int reset){
   //NOTE: *field is a pointer to a SCI_NBANDS array of fields
   static int init=0;
   static int xind[SCI_NPIX], yind[SCI_NPIX];
@@ -311,8 +311,7 @@ void sci_howfs_construct_field(sm_t *sm_p,sci_howfs_t *frames,sci_ref_t *sciref,
   uint8_t scimask[SCIXS][SCIYS];
   const double sci_sim_max[SCI_NBANDS] = SCI_SIM_MAX;
   const double sci_scale_default[SCI_NBANDS] = SCI_SCALE_DEFAULT;
-  static double scale[SCI_NBANDS]={0};
-  static double sciref_max[SCI_NBANDS]={0};
+  double scale;
   
   //Initialize
   if(!init || reset){
@@ -329,8 +328,6 @@ void sci_howfs_construct_field(sm_t *sm_p,sci_howfs_t *frames,sci_ref_t *sciref,
     if(read_file(SCI_MASK_FILE,&scimask[0][0],sizeof(scimask)))
       memset(&scimask[0][0],0,sizeof(scimask));
     printf("SCI: Read HOWFS matrix\n");
-    //Init image normalization
-    memcpy(scale,sci_scale_default,sizeof(scale));
     //Build index arrays
     c=0;
     for(j=0;j<SCIYS;j++){
@@ -345,29 +342,13 @@ void sci_howfs_construct_field(sm_t *sm_p,sci_howfs_t *frames,sci_ref_t *sciref,
     init=1;
     if(reset) return;
   }
-
-  //Setup image normalization -- triggered by command: sci set ref
-  if(sciref->update){
-    for(b=0;b<SCI_NBANDS;b++){
-      //Find max pixel for this band
-      sciref_max[b] = -1;
-      for(i=0;i<SCIXS;i++){
-	for(j=0;j<SCIYS;j++){
-	  if(sciref->bands.band[b].data[i][j] > sciref_max[b])
-	    sciref_max[b] = sciref->bands.band[b].data[i][j];
-	}
-      }
-      //Calculate image normalization
-      scale[b] = sci_sim_max[b] / sciref_max[b];
-      printf("SCI: Updated image scale[%d] = %8.2E\n",b,scale[b]);
-    }
-    //Unset update flag
-    sciref->update = 0;
-  }
   
   //Construct field
   //NOTE: frame index: 0=flat, 1=probe1, 2=probe2, 3=probe3, 4=probe4
   for(b=0;b<SCI_NBANDS;b++){
+    //Calculate image normalization
+    scale = sci_scale_default[b];
+    if(scievent->refmax[b] > 0) scale = sci_sim_max[b] / (scievent->hed.exptime * scievent->refmax[b]);
     for(c=0;c<SCI_NPIX;c++){
       field[b].r[c] = 0;
       field[b].i[c] = 0;
@@ -377,10 +358,10 @@ void sci_howfs_construct_field(sm_t *sm_p,sci_howfs_t *frames,sci_ref_t *sciref,
 	px3 = frames->step[3].band[b].data[xind[c]][yind[c]];
 	px4 = frames->step[4].band[b].data[xind[c]][yind[c]];
 
-	dpx1 = scale[b] * (double)px1;
-	dpx2 = scale[b] * (double)px2;
-	dpx3 = scale[b] * (double)px3;
-	dpx4 = scale[b] * (double)px4;
+	dpx1 = scale * (double)px1;
+	dpx2 = scale * (double)px2;
+	dpx3 = scale * (double)px3;
+	dpx4 = scale * (double)px4;
 	
 	//Debugging
 	//if(c < 5) printf("SCI: %d | %8.2E %8.2E %8.2E %8.2E | %8.2E %8.2E %8.2E %8.2E\n",c,dpx1,dpx2,dpx3,dpx4,rmatrix0[c][b],rmatrix1[c][b],imatrix0[c][b],imatrix1[c][b]);
@@ -485,11 +466,11 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
   static int howfs_init = 0;
   static int howfs_got_frame[SCI_HOWFS_NSTEP]={0};
   static sci_howfs_t howfs_frames;
-  static sci_ref_t sciref;
+  const double sci_sim_max[SCI_NBANDS] = SCI_SIM_MAX;
   double dt;
   double delta_length[BMC_NACT]={0};
   uint16 fakepx=0;
-  uint32 i,j,k;
+  uint32 i,j,k,b;
   static unsigned long frame_number=0,howfs_istart=0,howfs_ilast=0,iefc=0;
   int ihowfs=0;
   int print_origin=0;
@@ -528,7 +509,6 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
   if(!init){
     memset(&scievent,0,sizeof(scievent));
     memcpy(&last,&start,sizeof(struct timespec));
-    memset(&sciref,0,sizeof(sciref));
     sci_loadorigin(&scievent);
     frame_number=0;
     //Reset BMC & SCI functions
@@ -659,18 +639,28 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
   }
   else{
     //Real data: cut out bands 
-    for(k=0;k<SCI_NBANDS;k++)
+    for(b=0;b<SCI_NBANDS;b++)
       for(i=0;i<SCIXS;i++)
 	for(j=0;j<SCIYS;j++)
-    	  scievent.bands.band[k].data[i][j] = img_buffer[sci_xy2index(scievent.xorigin[k]-(SCIXS/2)+i,scievent.yorigin[k]-(SCIYS/2)+j)];
+    	  scievent.bands.band[b].data[i][j] = img_buffer[sci_xy2index(scievent.xorigin[b]-(SCIXS/2)+i,scievent.yorigin[b]-(SCIYS/2)+j)];
   }
 
   //Command: sci_setref 
   if(sm_p->sci_setref){
-    memcpy(&sciref,&scievent.bands,sizeof(sci_bands_t));
-    sciref.update=1;
-    sm_p->sci_setref=0;
+    for(b=0;b<SCI_NBANDS;b++){
+      //Find max pixel for this band
+      scievent.refmax[b] = -1;
+      for(i=0;i<SCIXS;i++){
+	for(j=0;j<SCIYS;j++){
+	  if(scievent.bands.band[b].data[i][j] > scievent.refmax[b])
+	    scievent.refmax[b] = scievent.bands.band[b].data[i][j];
+	}
+      }
+      //Divide by exposure time
+      scievent.refmax[b] /= scievent.hed.exptime; //ADU/second
+    }
     printf("SCI: Reference image updated\n");
+    sm_p->sci_setref=0;
   }
 
   /*************************************************************/
@@ -747,8 +737,7 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
       //HOWFS Operations
       if(ihowfs == SCI_HOWFS_NSTEP-1){
 	//Calculate field
-	sci_howfs_construct_field(sm_p,&howfs_frames,&sciref,wfsevent.field,FUNCTION_NO_RESET);
-	
+	sci_howfs_construct_field(sm_p,&howfs_frames,&scievent,wfsevent.field,FUNCTION_NO_RESET);
 	//Run EFC
 	if(sm_p->state_array[state].sci.run_efc){
 	  //Get DM acuator deltas from field

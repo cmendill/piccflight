@@ -200,8 +200,8 @@ enum bmccalmodes {BMC_CALMODE_NONE,
 #define BMC_ACTIVE2FULL_FILE   "config/bmc_active2full.dat"
 #define BMC_ROTATE_FILE        "config/bmc_rotate.dat"
 #define BMC_POLARITY_FILE      "config/bmc_polarity.dat"
-#define BMC_TEST_FILE          "config/bmc_test_%d.dat"
-#define BMC_SINE_FILE          "config/bmc_sine_%d.dat"
+#define BMC_TEST_FILE          "config/bmc_test_%3.3d.dat"
+#define BMC_SINE_FILE          "config/bmc_sine_%3.3d.dat"
 #define BMC_FLAT_FILE          "output/settings/bmc_flat.dat"
 #define HOWFS_RMATRIX0_FILE    "config/howfs_rmatrix0.dat"
 #define HOWFS_RMATRIX1_FILE    "config/howfs_rmatrix1.dat"
@@ -783,11 +783,6 @@ typedef struct sci_field_struct{
   double i[SCI_NPIX];
 } sci_field_t;
 
-typedef struct sci_ref_struct{
-  int update;
-  sci_bands_t bands;
-} sci_ref_t;
-
 typedef struct shk_struct{
   uint8 data[SHKXS][SHKYS];
 } shk_t;
@@ -952,7 +947,7 @@ typedef struct bmccal_struct{
 /*************************************************
  * Packet Header
  *************************************************/
-#define PICC_PKT_VERSION     39  //packet version number
+#define PICC_PKT_VERSION     40  //packet version number
 typedef struct pkthed_struct{
   uint16  version;       //packet version number
   uint16  type;          //packet ID word
@@ -1106,6 +1101,7 @@ typedef struct scievent_struct{
   uint8        ihowfs;
   uint32       xorigin[SCI_NBANDS];
   uint32       yorigin[SCI_NBANDS];
+  double       refmax[SCI_NBANDS];       
   sci_bands_t  bands;
   bmc_t        bmc;
   bmc_status_t bmc_status;

@@ -157,6 +157,12 @@ cmd: state [arg]
 	cmd: string command for the state
 	sending command without the cmd will print the available states
 
+cmd: bmc commander sci
+        change bmc commader to sci
+	
+cmd: bmc commander wat
+        change bmc commader to wat (user)
+	
 -------------- DATA RECORDING -------------
 
 cmd: shk start rec

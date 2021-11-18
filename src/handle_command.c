@@ -785,6 +785,18 @@ int handle_command(char *line, sm_t *sm_p){
     if(!cmdfound) print_states((state_t *)sm_p->state_array,sm_p->state);
     return(CMD_NORMAL);
   }
+
+  //Change actuator commanders
+  sprintf(cmd,"bmc commander sci");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    sm_p->state_array[sm_p->state].bmc_commander = SCIID;
+    printf("CMD: State %s BMC commander set to SCI\n",sm_p->state_array[sm_p->state].name);
+  }
+  sprintf(cmd,"bmc commander wat");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    sm_p->state_array[sm_p->state].bmc_commander = WATID;
+    printf("CMD: State %s BMC commander set to WAT\n",sm_p->state_array[sm_p->state].name);
+  }
   
   /****************************************
    * DATA RECORDING
