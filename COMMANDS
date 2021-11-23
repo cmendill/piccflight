@@ -148,6 +148,7 @@ cmd: bmc timer length [arg]
 	
 cmd: bmc cal scale [arg]
         scale the BMC calibration commands by [arg]
+	this applies to HOWFS probes as well
 	arg = floating point scale factor
 	
 ------------------ STATES -----------------
