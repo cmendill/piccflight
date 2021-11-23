@@ -345,6 +345,8 @@ int main(int argc,char **argv){
   sm_p->efc_sci_thresh      = EFC_SCI_THRESH_DEFAULT;
   sm_p->shk_alp_pid_type    = SHK_ALP_PID_TYPE_DEFAULT;
   sm_p->lyt_alp_pid_type    = LYT_ALP_PID_TYPE_DEFAULT;
+  sm_p->alp_cal_scale       = ALP_CAL_SCALE_DEFAULT;
+  sm_p->bmc_cal_scale       = BMC_CAL_SCALE_DEFAULT;
 
   //Zernike control defaults
   //--SHK

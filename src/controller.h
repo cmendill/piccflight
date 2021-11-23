@@ -932,7 +932,6 @@ typedef struct alpcal_struct{
   double last_zernike[LOWFS_N_ZERNIKE];
   double zernike_errors[LOWFS_N_ZERNIKE][ZERNIKE_ERRORS_NUMBER];
   double timer_length;
-  double command_scale;
 } alpcal_t;
 
 typedef struct bmccal_struct{
@@ -941,7 +940,6 @@ typedef struct bmccal_struct{
   bmc_t  bmc_start[BMC_NCALMODES];
   struct timespec start[BMC_NCALMODES];
   double timer_length;
-  double command_scale;
 } bmccal_t;
 
 /*************************************************
@@ -1245,6 +1243,10 @@ typedef volatile struct {
 
   //BMC Calibration Structure
   bmccal_t bmccal;
+
+  //DM Calibration Command Scale
+  double alp_cal_scale;
+  double bmc_cal_scale;
 
   //Calibration file name
   char calfile[MAX_FILENAME];

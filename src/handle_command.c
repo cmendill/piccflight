@@ -734,8 +734,8 @@ int handle_command(char *line, sm_t *sm_p){
   if(!strncasecmp(line,cmd,strlen(cmd))){
     ftemp = atof(line+strlen(cmd)+1);
     if(ftemp >= 0 && ftemp <= ALP_CAL_SCALE_MAX){
-      sm_p->alpcal.command_scale = ftemp;
-      printf("CMD: Changed ALP calibration scale to %.3f\n",sm_p->alpcal.command_scale);
+      sm_p->alp_cal_scale = ftemp;
+      printf("CMD: Changed ALP calibration scale to %.3f\n",sm_p->alp_cal_scale);
     }else{
       printf("CMD: ALP calibration scale out of bounds [%d,%d]\n",0,ALP_CAL_SCALE_MAX);
     }
@@ -760,8 +760,8 @@ int handle_command(char *line, sm_t *sm_p){
   if(!strncasecmp(line,cmd,strlen(cmd))){
     ftemp = atof(line+strlen(cmd)+1);
     if(ftemp >= 0 && ftemp <= BMC_CAL_SCALE_MAX){
-      sm_p->bmccal.command_scale = ftemp;
-      printf("CMD: Changed BMC calibration scale to %.3f\n",sm_p->bmccal.command_scale);
+      sm_p->bmc_cal_scale = ftemp;
+      printf("CMD: Changed BMC calibration scale to %.3f\n",sm_p->bmc_cal_scale);
     }else{
       printf("CMD: BMC calibration scale out of bounds [%d,%d]\n",0,BMC_CAL_SCALE_MAX);
     }
@@ -1660,7 +1660,7 @@ int handle_command(char *line, sm_t *sm_p){
 	}
 
 	//Add probe pattern
-	bmc_add_probe(bmc.acmd,bmc.acmd,itemp,sm_p->bmccal.command_scale);
+	bmc_add_probe(bmc.acmd,bmc.acmd,itemp,sm_p->bmc_cal_scale);
       
 	//Send command
 	if(bmc_send_command(sm_p,&bmc,WATID,BMC_NOSET_FLAT)){
@@ -1700,7 +1700,7 @@ int handle_command(char *line, sm_t *sm_p){
       }
       
       //Add test pattern
-      bmc_add_test(bmc.acmd,bmc.acmd,itemp,sm_p->bmccal.command_scale);
+      bmc_add_test(bmc.acmd,bmc.acmd,itemp,sm_p->bmc_cal_scale);
       
       //Send command
       if(bmc_send_command(sm_p,&bmc,WATID,BMC_SET_FLAT)){
@@ -1735,7 +1735,7 @@ int handle_command(char *line, sm_t *sm_p){
       }
       
       //Add sine pattern
-      bmc_add_sine(bmc.acmd,bmc.acmd,itemp,sm_p->bmccal.command_scale);
+      bmc_add_sine(bmc.acmd,bmc.acmd,itemp,sm_p->bmc_cal_scale);
       
       //Send command
       if(bmc_send_command(sm_p,&bmc,WATID,BMC_SET_FLAT)){

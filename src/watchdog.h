@@ -81,6 +81,10 @@
 #define ACQ_EXPTIME_DEFAULT        0.200
 #define ACQ_FRMTIME_DEFAULT        0.200
 
+//DM Calibration Command Scale
+#define ALP_CAL_SCALE_DEFAULT 1
+#define BMC_CAL_SCALE_DEFAULT 1
+
 //EFC Settings
 #define EFC_BMC_MAX_DEFAULT        5 //nm
 #define EFC_SCI_THRESH_DEFAULT     0 //ADU

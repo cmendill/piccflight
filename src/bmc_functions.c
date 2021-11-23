@@ -349,9 +349,7 @@ void bmc_init_calibration(sm_t *sm_p){
   memset((void *)&sm_p->bmccal,0,sizeof(bmccal_t));
 
   /* Initialize other elements */
-  sm_p->bmccal.timer_length = CALMODE_TIMER_SEC;
-  sm_p->bmccal.command_scale = 1;
-  
+  sm_p->bmccal.timer_length = CALMODE_TIMER_SEC;  
   
 }
 
@@ -567,7 +565,7 @@ int bmc_calibrate(sm_t *sm_p, int calmode, bmc_t *bmc, uint32_t *step, int advan
       if((sm_p->bmccal.countA[calmode]/ncalim) % 2 == 1){
 	i = (sm_p->bmccal.countB[calmode]/ncalim) % BMC_NACT;
 	printf("BMC: %lu of %d\n",i,BMC_NACT);
-	act[i] = poke * sm_p->bmccal.command_scale;
+	act[i] = poke * sm_p->bmc_cal_scale;
 	bmc_add_length(bmc->acmd,bmc->acmd,act,FUNCTION_NO_RESET);
 	if(advance) sm_p->bmccal.countB[calmode]++;
       }
@@ -609,7 +607,7 @@ int bmc_calibrate(sm_t *sm_p, int calmode, bmc_t *bmc, uint32_t *step, int advan
       if((sm_p->bmccal.countA[calmode]/ncalim) % 2 == 1){
 	i = (sm_p->bmccal.countB[calmode]/ncalim) % BMC_NACT;
 	printf("BMC: %lu of %d\n",i,BMC_NACT);
-	bmc->acmd[i] += vpoke * sm_p->bmccal.command_scale;
+	bmc->acmd[i] += vpoke * sm_p->bmc_cal_scale;
 	if(advance) sm_p->bmccal.countB[calmode]++;
       }
       else{
@@ -646,7 +644,7 @@ int bmc_calibrate(sm_t *sm_p, int calmode, bmc_t *bmc, uint32_t *step, int advan
       //Poke all actuators by random amount (just once)
       if(sm_p->bmccal.countA[calmode] == ncalim){
 	for(i=0; i<BMC_NACT; i++)
-	  bmc->acmd[i] += poke * arand[i] * sm_p->bmccal.command_scale;
+	  bmc->acmd[i] += poke * arand[i] * sm_p->bmc_cal_scale;
       }
     }else{
       //Set bmc back to starting position
@@ -674,7 +672,7 @@ int bmc_calibrate(sm_t *sm_p, int calmode, bmc_t *bmc, uint32_t *step, int advan
       //Set all BMC actuators to starting position
       if(!delta_only) memcpy(bmc,(bmc_t *)&sm_p->bmccal.bmc_start[calmode],sizeof(bmc_t));
       //Add probe pattern
-      bmc_add_probe(bmc->acmd,bmc->acmd,sm_p->bmccal.countA[calmode]/ncalim,sm_p->bmccal.command_scale);
+      bmc_add_probe(bmc->acmd,bmc->acmd,sm_p->bmccal.countA[calmode]/ncalim,sm_p->bmc_cal_scale);
       //Print status
       printf("BMC: %lu/%d steps\n",sm_p->bmccal.countA[calmode]/ncalim + 1,SCI_HOWFS_NPROBE);
      }else{
@@ -704,7 +702,7 @@ int bmc_calibrate(sm_t *sm_p, int calmode, bmc_t *bmc, uint32_t *step, int advan
       //Set all BMC actuators to starting position
       if(!delta_only) memcpy(bmc,(bmc_t *)&sm_p->bmccal.bmc_start[calmode],sizeof(bmc_t));
       //Add sine pattern
-      bmc_add_sine(bmc->acmd,bmc->acmd,sm_p->bmccal.countA[calmode]/ncalim,sm_p->bmccal.command_scale);
+      bmc_add_sine(bmc->acmd,bmc->acmd,sm_p->bmccal.countA[calmode]/ncalim,sm_p->bmc_cal_scale);
       //Print status
       printf("BMC: %lu/%d steps\n",sm_p->bmccal.countA[calmode]/ncalim + 1,BMC_NSINE);
     }else{
