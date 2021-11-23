@@ -25,7 +25,6 @@
 void bmc_function_reset(sm_t *sm_p){
   bmc_rotate_command(NULL, FUNCTION_RESET);
   bmc_add_length(NULL, NULL, NULL, FUNCTION_RESET);
-  bmc_add_probe(NULL, NULL, 0, FUNCTION_RESET);
   bmc_calibrate(sm_p, 0, NULL, NULL, 0, 0, 0, FUNCTION_RESET);
 }
 
@@ -391,35 +390,28 @@ void bmc_add_length(float *input, float *output, double *dl, int reset){
   return;
 }
 
-
 /**************************************************************/
-/* BMC_ADD_PROBE                                              */
-/* - Add probe pattern to BMC command                         */
+/* BMC_ADD_PROBE                                               */
+/* - Add PROBE pattern to BMC command                          */
 /* - Output can be same pointer as input                      */
 /**************************************************************/
-void bmc_add_probe(float *input, float *output, int ihowfs, int reset){
-  static int init=0;
-  static double probe[SCI_HOWFS_NSTEP][BMC_NACT]={{0}}; //last probe is all zeros
+void bmc_add_probe(float *input, float *output,int istep, double scale){
+  double dl[BMC_NACT]={0};
   char filename[MAX_FILENAME];
-  int i,j;
+  int i;
 
-  //Initialize
-  if(!init || reset){
-    //Read probes
-    for(i=0;i<SCI_HOWFS_NPROBE;i++){
-      sprintf(filename,BMC_PROBE_FILE,i);
-      if(read_file(filename,probe[i],sizeof(double)*BMC_NACT)){
-	memset(&probe[0][0],0,sizeof(probe));
-	break;
-      }
-    }
-    init=1;
-    printf("BMC: Loaded probe files\n");
-    if(reset) return;
-  }
+  //Read command file
+  sprintf(filename,BMC_PROBE_FILE,istep);
+  if(read_file(filename,dl,sizeof(dl)))
+    memset(dl,0,sizeof(dl));
+
+  //Apply scale factor
+  if(scale != 1)
+    for(i=0;i<BMC_NACT;i++)
+      dl[i] *= scale;
   
-  //Add probe to flat
-  bmc_add_length(input,output,probe[ihowfs],FUNCTION_NO_RESET);
+  //Add to flat
+  bmc_add_length(input,output,dl,FUNCTION_NO_RESET);
   return;
 }
 
@@ -428,13 +420,20 @@ void bmc_add_probe(float *input, float *output, int ihowfs, int reset){
 /* - Add TEST pattern to BMC command                          */
 /* - Output can be same pointer as input                      */
 /**************************************************************/
-void bmc_add_test(float *input, float *output,int itest){
+void bmc_add_test(float *input, float *output,int istep, double scale){
   double dl[BMC_NACT]={0};
   char filename[MAX_FILENAME];
+  int i;
 
-  sprintf(filename,BMC_TEST_FILE,itest);
+  //Read command file
+  sprintf(filename,BMC_TEST_FILE,istep);
   if(read_file(filename,dl,sizeof(dl)))
     memset(dl,0,sizeof(dl));
+
+  //Apply scale factor
+  if(scale != 1)
+    for(i=0;i<BMC_NACT;i++)
+      dl[i] *= scale;
   
   //Add to flat
   bmc_add_length(input,output,dl,FUNCTION_NO_RESET);
@@ -446,19 +445,25 @@ void bmc_add_test(float *input, float *output,int itest){
 /* - Add SINE pattern to BMC command                          */
 /* - Output can be same pointer as input                      */
 /**************************************************************/
-void bmc_add_sine(float *input, float *output,int isine){
+void bmc_add_sine(float *input, float *output,int istep, double scale){
   double dl[BMC_NACT]={0};
   char filename[MAX_FILENAME];
+  int i;
 
-  sprintf(filename,BMC_SINE_FILE,isine);
+  //Read command file
+  sprintf(filename,BMC_SINE_FILE,istep);
   if(read_file(filename,dl,sizeof(dl)))
     memset(dl,0,sizeof(dl));
+
+  //Apply scale factor
+  if(scale != 1)
+    for(i=0;i<BMC_NACT;i++)
+      dl[i] *= scale;
   
   //Add to flat
   bmc_add_length(input,output,dl,FUNCTION_NO_RESET);
   return;
 }
-
 
 /**************************************************************/
 /* BMC_CALIBRATE                                              */
@@ -669,7 +674,7 @@ int bmc_calibrate(sm_t *sm_p, int calmode, bmc_t *bmc, uint32_t *step, int advan
       //Set all BMC actuators to starting position
       if(!delta_only) memcpy(bmc,(bmc_t *)&sm_p->bmccal.bmc_start[calmode],sizeof(bmc_t));
       //Add probe pattern
-      bmc_add_probe(bmc->acmd,bmc->acmd,sm_p->bmccal.countA[calmode]/ncalim,FUNCTION_NO_RESET);
+      bmc_add_probe(bmc->acmd,bmc->acmd,sm_p->bmccal.countA[calmode]/ncalim,sm_p->bmccal.command_scale);
       //Print status
       printf("BMC: %lu/%d steps\n",sm_p->bmccal.countA[calmode]/ncalim + 1,SCI_HOWFS_NPROBE);
      }else{
@@ -699,7 +704,7 @@ int bmc_calibrate(sm_t *sm_p, int calmode, bmc_t *bmc, uint32_t *step, int advan
       //Set all BMC actuators to starting position
       if(!delta_only) memcpy(bmc,(bmc_t *)&sm_p->bmccal.bmc_start[calmode],sizeof(bmc_t));
       //Add sine pattern
-      bmc_add_sine(bmc->acmd,bmc->acmd,sm_p->bmccal.countA[calmode]/ncalim);
+      bmc_add_sine(bmc->acmd,bmc->acmd,sm_p->bmccal.countA[calmode]/ncalim,sm_p->bmccal.command_scale);
       //Print status
       printf("BMC: %lu/%d steps\n",sm_p->bmccal.countA[calmode]/ncalim + 1,BMC_NSINE);
     }else{

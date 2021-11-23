@@ -1660,7 +1660,7 @@ int handle_command(char *line, sm_t *sm_p){
 	}
 
 	//Add probe pattern
-	bmc_add_probe(bmc.acmd,bmc.acmd,itemp,FUNCTION_NO_RESET);
+	bmc_add_probe(bmc.acmd,bmc.acmd,itemp,sm_p->bmccal.command_scale);
       
 	//Send command
 	if(bmc_send_command(sm_p,&bmc,WATID,BMC_NOSET_FLAT)){
@@ -1700,7 +1700,7 @@ int handle_command(char *line, sm_t *sm_p){
       }
       
       //Add test pattern
-      bmc_add_test(bmc.acmd,bmc.acmd,itemp);
+      bmc_add_test(bmc.acmd,bmc.acmd,itemp,sm_p->bmccal.command_scale);
       
       //Send command
       if(bmc_send_command(sm_p,&bmc,WATID,BMC_SET_FLAT)){
@@ -1735,7 +1735,7 @@ int handle_command(char *line, sm_t *sm_p){
       }
       
       //Add sine pattern
-      bmc_add_sine(bmc.acmd,bmc.acmd,itemp);
+      bmc_add_sine(bmc.acmd,bmc.acmd,itemp,sm_p->bmccal.command_scale);
       
       //Send command
       if(bmc_send_command(sm_p,&bmc,WATID,BMC_SET_FLAT)){

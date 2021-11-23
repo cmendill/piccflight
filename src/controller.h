@@ -684,9 +684,9 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
  * Other Parameters
  *************************************************/
 #define CALMODE_TIMER_SEC       30 //default length of calmode_timer
-#define ALP_CAL_SCALE_MAX       10 //max ALP calbration command scale
+#define ALP_CAL_SCALE_MAX      100 //max ALP calbration command scale
 #define ALP_CAL_TIMER_MAX      400 //max ALP calbration timer length
-#define BMC_CAL_SCALE_MAX       10 //max BMC calbration command scale
+#define BMC_CAL_SCALE_MAX      100 //max BMC calbration command scale
 #define BMC_CAL_TIMER_MAX      400 //max BMC calbration timer length
 #define CPU_AFFINITY_PHX0        1 //cpu bit mask
 #define CPU_AFFINITY_PHX1        2 //cpu bit mask

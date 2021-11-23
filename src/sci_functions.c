@@ -761,7 +761,7 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
       }
 
       //Set BMC Probe: try = flat + probe (NOTE: when ihowfs == 4, nothing is added to the flat)
-      bmc_add_probe(bmc_flat.acmd,bmc_try.acmd,ihowfs,FUNCTION_NO_RESET);
+      bmc_add_probe(bmc_flat.acmd,bmc_try.acmd,ihowfs,sm_p->bmccal.command_scale);
     }
 
     
