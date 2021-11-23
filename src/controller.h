@@ -138,6 +138,7 @@ enum bmccalmodes {BMC_CALMODE_NONE,
 		  BMC_CALMODE_RAND,
 		  BMC_CALMODE_PROBE,
 		  BMC_CALMODE_SINE,
+		  BMC_CALMODE_SINE_DIFF,
 		  BMC_NCALMODES};
 
 /*************************************************

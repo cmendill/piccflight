@@ -75,6 +75,11 @@ void bmc_init_calmode(int calmode, calmode_t *bmc){
     sprintf(bmc->name,"BMC_CALMODE_SINE");
     sprintf(bmc->cmd,"sine");
   }
+  //BMC_CALMODE_SINE_DIFF
+  if(calmode == BMC_CALMODE_SINE_DIFF){
+    sprintf(bmc->name,"BMC_CALMODE_SINE_DIFF");
+    sprintf(bmc->cmd,"sdiff");
+  }
 }
 
 /**************************************************************/
@@ -474,7 +479,7 @@ int bmc_calibrate(sm_t *sm_p, int calmode, bmc_t *bmc, uint32_t *step, int advan
   uint64_t i,j,z,index;
   struct timespec this,delta;
   time_t trand;
-  double dt,step_fraction;
+  double dt,step_fraction,multiplier;
   double act[BMC_NACT];
   double poke=0,vpoke=0;
   int    ncalim=0;
@@ -705,6 +710,43 @@ int bmc_calibrate(sm_t *sm_p, int calmode, bmc_t *bmc, uint32_t *step, int advan
       bmc_add_sine(bmc->acmd,bmc->acmd,sm_p->bmccal.countA[calmode]/ncalim,sm_p->bmc_cal_scale);
       //Print status
       printf("BMC: %lu/%d steps\n",sm_p->bmccal.countA[calmode]/ncalim + 1,BMC_NSINE);
+    }else{
+      //Set bmc back to starting position
+      if(!delta_only) memcpy(bmc,(bmc_t *)&sm_p->bmccal.bmc_start[calmode],sizeof(bmc_t));
+      //Turn off calibration
+      printf("BMC: Stopping BMC calmode BMC_CALMODE_SINE\n");
+      calmode = BMC_CALMODE_NONE;
+      init = 0;
+    }
+    
+    //Set step counter
+    *step = (sm_p->bmccal.countA[calmode]/ncalim);
+
+    //Increment counter
+    if(advance) sm_p->bmccal.countA[calmode]++;
+    
+    //Return calmode
+    return calmode;
+    
+  }
+  
+  /* BMC_CALMODE_SINE_DIFF: Step through sine patterns, use differential +/- patterns */
+  if(calmode==BMC_CALMODE_SINE_DIFF){
+    //Check counters
+    if(sm_p->bmccal.countA[calmode] >= 0 && sm_p->bmccal.countA[calmode] < ncalim*BMC_NSINE*3){
+      //Set all BMC actuators to starting position
+      if(!delta_only) memcpy(bmc,(bmc_t *)&sm_p->bmccal.bmc_start[calmode],sizeof(bmc_t));
+      
+      //Get sub-step
+      i = (sm_p->bmccal.countA[calmode]/ncalim) % 3;
+      if(i==0) multiplier = 0;
+      if(i==1) multiplier = 1;
+      if(i==2) multiplier = -1;
+      
+      //Add sine pattern
+      bmc_add_sine(bmc->acmd,bmc->acmd,sm_p->bmccal.countA[calmode]/ncalim/3,sm_p->bmc_cal_scale*multiplier);
+      //Print status
+      printf("BMC: %lu/%d [%lu/3] steps\n",sm_p->bmccal.countA[calmode]/ncalim/3 + 1,BMC_NSINE,i+1);
     }else{
       //Set bmc back to starting position
       if(!delta_only) memcpy(bmc,(bmc_t *)&sm_p->bmccal.bmc_start[calmode],sizeof(bmc_t));
