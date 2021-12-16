@@ -90,8 +90,8 @@
 #define EFC_SCI_THRESH_DEFAULT     0 //ADU
 
 //LYT Settings
-#define LYT_XORIGIN_DEFAULT        24
-#define LYT_YORIGIN_DEFAULT        24
+#define LYT_XORIGIN_DEFAULT        (LYTREADXS - LYTXS)/2
+#define LYT_YORIGIN_DEFAULT        (LYTREADYS - LYTYS)/2
 #define LYT_ROI_X_DEFAULT          0
 #define LYT_ROI_Y_DEFAULT          30
 #define LYT_CEN_ENABLE_DEFAULT     1
