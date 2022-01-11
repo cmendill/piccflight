@@ -348,7 +348,14 @@ void sci_howfs_construct_field(sm_t *sm_p,sci_howfs_t *frames,scievent_t *scieve
   for(b=0;b<SCI_NBANDS;b++){
     //Calculate image normalization
     scale = sci_scale_default[b];
-    if(scievent->refmax[b] > 0) scale = sci_sim_max[b] / (scievent->hed.exptime * scievent->refmax[b]);
+    if(scievent->refmax[b] > 0){
+      //Denominator converts image to contrast, numerator converts to simulation intensity units
+      scale = sci_sim_max[b] / (scievent->hed.exptime * scievent->refmax[b]);
+      printf("SCI: Using measured refmax[%d] = %lu | scale[%d] = %f\n",b,(unsigned long)scievent->refmax[b],b,scale);
+    }
+    else{
+      printf("SCI: Using default scale[%d] = %f\n",b,scale);
+    }
     for(c=0;c<SCI_NPIX;c++){
       field[b].r[c] = 0;
       field[b].i[c] = 0;
@@ -431,6 +438,7 @@ void sci_howfs_efc(sm_t *sm_p, sci_field_t *field, double *delta_length, int res
     max = fabs(maxdl);
     if(fabs(mindl) > max) max = fabs(mindl);
     if(max > sm_p->efc_bmc_max){
+      printf("SCI: Rescaling DM MIN | MAX = %f | %f\n",mindl,maxdl);
       scale = sm_p->efc_bmc_max / max;
       maxdl = dl[0]*scale;
       mindl = dl[0]*scale;
@@ -660,6 +668,7 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
       scievent.refmax[b] /= scievent.hed.exptime; //ADU/second
     }
     printf("SCI: Reference image updated\n");
+    for(b=0;b<SCI_NBANDS;b++) printf("SCI: refmax[%d] = %lu\n",b,(unsigned long)scievent.refmax[b]);
     sm_p->sci_setref=0;
   }
 
@@ -761,7 +770,10 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
       }
 
       //Set BMC Probe: try = flat + probe (NOTE: when ihowfs == 4, nothing is added to the flat)
-      bmc_add_probe(bmc_flat.acmd,bmc_try.acmd,ihowfs,sm_p->bmc_cal_scale);
+      if(ihowfs < SCI_HOWFS_NPROBE)
+	bmc_add_probe(bmc_flat.acmd,bmc_try.acmd,ihowfs,sm_p->bmc_cal_scale);
+      else
+	memcpy(bmc_try.acmd,bmc_flat.acmd,sizeof(bmc_try.acmd));
     }
 
     
