@@ -332,13 +332,17 @@ cmd: bmc set actuator [arg1] [arg2]
 	arg1 = actuator index [0,1,2,3,...,951]
 	arg2 = actuator delta in volts [-50 to +50] 
 
-cmd: sci thresh [arg]
+cmd: efc sci thresh [arg]
         set SCI pixel threshold for EFC inclusion
 	arg = pixel ADU, set to 0 to disable
 
 cmd: efc bmc max [arg]
         set maximum actuator delta for BMC DM during EFC
 	arg = max actuator delta in nm, set to 0 to disable
+
+cmd: efc gain [arg]
+        set EFC gain
+	arg = [-1,0]
 	
 ------------- SENSOR CALIBRATION -------------
 

@@ -458,7 +458,7 @@ void sci_howfs_efc(sm_t *sm_p, sci_field_t *field, double *delta_length, int res
   
   //Apply gain and active2full mapping
   for(i=0;i<BMC_NACTIVE;i++)
-    delta_length[active2full[i]] = dl[i] * SCI_EFC_GAIN;
+    delta_length[active2full[i]] = dl[i] * sm_p->efc_gain;
   return;
 }
 

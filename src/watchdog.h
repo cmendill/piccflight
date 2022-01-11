@@ -88,6 +88,7 @@
 //EFC Settings
 #define EFC_BMC_MAX_DEFAULT        5 //nm
 #define EFC_SCI_THRESH_DEFAULT     0 //ADU
+#define EFC_GAIN_DEFAULT          -0.5
 
 //LYT Settings
 #define LYT_XORIGIN_DEFAULT        (LYTREADXS - LYTXS)/2

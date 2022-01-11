@@ -1781,6 +1781,25 @@ int handle_command(char *line, sm_t *sm_p){
     return CMD_NORMAL;
   }
 
+  //Set EFC Gain
+  sprintf(cmd,"efc gain");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    pch = strtok(line+strlen(cmd)," ");
+    if(pch == NULL){
+      printf("CMD: Bad command format\n");
+      return CMD_NORMAL;
+    }
+    ftemp  = atof(pch);
+    if(ftemp <= 0 && ftemp >= -1){
+      sm_p->efc_gain = ftemp;
+      printf("CMD: EFC gain set to %f\n",sm_p->efc_gain);
+    }
+    else{
+      printf("CMD: EFC gain %f out of bounds [-1,0]\n",ftemp);
+    }
+    return CMD_NORMAL;
+  }
+
   /****************************************
    * SENSOR CALIBRATION
    **************************************/
