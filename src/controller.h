@@ -484,7 +484,7 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 #define SCI_TEC_SETPOINT_MAX   35 //C
 #define SCI_SATURATION      65535 //SCI saturation
 #define SCI_SIM_MAX         {0.0766} //[SCI_NBANDS] Maximum pixel value of unocculted image simulation (for field normalization)
-#define SCI_SCALE_DEFAULT {6.19e-9}//[SCI_NBANDS] Default image normalization for field calculation
+#define SCI_SCALE_DEFAULT {6.37e-9}//[SCI_NBANDS] Default image normalization for field calculation
 
 /*************************************************
  * ACQ Camera Parameters

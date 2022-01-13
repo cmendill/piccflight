@@ -86,8 +86,8 @@
 #define BMC_CAL_SCALE_DEFAULT 1
 
 //EFC Settings
-#define EFC_BMC_MAX_DEFAULT        5 //nm
-#define EFC_SCI_THRESH_DEFAULT     0 //ADU
+#define EFC_BMC_MAX_DEFAULT        50   //nm
+#define EFC_SCI_THRESH_DEFAULT     2000 //ADU
 #define EFC_GAIN_DEFAULT          -0.5
 
 //LYT Settings

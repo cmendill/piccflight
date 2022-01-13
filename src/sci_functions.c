@@ -351,10 +351,10 @@ void sci_howfs_construct_field(sm_t *sm_p,sci_howfs_t *frames,scievent_t *scieve
     if(scievent->refmax[b] > 0){
       //Denominator converts image to contrast, numerator converts to simulation intensity units
       scale = sci_sim_max[b] / (scievent->hed.exptime * scievent->refmax[b]);
-      printf("SCI: Using measured refmax[%d] = %lu | scale[%d] = %f\n",b,(unsigned long)scievent->refmax[b],b,scale);
+      printf("SCI: Using measured refmax[%d] = %lu | scale[%d] = %10.2E\n",b,(unsigned long)scievent->refmax[b],b,scale);
     }
     else{
-      printf("SCI: Using default scale[%d] = %f\n",b,scale);
+      printf("SCI: Using default scale[%d] = %10.2E\n",b,scale);
     }
     for(c=0;c<SCI_NPIX;c++){
       field[b].r[c] = 0;
@@ -507,12 +507,6 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
   //Check in with the watchdog 
   checkin(sm_p,SCIID);
   
-  //Check reset 
-  if(sm_p->sci_reset){
-   init=0;
-   sm_p->sci_reset=0;
-  }
-
   //Initialize 
   if(!init){
     memset(&scievent,0,sizeof(scievent));
@@ -528,6 +522,22 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
       memset(&scimask[0][0],0,sizeof(scimask));
     init=1;
     if(SCI_DEBUG) printf("SCI: Initialized\n");
+  }
+
+  //Reset 
+  if(sm_p->sci_reset){
+    memset(&scievent,0,sizeof(scievent));
+    memcpy(&last,&start,sizeof(struct timespec));
+    frame_number=0;
+    //Reset BMC & SCI functions
+    bmc_function_reset(sm_p);
+    sci_function_reset(sm_p);
+    howfs_init=0;
+    //Read SCI pixel selection
+    if(read_file(SCI_MASK_FILE,&scimask[0][0],sizeof(scimask)))
+      memset(&scimask[0][0],0,sizeof(scimask));
+    sm_p->sci_reset=0;
+    if(SCI_DEBUG) printf("SCI: Reset\n");
   }
 
   //Measure exposure time 
