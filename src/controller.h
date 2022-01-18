@@ -462,10 +462,6 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
  * SCI Camera Parameters
  *************************************************/
 #define SCI_NBANDS              1 //number of bands on a single SCI camera image
-//#define SCI_XORIGIN            {334,852,1363,1849,2327} //band cutout x centers (relative to the ROI)
-//#define SCI_YORIGIN            {450,502,755,879,610}    //band cutout y centers (relative to the ROI)
-#define SCI_XORIGIN         {334} //band cutout x centers (relative to the ROI)
-#define SCI_YORIGIN         {450} //band cutout y centers (relative to the ROI)
 #define SCI_NSAMPLES            1 //number of scievents to save in a single packet
 #define SCI_NPIX              728 //number of pixels in dark zone
 #define SCI_HOWFS_NPROBE        4 //number of HOWFS DM probe steps
@@ -478,6 +474,10 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 #define SCI_UL_Y                0
 #define SCI_LR_X (SCI_UL_X+(SCI_ROI_XSIZE/SCI_HBIN))
 #define SCI_LR_Y (SCI_UL_Y+(SCI_ROI_YSIZE/SCI_VBIN))
+#define SCI_XORIGIN_MIN         (SCIXS/2)
+#define SCI_XORIGIN_MAX         (SCI_ROI_XSIZE-SCIXS/2)
+#define SCI_YORIGIN_MIN         (SCIYS/2)
+#define SCI_YORIGIN_MAX         (SCI_ROI_YSIZE-SCIYS/2)
 #define SCI_NFLUSHES            4
 #define SCI_SEARCH            400 //px search diameter to find star in each band
 #define SCI_TEC_SETPOINT_MIN  -40 //C
@@ -1269,6 +1269,10 @@ typedef volatile struct {
   int    lyt_roi[4];                                       //LYT ROI
   int    lyt_cen_enable;                                   //LYT Enable centroid control
   int    lyt_alp_pid_type;                                 //Double or single integrator
+
+  //SCI Settings
+  uint32 sci_xorigin[SCI_NBANDS];                          //SCI ROI center X
+  uint32 sci_yorigin[SCI_NBANDS];                          //SCI ROI center Y
   
   //Camera Process Reset Commands
   int shk_reset;

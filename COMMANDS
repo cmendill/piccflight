@@ -638,10 +638,11 @@ cmd: sci save origin
 cmd: sci load origin
         load the band ROI origins from disk
 
-cmd: sci shift origin [arg1] [arg2]
-        shift the band [arg1] ROI origins 1 pixel in the given direction [arg2]
-	arg1 = 0,1,2,3,4 (NOT FUNCTIONAL)
-	arg2 = +x, -x, +y, -y
+cmd: sci shift origin [arg1] [arg2] [arg3]
+        shift the band [arg1] ROI origins in the given direction [arg2] by [arg3] pixels
+	arg1 = 0,1,2,3,4
+	arg2 = x,y
+	arg3 = number of pixels (+/-)
 
 cmd: sci set ref
         set reference image for sci field normalization

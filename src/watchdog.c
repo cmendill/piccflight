@@ -387,7 +387,13 @@ int main(int argc,char **argv){
 
   //LYT Centroid Control
   sm_p->lyt_cen_enable = LYT_CEN_ENABLE_DEFAULT;
-  
+
+  //SCI ROI Origin
+  uint32 sci_xorigin[SCI_NBANDS] = SCI_XORIGIN_DEFAULT;
+  uint32 sci_yorigin[SCI_NBANDS] = SCI_YORIGIN_DEFAULT;
+  memcpy((uint32 *)sm_p->sci_xorigin,sci_xorigin,sizeof(sci_xorigin));
+  memcpy((uint32 *)sm_p->sci_yorigin,sci_yorigin,sizeof(sci_yorigin));
+
   /* Initialize States */
   for(i=0;i<NSTATES;i++)
     init_state(i,(state_t *)&sm_p->state_array[i]);

@@ -98,6 +98,10 @@
 #define LYT_CEN_ENABLE_DEFAULT     1
 #define LYT_ALP_PID_TYPE_DEFAULT   PID_SINGLE_INTEGRATOR
 
+//SCI Setting
+#define SCI_XORIGIN_DEFAULT        {1338} //band cutout x centers, must match SCI_NBANDS
+#define SCI_YORIGIN_DEFAULT        {1092} //band cutout y centers, must match SCI_NBANDS
+
 //Shack-Hartmann Settings
 #define SHK_BOXSIZE_DEFAULT        7
 #define SHK_ALP_PID_TYPE_DEFAULT   PID_DOUBLE_INTEGRATOR

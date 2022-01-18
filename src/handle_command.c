@@ -296,7 +296,7 @@ void print_htr_status(sm_t *sm_p){
 /**************************************************************/
 int handle_command(char *line, sm_t *sm_p){
   double ftemp,pgain,igain,dgain;
-  int    itemp,ich,iadc;
+  int    itemp,ich,iadc,iband,npix;
   char   stemp[CMD_MAX_LENGTH];
   char   cmd[CMD_MAX_LENGTH];
   int    cmdfound=0;
@@ -325,6 +325,7 @@ int handle_command(char *line, sm_t *sm_p){
   hex_t hexcmd;
   memset(&hexcmd,0,sizeof(hex_t));
   char *pch;
+  char  dim[1];
   alp_t alp;
   bmc_t bmc;
   double dz[LOWFS_N_ZERNIKE] = {0};
@@ -3078,31 +3079,52 @@ int handle_command(char *line, sm_t *sm_p){
     sm_p->sci_loadorigin=1;
     return(CMD_NORMAL);
   }
-  sprintf(cmd,"sci shift origin +x");
-  if(!strncasecmp(line,cmd,strlen(cmd))){
-    printf("CMD: SCI shift origin +1px in X\n");
-    sm_p->sci_xshiftorigin = 1;
-    return CMD_NORMAL;
-  }
-
-  sprintf(cmd,"sci shift origin -x");
-  if(!strncasecmp(line,cmd,strlen(cmd))){
-    printf("CMD: SCI shift origin -1px in X\n");
-    sm_p->sci_xshiftorigin = -1;
-    return CMD_NORMAL;
-  }
-
-  sprintf(cmd,"sci shift origin +y");
-  if(!strncasecmp(line,cmd,strlen(cmd))){
-    printf("CMD: SCI shift origin +1px in Y\n");
-    sm_p->sci_yshiftorigin = 1;
-    return CMD_NORMAL;
-  }
-
-  sprintf(cmd,"sci shift origin -y");
-  if(!strncasecmp(line,cmd,strlen(cmd))){
-    printf("CMD: SCI shift origin -1px in Y\n");
-    sm_p->sci_yshiftorigin = -1;
+  
+  sprintf(cmd,"sci shift origin");
+  if(!strncasecmp(line,cmd,strlen(cmd)) && strlen(line) > strlen(cmd)){
+    pch  = strtok(line+strlen(cmd)," ");
+    if(pch == NULL){
+      printf("CMD: SCI origin bad format: BAND DIMENSION NPIX\n");
+      return CMD_NORMAL;
+    }
+    iband = atoi(pch);
+    if(iband < 0 || iband >= SCI_NBANDS){
+      printf("CMD: SCI origin band %d invalid, must be [0-%d]\n",iband,SCI_NBANDS-1);
+      return CMD_NORMAL;
+    }
+    pch  = strtok(NULL," ");
+    if(pch == NULL){
+      printf("CMD: SCI origin bad format: BAND DIMENSION NPIX\n");
+      return CMD_NORMAL;
+    }
+    strncpy(dim,pch,1);
+    pch  = strtok(NULL," ");
+    if(pch == NULL){
+      printf("CMD: SCI origin bad format: BAND DIMENSION NPIX\n");
+      return CMD_NORMAL;
+    }
+    npix = atoi(pch);
+    if(!strncasecmp(dim,"x",1)){
+      itemp = sm_p->sci_xorigin[iband] + npix;
+      if(itemp < SCI_XORIGIN_MIN || itemp > SCI_XORIGIN_MAX){
+	printf("CMD: SCI X origin %d out of range [%d,%d]\n",itemp,SCI_XORIGIN_MIN,SCI_XORIGIN_MAX);
+	return CMD_NORMAL;
+      }
+      sm_p->sci_xorigin[iband] = itemp;
+      printf("CMD: SCI shifted X origin %d px to %d\n",npix,sm_p->sci_xorigin[iband]);
+      return CMD_NORMAL;
+    }
+    if(!strncasecmp(dim,"y",1)){
+      itemp = sm_p->sci_yorigin[iband] + npix;
+      if(itemp < SCI_YORIGIN_MIN || itemp > SCI_YORIGIN_MAX){
+	printf("CMD: SCI Y origin %d out of range [%d,%d]\n",itemp,SCI_YORIGIN_MIN,SCI_YORIGIN_MAX);
+	return CMD_NORMAL;
+      }
+      sm_p->sci_yorigin[iband] = itemp;
+      printf("CMD: SCI shifted Y origin %d px to %d\n",npix,sm_p->sci_yorigin[iband]);
+      return CMD_NORMAL;
+    }
+    printf("CMD: SCI origin bad format: BAND DIMENSION NPIX\n");
     return CMD_NORMAL;
   }
 

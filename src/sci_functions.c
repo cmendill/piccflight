@@ -17,6 +17,7 @@
 
 /* piccflight headers */
 #include "controller.h"
+#include "watchdog.h"
 #include "common_functions.h"
 #include "fakemodes.h"
 #include "bmc_functions.h"
@@ -45,7 +46,7 @@ uint64_t sci_xy2index(int x,int y){
 /* SCI_SETORIGIN                                               */
 /*  - Set band origins from current image                      */
 /***************************************************************/
-void sci_setorigin(scievent_t *sci,uint16_t *img_buffer){
+void sci_setorigin(sm_t *sm_p,uint16_t *img_buffer){
   int i,j,k,x,y;
   int imax=0,jmax=0;
   uint16_t pmax=0,p=0;
@@ -54,13 +55,13 @@ void sci_setorigin(scievent_t *sci,uint16_t *img_buffer){
   int      yorigin[SCI_NBANDS]={0};
   /* Loop through band images, find max pixel */
   for(k=0;k<SCI_NBANDS;k++){
-    xorigin[k] = sci->xorigin[k];
-    yorigin[k] = sci->yorigin[k];
+    xorigin[k] = sm_p->sci_xorigin[k];
+    yorigin[k] = sm_p->sci_yorigin[k];
     pmax=0;
     for(i=0;i<SCI_SEARCH;i++){
       for(j=0;j<SCI_SEARCH;j++){
-	x = sci->xorigin[k]-(SCI_SEARCH/2)+i;
-	y = sci->yorigin[k]-(SCI_SEARCH/2)+j;
+	x = xorigin[k]-(SCI_SEARCH/2)+i;
+	y = yorigin[k]-(SCI_SEARCH/2)+j;
 	x = x < 0 ? 0 : x;
 	x = x >= SCI_ROI_XSIZE ? SCI_ROI_XSIZE-1 : x;
 	y = y < 0 ? 0 : y;
@@ -79,17 +80,14 @@ void sci_setorigin(scievent_t *sci,uint16_t *img_buffer){
     //Set new origin
     xorigin[k] += imax - (SCI_SEARCH/2);
     yorigin[k] += jmax - (SCI_SEARCH/2);
-  }
-  int check=1;
-  for(k=0;k<SCI_NBANDS;k++){
-    if(xorigin[k] < SCIXS || xorigin[k] >= SCI_ROI_XSIZE-SCIXS) check = 0; 
-    if(yorigin[k] < SCIYS || yorigin[k] >= SCI_ROI_YSIZE-SCIYS) check = 0; 
-  }
-  if(check){
-    for(k=0;k<SCI_NBANDS;k++){
-      sci->xorigin[k] = xorigin[k];
-      sci->yorigin[k] = yorigin[k];
-    }
+
+    //Check origins and save
+    if(xorigin[k] < SCI_XORIGIN_MIN) xorigin[k] = SCI_XORIGIN_MIN;
+    if(xorigin[k] > SCI_XORIGIN_MAX) xorigin[k] = SCI_XORIGIN_MAX;
+    if(yorigin[k] < SCI_YORIGIN_MIN) yorigin[k] = SCI_YORIGIN_MIN;
+    if(yorigin[k] > SCI_YORIGIN_MAX) yorigin[k] = SCI_YORIGIN_MAX;
+    sm_p->sci_xorigin[k] = xorigin[k];
+    sm_p->sci_yorigin[k] = yorigin[k];
   }
 }
 
@@ -98,7 +96,7 @@ void sci_setorigin(scievent_t *sci,uint16_t *img_buffer){
 /*  - Set band origins from current image                      */
 /*  - Run a search over the full image                         */
 /***************************************************************/
-void sci_findorigin(scievent_t *sci,uint16_t *img_buffer){
+void sci_findorigin(sm_t *sm_p,uint16_t *img_buffer){
   int i,j,x,y;
   uint8_t  mask[SCI_ROI_XSIZE][SCI_ROI_YSIZE]={{0}};
   uint16_t maxval;
@@ -153,9 +151,13 @@ void sci_findorigin(scievent_t *sci,uint16_t *img_buffer){
 	xmin = xorigin[imin];
       }
     }
-    //Save Kth origin
-    sci->xorigin[k] = xorigin[imin];
-    sci->yorigin[k] = yorigin[imin];
+    //Check Kth origin and save
+    if(xorigin[imin] < SCI_XORIGIN_MIN) xorigin[imin] = SCI_XORIGIN_MIN;
+    if(xorigin[imin] > SCI_XORIGIN_MAX) xorigin[imin] = SCI_XORIGIN_MAX;
+    if(yorigin[imin] < SCI_YORIGIN_MIN) yorigin[imin] = SCI_YORIGIN_MIN;
+    if(yorigin[imin] > SCI_YORIGIN_MAX) yorigin[imin] = SCI_YORIGIN_MAX;
+    sm_p->sci_xorigin[k] = xorigin[imin];
+    sm_p->sci_yorigin[k] = yorigin[imin];
     //Max out xorigin so we skip it next time
     xorigin[imin] = SCI_ROI_XSIZE;
   }
@@ -165,7 +167,7 @@ void sci_findorigin(scievent_t *sci,uint16_t *img_buffer){
 /* SCI_LOADORIGIN                                             */
 /*  - Load band origins from file                             */
 /**************************************************************/
-void sci_loadorigin(scievent_t *sci){
+void sci_loadorigin(sm_t *sm_p){
   uint32 xorigin[SCI_NBANDS];
   uint32 yorigin[SCI_NBANDS];
   
@@ -180,8 +182,8 @@ void sci_loadorigin(scievent_t *sci){
   }
   
   //Copy origins
-  memcpy(sci->xorigin,xorigin,sizeof(xorigin));
-  memcpy(sci->yorigin,yorigin,sizeof(yorigin));
+  memcpy((uint32 *)sm_p->sci_xorigin,xorigin,sizeof(xorigin));
+  memcpy((uint32 *)sm_p->sci_yorigin,yorigin,sizeof(yorigin));
   
   return;
 }
@@ -190,15 +192,15 @@ void sci_loadorigin(scievent_t *sci){
 /* SCI_SAVEORIGIN                                              */
 /*  - Saves cell origins to file                               */
 /***************************************************************/
-void sci_saveorigin(scievent_t *sci){
+void sci_saveorigin(sm_t *sm_p){
 
   //Write files
-  if(write_file(SCI_XORIGIN_FILE,sci->xorigin,sizeof(sci->xorigin)))
+  if(write_file(SCI_XORIGIN_FILE,(void *)sm_p->sci_xorigin,sizeof(sm_p->sci_xorigin)))
     printf("SCI: ERROR: X Origin write_file\n");
   else
     printf("SCI: Wrote file: %s\n",SCI_XORIGIN_FILE);
   
-  if(write_file(SCI_YORIGIN_FILE,sci->yorigin,sizeof(sci->yorigin)))
+  if(write_file(SCI_YORIGIN_FILE,(void *)sm_p->sci_yorigin,sizeof(sm_p->sci_yorigin)))
     printf("SCI: ERROR: Y Origin write_file\n");
   else
     printf("SCI: Wrote file: %s\n",SCI_YORIGIN_FILE);
@@ -210,14 +212,13 @@ void sci_saveorigin(scievent_t *sci){
 /* SCI_REVERTORIGIN                                           */
 /*  - Set band origins to default                             */
 /**************************************************************/
-void sci_revertorigin(scievent_t *sci){
-  const uint32 xorigin[SCI_NBANDS] = SCI_XORIGIN;
-  const uint32 yorigin[SCI_NBANDS] = SCI_YORIGIN;
-  int k;
-  
+void sci_revertorigin(sm_t *sm_p){
+  uint32 xorigin[SCI_NBANDS] = SCI_XORIGIN_DEFAULT;
+  uint32 yorigin[SCI_NBANDS] = SCI_YORIGIN_DEFAULT;
+    
   /* Copy default origins */
-  memcpy(sci->xorigin,xorigin,sizeof(xorigin));
-  memcpy(sci->yorigin,yorigin,sizeof(yorigin));
+  memcpy((uint32 *)sm_p->sci_xorigin,xorigin,sizeof(xorigin));
+  memcpy((uint32 *)sm_p->sci_yorigin,yorigin,sizeof(yorigin));
 }
 
 /**************************************************************/
@@ -506,12 +507,17 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
   
   //Check in with the watchdog 
   checkin(sm_p,SCIID);
+
+  //Check reset command
+  if(sm_p->sci_reset){
+    init=0;
+    sm_p->sci_reset=0;
+  }
   
   //Initialize 
   if(!init){
     memset(&scievent,0,sizeof(scievent));
     memcpy(&last,&start,sizeof(struct timespec));
-    sci_loadorigin(&scievent);
     frame_number=0;
     //Reset BMC & SCI functions
     bmc_function_reset(sm_p);
@@ -524,22 +530,6 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
     if(SCI_DEBUG) printf("SCI: Initialized\n");
   }
 
-  //Reset 
-  if(sm_p->sci_reset){
-    memset(&scievent,0,sizeof(scievent));
-    memcpy(&last,&start,sizeof(struct timespec));
-    frame_number=0;
-    //Reset BMC & SCI functions
-    bmc_function_reset(sm_p);
-    sci_function_reset(sm_p);
-    howfs_init=0;
-    //Read SCI pixel selection
-    if(read_file(SCI_MASK_FILE,&scimask[0][0],sizeof(scimask)))
-      memset(&scimask[0][0],0,sizeof(scimask));
-    sm_p->sci_reset=0;
-    if(SCI_DEBUG) printf("SCI: Reset\n");
-  }
-
   //Measure exposure time 
   if(timespec_subtract(&delta,&start,&last))
     printf("SCI: call back --> timespec_subtract error!\n");
@@ -547,59 +537,55 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
 
   //Save time 
   memcpy(&last,&start,sizeof(struct timespec));
- 
+  
   //Command: sci_setorigin 
   if(sm_p->sci_setorigin){
-    sci_setorigin(&scievent,img_buffer);
+    sci_setorigin(sm_p,img_buffer);
     sm_p->sci_setorigin=0;
     print_origin=1;
   }
   //Command: sci_findorigin 
   if(sm_p->sci_findorigin){
-    sci_findorigin(&scievent,img_buffer);
+    sci_findorigin(sm_p,img_buffer);
     sm_p->sci_findorigin=0;
     print_origin=1;
   }
   //Command: sci_trackorigin 
   if(sm_p->sci_trackorigin){
     //--set origin every time, user must disable
-    sci_setorigin(&scievent,img_buffer);
+    sci_setorigin(sm_p,img_buffer);
   }
   //Command: sci_saveorigin 
   if(sm_p->sci_saveorigin){
-    sci_saveorigin(&scievent);
+    sci_saveorigin(sm_p);
     sm_p->sci_saveorigin=0;
     print_origin=1;
   }
   //Command: sci_loadorigin 
   if(sm_p->sci_loadorigin){
-    sci_loadorigin(&scievent);
+    sci_loadorigin(sm_p);
     sm_p->sci_loadorigin=0;
     print_origin=1;
   }
   //Command: sci_revertorigin 
   if(sm_p->sci_revertorigin){
-    sci_revertorigin(&scievent);
+    sci_revertorigin(sm_p);
     sm_p->sci_revertorigin=0;
     print_origin=1;
   }
-  //Command: Shift x origin
-  if(sm_p->sci_xshiftorigin){
-    for(k=0;k<SCI_NBANDS;k++){
-      scievent.xorigin[k] += sm_p->sci_xshiftorigin;
-    }
-    sm_p->sci_xshiftorigin = 0;
-    print_origin=1;
+
+  //Copy origin to packet
+  memcpy(scievent.xorigin,(uint32 *)sm_p->sci_xorigin,sizeof(scievent.xorigin));
+  memcpy(scievent.yorigin,(uint32 *)sm_p->sci_yorigin,sizeof(scievent.yorigin));
+
+  //Check origin
+  for(k=0;k<SCI_NBANDS;k++){
+    if(scievent.xorigin[k] < SCI_XORIGIN_MIN) scievent.xorigin[k] = SCI_XORIGIN_MIN;
+    if(scievent.xorigin[k] > SCI_XORIGIN_MAX) scievent.xorigin[k] = SCI_XORIGIN_MAX;
+    if(scievent.yorigin[k] < SCI_YORIGIN_MIN) scievent.yorigin[k] = SCI_YORIGIN_MIN;
+    if(scievent.yorigin[k] > SCI_YORIGIN_MAX) scievent.yorigin[k] = SCI_YORIGIN_MAX;
   }
-  //Command: Shift y origin
-  if(sm_p->sci_yshiftorigin){
-    for(k=0;k<SCI_NBANDS;k++){
-      scievent.yorigin[k] += sm_p->sci_yshiftorigin;
-    }
-    sm_p->sci_yshiftorigin = 0;
-    print_origin=1;
-  }
- 
+  
   //Print origin
   if(print_origin){
     printf("SCI: Origin:");
