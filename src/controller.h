@@ -479,6 +479,11 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 #define SCI_YORIGIN_MIN         (SCIYS/2)
 #define SCI_YORIGIN_MAX         (SCI_ROI_YSIZE-SCIYS/2)
 #define SCI_NFLUSHES            4
+#define SCI_EXP_RETURN_FAIL     1
+#define SCI_EXP_RETURN_KILL     2
+#define SCI_EXP_RETURN_ABORT    3
+#define SCI_MODE_10MHZ          0
+#define SCI_MODE_1_7MHZ         1
 #define SCI_SEARCH            400 //px search diameter to find star in each band
 #define SCI_TEC_SETPOINT_MIN  -40 //C
 #define SCI_TEC_SETPOINT_MAX   35 //C

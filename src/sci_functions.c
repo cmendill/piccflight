@@ -252,7 +252,7 @@ int sci_expose(sm_t *sm_p, flidev_t dev, uint16 *img_buffer){
   /* Start exposure */
   if((err = FLIExposeFrame(dev))){
     fprintf(stderr, "SCI: Error FLIExposeFrame: %s\n", strerror((int)-err));
-    return 1;
+    return SCI_EXP_RETURN_FAIL;
   }else{
     if(SCI_DEBUG) printf("SCI: Exposure started\n");
   }
@@ -261,7 +261,11 @@ int sci_expose(sm_t *sm_p, flidev_t dev, uint16 *img_buffer){
   while(1){
     /* Check if we've been asked to exit */
     if(sm_p->w[SCIID].die)
-      return 2;
+      return SCI_EXP_RETURN_KILL;
+    
+    /* Check if we've been asked to reset the exposure */
+    if(sm_p->sci_reset_camera)
+      return SCI_EXP_RETURN_ABORT;
     
     /* Check in with the watchdog */
     checkin(sm_p,SCIID);
@@ -272,7 +276,7 @@ int sci_expose(sm_t *sm_p, flidev_t dev, uint16 *img_buffer){
     //Get exposure status
     if((err = FLIGetExposureStatus(dev,&timeleft))){
       fprintf(stderr, "SCI: Error FLIGetExposureStatus: %s\n", strerror((int)-err));
-      return 1;
+      return SCI_EXP_RETURN_FAIL;
     }
     if(timeleft == 0){
       if(SCI_DEBUG) printf("SCI: Exposure done after %d checks\n",i+1);
@@ -287,7 +291,7 @@ int sci_expose(sm_t *sm_p, flidev_t dev, uint16 *img_buffer){
   /* Error checking */
   if(err){
     fprintf(stderr, "SCI: Error FLIGrabRow: %s\n", strerror((int)-err));
-    return 1;
+    return SCI_EXP_RETURN_FAIL;
   }else{
     if(SCI_DEBUG) printf("SCI: FLI rows grabbed\n");
   }
@@ -467,7 +471,7 @@ void sci_howfs_efc(sm_t *sm_p, sci_field_t *field, double *delta_length, int res
 /* SCI_PROCESS_IMAGE                                          */
 /*  - Process SCI camera image                                */
 /**************************************************************/
-void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
+void sci_process_image(uint16 *img_buffer, float img_exptime, sm_t *sm_p){
   static scievent_t scievent;
   static wfsevent_t wfsevent;
   static struct timespec start,end,delta,last;
@@ -599,8 +603,8 @@ void sci_process_image(uint16 *img_buffer, sm_t *sm_p){
   scievent.hed.version       = PICC_PKT_VERSION;
   scievent.hed.type          = BUFFER_SCIEVENT;
   scievent.hed.frame_number  = frame_number++;
-  scievent.hed.exptime       = sm_p->sci_exptime;
-  scievent.hed.frmtime       = sm_p->sci_frmtime;
+  scievent.hed.exptime       = img_exptime;
+  scievent.hed.frmtime       = dt;
   scievent.hed.ontime        = dt;
   scievent.hed.state         = state;
   scievent.hed.alp_commander = sm_p->state_array[state].alp_commander;

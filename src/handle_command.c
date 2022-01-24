@@ -2087,7 +2087,7 @@ int handle_command(char *line, sm_t *sm_p){
     return(CMD_NORMAL);
   }
   
-  sprintf(cmd,"sci frmtime");
+  sprintf(cmd,"sci frmtime"); //NOTE this command has no function. frmtime is measured, not set.
   if(!strncasecmp(line,cmd,strlen(cmd))){
     ftemp = atof(line+strlen(cmd)+1);
     if(ftemp >= SCI_FRMTIME_MIN && ftemp <= SCI_FRMTIME_MAX){

@@ -68,11 +68,10 @@ void scictrlC(int sig){
 void sci_proc(void){
   char file[MAX_FILENAME], name[MAX_FILENAME];
   uint32_t err = 0;
-  uint32_t counter = 0;
   long domain = (FLIDOMAIN_USB | FLIDEVICE_CAMERA);
   uint16_t *img_buffer;
   int camera_running=0;
-  long exptime;
+  float exptime;
   flimode_t mode_index;
   char mode_string[128];
   size_t mode_size=128;
@@ -156,8 +155,8 @@ void sci_proc(void){
     }
     
     /* Set exposure time */
-    exptime = lround(sm_p->sci_exptime * 1000);
-    if((err = FLISetExposureTime(dev, exptime))){
+    exptime = sm_p->sci_exptime;
+    if((err = FLISetExposureTime(dev, lround(exptime * 1000)))){
       fprintf(stderr, "SCI: Error FLISetExposureTime: %s\n", strerror((int)-err));
     }else{
       if(SCI_DEBUG) printf("SCI: FLI exposure time set\n");
@@ -199,21 +198,24 @@ void sci_proc(void){
     }
 
     /* Set camera mode */
-    mode_index = 0;
+    mode_index = SCI_MODE_10MHZ;
     if((err = FLISetCameraMode(dev, mode_index))){
       fprintf(stderr, "SCI: Error FLI SetCameraMode: %s\n", strerror((int)-err));
     }
      
     /* Get camera mode */
-    if((err = FLIGetCameraMode(dev, &mode_index))){
-      fprintf(stderr, "SCI: Error FLIGetCameraMode: %s\n", strerror((int)-err));
-    }else{
-      FLIGetCameraModeString(dev,mode_index,mode_string,mode_size);
-      printf("SCI: Mode %d = %s\n",(int)mode_index,mode_string);
-      for(mode_index=0;mode_index<10;mode_index++){
-	if(FLIGetCameraModeString(dev,mode_index,mode_string,mode_size))
-	  break;
-	else printf("SCI: Supported mode %d = %s\n",(int)mode_index,mode_string);
+    if(SCI_DEBUG){
+      if((err = FLIGetCameraMode(dev, &mode_index))){
+	fprintf(stderr, "SCI: Error FLIGetCameraMode: %s\n", strerror((int)-err));
+      }else{
+	FLIGetCameraModeString(dev,mode_index,mode_string,mode_size);
+	printf("SCI: Mode %d = %s\n",(int)mode_index,mode_string);
+      
+	for(mode_index=0;mode_index<10;mode_index++){
+	  if(FLIGetCameraModeString(dev,mode_index,mode_string,mode_size))
+	    break;
+	  else printf("SCI: Supported mode %d = %s\n",(int)mode_index,mode_string);
+	}
       }
     }
 
@@ -225,6 +227,7 @@ void sci_proc(void){
 
       /* Check if we've been asked to reset the exposure */
       if(sm_p->sci_reset_camera){
+	printf("SCI: Resetting exposure\n");
 	sm_p->sci_reset_camera = 0;
 	break;
       }
@@ -238,29 +241,22 @@ void sci_proc(void){
       /* Get CCD Temperature */
       sm_p->sci_ccd_temp = sci_get_temp(dev);
       
-      /* Run Camera */
-      if(camera_running){
-	/* Run Exposure */
-	if((rc=sci_expose(sm_p,dev,img_buffer))){
-	  if(rc==1)
-	    printf("SCI: Exposure failed\n");
-	  if(rc==2)
-	    scictrlC(0);
-	}
-	else{
-	  /*Process Image*/
-	  sci_process_image(img_buffer,sm_p);
-	}
+      /* Run Exposure */
+      if((rc=sci_expose(sm_p,dev,img_buffer))){
+	if(rc==SCI_EXP_RETURN_FAIL)
+	  printf("SCI: Exposure failed\n");
+	if(rc==SCI_EXP_RETURN_KILL)
+	  scictrlC(0);
+	if(rc==SCI_EXP_RETURN_ABORT)
+	  printf("SCI: Exposure aborted\n");
       }
-      
-      /* Increment counter */
-      counter++;
-	
-      /* Sleep */
-      sleep(sm_p->w[SCIID].per);
+      else{
+	/* Process Image */
+	sci_process_image(img_buffer,exptime,sm_p);
+      }
     }
   }
-
+  
   /* Exit */
   scictrlC(0);
   return;
