@@ -288,6 +288,12 @@ cmd: bmc hv on
 cmd: bmc hv off
      	turn BMC high voltage OFF (HV must be enabled)
 
+cmd: bmc leds on
+     	turn BMC LEDs ON
+
+cmd: bmc leds off
+     	turn BMC LEDs OFF
+
 cmd: bmc bias [arg]
         set all BMC actuators to the same value
         arg = floating point actuator value [-1,+1] (power limited)

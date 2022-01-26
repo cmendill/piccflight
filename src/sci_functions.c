@@ -852,8 +852,13 @@ void sci_process_image(uint16 *img_buffer, float img_exptime, sm_t *sm_p){
   //NOTE: We save the command from the last iteration so that the image will match the command
   memcpy(&scievent.bmc,&bmc,sizeof(bmc_t));
 
-  //Get BMC Status
+  //BMC Housekeeping
   if(sm_p->bmc_ready){
+    //Turn OFF LEDs
+    if(libbmc_toggle_leds_off((libbmc_device_t *)&sm_p->libbmc_device))
+      printf("SCI: ERROR (libbmc_toggle_leds_off)\n");
+    usleep(LIBBMC_LONG_USLEEP);
+    //Get BMC Status
     if(libbmc_get_status((libbmc_device_t *)&sm_p->libbmc_device))
       printf("SCI: Failed to get BMC status\n");
     else

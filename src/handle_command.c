@@ -8,6 +8,7 @@
 #include <fcntl.h>
 #include <ctype.h>
 #include <sys/io.h>
+#include <libbmc.h>
 
 /* piccflight headers */
 #include "watchdog.h"
@@ -1468,7 +1469,29 @@ int handle_command(char *line, sm_t *sm_p){
     return(CMD_NORMAL);
   }
 
-
+  //Toggle BMC LEDs
+  sprintf(cmd,"bmc leds on");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    printf("CMD: Turning ON BMC LEDs\n");
+    if(sm_p->state_array[sm_p->state].bmc_commander == WATID){
+      if(libbmc_toggle_leds_on((libbmc_device_t *)&sm_p->libbmc_device))
+	printf("CMD: ERROR (libbmc_toggle_leds_on)\n");
+      usleep(LIBBMC_LONG_USLEEP);
+    }
+    return(CMD_NORMAL);
+  }
+  sprintf(cmd,"bmc leds off");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    printf("CMD: Turning OFF BMC LEDs\n");
+    if(sm_p->state_array[sm_p->state].bmc_commander == WATID){
+      if(libbmc_toggle_leds_off((libbmc_device_t *)&sm_p->libbmc_device))
+	printf("CMD: ERROR (libbmc_toggle_leds_off)\n");
+      usleep(LIBBMC_LONG_USLEEP);
+    }
+    return(CMD_NORMAL);
+  }
+ 
+  
   //Set all BMC actuators to the same value
   sprintf(cmd,"bmc bias");
   if(!strncasecmp(line,cmd,strlen(cmd))){
