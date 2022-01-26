@@ -241,7 +241,10 @@ void sci_proc(void){
       /* Get CCD Temperature */
       sm_p->sci_ccd_temp = sci_get_temp(dev);
       
-      /* Run Exposure */
+      /* Get TEC Power */
+      sm_p->sci_tec_power = sci_get_tec_power(dev);
+      
+     /* Run Exposure */
       if((rc=sci_expose(sm_p,dev,img_buffer))){
 	if(rc==SCI_EXP_RETURN_FAIL)
 	  printf("SCI: Exposure failed\n");

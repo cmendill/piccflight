@@ -240,6 +240,23 @@ double sci_get_temp(flidev_t dev){
 }
 
 /**************************************************************/
+/* SCI_GET_TEC_POWER                                          */
+/*  - Get TEC Power                                           */
+/**************************************************************/
+double sci_get_tec_power(flidev_t dev){
+  double power;
+  uint32 err;
+  
+  /* Get TEC power */
+  if((err = FLIGetCoolerPower(dev, &power))){
+    fprintf(stderr, "SCI: Error FLIGetCoolerPower: %s\n", strerror((int)-err));
+    return -100;
+  }else{
+    if(SCI_DEBUG) printf("SCI: FLI TEC Power: %f\n",power);
+  }
+  return power;
+}
+/**************************************************************/
 /* SCI_EXPOSE                                                 */
 /*  - Run image exposure                                      */
 /**************************************************************/
