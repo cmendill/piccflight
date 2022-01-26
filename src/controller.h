@@ -210,6 +210,8 @@ enum bmccalmodes {BMC_CALMODE_NONE,
 #define HOWFS_IMATRIX1_FILE    "config/howfs_imatrix1.dat"
 #define EFC_MATRIX_FILE        "config/efc_matrix.dat"
 #define SCI_FAKE_PROBE_FILE    "config/sci_fakedata_probe_%d.dat"
+#define SCI_DARK_FILE          "config/sci_dark_%d.dat"
+#define SCI_BIAS_FILE          "config/sci_bias_%d.dat"
 #define DATAPATH               "output/data/flight_data/folder_%5.5d/"
 #define DATANAME               "output/data/flight_data/folder_%5.5d/picture.%10.10ld.%s.%8.8d.dat"
 #define SHK_HEX_CALFILE        "output/data/calibration/shk_hex_%s_%s_%s_caldata.dat"
@@ -487,6 +489,7 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 #define SCI_SEARCH            400 //px search diameter to find star in each band
 #define SCI_TEC_SETPOINT_MIN  -40 //C
 #define SCI_TEC_SETPOINT_MAX   35 //C
+#define SCI_TEMP_INC            5 //C
 #define SCI_SATURATION      65535 //SCI saturation
 #define SCI_SIM_MAX         {0.0766} //[SCI_NBANDS] Maximum pixel value of unocculted image simulation (for field normalization)
 #define SCI_SCALE_DEFAULT {6.37e-9}//[SCI_NBANDS] Default image normalization for field calculation
@@ -787,6 +790,11 @@ typedef struct sci_field_struct{
   double r[SCI_NPIX];
   double i[SCI_NPIX];
 } sci_field_t;
+
+typedef struct sci_cal{
+  double *dark;
+  double *bias;
+} sci_cal_t;
 
 typedef struct shk_struct{
   uint8 data[SHKXS][SHKYS];

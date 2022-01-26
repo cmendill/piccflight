@@ -310,6 +310,7 @@ void sci_howfs_construct_field(sm_t *sm_p,sci_howfs_t *frames,scievent_t *scieve
   static double imatrix0[SCI_NPIX][SCI_NBANDS];
   static double rmatrix1[SCI_NPIX][SCI_NBANDS];
   static double imatrix1[SCI_NPIX][SCI_NBANDS];
+  int xbl,ybl;
   uint16_t px1,px2,px3,px4;
   double dpx1,dpx2,dpx3,dpx4;
   int i,j,b,c;
@@ -351,6 +352,9 @@ void sci_howfs_construct_field(sm_t *sm_p,sci_howfs_t *frames,scievent_t *scieve
   //Construct field
   //NOTE: frame index: 0=flat, 1=probe1, 2=probe2, 3=probe3, 4=probe4
   for(b=0;b<SCI_NBANDS;b++){
+    //Set bottom left corner in full image
+    xbl = scievent->xorigin[b]-(SCIXS/2);
+    ybl = scievent->yorigin[b]-(SCIYS/2);
     //Calculate image normalization
     scale = sci_scale_default[b];
     if(scievent->refmax[b] > 0){
@@ -475,15 +479,20 @@ void sci_process_image(uint16 *img_buffer, float img_exptime, sm_t *sm_p){
   static scievent_t scievent;
   static wfsevent_t wfsevent;
   static struct timespec start,end,delta,last;
-  static int init = 0;
+  static int init = 0,sci_cal_init=0;
   static int howfs_init = 0;
   static int howfs_got_frame[SCI_HOWFS_NSTEP]={0};
   static sci_howfs_t howfs_frames;
+  static int ccd_temp_init=1000;
+  static sci_cal_t sci_cal;
   const double sci_sim_max[SCI_NBANDS] = SCI_SIM_MAX;
+  const size_t sci_cal_size = sizeof(double) * SCI_ROI_YSIZE * SCI_ROI_XSIZE;
   double dt;
   double delta_length[BMC_NACT]={0};
   uint16 fakepx=0;
   uint32 i,j,k,b;
+  int xbl,ybl;
+  double dpx,bkg;
   static unsigned long frame_number=0,howfs_istart=0,howfs_ilast=0,iefc=0;
   int ihowfs=0;
   int print_origin=0;
@@ -532,6 +541,36 @@ void sci_process_image(uint16 *img_buffer, float img_exptime, sm_t *sm_p){
       memset(&scimask[0][0],0,sizeof(scimask));
     init=1;
     if(SCI_DEBUG) printf("SCI: Initialized\n");
+  }
+
+  //Initialize sci_cal
+  if(!sci_cal_init){
+    //Malloc SCI calibration
+    sci_cal.dark = (double *)malloc(sci_cal_size);
+    sci_cal.bias = (double *)malloc(sci_cal_size);
+    if((sci_cal.dark != NULL) && (sci_cal.bias != NULL))
+      sci_cal_init=1;
+    else
+      printf("SCI: sci_cal malloc failed!\n");
+  }
+  
+  //Read SCI calibration data for this temperature
+  scievent.ccd_temp = sm_p->sci_ccd_temp;
+  if(sci_cal_init){
+    if(SCI_TEMP_INC * lround(scievent.ccd_temp/SCI_TEMP_INC) != ccd_temp_init){
+      ccd_temp_init = SCI_TEMP_INC * lround(scievent.ccd_temp/SCI_TEMP_INC);
+      printf("SCI: Reading calibration data for %dC\n",ccd_temp_init);
+      sprintf(filename,SCI_DARK_FILE,ccd_temp_init);
+      if(read_file(filename,sci_cal.dark,sci_cal_size))
+	memset(sci_cal.dark,0,sci_cal_size);
+      else
+	printf("SCI: Read %s\n",filename);
+      sprintf(filename,SCI_BIAS_FILE,ccd_temp_init);
+      if(read_file(filename,sci_cal.bias,sci_cal_size))
+	memset(sci_cal.bias,0,sci_cal_size);
+      else
+	printf("SCI: Read %s\n",filename);
+    }
   }
 
   //Measure exposure time 
@@ -614,7 +653,6 @@ void sci_process_image(uint16 *img_buffer, float img_exptime, sm_t *sm_p){
   scievent.hed.start_nsec    = start.tv_nsec;
 
   //Save Camera telemetry
-  scievent.ccd_temp         = sm_p->sci_ccd_temp;
   scievent.backplane_temp   = sm_p->sci_backplane_temp;
   scievent.tec_power        = sm_p->sci_tec_power;
   scievent.tec_setpoint     = sm_p->sci_tec_setpoint;
@@ -658,10 +696,16 @@ void sci_process_image(uint16 *img_buffer, float img_exptime, sm_t *sm_p){
     for(b=0;b<SCI_NBANDS;b++){
       //Find max pixel for this band
       scievent.refmax[b] = -1;
+      //Set bottom left corner in full image
+      xbl = scievent.xorigin[b]-(SCIXS/2);
+      ybl = scievent.yorigin[b]-(SCIYS/2);
       for(i=0;i<SCIXS;i++){
 	for(j=0;j<SCIYS;j++){
-	  if(scievent.bands.band[b].data[i][j] > scievent.refmax[b])
-	    scievent.refmax[b] = scievent.bands.band[b].data[i][j];
+	  dpx = (double)scievent.bands.band[b].data[i][j];
+	  bkg = sci_cal.bias[sci_xy2index(i+xbl,j+ybl)] + sci_cal.dark[sci_xy2index(i+xbl,j+ybl)]*scievent.hed.exptime;
+	  dpx -= bkg;
+	  if(dpx > scievent.refmax[b])
+	    scievent.refmax[b] = dpx;
 	}
       }
       //Divide by exposure time

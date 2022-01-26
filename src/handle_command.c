@@ -3162,7 +3162,7 @@ int handle_command(char *line, sm_t *sm_p){
       if(itemp >= SCI_TEC_SETPOINT_MIN && itemp <= SCI_TEC_SETPOINT_MAX){
 	sm_p->sci_tec_setpoint = itemp;
 	sm_p->sci_reset_camera=1;
-	printf("CMD: Changed SCI TEC setpoint to %d C\n",sm_p->sci_tec_setpoint);
+	printf("CMD: Changed SCI TEC setpoint to %dC\n",sm_p->sci_tec_setpoint);
       }else{
 	printf("CMD: SCI TEC setpoint out of bounds [%d,%d]\n",SCI_TEC_SETPOINT_MIN,SCI_TEC_SETPOINT_MAX);
       }
@@ -3361,7 +3361,7 @@ int handle_command(char *line, sm_t *sm_p){
 	ftemp = atof(line+strlen(cmd)+1);
 	if(ftemp >= HTR_SETPOINT_MIN && ftemp <= HTR_SETPOINT_MAX){
 	  sm_p->htr[i].setpoint = ftemp;
-	  printf("CMD: Setting heater %d setpoint to %f C\n",i,sm_p->htr[i].setpoint);
+	  printf("CMD: Setting heater %d setpoint to %fC\n",i,sm_p->htr[i].setpoint);
 	  print_htr_status(sm_p);
 	  return CMD_NORMAL;
 	}
@@ -3375,7 +3375,7 @@ int handle_command(char *line, sm_t *sm_p){
 	ftemp = atof(line+strlen(cmd)+1);
 	if(ftemp >= HTR_DEADBAND_MIN && ftemp <= HTR_DEADBAND_MAX){
 	  sm_p->htr[i].deadband = ftemp;
-	  printf("CMD: Setting heater %d deadband to %f C\n",i,sm_p->htr[i].deadband);
+	  printf("CMD: Setting heater %d deadband to %fC\n",i,sm_p->htr[i].deadband);
 	  print_htr_status(sm_p);
 	  return CMD_NORMAL;
 	}
@@ -3389,7 +3389,7 @@ int handle_command(char *line, sm_t *sm_p){
 	ftemp = atof(line+strlen(cmd)+1);
 	if(ftemp >= HTR_GAIN_MIN && ftemp <= HTR_GAIN_MAX){
 	  sm_p->htr[i].gain = ftemp;
-	  printf("CMD: Setting heater %d gain to %f C\n",i,sm_p->htr[i].gain);
+	  printf("CMD: Setting heater %d gain to %fC\n",i,sm_p->htr[i].gain);
 	  print_htr_status(sm_p);
 	  return CMD_NORMAL;
 	}
