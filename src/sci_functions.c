@@ -365,6 +365,8 @@ void sci_howfs_construct_field(sm_t *sm_p,sci_howfs_t *frames,scievent_t *scieve
     init=1;
     if(reset) return;
   }
+  //Print threshold
+  printf("SCI: EFC pixel threshold = %f\n",sm_p->efc_sci_thresh);
   
   //Construct field
   //NOTE: frame index: 0=flat, 1=probe1, 2=probe2, 3=probe3, 4=probe4

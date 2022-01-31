@@ -560,8 +560,8 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 #define ALP_BIAS              0.0
 #define ALP_ZERNIKE_MIN      -5.0   //ALP min zernike command
 #define ALP_ZERNIKE_MAX       5.0   //ALP max zernike command
-#define ALP_DZERNIKE_MIN     -1.0   //ALP min delta zernike command
-#define ALP_DZERNIKE_MAX      1.0   //ALP max delta zernike command
+#define ALP_DZERNIKE_MIN     -1.5   //ALP min delta zernike command
+#define ALP_DZERNIKE_MAX      1.5   //ALP max delta zernike command
 #define ALP_SHK_POKE          0.05  //shk alp actuator calibration poke
 #define ALP_SHK_ZPOKE         0.02  //shk zernike microns RMS
 #define ALP_SHK_NCALIM        40    //shk number of calibration images per alp step
