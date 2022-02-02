@@ -502,7 +502,7 @@ void sci_process_image(uint16 *img_buffer, float img_exptime, sm_t *sm_p){
   static int howfs_init = 0;
   static int howfs_got_frame[SCI_HOWFS_NSTEP]={0};
   static sci_howfs_t howfs_frames;
-  static int ccd_temp_init=1000;
+  static int ccd_temp_init=0;
   static sci_cal_t sci_cal;
   const double sci_sim_max[SCI_NBANDS] = SCI_SIM_MAX;
   const size_t sci_cal_size = sizeof(double) * SCI_ROI_YSIZE * SCI_ROI_XSIZE;
@@ -513,7 +513,6 @@ void sci_process_image(uint16 *img_buffer, float img_exptime, sm_t *sm_p){
   int xbl,ybl;
   double dpx,bkg;
   static unsigned long frame_number=0,howfs_istart=0,howfs_ilast=0,iefc=0;
-  int ihowfs=0;
   int print_origin=0;
   int state;
   int bmc_calibrate_advance=1;
@@ -551,6 +550,7 @@ void sci_process_image(uint16 *img_buffer, float img_exptime, sm_t *sm_p){
     memset(&scievent,0,sizeof(scievent));
     memcpy(&last,&start,sizeof(struct timespec));
     frame_number=0;
+    ccd_temp_init=1000;
     //Reset BMC & SCI functions
     bmc_function_reset(sm_p);
     sci_function_reset(sm_p);
@@ -682,7 +682,23 @@ void sci_process_image(uint16 *img_buffer, float img_exptime, sm_t *sm_p){
   bmc_calmode_change        = 0;
   if(bmc_calmode_temp != scievent.hed.bmc_calmode) bmc_calmode_change=1;
   scievent.hed.bmc_calmode  = bmc_calmode_temp;
+
+  //Reinitialize HOWFS if there has been a break in the data
+  if(frame_number != howfs_ilast+1) howfs_init=0;
   
+  //Init HOWFS
+  if(!howfs_init){
+    //Set starting frame number
+    howfs_istart = frame_number;
+    //Initialize EFC counter
+    iefc=0;
+    //Set init
+    howfs_init = 1;
+  }
+  
+  //Define HOWFS index
+  scievent.ihowfs = (frame_number - howfs_istart) % SCI_HOWFS_NSTEP;
+    
   //Fake data
   if(sm_p->w[SCIID].fakemode != FAKEMODE_NONE){
     if(sm_p->w[SCIID].fakemode == FAKEMODE_TEST_PATTERN){
@@ -762,8 +778,6 @@ void sci_process_image(uint16 *img_buffer, float img_exptime, sm_t *sm_p){
 
     //Run HOWFS
     if(sm_p->state_array[state].sci.run_howfs){
-      //Reinitialize if there has been a break in the data
-      if(frame_number != howfs_ilast+1) howfs_init=0;
 
       //Reinitialize if bmc calmode has changed
       if(bmc_calmode_change) howfs_init=0;
@@ -774,20 +788,8 @@ void sci_process_image(uint16 *img_buffer, float img_exptime, sm_t *sm_p){
       //Enable BMC calibrate delta -- during HOWFS we want to only add deltas, not reset to the flat
       bmc_calibrate_delta = 1;
       
-      //Init HOWFS
-      if(!howfs_init){
-	//Set starting frame number
-	howfs_istart = frame_number;
-	//Initialize EFC counter
-	iefc=0;
-	//Set init
-	howfs_init = 1;
-      }
-      
-      //Define HOWFS index
-      ihowfs = (frame_number - howfs_istart) % SCI_HOWFS_NSTEP;
+
       howfs_ilast = frame_number;
-      scievent.ihowfs = ihowfs;
       
       //********** HOWFC Indexing ************
       //ihowfs:  0      1   2   3   4
@@ -797,17 +799,17 @@ void sci_process_image(uint16 *img_buffer, float img_exptime, sm_t *sm_p){
 
       //Fake HOWFS Data
       if(sm_p->w[SCIID].fakemode == FAKEMODE_SCI_PROBE){
-	sprintf(filename,SCI_FAKE_PROBE_FILE,ihowfs);
+	sprintf(filename,SCI_FAKE_PROBE_FILE,scievent.ihowfs);
 	for(k=0;k<SCI_NBANDS;k++)
 	  read_file(filename,&scievent.bands.band[k].data[0][0],sizeof(sci_t));
       }
       
       //Save frames
-      memcpy(&howfs_frames.step[ihowfs],&scievent.bands,sizeof(sci_bands_t));
-      printf("SCI: iWFS = %d\n",ihowfs);
+      memcpy(&howfs_frames.step[scievent.ihowfs],&scievent.bands,sizeof(sci_bands_t));
+      printf("SCI: iWFS = %d\n",scievent.ihowfs);
             
       //HOWFS Operations
-      if(ihowfs == SCI_HOWFS_NSTEP-1){
+      if(scievent.ihowfs == SCI_HOWFS_NSTEP-1){
 	//Calculate field
 	sci_howfs_construct_field(sm_p,&howfs_frames,&scievent,wfsevent.field,FUNCTION_NO_RESET);
 	//Run EFC
@@ -833,8 +835,8 @@ void sci_process_image(uint16 *img_buffer, float img_exptime, sm_t *sm_p){
       }
 
       //Set BMC Probe: try = flat + probe (NOTE: when ihowfs == 4, nothing is added to the flat)
-      if(ihowfs < SCI_HOWFS_NPROBE)
-	bmc_add_probe(bmc_flat.acmd,bmc_try.acmd,ihowfs,sm_p->bmc_cal_scale);
+      if(scievent.ihowfs < SCI_HOWFS_NPROBE)
+	bmc_add_probe(bmc_flat.acmd,bmc_try.acmd,scievent.ihowfs,sm_p->bmc_cal_scale);
       else
 	memcpy(bmc_try.acmd,bmc_flat.acmd,sizeof(bmc_try.acmd));
     }
