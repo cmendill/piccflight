@@ -344,6 +344,7 @@ int main(int argc,char **argv){
   sm_p->efc_bmc_max         = EFC_BMC_MAX_DEFAULT;
   sm_p->efc_sci_thresh      = EFC_SCI_THRESH_DEFAULT;
   sm_p->efc_gain            = EFC_GAIN_DEFAULT;
+  sm_p->efc_probe_amp       = EFC_PROBE_AMP_DEFAULT;
   sm_p->shk_alp_pid_type    = SHK_ALP_PID_TYPE_DEFAULT;
   sm_p->lyt_alp_pid_type    = LYT_ALP_PID_TYPE_DEFAULT;
   sm_p->alp_cal_scale       = ALP_CAL_SCALE_DEFAULT;

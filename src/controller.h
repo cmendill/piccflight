@@ -194,7 +194,7 @@ enum bmccalmodes {BMC_CALMODE_NONE,
 #define SHK_CONFIG_FILE        "config/shk_2bin_2tap_8bit.cfg"
 #define LYT_CONFIG_FILE        "config/lyt.cfg"
 #define SCI_MASK_FILE          "config/howfs_scimask.dat"
-#define BMC_PROBE_FILE         "config/howfs_bmcprobe%d.dat"
+#define BMC_PROBE_FILE         "config/howfs_bmcprobe%d_probe_%d_nm.dat"
 #define BMC_CAL_A_FILE         "config/bmc_cal_a.dat"
 #define BMC_CAL_B_FILE         "config/bmc_cal_b.dat"
 #define BMC_DEFAULT_FILE       "config/bmc_default.dat"
@@ -204,10 +204,10 @@ enum bmccalmodes {BMC_CALMODE_NONE,
 #define BMC_TEST_FILE          "config/bmc_test_%3.3d.dat"
 #define BMC_SINE_FILE          "config/bmc_sine_%3.3d.dat"
 #define BMC_FLAT_FILE          "output/settings/bmc_flat.dat"
-#define HOWFS_RMATRIX0_FILE    "config/howfs_rmatrix0.dat"
-#define HOWFS_RMATRIX1_FILE    "config/howfs_rmatrix1.dat"
-#define HOWFS_IMATRIX0_FILE    "config/howfs_imatrix0.dat"
-#define HOWFS_IMATRIX1_FILE    "config/howfs_imatrix1.dat"
+#define HOWFS_RMATRIX0_FILE    "config/howfs_rmatrix0_probe_%d_nm.dat"
+#define HOWFS_RMATRIX1_FILE    "config/howfs_rmatrix1_probe_%d_nm.dat"
+#define HOWFS_IMATRIX0_FILE    "config/howfs_imatrix0_probe_%d_nm.dat"
+#define HOWFS_IMATRIX1_FILE    "config/howfs_imatrix1_probe_%d_nm.dat"
 #define EFC_MATRIX_FILE        "config/efc_matrix.dat"
 #define SCI_FAKE_PROBE_FILE    "config/sci_fakedata_probe_%d.dat"
 #define SCI_DARK_FILE          "config/sci_dark_%d.dat"
@@ -493,7 +493,7 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 #define SCI_SATURATION      65535 //SCI saturation
 #define SCI_SIM_MAX         {0.0766} //[SCI_NBANDS] Maximum pixel value of unocculted image simulation (for field normalization)
 #define SCI_SCALE_DEFAULT {6.37e-9}//[SCI_NBANDS] Default image normalization for field calculation
-
+	       
 /*************************************************
  * ACQ Camera Parameters
  *************************************************/
@@ -1350,6 +1350,7 @@ typedef volatile struct {
   double efc_sci_thresh;
   double efc_bmc_max;
   double efc_gain;
+  int    efc_probe_amp;
 
   //Door Commands
   int open_door[MTR_NDOORS];

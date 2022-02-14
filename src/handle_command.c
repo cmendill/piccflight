@@ -1824,6 +1824,20 @@ int handle_command(char *line, sm_t *sm_p){
     return CMD_NORMAL;
   }
 
+  //Set EFC Probe Amplitude
+  sprintf(cmd,"efc probe amp");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    pch = strtok(line+strlen(cmd)," ");
+    if(pch == NULL){
+      printf("CMD: Bad command format\n");
+      return CMD_NORMAL;
+    }
+    itemp  = atoi(pch);
+    sm_p->efc_probe_amp = itemp;
+    printf("CMD: EFC probe amp set to %d\n",sm_p->efc_probe_amp);
+    return CMD_NORMAL;
+  }
+
   /****************************************
    * SENSOR CALIBRATION
    **************************************/

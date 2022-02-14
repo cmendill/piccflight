@@ -327,6 +327,7 @@ void sci_howfs_construct_field(sm_t *sm_p,sci_howfs_t *frames,scievent_t *scieve
   static double imatrix0[SCI_NPIX][SCI_NBANDS];
   static double rmatrix1[SCI_NPIX][SCI_NBANDS];
   static double imatrix1[SCI_NPIX][SCI_NBANDS];
+  char filename[MAX_FILENAME];
   int xbl,ybl;
   uint16_t px1,px2,px3,px4;
   double dpx1,dpx2,dpx3,dpx4;
@@ -339,18 +340,23 @@ void sci_howfs_construct_field(sm_t *sm_p,sci_howfs_t *frames,scievent_t *scieve
   //Initialize
   if(!init || reset){
     //Read HOWFS matrix from file
-    if(read_file(HOWFS_RMATRIX0_FILE,rmatrix0,sizeof(rmatrix0)))
+    sprintf(filename,HOWFS_RMATRIX0_FILE,sm_p->efc_probe_amp);
+    if(read_file(filename,rmatrix0,sizeof(rmatrix0)))
       memset(rmatrix0,0,sizeof(rmatrix0));
-    if(read_file(HOWFS_RMATRIX1_FILE,rmatrix1,sizeof(rmatrix1)))
+    sprintf(filename,HOWFS_RMATRIX1_FILE,sm_p->efc_probe_amp);
+    if(read_file(filename,rmatrix1,sizeof(rmatrix1)))
       memset(rmatrix1,0,sizeof(rmatrix1));
-    if(read_file(HOWFS_IMATRIX0_FILE,imatrix0,sizeof(imatrix0)))
+    sprintf(filename,HOWFS_IMATRIX0_FILE,sm_p->efc_probe_amp);
+    if(read_file(filename,imatrix0,sizeof(imatrix0)))
       memset(imatrix0,0,sizeof(imatrix0));
-    if(read_file(HOWFS_IMATRIX1_FILE,imatrix1,sizeof(imatrix1)))
+    sprintf(filename,HOWFS_IMATRIX1_FILE,sm_p->efc_probe_amp);
+    if(read_file(filename,imatrix1,sizeof(imatrix1)))
       memset(imatrix1,0,sizeof(imatrix1));
     //Read SCI pixel selection
     if(read_file(SCI_MASK_FILE,&scimask[0][0],sizeof(scimask)))
       memset(&scimask[0][0],0,sizeof(scimask));
-    printf("SCI: Read HOWFS matrix\n");
+    printf("SCI: Read HOWFS matrix for probe amp = %d nm\n",sm_p->efc_probe_amp);
+    
     //Build index arrays
     c=0;
     for(j=0;j<SCIYS;j++){
@@ -836,7 +842,7 @@ void sci_process_image(uint16 *img_buffer, float img_exptime, sm_t *sm_p){
 
       //Set BMC Probe: try = flat + probe (NOTE: when ihowfs == 4, nothing is added to the flat)
       if(scievent.ihowfs < SCI_HOWFS_NPROBE)
-	bmc_add_probe(bmc_flat.acmd,bmc_try.acmd,scievent.ihowfs,sm_p->bmc_cal_scale);
+	bmc_add_probe(bmc_flat.acmd,bmc_try.acmd,scievent.ihowfs,sm_p->efc_probe_amp);
       else
 	memcpy(bmc_try.acmd,bmc_flat.acmd,sizeof(bmc_try.acmd));
     }
