@@ -1835,6 +1835,8 @@ int handle_command(char *line, sm_t *sm_p){
     itemp  = atoi(pch);
     sm_p->efc_probe_amp = itemp;
     printf("CMD: EFC probe amp set to %d\n",sm_p->efc_probe_amp);
+    //Reset SCI to load new matrix
+    sm_p->sci_reset=1;
     return CMD_NORMAL;
   }
 

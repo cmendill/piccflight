@@ -501,8 +501,8 @@ void sci_howfs_efc(sm_t *sm_p, sci_field_t *field, double *delta_length, int res
 /*  - Process SCI camera image                                */
 /**************************************************************/
 void sci_process_image(uint16 *img_buffer, float img_exptime, sm_t *sm_p){
-  static scievent_t scievent;
-  static wfsevent_t wfsevent;
+  static scievent_t scievent={0};
+  static wfsevent_t wfsevent={0};
   static struct timespec start,end,delta,last;
   static int init = 0,sci_cal_init=0;
   static int howfs_init = 0;
@@ -553,7 +553,6 @@ void sci_process_image(uint16 *img_buffer, float img_exptime, sm_t *sm_p){
   
   //Initialize 
   if(!init){
-    memset(&scievent,0,sizeof(scievent));
     memcpy(&last,&start,sizeof(struct timespec));
     frame_number=0;
     ccd_temp_init=1000;
