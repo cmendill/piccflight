@@ -518,7 +518,7 @@ void sci_process_image(uint16 *img_buffer, float img_exptime, sm_t *sm_p){
   uint32 i,j,k,b;
   int xbl,ybl;
   double dpx,bkg;
-  static unsigned long frame_number=0,howfs_istart=0,howfs_ilast=0,iefc=0;
+  static long unsigned int frame_number=0,wfs_frame_number=0,howfs_istart=0,howfs_ilast=0,iefc=0;
   int print_origin=0;
   int state;
   int bmc_calibrate_advance=1;
@@ -554,7 +554,6 @@ void sci_process_image(uint16 *img_buffer, float img_exptime, sm_t *sm_p){
   //Initialize 
   if(!init){
     memcpy(&last,&start,sizeof(struct timespec));
-    frame_number=0;
     ccd_temp_init=1000;
     //Reset BMC & SCI functions
     bmc_function_reset(sm_p);
@@ -665,7 +664,7 @@ void sci_process_image(uint16 *img_buffer, float img_exptime, sm_t *sm_p){
   //Fill out event header 
   scievent.hed.version       = PICC_PKT_VERSION;
   scievent.hed.type          = BUFFER_SCIEVENT;
-  scievent.hed.frame_number  = frame_number++;
+  scievent.hed.frame_number  = frame_number++; //NOTE: this is the only place where we use the local frame_number
   scievent.hed.exptime       = img_exptime;
   scievent.hed.frmtime       = dt;
   scievent.hed.ontime        = dt;
@@ -689,12 +688,12 @@ void sci_process_image(uint16 *img_buffer, float img_exptime, sm_t *sm_p){
   scievent.hed.bmc_calmode  = bmc_calmode_temp;
 
   //Reinitialize HOWFS if there has been a break in the data
-  if(frame_number != howfs_ilast+1) howfs_init=0;
+  if(scievent.hed.frame_number != howfs_ilast+1) howfs_init=0;
   
   //Init HOWFS
   if(!howfs_init){
     //Set starting frame number
-    howfs_istart = frame_number;
+    howfs_istart = scievent.hed.frame_number;
     //Initialize EFC counter
     iefc=0;
     //Set init
@@ -702,8 +701,9 @@ void sci_process_image(uint16 *img_buffer, float img_exptime, sm_t *sm_p){
   }
   
   //Define HOWFS index
-  scievent.ihowfs = (frame_number - howfs_istart) % SCI_HOWFS_NSTEP;
-    
+  scievent.ihowfs = (scievent.hed.frame_number - howfs_istart) % SCI_HOWFS_NSTEP;
+  if(scievent.ihowfs == 0) wfs_frame_number = scievent.hed.frame_number;
+  
   //Fake data
   if(sm_p->w[SCIID].fakemode != FAKEMODE_NONE){
     if(sm_p->w[SCIID].fakemode == FAKEMODE_TEST_PATTERN){
@@ -793,8 +793,8 @@ void sci_process_image(uint16 *img_buffer, float img_exptime, sm_t *sm_p){
       //Enable BMC calibrate delta -- during HOWFS we want to only add deltas, not reset to the flat
       bmc_calibrate_delta = 1;
       
-
-      howfs_ilast = frame_number;
+      //Save last frame number during HOWFS
+      howfs_ilast = scievent.hed.frame_number;
       
       //********** HOWFC Indexing ************
       //ihowfs:  0      1   2   3   4
@@ -832,6 +832,7 @@ void sci_process_image(uint16 *img_buffer, float img_exptime, sm_t *sm_p){
 	//Write WFSEVENT to circular buffer 
 	memcpy(&wfsevent.hed,&scievent.hed,sizeof(pkthed_t));
 	wfsevent.hed.type = BUFFER_WFSEVENT;
+	wfsevent.hed.frame_number = wfs_frame_number; //Frame number of iHOWFS=0 step
 	if(sm_p->circbuf[BUFFER_WFSEVENT].write)
 	  write_to_buffer(sm_p,&wfsevent,BUFFER_WFSEVENT);
 	
