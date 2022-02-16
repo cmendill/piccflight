@@ -102,6 +102,8 @@
 //SCI Setting
 #define SCI_XORIGIN_DEFAULT        {1338} //band cutout x centers, must match SCI_NBANDS
 #define SCI_YORIGIN_DEFAULT        {1092} //band cutout y centers, must match SCI_NBANDS
+#define SCI_TEC_ENABLE_DEFAULT     1
+#define SCI_TEC_SETPOINT_DEFAULT   20
 
 //Shack-Hartmann Settings
 #define SHK_BOXSIZE_DEFAULT        7

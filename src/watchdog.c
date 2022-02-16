@@ -334,8 +334,8 @@ int main(int argc,char **argv){
   sm_p->alp_proc_id         = -1;
   sm_p->lyt_xorigin         = LYT_XORIGIN_DEFAULT;
   sm_p->lyt_yorigin         = LYT_YORIGIN_DEFAULT;
-  sm_p->sci_tec_enable      = 0;
-  sm_p->sci_tec_setpoint    = SCI_TEC_SETPOINT_MAX;
+  sm_p->sci_tec_enable      = SCI_TEC_ENABLE_DEFAULT;
+  sm_p->sci_tec_setpoint    = SCI_TEC_SETPOINT_DEFAULT;
   sm_p->acq_thresh          = ACQ_THRESH_DEFAULT;
   sm_p->thm_enable_vref     = THM_ENABLE_VREF_DEFAULT;
   sm_p->hex_spiral_autostop = HEX_SPIRAL_AUTOSTOP_DEFAULT;
