@@ -261,9 +261,9 @@ double sci_get_tec_power(flidev_t dev){
 /*  - Run image exposure                                      */
 /**************************************************************/
 int sci_expose(sm_t *sm_p, flidev_t dev, uint16 *img_buffer){
-  int row,i;
+  int row,sleepcount=0;
   uint32 err;
-  long int timeleft;
+  long int timeleft=0;
   
   
   /* Start exposure */
@@ -289,6 +289,7 @@ int sci_expose(sm_t *sm_p, flidev_t dev, uint16 *img_buffer){
     
     //Sleep 1 decisecond
     usleep(100000);
+    sleepcount++;
     
     //Get exposure status
     if((err = FLIGetExposureStatus(dev,&timeleft))){
@@ -296,10 +297,19 @@ int sci_expose(sm_t *sm_p, flidev_t dev, uint16 *img_buffer){
       return SCI_EXP_RETURN_FAIL;
     }
     if(timeleft == 0){
-      if(SCI_DEBUG) printf("SCI: Exposure done after %d checks\n",i+1);
+      if(SCI_DEBUG) printf("SCI: Exposure done after %d checks\n",sleepcount+1);
       break;
     }
+    //Print exposure countdown
+    if(sm_p->sci_exptime >= 5){
+      if(sleepcount % 10 == 1){
+	printf("\rSCI: %d seconds remaining",(int)lround((double)timeleft / 1000));
+	fflush(stdout);
+      }
+    }
   }
+  if(sm_p->sci_exptime >= 5)
+    printf("\n");
   
   /* Grab data one row at a time */
   for(row=0;row<SCI_ROI_YSIZE;row++)
