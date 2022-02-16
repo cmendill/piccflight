@@ -1574,8 +1574,8 @@ int handle_command(char *line, sm_t *sm_p){
     return(CMD_NORMAL);
   }
 
-  //Set current flat
-  sprintf(cmd,"bmc set flat");
+  //Recall flat
+  sprintf(cmd,"bmc recall flat");
   if(!strncasecmp(line,cmd,strlen(cmd))){
     if(sm_p->state_array[sm_p->state].bmc_commander == WATID){
       pch = strtok(line+strlen(cmd)," ");
@@ -1590,14 +1590,38 @@ int handle_command(char *line, sm_t *sm_p){
       }
       printf("CMD: Setting BMC flat to position %d\n",itemp);
       //Set flat
-      if(bmc_set_flat(sm_p,WATID,itemp)){
-	printf("CMD: bmc_set_flat failed\n");
+      if(bmc_recall_flat(sm_p,WATID,itemp)){
+	printf("CMD: bmc_recall_flat failed\n");
 	return CMD_NORMAL;
       }
     }
     else
       printf("CMD: Manual BMC DM control disabled in this state\n");
     return(CMD_NORMAL);
+  }
+
+  //Set current position as flat
+  sprintf(cmd,"bmc set flat");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    if(sm_p->state_array[sm_p->state].bmc_commander == WATID){
+      //Get current command
+      if(bmc_get_command(sm_p,&bmc)){
+	printf("CMD: bmc_get_command failed!\n");
+	return CMD_NORMAL;
+      }
+      //Send command
+      if(bmc_send_command(sm_p,&bmc,WATID,BMC_SET_FLAT)){
+	printf("CMD: bmc_send_command failed\n");
+	return CMD_NORMAL;
+      }
+      else{
+	printf("CMD: current BMC command set as flat\n");
+	return CMD_NORMAL;
+      }	  
+    }
+    else
+      printf("CMD: Manual BMC DM control disabled in this state\n");
+    return CMD_NORMAL;
   }
 
   //Perturb BMC command with random actuator values
@@ -1727,7 +1751,7 @@ int handle_command(char *line, sm_t *sm_p){
       bmc_add_test(bmc.acmd,bmc.acmd,itemp,sm_p->bmc_cal_scale);
       
       //Send command
-      if(bmc_send_command(sm_p,&bmc,WATID,BMC_SET_FLAT)){
+      if(bmc_send_command(sm_p,&bmc,WATID,BMC_NOSET_FLAT)){
 	printf("CMD: bmc_send_command failed\n");
 	return CMD_NORMAL;
       }
@@ -1762,7 +1786,7 @@ int handle_command(char *line, sm_t *sm_p){
       bmc_add_sine(bmc.acmd,bmc.acmd,itemp,sm_p->bmc_cal_scale);
       
       //Send command
-      if(bmc_send_command(sm_p,&bmc,WATID,BMC_SET_FLAT)){
+      if(bmc_send_command(sm_p,&bmc,WATID,BMC_NOSET_FLAT)){
 	printf("CMD: bmc_send_command failed\n");
 	return CMD_NORMAL;
       }

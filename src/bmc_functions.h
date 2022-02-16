@@ -15,7 +15,7 @@ int bmc_zero_flat(sm_t *sm_p, int proc_id);
 int bmc_revert_flat(sm_t *sm_p, int proc_id);
 int bmc_save_flat(sm_t *sm_p);
 int bmc_load_flat(sm_t *sm_p,int proc_id);
-int bmc_set_flat(sm_t *sm_p,int proc_id, int iflat);
+int bmc_recall_flat(sm_t *sm_p,int proc_id, int iflat);
 void bmc_init_calibration(sm_t *sm_p);
 void bmc_add_length(float *input, float *output, double *dl, int reset);
 void bmc_add_probe(float *input, float *output, int istep, int amp);
