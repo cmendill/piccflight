@@ -21,6 +21,7 @@
 #include "common_functions.h"
 #include "fakemodes.h"
 #include "bmc_functions.h"
+#include "tgt_functions.h"
 #include "numeric.h"
 #include "sci_functions.h"
 
@@ -569,6 +570,7 @@ void sci_process_image(uint16 *img_buffer, float img_exptime, sm_t *sm_p){
     bmc_function_reset(sm_p);
     sci_function_reset(sm_p);
     howfs_init=0;
+    tgt_calibrate(sm_p,0,NULL,NULL,SCIID,FUNCTION_RESET);
     //Read SCI pixel selection
     if(read_file(SCI_MASK_FILE,&scimask[0][0],sizeof(scimask)))
       memset(&scimask[0][0],0,sizeof(scimask));
@@ -692,6 +694,9 @@ void sci_process_image(uint16 *img_buffer, float img_exptime, sm_t *sm_p){
   scievent.tec_enable       = sm_p->sci_tec_enable;
 
   //Save calmodes
+  scievent.hed.hex_calmode = sm_p->hex_calmode;
+  scievent.hed.alp_calmode = sm_p->alp_calmode;
+  scievent.hed.tgt_calmode = sm_p->tgt_calmode;
   bmc_calmode_temp          = sm_p->bmc_calmode;
   bmc_calmode_change        = 0;
   if(bmc_calmode_temp != scievent.hed.bmc_calmode) bmc_calmode_change=1;
@@ -766,6 +771,14 @@ void sci_process_image(uint16 *img_buffer, float img_exptime, sm_t *sm_p){
     sm_p->sci_setref=0;
   }
 
+  /*************************************************************/
+  /****************  Zernike Target Control Code  **************/
+  /*************************************************************/
+  //Run SHK target calibration
+  if(sm_p->state_array[state].tgt_commander == SCIID)
+    if(scievent.hed.tgt_calmode != TGT_CALMODE_NONE)
+      sm_p->tgt_calmode = tgt_calibrate(sm_p,scievent.hed.tgt_calmode,(double *)sm_p->shk_zernike_target,&scievent.hed.tgt_calstep,SCIID,FUNCTION_NO_RESET);
+  
   /*************************************************************/
   /********************  BMC DM Control Code  ******************/
   /*************************************************************/

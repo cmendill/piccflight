@@ -801,6 +801,48 @@ int handle_command(char *line, sm_t *sm_p){
     printf("CMD: State %s BMC commander set to WAT\n",sm_p->state_array[sm_p->state].name);
     return(CMD_NORMAL);
   }
+  sprintf(cmd,"alp commander shk");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    sm_p->state_array[sm_p->state].alp_commander = SHKID;
+    printf("CMD: State %s ALP commander set to SHK\n",sm_p->state_array[sm_p->state].name);
+    return(CMD_NORMAL);
+  }
+  sprintf(cmd,"alp commander lyt");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    sm_p->state_array[sm_p->state].alp_commander = LYTID;
+    printf("CMD: State %s ALP commander set to LYT\n",sm_p->state_array[sm_p->state].name);
+    return(CMD_NORMAL);
+  }
+  sprintf(cmd,"alp commander wat");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    sm_p->state_array[sm_p->state].alp_commander = WATID;
+    printf("CMD: State %s ALP commander set to WAT\n",sm_p->state_array[sm_p->state].name);
+    return(CMD_NORMAL);
+  }
+  sprintf(cmd,"tgt commander shk");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    sm_p->state_array[sm_p->state].tgt_commander = SHKID;
+    printf("CMD: State %s TGT commander set to SHK\n",sm_p->state_array[sm_p->state].name);
+    return(CMD_NORMAL);
+  }
+  sprintf(cmd,"tgt commander lyt");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    sm_p->state_array[sm_p->state].tgt_commander = LYTID;
+    printf("CMD: State %s TGT commander set to LYT\n",sm_p->state_array[sm_p->state].name);
+    return(CMD_NORMAL);
+  }
+  sprintf(cmd,"tgt commander sci");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    sm_p->state_array[sm_p->state].tgt_commander = SCIID;
+    printf("CMD: State %s TGT commander set to SCI\n",sm_p->state_array[sm_p->state].name);
+    return(CMD_NORMAL);
+  }
+  sprintf(cmd,"tgt commander wat");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    sm_p->state_array[sm_p->state].tgt_commander = WATID;
+    printf("CMD: State %s TGT commander set to WAT\n",sm_p->state_array[sm_p->state].name);
+    return(CMD_NORMAL);
+  }
   
   /****************************************
    * DATA RECORDING
@@ -2131,6 +2173,50 @@ int handle_command(char *line, sm_t *sm_p){
       return(CMD_NORMAL);
     }
   }
+  
+  //SCI TGT Calibration
+  sprintf(cmd,"sci calibrate tgt");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    if(sm_p->state_array[sm_p->state].tgt_commander == SCIID){
+      //Get calmode
+      cmdfound = 0;
+      for(i=0;i<TGT_NCALMODES;i++){
+	if(!strncasecmp(line+strlen(cmd)+1,tgtcalmodes[i].cmd,strlen(tgtcalmodes[i].cmd))){
+	  calmode  = i;
+	  cmdfound = 1;
+	}
+      }
+      if(!cmdfound){
+	printf("CMD: Could not find tgt calmode\n");
+	print_tgt_calmodes(tgtcalmodes,sm_p->tgt_calmode);
+	return(CMD_NORMAL);
+      }
+      printf("CMD: Running SCI TGT calibration\n");
+      //Change calibration output filename
+      timestamp(stemp);
+      sprintf((char *)sm_p->calfile,SCI_TGT_CALFILE,tgtcalmodes[calmode].cmd,sm_p->state_array[sm_p->state].cmd,stemp);
+      //Start data recording
+      printf("  -- Starting SCI data recording\n");
+      printf("  -- File: %s\n",sm_p->calfile);
+      sm_p->w[DIAID].launch = getsci_proc;
+      sm_p->w[DIAID].run    = 1;
+      sleep(3);
+      //Start probe pattern
+      sm_p->tgt_calmode = calmode;
+      printf("  -- Changing TGT calibration mode to %s\n",tgtcalmodes[sm_p->tgt_calmode].name);
+      while(sm_p->tgt_calmode == calmode)
+	sleep(1);
+      printf("  -- Stopping data recording\n");
+      //Stop data recording
+      sm_p->w[DIAID].run    = 0;
+      printf("  -- Done\n");
+      return(CMD_NORMAL);
+    }
+    else{
+      printf("CMD: Failed: SCI not TGT commander\n");
+      return(CMD_NORMAL);
+    }
+  }
 
   /****************************************
    * CAMERA CONTROL
@@ -2563,118 +2649,144 @@ int handle_command(char *line, sm_t *sm_p){
   //SHK Zernike Targets
   sprintf(cmd,"shk target reset");
   if(!strncasecmp(line,cmd,strlen(cmd))){
-    printf("CMD: Setting SHK Zernike targets to zero\n");
-    for(i=0;i<LOWFS_N_ZERNIKE;i++) sm_p->shk_zernike_target[i]=0;
+    if(sm_p->state_array[sm_p->state].tgt_commander == WATID){
+      printf("CMD: Setting SHK Zernike targets to zero\n");
+      for(i=0;i<LOWFS_N_ZERNIKE;i++) sm_p->shk_zernike_target[i]=0;
+    }
+    else
+      printf("CMD: Manual TGT control disabled in this state\n");
+
     return CMD_NORMAL;
   }
   
   sprintf(cmd,"shk target");
   if(!strncasecmp(line,cmd,strlen(cmd))){
-    pch = strtok(line+strlen(cmd)," ");
-    if(pch == NULL){
-      printf("CMD: Bad command format\n");
-      return CMD_NORMAL;
+    if(sm_p->state_array[sm_p->state].tgt_commander == WATID){
+      pch = strtok(line+strlen(cmd)," ");
+      if(pch == NULL){
+	printf("CMD: Bad command format\n");
+	return CMD_NORMAL;
+      }
+      itemp  = atoi(pch);
+      pch = strtok(NULL," ");
+      if(pch == NULL){
+	printf("CMD: Bad command format\n");
+	return CMD_NORMAL;
+      }
+      ftemp  = atof(pch);
+      if(itemp >= 0 && itemp < LOWFS_N_ZERNIKE && ftemp >= ALP_ZERNIKE_MIN && ftemp <= ALP_ZERNIKE_MAX){
+	sm_p->shk_zernike_target[itemp] = ftemp;
+	printf("CMD: Setting SHK target Z[%d] = %f microns\n",itemp,sm_p->shk_zernike_target[itemp]);
+      }
+      else{
+	printf("CMD: Zernike target out of bounds #[%d,%d] C[%f,%f]\n",0,LOWFS_N_ZERNIKE,ALP_ZERNIKE_MIN,ALP_ZERNIKE_MAX);
+	return CMD_NORMAL;
+      }
     }
-    itemp  = atoi(pch);
-    pch = strtok(NULL," ");
-    if(pch == NULL){
-      printf("CMD: Bad command format\n");
-      return CMD_NORMAL;
-    }
-    ftemp  = atof(pch);
-    if(itemp >= 0 && itemp < LOWFS_N_ZERNIKE && ftemp >= ALP_ZERNIKE_MIN && ftemp <= ALP_ZERNIKE_MAX){
-      sm_p->shk_zernike_target[itemp] = ftemp;
-      printf("CMD: Setting SHK target Z[%d] = %f microns\n",itemp,sm_p->shk_zernike_target[itemp]);
-    }
-    else{
-      printf("CMD: Zernike target out of bounds #[%d,%d] C[%f,%f]\n",0,LOWFS_N_ZERNIKE,ALP_ZERNIKE_MIN,ALP_ZERNIKE_MAX);
-      return CMD_NORMAL;
-    }
+    else
+      printf("CMD: Manual TGT control disabled in this state\n");
     return CMD_NORMAL;
   }
   
   sprintf(cmd,"shk inc target");
   if(!strncasecmp(line,cmd,strlen(cmd))){
-    pch = strtok(line+strlen(cmd)," ");
-    if(pch == NULL){
-      printf("CMD: Bad command format\n");
-      return CMD_NORMAL;
+    if(sm_p->state_array[sm_p->state].tgt_commander == WATID){
+      pch = strtok(line+strlen(cmd)," ");
+      if(pch == NULL){
+	printf("CMD: Bad command format\n");
+	return CMD_NORMAL;
+      }
+      itemp  = atoi(pch);
+      pch = strtok(NULL," ");
+      if(pch == NULL){
+	printf("CMD: Bad command format\n");
+	return CMD_NORMAL;
+      }
+      ftemp  = atof(pch);
+      if(itemp >= 0 && itemp < LOWFS_N_ZERNIKE && ftemp >= ALP_DZERNIKE_MIN && ftemp <= ALP_DZERNIKE_MAX){
+	sm_p->shk_zernike_target[itemp] += ftemp;
+	printf("CMD: Setting SHK target Z[%d] = %f microns\n",itemp,sm_p->shk_zernike_target[itemp]);
+      }
+      else{
+	printf("CMD: Zernike target out of bounds #[%d,%d] C[%f,%f]\n",0,LOWFS_N_ZERNIKE,ALP_DZERNIKE_MIN,ALP_DZERNIKE_MAX);
+	return CMD_NORMAL;
+      }
     }
-    itemp  = atoi(pch);
-    pch = strtok(NULL," ");
-    if(pch == NULL){
-      printf("CMD: Bad command format\n");
-      return CMD_NORMAL;
-    }
-    ftemp  = atof(pch);
-    if(itemp >= 0 && itemp < LOWFS_N_ZERNIKE && ftemp >= ALP_DZERNIKE_MIN && ftemp <= ALP_DZERNIKE_MAX){
-      sm_p->shk_zernike_target[itemp] += ftemp;
-      printf("CMD: Setting SHK target Z[%d] = %f microns\n",itemp,sm_p->shk_zernike_target[itemp]);
-    }
-    else{
-      printf("CMD: Zernike target out of bounds #[%d,%d] C[%f,%f]\n",0,LOWFS_N_ZERNIKE,ALP_DZERNIKE_MIN,ALP_DZERNIKE_MAX);
-      return CMD_NORMAL;
-    }
+    else
+      printf("CMD: Manual TGT control disabled in this state\n");
     return CMD_NORMAL;
   }
 
   //LYT Zernike Targets
   sprintf(cmd,"lyt target reset");
   if(!strncasecmp(line,cmd,strlen(cmd))){
-    printf("CMD: Setting LYT Zernike targets to zero\n");
-    for(i=0;i<LOWFS_N_ZERNIKE;i++) sm_p->lyt_zernike_target[i]=0;
+    if(sm_p->state_array[sm_p->state].tgt_commander == WATID){
+      printf("CMD: Setting LYT Zernike targets to zero\n");
+      for(i=0;i<LOWFS_N_ZERNIKE;i++) sm_p->lyt_zernike_target[i]=0;
+    }
+    else
+      printf("CMD: Manual TGT control disabled in this state\n");
     return CMD_NORMAL;
   }
 
   sprintf(cmd,"lyt target");
   if(!strncasecmp(line,cmd,strlen(cmd))){
-    pch = strtok(line+strlen(cmd)," ");
-    if(pch == NULL){
-      printf("CMD: Bad command format\n");
-      return CMD_NORMAL;
+    if(sm_p->state_array[sm_p->state].tgt_commander == WATID){
+      pch = strtok(line+strlen(cmd)," ");
+      if(pch == NULL){
+	printf("CMD: Bad command format\n");
+	return CMD_NORMAL;
+      }
+      itemp  = atoi(pch);
+      pch = strtok(NULL," ");
+      if(pch == NULL){
+	printf("CMD: Bad command format\n");
+	return CMD_NORMAL;
+      }
+      ftemp  = atof(pch);
+      if(itemp >= 0 && itemp < LOWFS_N_ZERNIKE && ftemp >= ALP_ZERNIKE_MIN && ftemp <= ALP_ZERNIKE_MAX){
+	sm_p->lyt_zernike_target[itemp] = ftemp;
+	printf("CMD: Setting LYT target Z[%d] = %f microns\n",itemp,sm_p->lyt_zernike_target[itemp]);
+      }
+      else{
+	printf("CMD: Zernike target out of bounds #[%d,%d] C[%f,%f]\n",0,LOWFS_N_ZERNIKE,ALP_ZERNIKE_MIN,ALP_ZERNIKE_MAX);
+	return CMD_NORMAL;
+      }
     }
-    itemp  = atoi(pch);
-    pch = strtok(NULL," ");
-    if(pch == NULL){
-      printf("CMD: Bad command format\n");
-      return CMD_NORMAL;
-    }
-    ftemp  = atof(pch);
-    if(itemp >= 0 && itemp < LOWFS_N_ZERNIKE && ftemp >= ALP_ZERNIKE_MIN && ftemp <= ALP_ZERNIKE_MAX){
-      sm_p->lyt_zernike_target[itemp] = ftemp;
-      printf("CMD: Setting LYT target Z[%d] = %f microns\n",itemp,sm_p->lyt_zernike_target[itemp]);
-    }
-    else{
-      printf("CMD: Zernike target out of bounds #[%d,%d] C[%f,%f]\n",0,LOWFS_N_ZERNIKE,ALP_ZERNIKE_MIN,ALP_ZERNIKE_MAX);
-      return CMD_NORMAL;
-    }
+    else
+      printf("CMD: Manual TGT control disabled in this state\n");
     return CMD_NORMAL;
   }
 
   sprintf(cmd,"lyt inc target");
   if(!strncasecmp(line,cmd,strlen(cmd))){
-    pch = strtok(line+strlen(cmd)," ");
-    if(pch == NULL){
-      printf("CMD: Bad command format\n");
-      return CMD_NORMAL;
+    if(sm_p->state_array[sm_p->state].tgt_commander == WATID){
+      pch = strtok(line+strlen(cmd)," ");
+      if(pch == NULL){
+	printf("CMD: Bad command format\n");
+	return CMD_NORMAL;
+      }
+      itemp  = atoi(pch);
+      pch = strtok(NULL," ");
+      if(pch == NULL){
+	printf("CMD: Bad command format\n");
+	return CMD_NORMAL;
+      }
+      ftemp  = atof(pch);
+      if(itemp >= 0 && itemp < LOWFS_N_ZERNIKE && ftemp >= ALP_DZERNIKE_MIN && ftemp <= ALP_DZERNIKE_MAX){
+	sm_p->lyt_zernike_target[itemp] += ftemp;
+	printf("CMD: Setting LYT target Z[%d] = %f microns\n",itemp,sm_p->lyt_zernike_target[itemp]);
+      }
+      else{
+	printf("CMD: Zernike target out of bounds #[%d,%d] C[%f,%f]\n",0,LOWFS_N_ZERNIKE,ALP_DZERNIKE_MIN,ALP_DZERNIKE_MAX);
+	return CMD_NORMAL;
+      }
     }
-    itemp  = atoi(pch);
-    pch = strtok(NULL," ");
-    if(pch == NULL){
-      printf("CMD: Bad command format\n");
-      return CMD_NORMAL;
-    }
-    ftemp  = atof(pch);
-    if(itemp >= 0 && itemp < LOWFS_N_ZERNIKE && ftemp >= ALP_DZERNIKE_MIN && ftemp <= ALP_DZERNIKE_MAX){
-      sm_p->lyt_zernike_target[itemp] += ftemp;
-      printf("CMD: Setting LYT target Z[%d] = %f microns\n",itemp,sm_p->lyt_zernike_target[itemp]);
-    }
-    else{
-      printf("CMD: Zernike target out of bounds #[%d,%d] C[%f,%f]\n",0,LOWFS_N_ZERNIKE,ALP_DZERNIKE_MIN,ALP_DZERNIKE_MAX);
-      return CMD_NORMAL;
-    }
+    else
+      printf("CMD: Manual TGT control disabled in this state\n");
     return CMD_NORMAL;
   }
+  
   /****************************************
    * ZERNIKE CONTROL SWITCHES
    **************************************/

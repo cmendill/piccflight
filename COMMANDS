@@ -163,6 +163,28 @@ cmd: bmc commander sci
 	
 cmd: bmc commander wat
         change bmc commader to wat (user)
+
+cmd: alp commander shk
+        change alp commader to shk
+
+cmd: alp commander lyt
+        change alp commader to lyt
+	
+cmd: alp commander wat
+        change alp commader to wat (user)
+	
+cmd: tgt commander shk
+        change tgt commader to shk
+
+cmd: tgt commander lyt
+        change tgt commader to lyt
+
+cmd: tgt commander sci
+        change tgt commader to sci
+	
+cmd: tgt commander wat
+        change tgt commader to wat (user)
+	
 	
 -------------- DATA RECORDING -------------
 

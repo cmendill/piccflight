@@ -365,7 +365,7 @@ int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
     alp_zern2alp(NULL,NULL,FUNCTION_RESET);
     //Reset calibration routines
     alp_calibrate(sm_p,0,NULL,NULL,NULL,LYTID,FUNCTION_RESET);
-    tgt_calibrate(0,NULL,NULL,LYTID,FUNCTION_RESET);
+    tgt_calibrate(sm_p,0,NULL,NULL,LYTID,FUNCTION_RESET);
     //Reset PID controllers
     lyt_alp_zernpid(NULL,NULL,NULL,0,NULL,0,FUNCTION_RESET);
     //Init reference image structure
@@ -447,7 +447,7 @@ int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
   //Run target calibration
   if((sm_p->state_array[state].alp_commander == LYTID))
     if(lytevent.hed.tgt_calmode != TGT_CALMODE_NONE)
-      sm_p->tgt_calmode = tgt_calibrate(lytevent.hed.tgt_calmode,lytevent.zernike_target,&lytevent.hed.tgt_calstep,LYTID,FUNCTION_NO_RESET);
+      sm_p->tgt_calmode = tgt_calibrate(sm_p,lytevent.hed.tgt_calmode,lytevent.zernike_target,&lytevent.hed.tgt_calstep,LYTID,FUNCTION_NO_RESET);
 
   //Copy full readout image to event
   memcpy(&readimage.data[0][0],buffer->pvAddress,sizeof(lytread_t));

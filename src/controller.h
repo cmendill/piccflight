@@ -220,6 +220,7 @@ enum bmccalmodes {BMC_CALMODE_NONE,
 #define LYT_ALP_CALFILE        "output/data/calibration/lyt_alp_%s_%s_%s_caldata.dat"
 #define LYT_TGT_CALFILE        "output/data/calibration/lyt_tgt_%s_%s_%s_caldata.dat"
 #define SCI_BMC_CALFILE        "output/data/calibration/sci_bmc_%s_%s_%s_caldata.dat"
+#define SCI_TGT_CALFILE        "output/data/calibration/sci_tgt_%s_%s_%s_caldata.dat"
 #define SHKCEL2SHKZER_OUTFILE  "output/data/calibration/shkcel2shkzer_flight_output.dat"
 #define SHKZER2SHKCEL_OUTFILE  "output/data/calibration/shkzer2shkcel_flight_output.dat"
 #define SHK_OUTFILE            "output/data/calibration/shk_output_%s.dat"
@@ -620,8 +621,10 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
  *************************************************/
 #define TGT_SHK_NCALIM        100   //shk number of calibration images per tgt step
 #define TGT_LYT_NCALIM        200   //lyt number of calibration images per tgt step
-#define TGT_LYT_ZPOKE         0.005 //lyt tgt zpoke [microns rms]
+#define TGT_SCI_NCALIM        5     //sci number of calibration images per tgt step
 #define TGT_SHK_ZPOKE         0.02  //shk tgt zpoke [microns rms]
+#define TGT_LYT_ZPOKE         0.005 //lyt tgt zpoke [microns rms]
+#define TGT_SCI_ZPOKE         0.1   //sci tgt zpoke [microns rms]
 
 /*************************************************
  * RTD Parameters
@@ -765,6 +768,7 @@ typedef struct state_struct{
   int       hex_commander;
   int       alp_commander;
   int       bmc_commander;
+  int       tgt_commander;
   shkctrl_t shk;
   lytctrl_t lyt;
   scictrl_t sci;
@@ -846,6 +850,10 @@ typedef struct bmc_struct{
   float tcmd[BMC_NTEST];
   float pad;
 } bmc_t;
+
+typedef struct tgt_struct{
+  double zcmd[LOWFS_N_ZERNIKE];
+} tgt_t;
 
 typedef struct htr_struct{
   char   name[MAX_COMMAND]; //Heater name
@@ -935,6 +943,7 @@ typedef struct calmode_struct{
   double lyt_zpoke[LOWFS_N_ZERNIKE];
   double sci_poke;
   double sci_vpoke;
+  double sci_zpoke[LOWFS_N_ZERNIKE];
 } calmode_t;
 
 typedef struct alpcal_struct{
@@ -954,6 +963,14 @@ typedef struct bmccal_struct{
   struct timespec start[BMC_NCALMODES];
   double timer_length;
 } bmccal_t;
+
+typedef struct tgtcal_struct{
+  uint64 countA[TGT_NCALMODES];
+  uint64 countB[TGT_NCALMODES];
+  tgt_t  tgt_start[TGT_NCALMODES];
+  struct timespec start[TGT_NCALMODES];
+  double timer_length;
+} tgtcal_t;
 
 /*************************************************
  * Packet Header
@@ -1256,6 +1273,9 @@ typedef volatile struct {
 
   //BMC Calibration Structure
   bmccal_t bmccal;
+
+  //TGT Calibration Structure
+  tgtcal_t tgtcal;
 
   //DM Calibration Command Scale
   double alp_cal_scale;

@@ -67,6 +67,7 @@ void init_state(int state_number, state_t *state){
   state->hex_commander = WATID;
   state->alp_commander = WATID;
   state->bmc_commander = WATID;
+  state->tgt_commander = WATID;
   state->shk.fit_zernikes = 1;
   state->lyt.fit_zernikes = 1;
   
@@ -83,12 +84,6 @@ void init_state(int state_number, state_t *state){
     sprintf(state->name,"STATE_STANDBY");
     //Set cmd
     sprintf(state->cmd,"stb");
-    //HEX Commander
-    state->hex_commander = WATID;
-    //ALP Commander
-    state->alp_commander = WATID;
-    //BMC Commander
-    state->bmc_commander = WATID;
     return;
   }
 
@@ -103,12 +98,6 @@ void init_state(int state_number, state_t *state){
     state->proc_run[LYTID] = 0;
     state->proc_run[SCIID] = 0;
     state->proc_run[ACQID] = 0;
-    //HEX Commander
-    state->hex_commander = WATID;
-    //ALP Commander
-    state->alp_commander = WATID;
-    //BMC Commander
-    state->bmc_commander = WATID;
     return;
   }
   
@@ -118,12 +107,6 @@ void init_state(int state_number, state_t *state){
     sprintf(state->name,"STATE_ACQUIRE_TARGET");
     //Set cmd
     sprintf(state->cmd,"acq");
-    //HEX Commander
-    state->hex_commander = WATID;
-    //ALP Commander
-    state->alp_commander = WATID;
-    //BMC Commander
-    state->bmc_commander = WATID;
     //Configure Cameras
     state->proc_run[SHKID] = 0;
     state->proc_run[LYTID] = 0;
@@ -140,10 +123,6 @@ void init_state(int state_number, state_t *state){
     sprintf(state->cmd,"sps");
     //HEX Commander
     state->hex_commander = ACQID;
-    //ALP Commander
-    state->alp_commander = WATID;
-    //BMC Commander
-    state->bmc_commander = WATID;
     //Configure Cameras
     state->proc_run[SHKID] = 0;
     state->proc_run[LYTID] = 0;
@@ -167,8 +146,6 @@ void init_state(int state_number, state_t *state){
     state->shk.zernike_control[4] = ACTUATOR_HEX;
     //Set SHKID as hex commander
     state->hex_commander = SHKID;
-    //BMC Commander
-    state->bmc_commander = WATID;
     return;
   }
 
@@ -190,8 +167,6 @@ void init_state(int state_number, state_t *state){
     //Offload ALP tilt to hexapod
     state->shk.alp_zernike_offload[0] = ACTUATOR_HEX;
     state->shk.alp_zernike_offload[1] = ACTUATOR_HEX;
-    //BMC Commander
-    state->bmc_commander = WATID;
     return;
   }
 
@@ -203,8 +178,6 @@ void init_state(int state_number, state_t *state){
     sprintf(state->cmd,"shc");
     //Set SHKID as hex commander
     state->hex_commander = SHKID;
-    //BMC Commander
-    state->bmc_commander = WATID;
     return;
   }
 
@@ -216,8 +189,6 @@ void init_state(int state_number, state_t *state){
     sprintf(state->cmd,"sac");
     //Set SHKID as alp commander
     state->alp_commander = SHKID;
-    //BMC Commander
-    state->bmc_commander = WATID;
     return;
   }
 
@@ -229,8 +200,6 @@ void init_state(int state_number, state_t *state){
     sprintf(state->cmd,"szc");
     //Set SHKID as alp commander
     state->alp_commander = SHKID;
-    //BMC Commander
-    state->bmc_commander = WATID;
     //SHK Settings
     for(i=0;i<LOWFS_N_ZERNIKE;i++)
       state->shk.zernike_control[i] = ACTUATOR_ALP;
@@ -246,8 +215,6 @@ void init_state(int state_number, state_t *state){
     sprintf(state->cmd,"scc");
     //Set SHKID as alp commander
     state->alp_commander = SHKID;
-    //BMC Commander
-    state->bmc_commander = WATID;
     //SHK Settings
     state->shk.cell_control = ACTUATOR_ALP;
     return;
@@ -259,8 +226,6 @@ void init_state(int state_number, state_t *state){
     sprintf(state->name,"STATE_LYT_ALP_CALIBRATE");
     //Set cmd
     sprintf(state->cmd,"lac");
-    //BMC Commander
-    state->bmc_commander = WATID;
     //Set LYTID as alp commander
     state->alp_commander = LYTID;
     return;
@@ -274,8 +239,6 @@ void init_state(int state_number, state_t *state){
     sprintf(state->cmd,"lzc");
     //Set LYTID as alp commander
     state->alp_commander = LYTID;
-    //BMC Commander
-    state->bmc_commander = WATID;
     //LYT Settings
     for(i=0;i<LOWFS_N_ZERNIKE;i++)
       state->lyt.zernike_control[i] = ACTUATOR_ALP;
@@ -290,8 +253,6 @@ void init_state(int state_number, state_t *state){
     sprintf(state->cmd,"ltt");
     //Set LYTID as alp commander
     state->alp_commander = LYTID;
-    //BMC Commander
-    state->bmc_commander = WATID;
     //LYT Settings
     state->lyt.zernike_control[0] = ACTUATOR_ALP;
     state->lyt.zernike_control[1] = ACTUATOR_ALP;
@@ -306,8 +267,6 @@ void init_state(int state_number, state_t *state){
     sprintf(state->cmd,"hzc");
     //Set LYTID as alp commander
     state->alp_commander = LYTID;
-    //BMC Commander
-    state->bmc_commander = WATID;
     //LYT Settings
     state->lyt.zernike_control[0] = ACTUATOR_ALP;
     state->lyt.zernike_control[1] = ACTUATOR_ALP;

@@ -831,6 +831,10 @@ int main(int argc,char **argv){
     if(sm_p->bmc_ready){
       /* Turn BMC HV off */
       libbmc_hv_off((libbmc_device_t *)&sm_p->libbmc_device);
+      /* Turn ON LEDs */
+      if(libbmc_toggle_leds_on((libbmc_device_t *)&sm_p->libbmc_device))
+	printf("WAT: ERROR (libbmc_toggle_leds_on)\n");
+      usleep(LIBBMC_LONG_USLEEP);
       /* Close BMC device */
       libbmc_close_device((libbmc_device_t *)&sm_p->libbmc_device);
       printf("WAT: BMC closed\n");

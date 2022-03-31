@@ -837,7 +837,7 @@ int shk_process_image(stImageBuff *buffer,sm_t *sm_p){
     //Reset calibration routines
     alp_calibrate(sm_p,0,NULL,NULL,NULL,SHKID,FUNCTION_RESET);
     hex_calibrate(0,NULL,NULL,SHKID,FUNCTION_RESET);
-    tgt_calibrate(0,NULL,NULL,SHKID,FUNCTION_RESET);
+    tgt_calibrate(sm_p,0,NULL,NULL,SHKID,FUNCTION_RESET);
     //Reset PID controllers
     shk_alp_cellpid(NULL,0,FUNCTION_RESET);
     shk_alp_zernpid(NULL,NULL,NULL,0,FUNCTION_RESET);
@@ -912,9 +912,9 @@ int shk_process_image(stImageBuff *buffer,sm_t *sm_p){
   memcpy(shkevent.zernike_target,(void *)sm_p->shk_zernike_target,sizeof(shkevent.zernike_target));
 
   //Run target calibration
-  if(sm_p->state_array[state].alp_commander == SHKID)
+  if(sm_p->state_array[state].tgt_commander == SHKID)
     if(shkevent.hed.tgt_calmode != TGT_CALMODE_NONE)
-      sm_p->tgt_calmode = tgt_calibrate(shkevent.hed.tgt_calmode,shkevent.zernike_target,&shkevent.hed.tgt_calstep,SHKID,FUNCTION_NO_RESET);
+      sm_p->tgt_calmode = tgt_calibrate(sm_p,shkevent.hed.tgt_calmode,shkevent.zernike_target,&shkevent.hed.tgt_calstep,SHKID,FUNCTION_NO_RESET);
   
   //Set centroid targets based on zernike targets
   shk_zernike_ops(&shkevent,0,1,FUNCTION_NO_RESET);
