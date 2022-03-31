@@ -56,13 +56,11 @@ libusb_context* p_ctx = NULL; // a libusb session global
 libbmc_error_t libbmc_open_device (libbmc_device_t* p_libbmc_device) {
   libusb_device **pp_devs; // array of all libusb_device pointers
   ssize_t dev_count; // device count
-  int ret0; // for return values of libusb_init ()
+  int ret; // for return values of libusb_init ()
 
-  ret0 = libusb_init (&p_ctx); // initialize libusb library
-  if (ret0 < 0) {
-#if LIBBMC_DEBUG
-    printf ("BMC: libusb_init failed : %s\n", libbmc_error_name (ret0));
-#endif
+  ret = libusb_init (&p_ctx); // initialize libusb library
+  if (ret < 0) {
+    printf ("BMC: libusb_init failed : %s\n", libbmc_error_name (ret));
     return LIBUSB_ERROR_OTHER;
   }
 #if LIBBMC_DEBUG
@@ -71,10 +69,14 @@ libbmc_error_t libbmc_open_device (libbmc_device_t* p_libbmc_device) {
 
   libusb_set_debug (p_ctx, 3); //set verbosity level to 3, as suggested in the libusb documentation
 
-  dev_count = libusb_get_device_list (p_ctx, &pp_devs); // get the list of devices
-  if (dev_count < 0) // libusb_get_device_list () failed
-    return dev_count; // return error
-
+  ret = libusb_get_device_list (p_ctx, &pp_devs); // get the list of devices
+  if (ret < 0){
+    // libusb_get_device_list () failed
+    printf ("BMC: libusb_get_device_list failed : %s\n", libbmc_error_name (ret));
+    return ret; // return error
+  }
+  dev_count = ret;
+  
   // libusb_get_device_list () successful
 #if LIBBMC_DEBUG
   printf ("BMC: libusb_get_device_list successful\n");
@@ -82,16 +84,13 @@ libbmc_error_t libbmc_open_device (libbmc_device_t* p_libbmc_device) {
 
   struct libusb_device_descriptor dev_desc; // device descriptor
   ssize_t i; // for iterating through the list of devices
-  int ret1; // for return values of libusb_get_device_descriptor ()
-
+  
   for (i = 0; i < dev_count; i++) { // iterate through devices
-    ret1 = libusb_get_device_descriptor (pp_devs[i], &dev_desc); // get device descriptor
-    if (ret1 < 0) { // libusb_get_device_descriptor () failed
-#if LIBBMC_DEBUG
-      printf ("BMC: libusb_get_device_descriptor failed : %s\n", libbmc_error_name (ret1));
-#endif
+    ret = libusb_get_device_descriptor (pp_devs[i], &dev_desc); // get device descriptor
+    if (ret < 0) { // libusb_get_device_descriptor () failed
+      printf ("BMC: libusb_get_device_descriptor failed : %s\n", libbmc_error_name (ret));
       libusb_free_device_list (pp_devs, 1); // free the list of devices
-      return ret1; // return error
+      return ret; // return error
     }
 
     // libusb_get_device_descriptor () successful
@@ -100,15 +99,12 @@ libbmc_error_t libbmc_open_device (libbmc_device_t* p_libbmc_device) {
 #endif
 
     if ((dev_desc.idVendor == LIBBMC_VENDOR_ID) && (dev_desc.idProduct == LIBBMC_PRODUCT_ID)) { // dm found
-      int ret2; // for return values of libusb_open ()
-      ret2 = libusb_open (pp_devs[i], &p_libbmc_device->handle); // open device
-      if (ret2 < 0) { // libusb_open () failed
-#if LIBBMC_DEBUG
-        printf ("BMC: libusb_open failed : %s\n", libbmc_error_name (ret2));
-#endif
+      ret = libusb_open (pp_devs[i], &p_libbmc_device->handle); // open device
+      if (ret < 0) { // libusb_open () failed
+        printf ("BMC: libusb_open failed : %s\n", libbmc_error_name (ret));
         libusb_close (p_libbmc_device->handle); // close opened device
         libusb_free_device_list (pp_devs, 1); // free the list of devices
-        return ret2; // return error
+        return ret; // return error
       }
 
       // libusb_open successful
@@ -116,17 +112,14 @@ libbmc_error_t libbmc_open_device (libbmc_device_t* p_libbmc_device) {
       printf ("BMC: libusb_open successful\n");
 #endif
 
-      int ret3; // for return values of libusb_get_config_descriptor ()
       struct libusb_config_descriptor* p_config_desc; // config descriptor
-      ret3 = libusb_get_config_descriptor (pp_devs[i], 0, &p_config_desc); // get config descriptor
-      if (ret3 < 0) { // libusb_get_config_descriptor () failed
-#if LIBBMC_DEBUG
-        printf ("BMC: libusb_get_config_descriptor failed : %s\n", libbmc_error_name (ret3));
-#endif
+      ret = libusb_get_config_descriptor (pp_devs[i], 0, &p_config_desc); // get config descriptor
+      if (ret < 0) { // libusb_get_config_descriptor () failed
+        printf ("BMC: libusb_get_config_descriptor failed : %s\n", libbmc_error_name (ret));
         libusb_close (p_libbmc_device->handle); // close opened device
         libusb_free_device_list (pp_devs, 1); // free the list of devices
         libusb_free_config_descriptor (p_config_desc); // free the config descriptor
-        return ret3; // return error
+        return ret; // return error
       }
 
       // libusb_get_config_descriptor () successful
@@ -157,46 +150,37 @@ libbmc_error_t libbmc_open_device (libbmc_device_t* p_libbmc_device) {
 
       // configure the device
       /*
-      int ret4; // for return values of libusb_set_auto_detach_kernel_driver ()
-      ret4 = libusb_set_auto_detach_kernel_driver (p_libbmc_device->handle, 1); // auto detach the kernel driver when claiming
-      if (ret4 < 0) { // libusb_set_auto_detach_kernel_driver () failed
-#if LIBBMC_DEBUG
-        printf ("BMC: libusb_set_auto_detach_kernel_driver failed : %s\n", libbmc_error_name (ret4));
-#endif
+	ret = libusb_set_auto_detach_kernel_driver (p_libbmc_device->handle, 1); // auto detach the kernel driver when claiming
+	if (ret < 0) { // libusb_set_auto_detach_kernel_driver () failed
+        printf ("BMC: libusb_set_auto_detach_kernel_driver failed : %s\n", libbmc_error_name (ret));
         libusb_close (p_libbmc_device->handle); // close opened device
-        return ret4; // return error
-      }
+        return ret; // return error
+	}
       */
       // libusb_set_auto_detach_kernel_driver () successful
 #if LIBBMC_DEBUG
       printf ("BMC: libusb_set_auto_detach_kernel_driver successful\n");
 #endif
 
-      int ret5; // for return values of libusb_claim_interface ()
-      ret5 = libusb_claim_interface (p_libbmc_device->handle, 0); // claim interface
-      if (ret5 < 0) { // libusb_claim_interface () failed
-#if LIBBMC_DEBUG
-        printf ("BMC: libusb_claim_interface failed : %s\n", libbmc_error_name (ret5));
-#endif
+      ret = libusb_claim_interface (p_libbmc_device->handle, 0); // claim interface
+      if (ret < 0) { // libusb_claim_interface () failed
+        printf ("BMC: libusb_claim_interface failed : %s\n", libbmc_error_name (ret));
         libusb_release_interface (p_libbmc_device->handle, 0); // release claimed interface
         libusb_close (p_libbmc_device->handle); // close opened device
-        return ret5; // return error
+        return ret; // return error
       }
-
+      
       // libusb_claim_interface () successful
 #if LIBBMC_DEBUG
       printf ("BMC: libusb_claim_interface successful\n");
 #endif
-
-      int ret6; // for return values of libbmc_get_status ()
-      ret6 = _libbmc_init_status (p_libbmc_device); // initialize the device and status fields
-      if (ret6 < 0) { // libbmc_get_status () failed
-#if LIBBMC_DEBUG
-        printf ("BMC: libbmc_get_status failed : %s\n", libbmc_error_name (ret6));
-#endif
+      
+      ret = _libbmc_init_status (p_libbmc_device); // initialize the device and status fields
+      if (ret < 0) { // libbmc_get_status () failed
+        printf ("BMC: libbmc_get_status failed : %s\n", libbmc_error_name (ret));
         libusb_release_interface (p_libbmc_device->handle, 0); // release claimed interface
         libusb_close (p_libbmc_device->handle); // close opened device
-        return ret6; // return error
+        return ret; // return error
       }
 
       // libbmc_get_status () successful
@@ -204,7 +188,7 @@ libbmc_error_t libbmc_open_device (libbmc_device_t* p_libbmc_device) {
       printf ("BMC: libbmc_get_status successful\n");
 #endif
 
-      return ret6; // libbmc_open_device () successful
+      return 0; // libbmc_open_device () successful
     }
   }
   return LIBBMC_ERROR_NO_DEVICE;
