@@ -184,7 +184,9 @@ cmd: tgt commander sci
 	
 cmd: tgt commander wat
         change tgt commader to wat (user)
-	
+
+cmd: commander
+	print current actuator commanders
 	
 -------------- DATA RECORDING -------------
 

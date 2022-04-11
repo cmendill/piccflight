@@ -226,6 +226,31 @@ void print_fakemodes(calmode_t *fake, int current){
 }
 
 /**************************************************************/
+/* PRINT_COMMANDERS                                           */
+/*  - Print actuator commanders                               */
+/**************************************************************/
+void print_commanders(sm_t *sm_p){
+  char bmc[10];
+  char alp[10];
+  char hex[10];
+  char tgt[10];;
+  int i;
+  for(i=0;i<NCLIENTS;i++){
+    if(sm_p->state_array[sm_p->state].bmc_commander == i) strcpy(bmc,sm_p->w[i].name);
+    if(sm_p->state_array[sm_p->state].alp_commander == i) strcpy(alp,sm_p->w[i].name);
+    if(sm_p->state_array[sm_p->state].hex_commander == i) strcpy(hex,sm_p->w[i].name);
+    if(sm_p->state_array[sm_p->state].tgt_commander == i) strcpy(tgt,sm_p->w[i].name);
+  }
+
+  printf("******************* Actuator Commanders  *******************\n");
+  printf("BMC: %s\n",bmc);
+  printf("ALP: %s\n",alp);
+  printf("HEX: %s\n",hex);
+  printf("TGT: %s\n",tgt);
+  printf("*************************************************************\n");
+}
+
+/**************************************************************/
 /* PRINT_SHK_ZERNIKES                                             */
 /*  - Print out SHK zernike control status                        */
 /**************************************************************/
@@ -788,6 +813,13 @@ int handle_command(char *line, sm_t *sm_p){
     return(CMD_NORMAL);
   }
 
+  //Print actuator commanders
+  sprintf(cmd,"commander");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    print_commanders(sm_p);
+    return(CMD_NORMAL);
+  }
+  
   //Change actuator commanders
   sprintf(cmd,"bmc commander sci");
   if(!strncasecmp(line,cmd,strlen(cmd))){
