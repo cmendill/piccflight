@@ -181,6 +181,20 @@ void acq_process_image(uvc_frame_t *frame, sm_t *sm_p) {
     }
   }
 
+  //Fake data
+  if(sm_p->w[ACQID].fakemode != FAKEMODE_NONE){
+    fakepx=0;
+    if(sm_p->w[ACQID].fakemode == FAKEMODE_TEST_PATTERN){
+      for(i=0;i<ACQXS;i++)
+	for(j=0;j<ACQYS;j++)
+	  acqevent.image.data[i][j]=fakepx++;
+    }
+    if(sm_p->w[ACQID].fakemode == FAKEMODE_IMREG){
+      memset(&acqevent.image,0,sizeof(acqevent.image));
+      acqevent.image.data[CAM_IMREG_X][CAM_IMREG_Y] = 1;
+    }
+  }
+
   //Spiral search
   if(acqevent.hed.state == STATE_SPIRAL_SEARCH && acqevent.hed.hex_calmode == HEX_CALMODE_SPIRAL && sm_p->hex_spiral_autostop){
     if(nstar > ACQ_NSTAR_THRESH){
@@ -252,10 +266,16 @@ void acq_process_image(uvc_frame_t *frame, sm_t *sm_p) {
       
       //Fake data
       if(sm_p->w[ACQID].fakemode != FAKEMODE_NONE){
-	if(sm_p->w[ACQID].fakemode == FAKEMODE_TEST_PATTERN)
+	fakepx=0;
+	if(sm_p->w[ACQID].fakemode == FAKEMODE_TEST_PATTERN){
 	  for(i=0;i<ACQREADXS;i++)
 	    for(j=0;j<ACQREADYS;j++)
 	      acqfull.image.data[i][j]=fakepx++;
+	}
+	if(sm_p->w[ACQID].fakemode == FAKEMODE_IMREG){
+	  memset(&acqfull.image,0,sizeof(acqfull.image));
+	  acqfull.image.data[CAM_IMREG_X][CAM_IMREG_Y] = 1;
+	}
       }
       else{
 	//Copy full image

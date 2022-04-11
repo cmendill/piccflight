@@ -737,6 +737,11 @@ void sci_process_image(uint16 *img_buffer, float img_exptime, sm_t *sm_p){
 	    else
 	      scievent.bands.band[k].data[i][j] = 0;
     }
+    if(sm_p->w[SCIID].fakemode == FAKEMODE_IMREG){
+      memset(&scievent.bands,0,sizeof(scievent.bands));
+      for(k=0;k<SCI_NBANDS;k++)
+	scievent.bands.band[k].data[CAM_IMREG_X][CAM_IMREG_Y] = 1;
+    }
   }
   else{
     //Real data: cut out bands 
@@ -745,7 +750,7 @@ void sci_process_image(uint16 *img_buffer, float img_exptime, sm_t *sm_p){
 	for(j=0;j<SCIYS;j++)
     	  scievent.bands.band[b].data[i][j] = img_buffer[sci_xy2index(scievent.xorigin[b]-(SCIXS/2)+i,scievent.yorigin[b]-(SCIYS/2)+j)];
   }
-
+  
   //Command: sci_setref 
   if(sm_p->sci_setref){
     for(b=0;b<SCI_NBANDS;b++){

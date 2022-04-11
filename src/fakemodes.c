@@ -45,4 +45,9 @@ void init_fakemode(int fakemode, calmode_t *fake){
     sprintf(fake->name,"FAKEMODE_SCI_PROBE");
     sprintf(fake->cmd,"sciprobe");
   }
+  //FAKEMODE_IMREG
+  if(fakemode == FAKEMODE_IMREG){
+    sprintf(fake->name,"FAKEMODE_IMREG");
+    sprintf(fake->cmd,"imreg");
+  }
 }

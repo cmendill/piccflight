@@ -358,6 +358,12 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 #define ACQ_FRMTIME_MAX  1.000
 
 /*************************************************
+ * Camera Image Registration Pixel
+ *************************************************/
+#define CAM_IMREG_X    4
+#define CAM_IMREG_Y    2
+
+/*************************************************
  * Debug Messaging
  *************************************************/
 #define WAT_DEBUG       0 // print wat messages

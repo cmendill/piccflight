@@ -1320,6 +1320,10 @@ int shk_process_image(stImageBuff *buffer,sm_t *sm_p){
 	  for(i=0;i<SHKXS;i++)
 	    for(j=0;j<SHKYS;j++)
 	      shkfull.image.data[i][j]=fakepx++;
+	if(sm_p->w[SHKID].fakemode == FAKEMODE_IMREG){
+	  memset(&shkfull.image,0,sizeof(shkfull.image));
+	  shkfull.image.data[CAM_IMREG_X][CAM_IMREG_Y] = 1;
+	}
       }
       else{
 	//Copy full image

@@ -465,8 +465,13 @@ int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
       for(i=0;i<LYTXS;i++)
 	for(j=0;j<LYTYS;j++)
 	  lytevent.image.data[i][j]=lytref.refimg[i][j];
+    if(sm_p->w[LYTID].fakemode == FAKEMODE_IMREG){
+      memset(&lytevent.image,0,sizeof(lytevent.image));
+      lytevent.image.data[CAM_IMREG_X][CAM_IMREG_Y] = 1;
+    }
   }
   else{
+    //Real data
     if(sm_p->lyt_mag_enable){
       //Run image magnification
       for(i=0;i<LYTXS;i++){
@@ -496,7 +501,8 @@ int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
 	  }
 	}
       }
-    }else{
+    }
+    else{
       //Cut out ROI & measure background -- transpose origin offsets to match ROI coordinates. Image is transposed during readout.
       for(i=0;i<LYTREADXS;i++){
 	for(j=0;j<LYTREADYS;j++){
