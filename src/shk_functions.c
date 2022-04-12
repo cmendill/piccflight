@@ -23,6 +23,14 @@
 #include "fakemodes.h"
 
 /**************************************************************/
+/* SHK_XY2INDEX                                               */
+/*  - Transform x,y to buffer index                           */
+/**************************************************************/
+uint64 shk_xy2index(int x, int y){
+  return x + y*SHKXS;
+}
+
+/**************************************************************/
 /* SHK_INIT_CELLS                                             */
 /*  - Set cell origins and beam select flags                  */
 /**************************************************************/
@@ -234,7 +242,7 @@ void shk_centroid_cell(uint8 *image, shkcell_t *cell, int cmd_boxsize){
   intensity=0;
   for(x=blx;x<=trx;x++){
     for(y=bly;y<=try;y++){
-      px = x + y*SHKXS;
+      px = shk_xy2index(x,y);
       intensity += image[px];
       if(image[px] > maxval){
 	maxval = image[px];
@@ -307,7 +315,7 @@ void shk_centroid_cell(uint8 *image, shkcell_t *cell, int cmd_boxsize){
     intensity=0;
     for(x=blx;x<=trx;x++){
       for(y=bly;y<=try;y++){
-	px = x + y*SHKXS;
+	px = shk_xy2index(x,y);
 	value = (double)image[px] - cell->background;
 	if(value > SHK_SPOT_UPPER_THRESH){
 	  xhist[x]  += value;
@@ -800,7 +808,7 @@ int shk_process_image(stImageBuff *buffer,sm_t *sm_p){
   int offload_switch[LOWFS_N_ZERNIKE] = {0};
   uint32_t n_dither=1;
   int reset_zernike=0;
-  
+  uint8 *image = (uint8 *)buffer->pvAddress;
     
   //Get time immidiately
   clock_gettime(CLOCK_REALTIME,&start);
@@ -930,7 +938,7 @@ int shk_process_image(stImageBuff *buffer,sm_t *sm_p){
   
   //Set centroid boxsize to max in STATE_STANDBY
   if(state == STATE_STANDBY) shkevent.boxsize = SHK_MAX_BOXSIZE;
- 
+
   //Calculate centroids
   shk_centroid(buffer->pvAddress,&shkevent);
  
@@ -1327,7 +1335,9 @@ int shk_process_image(stImageBuff *buffer,sm_t *sm_p){
       }
       else{
 	//Copy full image
-	memcpy(&(shkfull.image.data[0][0]),buffer->pvAddress,sizeof(shk_t));
+	for(i=0;i<SHKXS;i++)
+	  for(j=0;j<SHKYS;j++)
+	    shkfull.image.data[i][j] = image[shk_xy2index(i,j)];
       }
       
       //Copy shkevent
