@@ -27,7 +27,7 @@
 /*  - Transform x,y to buffer index                           */
 /**************************************************************/
 uint64 shk_xy2index(int x, int y){
-  return x + y*SHKXS;
+  return (uint64)x + ((uint64)y)*SHKXS;
 }
 
 /**************************************************************/
@@ -486,53 +486,56 @@ void shk_zernike_matrix(shkcell_t *cells, double *matrix_fwd, double *matrix_inv
     //Inverse * wavefront slope = Inverse * (displacment [um] / focal length [um]) = Zernike coefficent
     //Inverse * (dispacement [px] * pixel size [um] / focal length [um]) = Zernike Coeff
     //unit_conversion also cotains (focal_length / pixel_size) which, when inverted will convert pixel displacements to wavefront slopes
-    dz_dxdy[2*i+0+( 0*SHK_BEAM_NCELLS)] =      2.0 * (1)                                                                    *unit_conversion;
-    dz_dxdy[2*i+0+( 2*SHK_BEAM_NCELLS)] =      2.0 * (0)                                                                    *unit_conversion;
-    dz_dxdy[2*i+0+( 4*SHK_BEAM_NCELLS)] =  sqrt(3) * (4*x_1)                                                                *unit_conversion;
-    dz_dxdy[2*i+0+( 6*SHK_BEAM_NCELLS)] =  sqrt(6) * (2*x_1)                                                                *unit_conversion;
-    dz_dxdy[2*i+0+( 8*SHK_BEAM_NCELLS)] =  sqrt(6) * (2*y_1)                                                                *unit_conversion;
-    dz_dxdy[2*i+0+(10*SHK_BEAM_NCELLS)] =  sqrt(8) * (9*x_2 + 3*y_2 - 2)                                                    *unit_conversion;
-    dz_dxdy[2*i+0+(12*SHK_BEAM_NCELLS)] =  sqrt(8) * (6*x_1*y_1)                                                            *unit_conversion;
-    dz_dxdy[2*i+0+(14*SHK_BEAM_NCELLS)] =  sqrt(8) * (3*x_2 - 3*y_2)                                                        *unit_conversion;
-    dz_dxdy[2*i+0+(16*SHK_BEAM_NCELLS)] =  sqrt(8) * (6*x_1*y_1)                                                            *unit_conversion;
-    dz_dxdy[2*i+0+(18*SHK_BEAM_NCELLS)] = sqrt( 5) * (24*x_3 - 12*x_1 + 24*x_1*y_2)                                         *unit_conversion;
-    dz_dxdy[2*i+0+(20*SHK_BEAM_NCELLS)] = sqrt(10) * (16*x_3 - 6*x_1)                                                       *unit_conversion;
-    dz_dxdy[2*i+0+(22*SHK_BEAM_NCELLS)] = sqrt(10) * (24*x_2*y_1 - 6*y_1 + 8*y_3)                                           *unit_conversion;
-    dz_dxdy[2*i+0+(24*SHK_BEAM_NCELLS)] = sqrt(10) * (4*x_3 - 12*x_1*y_2)                                                   *unit_conversion;
-    dz_dxdy[2*i+0+(26*SHK_BEAM_NCELLS)] = sqrt(10) * (12*x_2*y_1 - 4*y_3)                                                   *unit_conversion;
-    dz_dxdy[2*i+0+(28*SHK_BEAM_NCELLS)] = sqrt(12) * (50*x_4 - 36*x_2 + 60*x_2*y_2 - 12*y_2 + 10*y_4 + 3)                   *unit_conversion;
-    dz_dxdy[2*i+0+(30*SHK_BEAM_NCELLS)] = sqrt(12) * (40*x_3*y_1 - 24*x_1*y_1 + 40*x_1*y_3)                                 *unit_conversion;
-    dz_dxdy[2*i+0+(32*SHK_BEAM_NCELLS)] = sqrt(12) * (25*x_4 - 12*x_2 - 30*x_2*y_2 + 12*y_2 - 15*y_4)                       *unit_conversion;
-    dz_dxdy[2*i+0+(34*SHK_BEAM_NCELLS)] = sqrt(12) * (60*x_3*y_1 - 24*x_1*y_1 + 20*x_1*y_3)                                 *unit_conversion;
-    dz_dxdy[2*i+0+(36*SHK_BEAM_NCELLS)] = sqrt(12) * (5*x_4 - 30*x_2*y_2 + 5*y_4)                                           *unit_conversion;
-    dz_dxdy[2*i+0+(38*SHK_BEAM_NCELLS)] = sqrt(12) * (20*x_3*y_1 - 20*x_1*y_3)                                              *unit_conversion;
-    dz_dxdy[2*i+0+(40*SHK_BEAM_NCELLS)] = sqrt( 7) * (120*x_5 - 120*x_3 + 240*x_3*y_2 + 24*x_1 - 120*x_1*y_2 + 120*x_1*y_4) *unit_conversion;
-    dz_dxdy[2*i+0+(42*SHK_BEAM_NCELLS)] = sqrt(14) * (90*x_5 + 60*x_3*y_2 - 80*x_3 + 12*x_1 - 30*x_1*y_4)                   *unit_conversion;
-    dz_dxdy[2*i+0+(44*SHK_BEAM_NCELLS)] = sqrt(14) * (150*x_4*y_1 + 180*x_2*y_3 - 120*x_2*y_1 + 12*y_1 - 40*y_3 + 30*y_5)   *unit_conversion;
 
-    dz_dxdy[2*i+1+( 0*SHK_BEAM_NCELLS)] =      2.0 * (0)                                                                    *unit_conversion;
-    dz_dxdy[2*i+1+( 2*SHK_BEAM_NCELLS)] =      2.0 * (1)                                                                    *unit_conversion;
-    dz_dxdy[2*i+1+( 4*SHK_BEAM_NCELLS)] =  sqrt(3) * (4*y_1)                                                                *unit_conversion;
-    dz_dxdy[2*i+1+( 6*SHK_BEAM_NCELLS)] =  sqrt(6) * (-2*y_1)                                                               *unit_conversion;
-    dz_dxdy[2*i+1+( 8*SHK_BEAM_NCELLS)] =  sqrt(6) * (2*x_1)                                                                *unit_conversion;
-    dz_dxdy[2*i+1+(10*SHK_BEAM_NCELLS)] =  sqrt(8) * (6*x_1*y_1)                                                            *unit_conversion;
-    dz_dxdy[2*i+1+(12*SHK_BEAM_NCELLS)] =  sqrt(8) * (3*x_2 + 9*y_2 - 2)                                                    *unit_conversion;
-    dz_dxdy[2*i+1+(14*SHK_BEAM_NCELLS)] =  sqrt(8) * (-6*x_1*y_1)                                                           *unit_conversion;
-    dz_dxdy[2*i+1+(16*SHK_BEAM_NCELLS)] =  sqrt(8) * (3*x_2 - 3*y_2)                                                        *unit_conversion;
-    dz_dxdy[2*i+1+(18*SHK_BEAM_NCELLS)] = sqrt( 5) * (24*x_2*y_1 - 12*y_1 + 24*y_3)                                         *unit_conversion;
-    dz_dxdy[2*i+1+(20*SHK_BEAM_NCELLS)] = sqrt(10) * (6*y_1 - 16*y_3)                                                       *unit_conversion;
-    dz_dxdy[2*i+1+(22*SHK_BEAM_NCELLS)] = sqrt(10) * (8*x_3 - 6*x_1 + 24*x_1*y_2)                                           *unit_conversion;
-    dz_dxdy[2*i+1+(24*SHK_BEAM_NCELLS)] = sqrt(10) * (-12*x_2*y_1 + 4*y_3)                                                  *unit_conversion;
-    dz_dxdy[2*i+1+(26*SHK_BEAM_NCELLS)] = sqrt(10) * (4*x_3 - 12*x_1*y_2)                                                   *unit_conversion;
-    dz_dxdy[2*i+1+(28*SHK_BEAM_NCELLS)] = sqrt(12) * (40*x_3*y_1 -24*x_1*y_1 + 40*x_1*y_3)                                  *unit_conversion;
-    dz_dxdy[2*i+1+(30*SHK_BEAM_NCELLS)] = sqrt(12) * (10*x_4 - 12*x_2 + 60*x_2*y_2 - 36*y_2 + 50*y_4 + 3)                   *unit_conversion;
-    dz_dxdy[2*i+1+(32*SHK_BEAM_NCELLS)] = sqrt(12) * (-20*x_3*y_1 + 24*x_1*y_1 - 60*x_1*y_3)                                *unit_conversion;
-    dz_dxdy[2*i+1+(34*SHK_BEAM_NCELLS)] = sqrt(12) * (15*x_4 - 12*x_2 + 30*x_2*y_2 + 12*y_2 - 25*y_4)                       *unit_conversion;
-    dz_dxdy[2*i+1+(36*SHK_BEAM_NCELLS)] = sqrt(12) * (-20*x_3*y_1 + 20*x_1*y_3)                                             *unit_conversion;
-    dz_dxdy[2*i+1+(38*SHK_BEAM_NCELLS)] = sqrt(12) * (5*x_4 - 30*x_2*y_2 + 5*y_4)                                           *unit_conversion;
-    dz_dxdy[2*i+1+(40*SHK_BEAM_NCELLS)] = sqrt( 7) * (120*x_4*y_1 - 120*x_2*y_1 + 240*x_2*y_3 + 24*y_1 - 120*y_3 + 120*y_5) *unit_conversion;
-    dz_dxdy[2*i+1+(42*SHK_BEAM_NCELLS)] = sqrt(14) * (30*x_4*y_1 - 60*x_2*y_3 - 12*y_1 + 80*y_3 - 90*y_5)                   *unit_conversion;
-    dz_dxdy[2*i+1+(44*SHK_BEAM_NCELLS)] = sqrt(14) * (30*x_5 - 40*x_3 + 180*x_3*y_2 + 12*x_1 - 120*x_1*y_2 + 150*x_1*y_4)   *unit_conversion;
+    //X-Derivatives
+    /* 0*/ dz_dxdy[2*i+0+( 0*SHK_BEAM_NCELLS)] =      2.0 * (1)                                                                    *unit_conversion;
+    /* 1*/ dz_dxdy[2*i+0+( 2*SHK_BEAM_NCELLS)] =      2.0 * (0)                                                                    *unit_conversion;
+    /* 2*/ dz_dxdy[2*i+0+( 4*SHK_BEAM_NCELLS)] =  sqrt(3) * (4*x_1)                                                                *unit_conversion;
+    /* 3*/ dz_dxdy[2*i+0+( 6*SHK_BEAM_NCELLS)] =  sqrt(6) * (2*y_1)                                                                *unit_conversion;
+    /* 4*/ dz_dxdy[2*i+0+( 8*SHK_BEAM_NCELLS)] =  sqrt(6) * (2*x_1)                                                                *unit_conversion;
+    /* 5*/ dz_dxdy[2*i+0+(10*SHK_BEAM_NCELLS)] =  sqrt(8) * (6*x_1*y_1)                                                            *unit_conversion;
+    /* 6*/ dz_dxdy[2*i+0+(12*SHK_BEAM_NCELLS)] =  sqrt(8) * (9*x_2 + 3*y_2 - 2)                                                    *unit_conversion;
+    /* 7*/ dz_dxdy[2*i+0+(14*SHK_BEAM_NCELLS)] =  sqrt(8) * (6*x_1*y_1)                                                            *unit_conversion;
+    /* 8*/ dz_dxdy[2*i+0+(16*SHK_BEAM_NCELLS)] =  sqrt(8) * (3*x_2 - 3*y_2)                                                        *unit_conversion;
+    /* 9*/ dz_dxdy[2*i+0+(18*SHK_BEAM_NCELLS)] =  sqrt(5) * (24*x_3 - 12*x_1 + 24*x_1*y_2)                                         *unit_conversion;
+    /*10*/ dz_dxdy[2*i+0+(20*SHK_BEAM_NCELLS)] = sqrt(10) * (16*x_3 - 6*x_1)                                                       *unit_conversion;
+    /*11*/ dz_dxdy[2*i+0+(22*SHK_BEAM_NCELLS)] = sqrt(10) * (24*x_2*y_1 - 6*y_1 + 8*y_3)                                           *unit_conversion;
+    /*12*/ dz_dxdy[2*i+0+(24*SHK_BEAM_NCELLS)] = sqrt(10) * (4*x_3 - 12*x_1*y_2)                                                   *unit_conversion;
+    /*13*/ dz_dxdy[2*i+0+(26*SHK_BEAM_NCELLS)] = sqrt(10) * (12*x_2*y_1 - 4*y_3)                                                   *unit_conversion;
+    /*14*/ dz_dxdy[2*i+0+(28*SHK_BEAM_NCELLS)] = sqrt(12) * (50*x_4 - 36*x_2 + 60*x_2*y_2 - 12*y_2 + 10*y_4 + 3)                   *unit_conversion;
+    /*15*/ dz_dxdy[2*i+0+(30*SHK_BEAM_NCELLS)] = sqrt(12) * (40*x_3*y_1 - 24*x_1*y_1 + 40*x_1*y_3)                                 *unit_conversion;
+    /*16*/ dz_dxdy[2*i+0+(32*SHK_BEAM_NCELLS)] = sqrt(12) * (25*x_4 - 12*x_2 - 30*x_2*y_2 + 12*y_2 - 15*y_4)                       *unit_conversion;
+    /*17*/ dz_dxdy[2*i+0+(34*SHK_BEAM_NCELLS)] = sqrt(12) * (60*x_3*y_1 - 24*x_1*y_1 + 20*x_1*y_3)                                 *unit_conversion;
+    /*18*/ dz_dxdy[2*i+0+(36*SHK_BEAM_NCELLS)] = sqrt(12) * (5*x_4 - 30*x_2*y_2 + 5*y_4)                                           *unit_conversion;
+    /*19*/ dz_dxdy[2*i+0+(38*SHK_BEAM_NCELLS)] = sqrt(12) * (20*x_3*y_1 - 20*x_1*y_3)                                              *unit_conversion;
+    /*20*/ dz_dxdy[2*i+0+(40*SHK_BEAM_NCELLS)] = sqrt( 7) * (120*x_5 - 120*x_3 + 240*x_3*y_2 + 24*x_1 - 120*x_1*y_2 + 120*x_1*y_4) *unit_conversion;
+    /*21*/ dz_dxdy[2*i+0+(42*SHK_BEAM_NCELLS)] = sqrt(14) * (150*x_4*y_1 + 180*x_2*y_3 - 120*x_2*y_1 + 12*y_1 - 40*y_3 + 30*y_5)   *unit_conversion;
+    /*22*/ dz_dxdy[2*i+0+(44*SHK_BEAM_NCELLS)] = sqrt(14) * (90*x_5 + 60*x_3*y_2 - 80*x_3 + 12*x_1 - 30*x_1*y_4)                   *unit_conversion;
+
+    //Y-Derivatives
+    /* 0*/ dz_dxdy[2*i+1+( 0*SHK_BEAM_NCELLS)] =      2.0 * (0)                                                                    *unit_conversion;
+    /* 1*/ dz_dxdy[2*i+1+( 2*SHK_BEAM_NCELLS)] =      2.0 * (1)                                                                    *unit_conversion;
+    /* 2*/ dz_dxdy[2*i+1+( 4*SHK_BEAM_NCELLS)] =  sqrt(3) * (4*y_1)                                                                *unit_conversion;
+    /* 3*/ dz_dxdy[2*i+1+( 6*SHK_BEAM_NCELLS)] =  sqrt(6) * (2*x_1)                                                                *unit_conversion;
+    /* 4*/ dz_dxdy[2*i+1+( 8*SHK_BEAM_NCELLS)] =  sqrt(6) * (-2*y_1)                                                               *unit_conversion;
+    /* 5*/ dz_dxdy[2*i+1+(10*SHK_BEAM_NCELLS)] =  sqrt(8) * (3*x_2 + 9*y_2 - 2)                                                    *unit_conversion;
+    /* 6*/ dz_dxdy[2*i+1+(12*SHK_BEAM_NCELLS)] =  sqrt(8) * (6*x_1*y_1)                                                            *unit_conversion;
+    /* 7*/ dz_dxdy[2*i+1+(14*SHK_BEAM_NCELLS)] =  sqrt(8) * (3*x_2 - 3*y_2)                                                        *unit_conversion;
+    /* 8*/ dz_dxdy[2*i+1+(16*SHK_BEAM_NCELLS)] =  sqrt(8) * (-6*x_1*y_1)                                                           *unit_conversion;
+    /* 9*/ dz_dxdy[2*i+1+(18*SHK_BEAM_NCELLS)] =  sqrt(5) * (24*x_2*y_1 - 12*y_1 + 24*y_3)                                         *unit_conversion;
+    /*10*/ dz_dxdy[2*i+1+(20*SHK_BEAM_NCELLS)] = sqrt(10) * (6*y_1 - 16*y_3)                                                       *unit_conversion;
+    /*11*/ dz_dxdy[2*i+1+(22*SHK_BEAM_NCELLS)] = sqrt(10) * (8*x_3 - 6*x_1 + 24*x_1*y_2)                                           *unit_conversion;
+    /*12*/ dz_dxdy[2*i+1+(24*SHK_BEAM_NCELLS)] = sqrt(10) * (-12*x_2*y_1 + 4*y_3)                                                  *unit_conversion;
+    /*13*/ dz_dxdy[2*i+1+(26*SHK_BEAM_NCELLS)] = sqrt(10) * (4*x_3 - 12*x_1*y_2)                                                   *unit_conversion;
+    /*14*/ dz_dxdy[2*i+1+(28*SHK_BEAM_NCELLS)] = sqrt(12) * (40*x_3*y_1 -24*x_1*y_1 + 40*x_1*y_3)                                  *unit_conversion;
+    /*15*/ dz_dxdy[2*i+1+(30*SHK_BEAM_NCELLS)] = sqrt(12) * (10*x_4 - 12*x_2 + 60*x_2*y_2 - 36*y_2 + 50*y_4 + 3)                   *unit_conversion;
+    /*16*/ dz_dxdy[2*i+1+(32*SHK_BEAM_NCELLS)] = sqrt(12) * (-20*x_3*y_1 + 24*x_1*y_1 - 60*x_1*y_3)                                *unit_conversion;
+    /*17*/ dz_dxdy[2*i+1+(34*SHK_BEAM_NCELLS)] = sqrt(12) * (15*x_4 - 12*x_2 + 30*x_2*y_2 + 12*y_2 - 25*y_4)                       *unit_conversion;
+    /*18*/ dz_dxdy[2*i+1+(36*SHK_BEAM_NCELLS)] = sqrt(12) * (-20*x_3*y_1 + 20*x_1*y_3)                                             *unit_conversion;
+    /*19*/ dz_dxdy[2*i+1+(38*SHK_BEAM_NCELLS)] = sqrt(12) * (5*x_4 - 30*x_2*y_2 + 5*y_4)                                           *unit_conversion;
+    /*20*/ dz_dxdy[2*i+1+(40*SHK_BEAM_NCELLS)] = sqrt( 7) * (120*x_4*y_1 - 120*x_2*y_1 + 240*x_2*y_3 + 24*y_1 - 120*y_3 + 120*y_5) *unit_conversion;
+    /*21*/ dz_dxdy[2*i+1+(42*SHK_BEAM_NCELLS)] = sqrt(14) * (30*x_5 - 40*x_3 + 180*x_3*y_2 + 12*x_1 - 120*x_1*y_2 + 150*x_1*y_4)   *unit_conversion;
+    /*22*/ dz_dxdy[2*i+1+(44*SHK_BEAM_NCELLS)] = sqrt(14) * (30*x_4*y_1 - 60*x_2*y_3 - 12*y_1 + 80*y_3 - 90*y_5)                   *unit_conversion;
 
   }
 

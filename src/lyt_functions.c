@@ -22,6 +22,16 @@
 #include "tgt_functions.h"
 
 /**************************************************************/
+/* LYT_XY2INDEX                                               */
+/*  - Transform x,y to buffer index                           */
+/**************************************************************/
+uint64 lyt_xy2index(int x, int y){
+  //NOTE: This is inverted from the equivalent SHK function because the SHK has the lens tube that inverts the image optically.
+  //      Here we need to invert the image in code.
+  return (uint64)(LYTREADXS-x-1) + ((uint64)(LYTREADYS-y-1))*LYTREADXS;
+}
+
+/**************************************************************/
 /* LYT_INITREF                                                */
 /*  - Initialize reference image structure                    */
 /**************************************************************/
@@ -335,7 +345,8 @@ int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
   int zfit_error=0;
   double background=0;
   const long nbkg = LYTREADXS*LYTREADYS - LYTXS*LYTYS;
-  
+  uint16 *image = (uint16 *)buffer->pvAddress;
+
   //Image magnification
   double x,y,f_x_y1,f_x_y2;
   int x1,x2,y1,y2;
@@ -450,8 +461,11 @@ int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
       sm_p->tgt_calmode = tgt_calibrate(sm_p,lytevent.hed.tgt_calmode,lytevent.zernike_target,&lytevent.hed.tgt_calstep,LYTID,FUNCTION_NO_RESET);
 
   //Copy full readout image to event
-  memcpy(&readimage.data[0][0],buffer->pvAddress,sizeof(lytread_t));
-
+  //memcpy(&readimage.data[0][0],buffer->pvAddress,sizeof(lytread_t));
+  for(i=0;i<LYTREADXS;i++)
+    for(j=0;j<LYTREADYS;j++)
+      readimage.data[i][j]=image[lyt_xy2index(i,j)];
+ 
   //Init background
   lytevent.background = 0;
   
@@ -476,9 +490,9 @@ int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
       //Run image magnification
       for(i=0;i<LYTXS;i++){
 	for(j=0;j<LYTYS;j++){
-	  //Define location of interpolated pixel -- transpose origin offsets
-	  x = (i - LYTXS/2)/sm_p->lyt_mag + (LYTREADXS/2) + lytevent.yorigin + sm_p->lyt_mag_yoff - (LYTREADXS-LYTXS)/2;
-	  y = (j - LYTYS/2)/sm_p->lyt_mag + (LYTREADYS/2) + lytevent.xorigin + sm_p->lyt_mag_xoff - (LYTREADYS-LYTYS)/2;
+	  //Define location of interpolated pixel
+	  x = (i - LYTXS/2)/sm_p->lyt_mag + (LYTREADXS/2) + lytevent.xorigin + sm_p->lyt_mag_xoff - (LYTREADXS-LYTXS)/2;
+	  y = (j - LYTYS/2)/sm_p->lyt_mag + (LYTREADYS/2) + lytevent.yorigin + sm_p->lyt_mag_yoff - (LYTREADYS-LYTYS)/2;
 	  
 	  //Pick 4 pixels for interpolation
 	  x1 = (int)x;
@@ -503,12 +517,12 @@ int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
       }
     }
     else{
-      //Cut out ROI & measure background -- transpose origin offsets to match ROI coordinates. Image is transposed during readout.
+      //Cut out ROI & measure background
       for(i=0;i<LYTREADXS;i++){
 	for(j=0;j<LYTREADYS;j++){
-	  if((i >= lytevent.yorigin) && (i < lytevent.yorigin+LYTXS) && (j >= lytevent.xorigin) && (j < lytevent.xorigin+LYTYS)){
-	    lytevent.image.data[i-lytevent.yorigin][j-lytevent.xorigin]=(double)readimage.data[i][j];
-	    if(sm_p->lyt_subdark) lytevent.image.data[i-lytevent.yorigin][j-lytevent.xorigin] -= darkimage.data[i][j]; //dark subtraction
+	  if((i >= lytevent.xorigin) && (i < lytevent.xorigin+LYTXS) && (j >= lytevent.yorigin) && (j < lytevent.yorigin+LYTYS)){
+	    lytevent.image.data[i-lytevent.xorigin][j-lytevent.yorigin]=(double)readimage.data[i][j];
+	    if(sm_p->lyt_subdark) lytevent.image.data[i-lytevent.xorigin][j-lytevent.yorigin] -= darkimage.data[i][j]; //dark subtraction
 	  }
 	  else{
 	    background += readimage.data[i][j];

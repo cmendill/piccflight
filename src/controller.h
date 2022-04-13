@@ -457,9 +457,9 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 #define LYT_ZERNIKE_MIN      -0.05 //min limit for measured zernikes [microns]
 #define LYT_ZERNIKE_MAX       0.05 //max limit for measured zernikes [microns]
 #define LYT_XORIGIN_MIN       0
-#define LYT_XORIGIN_MAX       (LYTREADYS-LYTYS) //origins are transposed
+#define LYT_XORIGIN_MAX       (LYTREADXS-LYTXS)
 #define LYT_YORIGIN_MIN       0
-#define LYT_YORIGIN_MAX       (LYTREADXS-LYTXS) //origins are transposed
+#define LYT_YORIGIN_MAX       (LYTREADYS-LYTYS)
 #define LYT_PIXEL_THRESH      200 //ADU
 #define LYT_MAG_MIN           0.1
 #define LYT_MAG_MAX           10.0
