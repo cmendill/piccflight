@@ -100,6 +100,7 @@ enum states { STATE_STANDBY,
 	      STATE_LYT_TT_LOWFC,
 	      STATE_SCI_BMC_CALIBRATE,
 	      STATE_HOWFS,
+	      STATE_PHASE_ZERNIKE,
 	      STATE_EFC,
 	      STATE_SHK_EFC,
 	      STATE_HYB_EFC,
@@ -212,6 +213,13 @@ enum bmccalmodes {BMC_CALMODE_NONE,
 #define SCI_FAKE_PROBE_FILE    "config/sci_fakedata_probe_%d.dat"
 #define SCI_DARK_FILE          "config/sci_dark_%d.dat"
 #define SCI_BIAS_FILE          "config/sci_bias_%d.dat"
+#define SCI_PHASE_TARGET_A_FILE "config/sci_phase_target_a.dat"
+#define SCI_PHASE_TARGET_B_FILE "config/sci_phase_target_b.dat"
+#define SCI_PHASE_TARGET_C_FILE "config/sci_phase_target_c.dat"
+#define SCI_PHASE_WEIGHT_A_FILE "config/sci_phase_weight_a.dat"
+#define SCI_PHASE_WEIGHT_B_FILE "config/sci_phase_weight_b.dat"
+#define SCI_PHASE_WEIGHT_C_FILE "config/sci_phase_weight_c.dat"
+#define SCI_PHASE_FILE         "output/data/calibration/sci_phase.dat"
 #define DATAPATH               "output/data/flight_data/folder_%5.5d/"
 #define DATANAME               "output/data/flight_data/folder_%5.5d/picture.%10.10ld.%s.%8.8d.dat"
 #define SHK_HEX_CALFILE        "output/data/calibration/shk_hex_%s_%s_%s_caldata.dat"
@@ -475,6 +483,7 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 #define SCI_NPIX              728 //number of pixels in dark zone
 #define SCI_HOWFS_NPROBE        4 //number of HOWFS DM probe steps
 #define SCI_HOWFS_NSTEP         5 //number of HOWFS steps
+#define SCI_PHASE_NSTEP         3 //number of PHASE steps
 #define SCI_ROI_XSIZE        2840
 #define SCI_ROI_YSIZE        2224
 #define SCI_HBIN                1 //do not change, will break code below
@@ -755,6 +764,7 @@ typedef struct lytctrl_struct{
 typedef struct scictrl_struct{
   int run_howfs;
   int run_efc;
+  int run_phase;
 } scictrl_t;
 
 // Acquisition Camera Control (acq_proc.c)
@@ -795,6 +805,11 @@ typedef struct sci_bands_struct{
 typedef struct sci_howfs_struct{
   sci_bands_t step[SCI_HOWFS_NSTEP];
 } sci_howfs_t;
+
+typedef struct sci_phase_struct{
+  sci_bands_t step[SCI_PHASE_NSTEP];
+  double exptime[SCI_PHASE_NSTEP];
+} sci_phase_t;
 
 typedef struct sci_field_struct{
   double r[SCI_NPIX];
@@ -979,9 +994,17 @@ typedef struct tgtcal_struct{
 } tgtcal_t;
 
 /*************************************************
+ * Phase Flattening Structures
+ *************************************************/
+typedef struct phase_zernike_struct{
+  int zswitch[LOWFS_N_ZERNIKE];
+  sci_phase_t phase_frames;
+} phase_zernike_t;
+
+/*************************************************
  * Packet Header
  *************************************************/
-#define PICC_PKT_VERSION     41  //packet version number
+#define PICC_PKT_VERSION     42  //packet version number
 typedef struct pkthed_struct{
   uint16  version;       //packet version number
   uint16  type;          //packet ID word
@@ -1133,6 +1156,8 @@ typedef struct scievent_struct{
   int16        tec_setpoint;
   uint8        tec_enable;
   uint8        ihowfs;
+  uint32       iphase;
+  uint32       padding;
   uint32       xorigin[SCI_NBANDS];
   uint32       yorigin[SCI_NBANDS];
   double       refmax[SCI_NBANDS];       
@@ -1312,6 +1337,7 @@ typedef volatile struct {
   //SCI Settings
   uint32 sci_xorigin[SCI_NBANDS];                          //SCI ROI center X
   uint32 sci_yorigin[SCI_NBANDS];                          //SCI ROI center Y
+  int    sci_phase_n_zernike;                              //Number of zernikes to use in phase flattening
   
   //Camera Process Reset Commands
   int shk_reset;
