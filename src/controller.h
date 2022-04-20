@@ -219,7 +219,9 @@ enum bmccalmodes {BMC_CALMODE_NONE,
 #define SCI_PHASE_WEIGHT_A_FILE "config/sci_phase_weight_a.dat"
 #define SCI_PHASE_WEIGHT_B_FILE "config/sci_phase_weight_b.dat"
 #define SCI_PHASE_WEIGHT_C_FILE "config/sci_phase_weight_c.dat"
-#define SCI_PHASE_FILE         "output/data/calibration/sci_phase.dat"
+#define SCI_PHASE_IMAGE_A_FILE "output/data/calibration/sci_phase_image_a.dat"
+#define SCI_PHASE_IMAGE_B_FILE "output/data/calibration/sci_phase_image_b.dat"
+#define SCI_PHASE_IMAGE_C_FILE "output/data/calibration/sci_phase_image_c.dat"
 #define DATAPATH               "output/data/flight_data/folder_%5.5d/"
 #define DATANAME               "output/data/flight_data/folder_%5.5d/picture.%10.10ld.%s.%8.8d.dat"
 #define SHK_HEX_CALFILE        "output/data/calibration/shk_hex_%s_%s_%s_caldata.dat"
@@ -1338,6 +1340,7 @@ typedef volatile struct {
   uint32 sci_xorigin[SCI_NBANDS];                          //SCI ROI center X
   uint32 sci_yorigin[SCI_NBANDS];                          //SCI ROI center Y
   int    sci_phase_n_zernike;                              //Number of zernikes to use in phase flattening
+  int    sci_iphase;                                       //Current phase flattening step [0,1,2]
   
   //Camera Process Reset Commands
   int shk_reset;

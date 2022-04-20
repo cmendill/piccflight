@@ -14,7 +14,6 @@
 #include <libgen.h>
 #include <sys/stat.h>
 #include <libbmc.h>
-#include <gsl_multimin.h>
 
 /* piccflight headers */
 #include "controller.h"
@@ -508,94 +507,6 @@ void sci_howfs_efc(sm_t *sm_p, sci_field_t *field, double *delta_length, int res
   return;
 }
 
-/**************************************************************/
-/* SCI_PHASE_MERIT                                            */
-/*  - Phase flattening merit function                         */
-/**************************************************************/
-double sci_phase_zernike_merit(const gsl_vector *v, void *params){
-  int i,j;
-  double merit,meritA,meritB,meritC;
-  double meritAA=0,meritAB=0,meritAC=0;
-  double meritBA=0,meritBB=0,meritBC=0;
-  double meritCA=0,meritCB=0,meritCC=0;
-  double maxval=0;
-  sci_phase_t phase_frames;
-  double imageA[SCIXS][SCIYS]; //Flat
-  double imageB[SCIXS][SCIYS]; //+Z2
-  double imageC[SCIXS][SCIYS]; //-Z2
-  static double targetA[SCIXS][SCIYS]; //Flat
-  static double targetB[SCIXS][SCIYS]; //+Z2
-  static double targetC[SCIXS][SCIYS]; //-Z2
-  static double weightA[SCIXS][SCIYS]; //Weight map A
-  static double weightB[SCIXS][SCIYS]; //Weight map B
-  static double weightC[SCIXS][SCIYS]; //Weight map C
-  static int init=0;
-  
-  //Read in 3 target & weight images
-  if(!init){
-    if(read_file(SCI_PHASE_TARGET_A_FILE,&targetA[0][0],sizeof(targetA)))
-      printf("SCI: Read phase target A image failed\n");
-    if(read_file(SCI_PHASE_TARGET_B_FILE,&targetB[0][0],sizeof(targetB)))
-      printf("SCI: Read phase target B image failed\n");
-    if(read_file(SCI_PHASE_TARGET_C_FILE,&targetC[0][0],sizeof(targetC)))
-      printf("SCI: Read phase target C image failed\n");
-    if(read_file(SCI_PHASE_WEIGHT_A_FILE,&weightA[0][0],sizeof(weightA)))
-      printf("SCI: Read phase weight A image failed\n");
-    if(read_file(SCI_PHASE_WEIGHT_B_FILE,&weightB[0][0],sizeof(weightB)))
-      printf("SCI: Read phase weight B image failed\n");
-    if(read_file(SCI_PHASE_WEIGHT_C_FILE,&weightC[0][0],sizeof(weightC)))
-      printf("SCI: Read phase weight C image failed\n");
-    return 0;
-  }
-  
-  //Read in measured images
-  if(read_file(SCI_PHASE_FILE,&phase_frames,sizeof(phase_frames)))
-    printf("SCI: Read phase frames failed\n");
-
-  //Copy measured images
-  for(i=0;i<SCIXS;i++){
-    for(j=0;j<SCIYS;j++){
-      imageA[i][j]=(double)phase_frames.step[0].band[0].data[i][j]/phase_frames.exptime[0];
-      imageB[i][j]=(double)phase_frames.step[1].band[0].data[i][j]/phase_frames.exptime[1];
-      imageC[i][j]=(double)phase_frames.step[2].band[0].data[i][j]/phase_frames.exptime[2];
-      if(imageA[i][j] > maxval) maxval = imageA[i][j];
-    }
-  }
-  
-  //Scale measured images
-  for(i=0;i<SCIXS;i++){
-    for(j=0;j<SCIYS;j++){
-      imageA[i][j]/=maxval;
-      imageB[i][j]/=maxval;
-      imageC[i][j]/=maxval;
-    }
-  }
-  //Calculate individual merit functions
-  for(i=0;i<SCIXS;i++){
-    for(j=0;j<SCIYS;j++){
-      meritAA += weightA[i][j]*imageA[i][j]*targetA[i][j];
-      meritAB += weightA[i][j]*imageA[i][j]*imageA[i][j];
-      meritAC += weightA[i][j]*targetA[i][j]*targetA[i][j];
-
-      meritBA += weightB[i][j]*imageB[i][j]*targetB[i][j];
-      meritBB += weightB[i][j]*imageB[i][j]*imageB[i][j];
-      meritBC += weightB[i][j]*targetB[i][j]*targetB[i][j];
-      
-      meritCA += weightC[i][j]*imageC[i][j]*targetC[i][j];
-      meritCB += weightC[i][j]*imageC[i][j]*imageC[i][j];
-      meritCC += weightC[i][j]*targetC[i][j]*targetC[i][j];
-    }
-  }
-  meritA = meritAA*meritAA / (meritAB * meritAC);
-  meritB = meritBA*meritBA / (meritBB * meritBC);
-  meritC = meritCA*meritCA / (meritCB * meritCC);
-
-  //Combine merit functions
-  merit = 1 - (1/(double)3)*(meritA + meritB + meritC);
-  
-  //return single value of merit function
-  return merit;
-}
 
 
 
@@ -610,9 +521,6 @@ void sci_process_image(uint16 *img_buffer, float img_exptime, sm_t *sm_p){
   static int init = 0,sci_cal_init=0;
   static int howfs_init = 0;
   static sci_howfs_t howfs_frames;
-  static int phase_init = 0;
-  static sci_phase_t phase_frames;
-  static int phase_n_zernike;
   static int ccd_temp_init=0;
   static sci_cal_t sci_cal;
   const double sci_sim_max[SCI_NBANDS] = SCI_SIM_MAX;
@@ -623,7 +531,7 @@ void sci_process_image(uint16 *img_buffer, float img_exptime, sm_t *sm_p){
   uint32 i,j,k,b;
   int xbl,ybl;
   double dpx,bkg;
-  static long unsigned int frame_number=0,wfs_frame_number=0,howfs_istart=0,howfs_ilast=0,phase_istart=0,phase_ilast=0,iefc=0;
+  static long unsigned int frame_number=0,wfs_frame_number=0,howfs_istart=0,howfs_ilast=0,iefc=0;
   int print_origin=0;
   int state;
   int bmc_calibrate_advance=1;
@@ -639,14 +547,6 @@ void sci_process_image(uint16 *img_buffer, float img_exptime, sm_t *sm_p){
   int bmc_calmode_change;
   static double shk_zernike_flat[LOWFS_N_ZERNIKE];
   double shk_zernike_target[LOWFS_N_ZERNIKE];
-  
-  //GSL Minimizer Setup
-  int min_status;
-  double min_size;
-  const gsl_multimin_fminimizer_type *T;
-  gsl_multimin_fminimizer *s;
-  gsl_vector *ss,*x;
-  gsl_multimin_function my_func;
   
   //Get time immidiately
   clock_gettime(CLOCK_REALTIME,&start);
@@ -674,36 +574,10 @@ void sci_process_image(uint16 *img_buffer, float img_exptime, sm_t *sm_p){
     bmc_function_reset(sm_p);
     sci_function_reset(sm_p);
     howfs_init=0;
-    phase_init=0;
     tgt_calibrate(sm_p,0,NULL,NULL,SCIID,FUNCTION_RESET);
     //Read SCI pixel selection
     if(read_file(SCI_MASK_FILE,&scimask[0][0],sizeof(scimask)))
-      memset(&scimask[0][0],0,sizeof(scimask));
-
-    /*GSL Minimizer Setup */
-
-    //Setup user function
-    phase_n_zernike = sm_p->sci_phase_n_zernike;
-    my_func.n = phase_n_zernike;
-    my_func.f = sci_phase_zernike_merit;
-        
-    //Define algorithm
-    T = gsl_multimin_fminimizer_nmsimplex2;
-    
-    //Init algorithm
-    s = gsl_multimin_fminimizer_alloc(T,phase_n_zernike);
-    
-    //Define starting point (initial guess)
-    x = gsl_vector_alloc(phase_n_zernike);
-    gsl_vector_set_all(x, 0);
-    
-    //Set inital step sizes to 1nm
-    ss = gsl_vector_alloc(phase_n_zernike);
-    gsl_vector_set_all(ss, 0.001);
-  
-    //Set runtime parameters for the minimizer
-    gsl_multimin_fminimizer_set(s, &my_func, x, ss);
-    
+      memset(&scimask[0][0],0,sizeof(scimask));    
     init=1;
     if(SCI_DEBUG) printf("SCI: Initialized\n");
   }
@@ -822,6 +696,7 @@ void sci_process_image(uint16 *img_buffer, float img_exptime, sm_t *sm_p){
   scievent.tec_power        = sm_p->sci_tec_power;
   scievent.tec_setpoint     = sm_p->sci_tec_setpoint;
   scievent.tec_enable       = sm_p->sci_tec_enable;
+  scievent.iphase           = sm_p->sci_iphase;
 
   //Save calmodes
   scievent.hed.hex_calmode = sm_p->hex_calmode;
@@ -844,26 +719,11 @@ void sci_process_image(uint16 *img_buffer, float img_exptime, sm_t *sm_p){
     //Set init
     howfs_init = 1;
   }
-  
-  //Reinitialize PHASE if there has been a break in the data
-  if(scievent.hed.frame_number != phase_ilast+1) phase_init=0;
-  
-  //Init PHASE
-  if(!phase_init){
-    //Set starting frame number
-    phase_istart = scievent.hed.frame_number;
-    //Set init
-    phase_init = 1;
-  }
-  
+    
   //Define HOWFS index
   scievent.ihowfs = (scievent.hed.frame_number - howfs_istart) % SCI_HOWFS_NSTEP;
   if(scievent.ihowfs == 0) wfs_frame_number = scievent.hed.frame_number;
-  
-  //Define PHASE index
-  scievent.iphase = (scievent.hed.frame_number - phase_istart) % SCI_PHASE_NSTEP;
-  if(scievent.iphase == 0) wfs_frame_number = scievent.hed.frame_number;
-  
+      
   //Fake data
   if(sm_p->w[SCIID].fakemode != FAKEMODE_NONE){
     if(sm_p->w[SCIID].fakemode == FAKEMODE_TEST_PATTERN){
@@ -921,71 +781,25 @@ void sci_process_image(uint16 *img_buffer, float img_exptime, sm_t *sm_p){
     sm_p->sci_setref=0;
   }
 
+  //Record phase flatting images
+  if(sm_p->state_array[state].sci.run_phase){
+    if(scievent.iphase == 0) sprintf(filename,SCI_PHASE_IMAGE_A_FILE);
+    if(scievent.iphase == 1) sprintf(filename,SCI_PHASE_IMAGE_B_FILE);
+    if(scievent.iphase == 2) sprintf(filename,SCI_PHASE_IMAGE_C_FILE);
+    //Save measured images
+    write_file(filename,&scievent.bands.band[0],sizeof(sci_t));
+    printf("SCI: Wrote %s\n",filename);
+  }
+
   /*************************************************************/
   /****************  Zernike Target Control Code  **************/
   /*************************************************************/
   if(sm_p->state_array[state].tgt_commander == SCIID){
-    //Run phase flattening
-    if(sm_p->state_array[state].sci.run_phase){
-
-      //Save last frame number during PHASE
-      phase_ilast = scievent.hed.frame_number;
-      
-      //********** PHASE Indexing ************
-      //iphase:  0      1   2  
-      //image:   flat  +Z2  -Z2  
-      //pktcmd:  flat  p0  p1  
-      //dmcmd:   +Z2  -Z2  flat  
-
-      //Save frames
-      memcpy(&phase_frames.step[scievent.iphase],&scievent.bands,sizeof(sci_bands_t));
-      phase_frames.exptime[scievent.iphase] = scievent.hed.exptime;
-      printf("SCI: iPHASE = %d\n",scievent.iphase);
-
-      //Get current flat
-      if(scievent.iphase == 0)
-	memcpy(shk_zernike_flat,(double *)sm_p->shk_zernike_target,sizeof(shk_zernike_flat));
-      
-      //PHASE Operations
-      if(scievent.iphase == SCI_PHASE_NSTEP-1){
-	//Save measured images
-	write_file(SCI_PHASE_FILE,&phase_frames,sizeof(phase_frames));
-
-	//Iterate minimizer
-	//min_status = gsl_multimin_fminimizer_iterate(s);
-	//if(min_status)
-	//  printf("SCI: gsl_multimin_fminimizer_iterate error\n");
-	
-	//Get size
-	//min_size = gsl_multimin_fminimizer_size(s);
-	//min_status = gsl_multimin_test_size(min_size, 0.01);
-
-	//Print status
-	//printf("SCI: Phase iter=%d f=%10.5f size=%.3f\n", scievent.iphase, s->fval, min_size);
-	
-	//Check for convergence
-	//if(min_status == GSL_SUCCESS)
-	//  printf("SCI: Minimum found after %d iterations\n",scievent.iphase);
-	
-	//Set next flat
-	//for(i=0;i<phase_n_zernike;i++)
-	//  shk_zernike_flat[i] = gsl_vector_get(s->x, 1);
-      }
-
-      //Set next command -- this is running away integrating the commands
-      memcpy(shk_zernike_target,shk_zernike_flat,sizeof(shk_zernike_target));
-      if(scievent.iphase == 1) shk_zernike_target[2] += 0.2;
-      if(scievent.iphase == 2) shk_zernike_target[2] -= 0.2;
-      memcpy((double *)sm_p->shk_zernike_target,shk_zernike_target,sizeof(shk_zernike_target));
-
-      //Sleep to allow SHK to settle -- this is the downside of doing it with targets
-      sleep(1);
-    }
-    
     //Run SHK target calibration
     if(scievent.hed.tgt_calmode != TGT_CALMODE_NONE)
       sm_p->tgt_calmode = tgt_calibrate(sm_p,scievent.hed.tgt_calmode,(double *)sm_p->shk_zernike_target,&scievent.hed.tgt_calstep,SCIID,FUNCTION_NO_RESET);
   }
+  
   /*************************************************************/
   /********************  BMC DM Control Code  ******************/
   /*************************************************************/

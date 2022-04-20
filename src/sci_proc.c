@@ -13,6 +13,7 @@
 #include <libfli.h>
 #include <libgen.h>
 #include <sys/stat.h>
+#include <gsl_multimin.h>
 
 /* piccflight headers */
 #include "controller.h"
@@ -60,6 +61,143 @@ void scictrlC(int sig){
   exit(sig);
 }
 
+/**************************************************************/
+/* SCI_PHASE_MERIT                                            */
+/*  - Phase flattening merit function                         */
+/**************************************************************/
+double sci_phase_zernike_merit(const gsl_vector *v, void *params){
+  int i,j,rc;
+  double merit,meritA,meritB,meritC;
+  double meritAA=0,meritAB=0,meritAC=0;
+  double meritBA=0,meritBB=0,meritBC=0;
+  double meritCA=0,meritCB=0,meritCC=0;
+  double maxval=0;
+  sci_t  rawA,rawB,rawC;
+  double imageA[SCIXS][SCIYS]; //Flat
+  double imageB[SCIXS][SCIYS]; //+Z2
+  double imageC[SCIXS][SCIYS]; //-Z2
+  double zernike_target[LOWFS_N_ZERNIKE]={0};
+  float exptime;
+  static double targetA[SCIXS][SCIYS]; //Flat
+  static double targetB[SCIXS][SCIYS]; //+Z2
+  static double targetC[SCIXS][SCIYS]; //-Z2
+  static double weightA[SCIXS][SCIYS]; //Weight map A
+  static double weightB[SCIXS][SCIYS]; //Weight map B
+  static double weightC[SCIXS][SCIYS]; //Weight map C
+  static int init=0;
+  struct gsl_param{
+    sm_t *sm_p;
+    uint16_t *img_buffer;
+  } *gsl_param;
+  
+  //Read in 3 target & weight images
+  if(!init){
+    if(read_file(SCI_PHASE_TARGET_A_FILE,&targetA[0][0],sizeof(targetA)))
+      printf("SCI: Read phase target A image failed\n");
+    if(read_file(SCI_PHASE_TARGET_B_FILE,&targetB[0][0],sizeof(targetB)))
+      printf("SCI: Read phase target B image failed\n");
+    if(read_file(SCI_PHASE_TARGET_C_FILE,&targetC[0][0],sizeof(targetC)))
+      printf("SCI: Read phase target C image failed\n");
+    if(read_file(SCI_PHASE_WEIGHT_A_FILE,&weightA[0][0],sizeof(weightA)))
+      printf("SCI: Read phase weight A image failed\n");
+    if(read_file(SCI_PHASE_WEIGHT_B_FILE,&weightB[0][0],sizeof(weightB)))
+      printf("SCI: Read phase weight B image failed\n");
+    if(read_file(SCI_PHASE_WEIGHT_C_FILE,&weightC[0][0],sizeof(weightC)))
+      printf("SCI: Read phase weight C image failed\n");
+    printf("SCI: sci_phase_zernike_merit initialized\n");
+    init=1;
+  }
+
+  //Get parameters
+  gsl_param = params;
+  sm_t *sm_p = gsl_param->sm_p;
+  uint16_t *img_buffer = gsl_param->img_buffer;
+  exptime = sm_p->sci_exptime;
+  
+  //Get zernike target command
+  for(i=0;i<sm_p->sci_phase_n_zernike;i++)
+    zernike_target[i] = gsl_vector_get(v,i);
+
+  //Generate 3 images
+  for(i=0;i<3;i++){
+    memcpy((double *)sm_p->shk_zernike_target,zernike_target,sizeof(zernike_target));
+    if(i == 1) sm_p->shk_zernike_target[2] += 0.2;
+    if(i == 2) sm_p->shk_zernike_target[2] += 0.2;
+    sm_p->sci_iphase = i;
+    printf("SCI: iphase = %d\n",sm_p->sci_iphase);
+    
+    /* Allow SHK to settle */
+    sleep(1);
+    
+    /* Run Exposure */
+    if((rc=sci_expose(sm_p,dev,img_buffer))){
+      if(rc==SCI_EXP_RETURN_FAIL)
+	printf("SCI: Exposure failed\n");
+      if(rc==SCI_EXP_RETURN_KILL)
+	scictrlC(0);
+      if(rc==SCI_EXP_RETURN_ABORT)
+	printf("SCI: Exposure aborted\n");
+    }
+    else{
+      /* Process Image */
+      sci_process_image(img_buffer,exptime,sm_p);
+    }
+  }
+  
+  //Read in measured images
+  if(read_file(SCI_PHASE_IMAGE_A_FILE,&rawA,sizeof(sci_t)))
+    printf("SCI: Read phase frames failed\n");
+  if(read_file(SCI_PHASE_IMAGE_B_FILE,&rawB,sizeof(sci_t)))
+    printf("SCI: Read phase frames failed\n");
+  if(read_file(SCI_PHASE_IMAGE_C_FILE,&rawC,sizeof(sci_t)))
+    printf("SCI: Read phase frames failed\n");
+
+  //Copy measured images -- divide by exposure time if different
+  for(i=0;i<SCIXS;i++){
+    for(j=0;j<SCIYS;j++){
+      imageA[i][j]=(double)rawA.data[i][j];
+      imageB[i][j]=(double)rawB.data[i][j];
+      imageC[i][j]=(double)rawC.data[i][j];
+      if(imageA[i][j] > maxval) maxval = imageA[i][j];
+    }
+  }
+  
+  //Scale measured images
+  for(i=0;i<SCIXS;i++){
+    for(j=0;j<SCIYS;j++){
+      imageA[i][j]/=maxval;
+      imageB[i][j]/=maxval;
+      imageC[i][j]/=maxval;
+    }
+  }
+  
+  //Calculate individual merit functions
+  for(i=0;i<SCIXS;i++){
+    for(j=0;j<SCIYS;j++){
+      meritAA += weightA[i][j]*imageA[i][j]*targetA[i][j];
+      meritAB += weightA[i][j]*imageA[i][j]*imageA[i][j];
+      meritAC += weightA[i][j]*targetA[i][j]*targetA[i][j];
+
+      meritBA += weightB[i][j]*imageB[i][j]*targetB[i][j];
+      meritBB += weightB[i][j]*imageB[i][j]*imageB[i][j];
+      meritBC += weightB[i][j]*targetB[i][j]*targetB[i][j];
+      
+      meritCA += weightC[i][j]*imageC[i][j]*targetC[i][j];
+      meritCB += weightC[i][j]*imageC[i][j]*imageC[i][j];
+      meritCC += weightC[i][j]*targetC[i][j]*targetC[i][j];
+    }
+  }
+  meritA = meritAA*meritAA / (meritAB * meritAC);
+  meritB = meritBA*meritBA / (meritBB * meritBC);
+  meritC = meritCA*meritCA / (meritCB * meritCC);
+
+  //Combine merit functions
+  merit = 1 - (1/(double)3)*(meritA + meritB + meritC);
+  printf("SCI: Phase merit = %f\n",merit);
+  
+  //Return single value of merit function
+  return merit;
+}
 
 /**************************************************************/
 /* SCI_PROC                                                   */
@@ -77,7 +215,21 @@ void sci_proc(void){
   size_t mode_size=128;
   int i;
   int rc;
-    
+  int phase_n_zernike;
+  
+  //GSL Minimizer Setup
+  int min_status;
+  double min_size;
+  const gsl_multimin_fminimizer_type *T;
+  gsl_multimin_fminimizer *s;
+  gsl_vector *ss,*x;
+  gsl_multimin_function my_func;
+  int gsl_iter=0;
+  struct gsl_param{
+    sm_t *sm_p;
+    uint16_t *img_buffer;
+  } gsl_param;
+  
   /* Open Shared Memory */
   sm_t *sm_p;
   if((sm_p = openshm(&sci_shmfd)) == NULL){
@@ -87,6 +239,7 @@ void sci_proc(void){
 
   /* Set soft interrupt handler */
   sigset(SIGINT, scictrlC);	/* usually ^C */
+
 
   /**************************************************************/
   /*                      FLI Camera Setup                      */
@@ -244,18 +397,72 @@ void sci_proc(void){
       /* Get TEC Power */
       sm_p->sci_tec_power = sci_get_tec_power(dev);
       
-     /* Run Exposure */
-      if((rc=sci_expose(sm_p,dev,img_buffer))){
-	if(rc==SCI_EXP_RETURN_FAIL)
-	  printf("SCI: Exposure failed\n");
-	if(rc==SCI_EXP_RETURN_KILL)
-	  scictrlC(0);
-	if(rc==SCI_EXP_RETURN_ABORT)
-	  printf("SCI: Exposure aborted\n");
+      /* Perform Phase Flattening */
+      if(sm_p->state_array[sm_p->state].sci.run_phase){
+	//Initialize GSL Minimizer
+	if(gsl_iter == 0){
+	  printf("SCI: Starting GSL initialization...\n");
+	  //Setup user function
+	  phase_n_zernike = sm_p->sci_phase_n_zernike;
+	  my_func.n = phase_n_zernike;
+	  my_func.f = sci_phase_zernike_merit;
+	  gsl_param.sm_p = sm_p;
+	  gsl_param.img_buffer = img_buffer;
+	  my_func.params = &gsl_param;
+  
+	  //Define algorithm
+	  T = gsl_multimin_fminimizer_nmsimplex2;
+    
+	  //Init algorithm
+	  s = gsl_multimin_fminimizer_alloc(T,phase_n_zernike);
+    
+	  //Define starting point (initial guess)
+	  x = gsl_vector_alloc(phase_n_zernike);
+	  for(i=0;i<phase_n_zernike;i++)
+	    gsl_vector_set(x,i,sm_p->shk_zernike_target[i]);
+    
+	  //Set inital step sizes to 10nm
+	  ss = gsl_vector_alloc(phase_n_zernike);
+	  gsl_vector_set_all(ss, 0.01);
+  
+	  //Set runtime parameters for the minimizer
+	  gsl_multimin_fminimizer_set(s, &my_func, x, ss);
+	  printf("SCI: GSL initialization done\n");
+	}
+	
+	//Increment counter
+	gsl_iter++;
+
+	//Iterate minimizer
+	min_status = gsl_multimin_fminimizer_iterate(s);
+	if(min_status)
+	  printf("SCI: gsl_multimin_fminimizer_iterate error\n");
+	
+	//Get size
+	min_size = gsl_multimin_fminimizer_size(s);
+	min_status = gsl_multimin_test_size(min_size, 0.01);
+	
+	//Print status
+	printf("SCI: Phase iter=%d f=%10.5f size=%.3f\n", gsl_iter, s->fval, min_size);
+
+ 	//Check for convergence
+	if(min_status == GSL_SUCCESS)
+	  printf("SCI: Minimum found after %d iterations\n",gsl_iter);
       }
       else{
-	/* Process Image */
-	sci_process_image(img_buffer,exptime,sm_p);
+	/* Run Normal Exposure */
+	if((rc=sci_expose(sm_p,dev,img_buffer))){
+	  if(rc==SCI_EXP_RETURN_FAIL)
+	    printf("SCI: Exposure failed\n");
+	  if(rc==SCI_EXP_RETURN_KILL)
+	    scictrlC(0);
+	  if(rc==SCI_EXP_RETURN_ABORT)
+	    printf("SCI: Exposure aborted\n");
+	}
+	else{
+	  /* Process Image */
+	  sci_process_image(img_buffer,exptime,sm_p);
+	}
       }
     }
   }
