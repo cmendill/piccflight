@@ -50,4 +50,9 @@ void init_fakemode(int fakemode, calmode_t *fake){
     sprintf(fake->name,"FAKEMODE_IMREG");
     sprintf(fake->cmd,"imreg");
   }
+  //FAKEMODE_PHASE
+  if(fakemode == FAKEMODE_PHASE){
+    sprintf(fake->name,"FAKEMODE_PHASE");
+    sprintf(fake->cmd,"phase");
+  }
 }

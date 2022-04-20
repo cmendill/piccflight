@@ -681,6 +681,16 @@ cmd: sci shift origin [arg1] [arg2] [arg3]
 	arg2 = x,y
 	arg3 = number of pixels (+/-)
 
+cmd: sci phase on
+        turn on sci phase flattening
+
+cmd: sci phase off
+        turn off sci phase flattening
+
+cmd: sci phase nzern [arg1]
+        set the number of controlled zernikes for sci phase flattening
+	arg1 = 0,1,2,3,LOWFS_N_ZERNIKE
+	
 cmd: sci set ref
         set reference image for sci field normalization
 

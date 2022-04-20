@@ -73,17 +73,18 @@ double sci_phase_zernike_merit(const gsl_vector *v, void *params){
   double meritCA=0,meritCB=0,meritCC=0;
   double maxval=0;
   sci_t  rawA,rawB,rawC;
-  double imageA[SCIXS][SCIYS]; //Flat
-  double imageB[SCIXS][SCIYS]; //+Z2
-  double imageC[SCIXS][SCIYS]; //-Z2
+  double imageA[SCIXS][SCIYS];
+  double imageB[SCIXS][SCIYS];
+  double imageC[SCIXS][SCIYS];
   double zernike_target[LOWFS_N_ZERNIKE]={0};
   float exptime;
-  static double targetA[SCIXS][SCIYS]; //Flat
-  static double targetB[SCIXS][SCIYS]; //+Z2
-  static double targetC[SCIXS][SCIYS]; //-Z2
-  static double weightA[SCIXS][SCIYS]; //Weight map A
-  static double weightB[SCIXS][SCIYS]; //Weight map B
-  static double weightC[SCIXS][SCIYS]; //Weight map C
+  uint32_t err = 0;
+  static double targetA[SCIXS][SCIYS];
+  static double targetB[SCIXS][SCIYS];
+  static double targetC[SCIXS][SCIYS];
+  static double weightA[SCIXS][SCIYS];
+  static double weightB[SCIXS][SCIYS];
+  static double weightC[SCIXS][SCIYS];
   static int init=0;
   struct gsl_param{
     sm_t *sm_p;
@@ -112,23 +113,32 @@ double sci_phase_zernike_merit(const gsl_vector *v, void *params){
   gsl_param = params;
   sm_t *sm_p = gsl_param->sm_p;
   uint16_t *img_buffer = gsl_param->img_buffer;
-  exptime = sm_p->sci_exptime;
   
   //Get zernike target command
   for(i=0;i<sm_p->sci_phase_n_zernike;i++)
     zernike_target[i] = gsl_vector_get(v,i);
 
-  //Generate 3 images
+  //Generate 3 images 0,1,2 | B,C,A | +0.2,-0.2,0
   for(i=0;i<3;i++){
     memcpy((double *)sm_p->shk_zernike_target,zernike_target,sizeof(zernike_target));
-    if(i == 1) sm_p->shk_zernike_target[2] += 0.2;
-    if(i == 2) sm_p->shk_zernike_target[2] += 0.2;
+    if(i == 0) sm_p->shk_zernike_target[2] += 0.2;
+    if(i == 1) sm_p->shk_zernike_target[2] -= 0.2;
     sm_p->sci_iphase = i;
     printf("SCI: iphase = %d\n",sm_p->sci_iphase);
     
     /* Allow SHK to settle */
     sleep(1);
-    
+
+    /* Set exposure time */
+    if(i==0) exptime = sm_p->sci_exptime*10;
+    if(i==1) exptime = sm_p->sci_exptime*10;
+    if(i==2) exptime = sm_p->sci_exptime;
+    if((err = FLISetExposureTime(dev, lround(exptime * 1000)))){
+      fprintf(stderr, "SCI: Error FLISetExposureTime: %s\n", strerror((int)-err));
+    }else{
+      if(SCI_DEBUG) printf("SCI: FLI exposure time set\n");
+    }
+   
     /* Run Exposure */
     if((rc=sci_expose(sm_p,dev,img_buffer))){
       if(rc==SCI_EXP_RETURN_FAIL)
@@ -192,8 +202,8 @@ double sci_phase_zernike_merit(const gsl_vector *v, void *params){
   meritC = meritCA*meritCA / (meritCB * meritCC);
 
   //Combine merit functions
-  merit = 1 - (1/(double)3)*(meritA + meritB + meritC);
-  printf("SCI: Phase merit = %f\n",merit);
+  merit = 1.0 - (1.0/(double)3)*(meritA + meritB + meritC);
+  //printf("SCI: Phase merit = %f\n",merit);
   
   //Return single value of merit function
   return merit;
@@ -398,7 +408,7 @@ void sci_proc(void){
       sm_p->sci_tec_power = sci_get_tec_power(dev);
       
       /* Perform Phase Flattening */
-      if(sm_p->state_array[sm_p->state].sci.run_phase){
+      if(sm_p->sci_phase_run){
 	//Initialize GSL Minimizer
 	if(gsl_iter == 0){
 	  printf("SCI: Starting GSL initialization...\n");
@@ -421,9 +431,9 @@ void sci_proc(void){
 	  for(i=0;i<phase_n_zernike;i++)
 	    gsl_vector_set(x,i,sm_p->shk_zernike_target[i]);
     
-	  //Set inital step sizes to 10nm
+	  //Set inital step sizes to 5nm
 	  ss = gsl_vector_alloc(phase_n_zernike);
-	  gsl_vector_set_all(ss, 0.01);
+	  gsl_vector_set_all(ss, 0.005);
   
 	  //Set runtime parameters for the minimizer
 	  gsl_multimin_fminimizer_set(s, &my_func, x, ss);
@@ -450,6 +460,9 @@ void sci_proc(void){
 	  printf("SCI: Minimum found after %d iterations\n",gsl_iter);
       }
       else{
+	/* Reset GSL */
+	gsl_iter=0;
+	
 	/* Run Normal Exposure */
 	if((rc=sci_expose(sm_p,dev,img_buffer))){
 	  if(rc==SCI_EXP_RETURN_FAIL)

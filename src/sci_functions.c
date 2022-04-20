@@ -547,7 +547,8 @@ void sci_process_image(uint16 *img_buffer, float img_exptime, sm_t *sm_p){
   int bmc_calmode_change;
   static double shk_zernike_flat[LOWFS_N_ZERNIKE];
   double shk_zernike_target[LOWFS_N_ZERNIKE];
-  
+  static double target[SCIXS][SCIYS];
+ 
   //Get time immidiately
   clock_gettime(CLOCK_REALTIME,&start);
   
@@ -747,6 +748,20 @@ void sci_process_image(uint16 *img_buffer, float img_exptime, sm_t *sm_p){
       for(k=0;k<SCI_NBANDS;k++)
 	scievent.bands.band[k].data[CAM_IMREG_X][CAM_IMREG_Y] = 1;
     }
+    if(sm_p->w[SCIID].fakemode == FAKEMODE_PHASE){
+      if(sm_p->sci_iphase == 0)
+	if(read_file(SCI_PHASE_TARGET_B_FILE,&target[0][0],sizeof(target)))
+	  printf("SCI: Read phase target B image failed\n");
+      if(sm_p->sci_iphase == 1)
+	if(read_file(SCI_PHASE_TARGET_C_FILE,&target[0][0],sizeof(target)))
+	  printf("SCI: Read phase target C image failed\n");
+      if(sm_p->sci_iphase == 2)
+	if(read_file(SCI_PHASE_TARGET_A_FILE,&target[0][0],sizeof(target)))
+	  printf("SCI: Read phase target A image failed\n");
+      for(i=0;i<SCIXS;i++)
+	for(j=0;j<SCIYS;j++)
+    	  scievent.bands.band[0].data[i][j] = target[i][j]*40000;
+    }
   }
   else{
     //Real data: cut out bands 
@@ -782,13 +797,12 @@ void sci_process_image(uint16 *img_buffer, float img_exptime, sm_t *sm_p){
   }
 
   //Record phase flatting images
-  if(sm_p->state_array[state].sci.run_phase){
-    if(scievent.iphase == 0) sprintf(filename,SCI_PHASE_IMAGE_A_FILE);
-    if(scievent.iphase == 1) sprintf(filename,SCI_PHASE_IMAGE_B_FILE);
-    if(scievent.iphase == 2) sprintf(filename,SCI_PHASE_IMAGE_C_FILE);
+  if(sm_p->sci_phase_run){
+    if(scievent.iphase == 0) sprintf(filename,SCI_PHASE_IMAGE_B_FILE);
+    if(scievent.iphase == 1) sprintf(filename,SCI_PHASE_IMAGE_C_FILE);
+    if(scievent.iphase == 2) sprintf(filename,SCI_PHASE_IMAGE_A_FILE);
     //Save measured images
     write_file(filename,&scievent.bands.band[0],sizeof(sci_t));
-    printf("SCI: Wrote %s\n",filename);
   }
 
   /*************************************************************/

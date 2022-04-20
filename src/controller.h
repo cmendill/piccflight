@@ -100,7 +100,6 @@ enum states { STATE_STANDBY,
 	      STATE_LYT_TT_LOWFC,
 	      STATE_SCI_BMC_CALIBRATE,
 	      STATE_HOWFS,
-	      STATE_PHASE_ZERNIKE,
 	      STATE_EFC,
 	      STATE_SHK_EFC,
 	      STATE_HYB_EFC,
@@ -485,7 +484,6 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 #define SCI_NPIX              728 //number of pixels in dark zone
 #define SCI_HOWFS_NPROBE        4 //number of HOWFS DM probe steps
 #define SCI_HOWFS_NSTEP         5 //number of HOWFS steps
-#define SCI_PHASE_NSTEP         3 //number of PHASE steps
 #define SCI_ROI_XSIZE        2840
 #define SCI_ROI_YSIZE        2224
 #define SCI_HBIN                1 //do not change, will break code below
@@ -766,7 +764,6 @@ typedef struct lytctrl_struct{
 typedef struct scictrl_struct{
   int run_howfs;
   int run_efc;
-  int run_phase;
 } scictrl_t;
 
 // Acquisition Camera Control (acq_proc.c)
@@ -807,11 +804,6 @@ typedef struct sci_bands_struct{
 typedef struct sci_howfs_struct{
   sci_bands_t step[SCI_HOWFS_NSTEP];
 } sci_howfs_t;
-
-typedef struct sci_phase_struct{
-  sci_bands_t step[SCI_PHASE_NSTEP];
-  double exptime[SCI_PHASE_NSTEP];
-} sci_phase_t;
 
 typedef struct sci_field_struct{
   double r[SCI_NPIX];
@@ -994,14 +986,6 @@ typedef struct tgtcal_struct{
   struct timespec start[TGT_NCALMODES];
   double timer_length;
 } tgtcal_t;
-
-/*************************************************
- * Phase Flattening Structures
- *************************************************/
-typedef struct phase_zernike_struct{
-  int zswitch[LOWFS_N_ZERNIKE];
-  sci_phase_t phase_frames;
-} phase_zernike_t;
 
 /*************************************************
  * Packet Header
@@ -1341,6 +1325,7 @@ typedef volatile struct {
   uint32 sci_yorigin[SCI_NBANDS];                          //SCI ROI center Y
   int    sci_phase_n_zernike;                              //Number of zernikes to use in phase flattening
   int    sci_iphase;                                       //Current phase flattening step [0,1,2]
+  int    sci_phase_run;                                    //Run phase flattening
   
   //Camera Process Reset Commands
   int shk_reset;

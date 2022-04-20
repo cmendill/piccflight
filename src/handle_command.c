@@ -3335,6 +3335,34 @@ int handle_command(char *line, sm_t *sm_p){
     return CMD_NORMAL;
   }
 
+  //SCI Phase Flattening
+  sprintf(cmd,"sci phase on");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    printf("CMD: Turning SCI phase flattening ON\n");
+    sm_p->sci_phase_run=1;
+    return(CMD_NORMAL);
+  }
+
+  sprintf(cmd,"sci phase off");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    printf("CMD: Turning SCI phase flattening OFF\n");
+    sm_p->sci_phase_run=0;
+    return(CMD_NORMAL);
+  }
+
+  sprintf(cmd,"sci phase nzern");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    itemp = atoi(line+strlen(cmd)+1);
+    if(itemp >= 0 && itemp <= LOWFS_N_ZERNIKE){
+      sm_p->sci_phase_n_zernike = itemp;
+      sm_p->sci_reset_camera=1;
+      printf("CMD: Changed SCI phase N zernike to %d\n",sm_p->sci_phase_n_zernike);
+    }else{
+      printf("CMD: SCI phase N zernike out of bounds [%d,%d]\n",0,LOWFS_N_ZERNIKE);
+    }
+    return(CMD_NORMAL);
+  }
+
   //SCI Reference Image
   sprintf(cmd,"sci set ref");
   if(!strncasecmp(line,cmd,strlen(cmd))){

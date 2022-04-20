@@ -9,5 +9,6 @@ enum fakemodes{ FAKEMODE_NONE,
 		FAKEMODE_SCI_MASK,      //Mask SCI image with pixel selection mask
 		FAKEMODE_SCI_PROBE,     //Read fake HOWFS probe images
 		FAKEMODE_IMREG,         //Image registration pattern
+		FAKEMODE_PHASE,         //SCI phase flattening images
                 NFAKEMODES};
 		

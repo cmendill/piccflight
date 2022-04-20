@@ -366,23 +366,4 @@ void init_state(int state_number, state_t *state){
     return;
   }
 
-  //STATE_PHASE_ZERNIKE
-  if(state_number == STATE_PHASE_ZERNIKE){
-    //Set name
-    sprintf(state->name,"STATE_PHASE_ZERNIKE");
-    //Set cmd
-    sprintf(state->cmd,"spz");
-    //Set SHKID as alp commander
-    state->alp_commander = SHKID;
-    //Set SCIID as tgt commander
-    state->tgt_commander = SCIID;
-    //SHK Settings
-    state->shk.cell_control = ACTUATOR_ALP;
-    //Enable phase flattening
-    state->sci.run_phase = 1;
-    return;
-  }
-
-
-
 }
