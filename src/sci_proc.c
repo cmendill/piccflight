@@ -162,12 +162,12 @@ double sci_phase_zernike_merit(const gsl_vector *v, void *params){
   if(read_file(SCI_PHASE_IMAGE_C_FILE,&rawC,sizeof(sci_t)))
     printf("SCI: Read phase frames failed\n");
 
-  //Copy measured images -- divide by exposure time if different
+  //Copy measured images, normalize by exposure time
   for(i=0;i<SCIXS;i++){
     for(j=0;j<SCIYS;j++){
-      imageA[i][j]=(double)rawA.data[i][j];
-      imageB[i][j]=(double)rawB.data[i][j];
-      imageC[i][j]=(double)rawC.data[i][j];
+      imageA[i][j]=((double)rawA.data[i][j]) / sm_p->sci_exptime;
+      imageB[i][j]=((double)rawB.data[i][j]) / (10*sm_p->sci_exptime);
+      imageC[i][j]=((double)rawC.data[i][j]) / (10*sm_p->sci_exptime);
       if(imageA[i][j] > maxval) maxval = imageA[i][j];
     }
   }
@@ -202,7 +202,7 @@ double sci_phase_zernike_merit(const gsl_vector *v, void *params){
   meritC = meritCA*meritCA / (meritCB * meritCC);
 
   //Combine merit functions
-  merit = 1.0 - (1.0/(double)3)*(meritA + meritB + meritC);
+  merit = 1.0 - (1.0/3.0)*(meritA + meritB + meritC);
   //printf("SCI: Phase merit = %f\n",merit);
   
   //Return single value of merit function
