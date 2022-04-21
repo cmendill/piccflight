@@ -19,6 +19,7 @@
 #include "controller.h"
 #include "common_functions.h"
 #include "sci_functions.h"
+#include "alp_functions.h"
 
 /* Process File Descriptor */
 int sci_shmfd;
@@ -65,7 +66,7 @@ void scictrlC(int sig){
 /* SCI_PHASE_MERIT                                            */
 /*  - Phase flattening merit function                         */
 /**************************************************************/
-double sci_phase_zernike_merit(const gsl_vector *v, void *params){
+double sci_phase_merit(const gsl_vector *v, void *params){
   int i,j,rc;
   double merit,meritA,meritB,meritC;
   double meritAA=0,meritAB=0,meritAC=0;
@@ -76,7 +77,6 @@ double sci_phase_zernike_merit(const gsl_vector *v, void *params){
   double imageA[SCIXS][SCIYS];
   double imageB[SCIXS][SCIYS];
   double imageC[SCIXS][SCIYS];
-  double zernike_target[LOWFS_N_ZERNIKE]={0};
   float exptime;
   uint32_t err = 0;
   static double targetA[SCIXS][SCIYS];
@@ -89,7 +89,16 @@ double sci_phase_zernike_merit(const gsl_vector *v, void *params){
   struct gsl_param{
     sm_t *sm_p;
     uint16_t *img_buffer;
+    int nvar;
+    alp_t alp;
+    int phasemode;
   } *gsl_param;
+  double dZ[3]={0.2,-0.2,0};
+  double zcmd[LOWFS_N_ZERNIKE]={0};
+  double act[ALP_NACT];
+  alp_t alp;
+  int n_dither=1;
+  double focus=0;
   
   //Read in 3 target & weight images
   if(!init){
@@ -113,26 +122,88 @@ double sci_phase_zernike_merit(const gsl_vector *v, void *params){
   gsl_param = params;
   sm_t *sm_p = gsl_param->sm_p;
   uint16_t *img_buffer = gsl_param->img_buffer;
+  int nvar = gsl_param->nvar;
+  int phasemode = gsl_param->phasemode;
   
-  //Get zernike target command
-  for(i=0;i<sm_p->sci_phase_n_zernike;i++)
-    zernike_target[i] = gsl_vector_get(v,i);
+  //Initialize variable array
+  double *var = malloc(sizeof(double) * nvar);
 
+  //Get variable values
+  for(j=0;j<nvar;j++)
+    var[j] = gsl_vector_get(v,j);
+
+  //Print ZCOMMAND
+  if(phasemode == SCI_PHASEMODE_ZCOMMAND){
+    printf("SCI: ");
+    for(j=0;j<nvar;j++)
+      printf("%4.1f ",gsl_vector_get(v,j)*1000);
+    printf("\n");
+  }
+  
   //Generate 3 images 0,1,2 | B,C,A | +0.2,-0.2,0
   for(i=0;i<3;i++){
-    memcpy((double *)sm_p->shk_zernike_target,zernike_target,sizeof(zernike_target));
-    if(i == 0) sm_p->shk_zernike_target[2] += 0.2;
-    if(i == 1) sm_p->shk_zernike_target[2] -= 0.2;
+    //Set iphase
     sm_p->sci_iphase = i;
     printf("SCI: iphase = %d\n",sm_p->sci_iphase);
-    
-    /* Allow SHK to settle */
-    sleep(1);
 
+    //Get variable values
+    for(j=0;j<nvar;j++)
+      var[j] = gsl_vector_get(v,j);
+    
+    //Send target command
+    if(phasemode == SCI_PHASEMODE_ZTARGET){
+      //Copy command into zernike target array
+      for(j=0;j<nvar;j++)
+	sm_p->shk_zernike_target[j] = var[j];
+      //Apply defocus
+      if(i==0) focus = sm_p->shk_zernike_target[2];
+      sm_p->shk_zernike_target[2] = focus + dZ[i];
+      //Allow SHK to Settle
+      sleep(1);
+    }
+    
+    //Send zernike command
+    if(phasemode == SCI_PHASEMODE_ZCOMMAND){
+      //Copy command into full zernike array
+      for(j=0;j<nvar;j++)
+	zcmd[j] = var[j];
+      //Apply defocus
+      if(i==0) focus = zcmd[2];
+      zcmd[2] = focus + dZ[i];
+      //Convert current zernike command to actuator deltas
+      alp_zern2alp(zcmd,act,FUNCTION_NO_RESET);
+      //Add to starting actuator command
+      for(j=0;j<ALP_NACT;j++)
+	alp.acmd[j] = gsl_param->alp.acmd[j] + act[j];
+      //Send command to ALP
+      if(sm_p->state_array[sm_p->state].alp_commander == SCIID){
+	if(alp_send_command(sm_p,&alp,SCIID,n_dither)==0){
+	  //Command sent
+	}
+      }
+    }
+    //Send actuator command
+    if(phasemode == SCI_PHASEMODE_ACOMMAND){
+      //Copy command into full actuator array
+      for(j=0;j<nvar;j++)
+	alp.acmd[j] = var[j];
+      //Apply defocus
+      zcmd[2] = dZ[i];
+      alp_zern2alp(zcmd,act,FUNCTION_NO_RESET);
+      for(j=0;j<ALP_NACT;j++)
+	alp.acmd[j] += act[j];
+      //Send command to ALP
+      if(sm_p->state_array[sm_p->state].alp_commander == SCIID){
+	if(alp_send_command(sm_p,&alp,SCIID,n_dither)==0){
+	  //Command sent
+	}
+      }
+    }
+
+    
     /* Set exposure time */
-    if(i==0) exptime = sm_p->sci_exptime*10;
-    if(i==1) exptime = sm_p->sci_exptime*10;
-    if(i==2) exptime = sm_p->sci_exptime;
+    exptime = sm_p->sci_exptime;
+    if(i<2) exptime = sm_p->sci_exptime*10;
     if((err = FLISetExposureTime(dev, lround(exptime * 1000)))){
       fprintf(stderr, "SCI: Error FLISetExposureTime: %s\n", strerror((int)-err));
     }else{
@@ -204,6 +275,9 @@ double sci_phase_zernike_merit(const gsl_vector *v, void *params){
   //Combine merit functions
   merit = 1.0 - (1.0/3.0)*(meritA + meritB + meritC);
   //printf("SCI: Phase merit = %f\n",merit);
+
+  //Free malloc
+  free(var);
   
   //Return single value of merit function
   return merit;
@@ -225,7 +299,9 @@ void sci_proc(void){
   size_t mode_size=128;
   int i;
   int rc;
-  int phase_n_zernike;
+  int nvar=0;
+  alp_t alp;
+  int phasemode;
   
   //GSL Minimizer Setup
   int min_status;
@@ -238,6 +314,9 @@ void sci_proc(void){
   struct gsl_param{
     sm_t *sm_p;
     uint16_t *img_buffer;
+    int nvar;
+    alp_t alp;
+    int phasemode;
   } gsl_param;
   
   /* Open Shared Memory */
@@ -408,33 +487,59 @@ void sci_proc(void){
       sm_p->sci_tec_power = sci_get_tec_power(dev);
       
       /* Perform Phase Flattening */
-      if(sm_p->sci_phase_run){
+      phasemode = sm_p->sci_phasemode;
+      if(phasemode != SCI_PHASEMODE_NONE){
 	//Initialize GSL Minimizer
 	if(gsl_iter == 0){
 	  printf("SCI: Starting GSL initialization...\n");
+
+	  //Get starting ALP command
+	  if(sm_p->state_array[sm_p->state].alp_commander == SCIID){
+	    if(alp_get_command(sm_p,&alp)){
+	      printf("SCI: Failed to get ALP Command\n");
+	      memset(&alp,0,sizeof(alp));
+	    }
+	    memcpy(&gsl_param.alp,&alp,sizeof(alp));
+	  }
+	  
 	  //Setup user function
-	  phase_n_zernike = sm_p->sci_phase_n_zernike;
-	  my_func.n = phase_n_zernike;
-	  my_func.f = sci_phase_zernike_merit;
+	  if(phasemode == SCI_PHASEMODE_ZTARGET) nvar = sm_p->sci_phase_n_zernike;
+	  if(phasemode == SCI_PHASEMODE_ZCOMMAND) nvar = sm_p->sci_phase_n_zernike;
+	  if(phasemode == SCI_PHASEMODE_ACOMMAND) nvar = ALP_NACT;
+	  my_func.n = nvar;
+	  my_func.f = sci_phase_merit;
 	  gsl_param.sm_p = sm_p;
 	  gsl_param.img_buffer = img_buffer;
+	  gsl_param.nvar = nvar;
+	  gsl_param.phasemode = phasemode;
 	  my_func.params = &gsl_param;
-  
+	  
 	  //Define algorithm
 	  T = gsl_multimin_fminimizer_nmsimplex2;
     
 	  //Init algorithm
-	  s = gsl_multimin_fminimizer_alloc(T,phase_n_zernike);
+	  s = gsl_multimin_fminimizer_alloc(T,nvar);
     
 	  //Define starting point (initial guess)
-	  x = gsl_vector_alloc(phase_n_zernike);
-	  for(i=0;i<phase_n_zernike;i++)
-	    gsl_vector_set(x,i,sm_p->shk_zernike_target[i]);
-    
-	  //Set inital step sizes to 5nm
-	  ss = gsl_vector_alloc(phase_n_zernike);
-	  gsl_vector_set_all(ss, 0.005);
-  
+	  x = gsl_vector_alloc(nvar);
+	  
+	  if(phasemode == SCI_PHASEMODE_ZTARGET)
+	    for(i=0;i<nvar;i++)
+	      gsl_vector_set(x,i,sm_p->shk_zernike_target[i]);
+
+	  if(phasemode == SCI_PHASEMODE_ZCOMMAND)
+	    gsl_vector_set_all(x,0);
+
+	  if(phasemode == SCI_PHASEMODE_ACOMMAND)
+	    for(i=0;i<nvar;i++)
+	      gsl_vector_set(x,i,alp.acmd[i]);
+	  
+	  //Set inital step sizes
+	  ss = gsl_vector_alloc(nvar);
+	  if(phasemode == SCI_PHASEMODE_ZTARGET) gsl_vector_set_all(ss, 0.005);
+	  if(phasemode == SCI_PHASEMODE_ZCOMMAND) gsl_vector_set_all(ss, 0.005);
+	  if(phasemode == SCI_PHASEMODE_ACOMMAND) gsl_vector_set_all(ss, 0.01);
+	  
 	  //Set runtime parameters for the minimizer
 	  gsl_multimin_fminimizer_set(s, &my_func, x, ss);
 	  printf("SCI: GSL initialization done\n");
@@ -450,7 +555,7 @@ void sci_proc(void){
 	
 	//Get size
 	min_size = gsl_multimin_fminimizer_size(s);
-	min_status = gsl_multimin_test_size(min_size, 0.01);
+	min_status = gsl_multimin_test_size(min_size, 0.001);
 	
 	//Print status
 	printf("SCI: Phase iter=%d f=%10.5f size=%.3f\n", gsl_iter, s->fval, min_size);

@@ -27,6 +27,7 @@ void getlyt_proc(void); //get lytevents
 void getsci_proc(void); //get scievents
 void init_fakemode(int fakemode, calmode_t *fake);
 void change_state(sm_t *sm_p, int state);
+void sci_init_phasemode(int phasemode, phasemode_t *sci);
 
 /**************************************************************/
 /* PRINT_PROC_STATUS                                          */
@@ -138,6 +139,23 @@ void print_states(state_t *state, int current){
   }
   printf("******************************************\n");
 
+}
+
+/**************************************************************/
+/* PRINT_SCI_PHASEMODES                                         */
+/*  - Print available SCI phasemodes                          */
+/**************************************************************/
+void print_sci_phasemodes(phasemode_t *sci, int current){
+  int i;
+  printf("************ Available SCI Phasemodes  ************\n");
+  printf("#    Command    Name\n");
+  for(i=0;i<SCI_NPHASEMODES;i++){
+    if(current == i)
+      printf("%02d   %-7s   *%s\n",i,sci[i].cmd,sci[i].name);
+    else
+      printf("%02d   %-7s    %s\n",i,sci[i].cmd,sci[i].name);
+  }
+  printf("*************************************************\n");
 }
 
 /**************************************************************/
@@ -337,6 +355,7 @@ int handle_command(char *line, sm_t *sm_p){
   static calmode_t bmccalmodes[BMC_NCALMODES];
   static calmode_t tgtcalmodes[TGT_NCALMODES];
   static calmode_t fakemodes[NFAKEMODES];
+  static phasemode_t sciphasemodes[SCI_NPHASEMODES];
   static int init=0;
   const char hex_str_axes[HEX_NAXES][5] = {"X","Y","Z","U","V","W"};
   const char hex_str_unit[HEX_NAXES][5] = {"mm","mm","mm","deg","deg","deg"};
@@ -376,6 +395,9 @@ int handle_command(char *line, sm_t *sm_p){
     //Init fake modes
     for(i=0;i<NFAKEMODES;i++)
       init_fakemode(i,&fakemodes[i]);
+    //Init SCI phasemodes
+    for(i=0;i<SCI_NPHASEMODES;i++)
+      sci_init_phasemode(i,&sciphasemodes[i]);
     //Set init flag
     init=1;
   }
@@ -794,6 +816,8 @@ int handle_command(char *line, sm_t *sm_p){
     }
     return(CMD_NORMAL);
   }
+
+
   /****************************************
    * STATES
    ***************************************/
@@ -843,6 +867,12 @@ int handle_command(char *line, sm_t *sm_p){
   if(!strncasecmp(line,cmd,strlen(cmd))){
     sm_p->state_array[sm_p->state].alp_commander = LYTID;
     printf("CMD: State %s ALP commander set to LYT\n",sm_p->state_array[sm_p->state].name);
+    return(CMD_NORMAL);
+  }
+  sprintf(cmd,"alp commander sci");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    sm_p->state_array[sm_p->state].alp_commander = SCIID;
+    printf("CMD: State %s ALP commander set to SCI\n",sm_p->state_array[sm_p->state].name);
     return(CMD_NORMAL);
   }
   sprintf(cmd,"alp commander wat");
@@ -3336,20 +3366,23 @@ int handle_command(char *line, sm_t *sm_p){
   }
 
   //SCI Phase Flattening
-  sprintf(cmd,"sci phase on");
+  
+  sprintf(cmd,"sci phasemode");
   if(!strncasecmp(line,cmd,strlen(cmd))){
-    printf("CMD: Turning SCI phase flattening ON\n");
-    sm_p->sci_phase_run=1;
+    cmdfound = 0;
+    for(i=0;i<SCI_NPHASEMODES;i++){
+      if(!strncasecmp(line+strlen(cmd)+1,sciphasemodes[i].cmd,strlen(sciphasemodes[i].cmd))){
+	sm_p->sci_phasemode=i;
+	printf("CMD: Changed SCI phase mode to %s\n",sciphasemodes[i].name);
+	cmdfound = 1;
+      }
+    }
+    if(!cmdfound)
+      print_sci_phasemodes(sciphasemodes,sm_p->sci_phasemode);
+    
     return(CMD_NORMAL);
   }
-
-  sprintf(cmd,"sci phase off");
-  if(!strncasecmp(line,cmd,strlen(cmd))){
-    printf("CMD: Turning SCI phase flattening OFF\n");
-    sm_p->sci_phase_run=0;
-    return(CMD_NORMAL);
-  }
-
+  
   sprintf(cmd,"sci phase nzern");
   if(!strncasecmp(line,cmd,strlen(cmd))){
     itemp = atoi(line+strlen(cmd)+1);

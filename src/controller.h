@@ -142,6 +142,15 @@ enum bmccalmodes {BMC_CALMODE_NONE,
 		  BMC_NCALMODES};
 
 /*************************************************
+ * SCI Phase Flattening Modes
+ *************************************************/
+enum sciphasemodes {SCI_PHASEMODE_NONE,
+		    SCI_PHASEMODE_ZTARGET,
+		    SCI_PHASEMODE_ZCOMMAND,
+		    SCI_PHASEMODE_ACOMMAND,
+		    SCI_NPHASEMODES};
+
+/*************************************************
  * Commands
  *************************************************/
 #define CMD_SENDDATA  0x0ABACABB
@@ -988,6 +997,14 @@ typedef struct tgtcal_struct{
 } tgtcal_t;
 
 /*************************************************
+ * Phasemode Structures
+ *************************************************/
+typedef struct phasemode_struct{
+  char   name[MAX_COMMAND];
+  char   cmd[MAX_COMMAND];
+} phasemode_t;
+
+/*************************************************
  * Packet Header
  *************************************************/
 #define PICC_PKT_VERSION     42  //packet version number
@@ -1325,8 +1342,8 @@ typedef volatile struct {
   uint32 sci_yorigin[SCI_NBANDS];                          //SCI ROI center Y
   int    sci_phase_n_zernike;                              //Number of zernikes to use in phase flattening
   int    sci_iphase;                                       //Current phase flattening step [0,1,2]
-  int    sci_phase_run;                                    //Run phase flattening
-  
+  int    sci_phasemode;                                    //Phase flattening mode
+
   //Camera Process Reset Commands
   int shk_reset;
   int acq_reset;

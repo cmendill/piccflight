@@ -36,6 +36,32 @@ void sci_function_reset(sm_t *sm_p){
 }
 
 /**************************************************************/
+/* SCI_INIT_PHASEMODE                                           */
+/*  - Initialize SCI phasemode structure                        */
+/**************************************************************/
+void sci_init_phasemode(int phasemode, phasemode_t *sci){
+  //SCI_PHASEMODE_NONE
+  if(phasemode == SCI_PHASEMODE_NONE){
+    sprintf(sci->name,"SCI_PHASEMODE_NONE");
+    sprintf(sci->cmd,"none");
+  }
+  //SCI_PHASEMODE_ZTARGET
+  if(phasemode == SCI_PHASEMODE_ZTARGET){
+    sprintf(sci->name,"SCI_PHASEMODE_ZTARGET");
+    sprintf(sci->cmd,"ztgt");
+  }
+  //SCI_PHASEMODE_ZCOMMAND
+  if(phasemode == SCI_PHASEMODE_ZCOMMAND){
+    sprintf(sci->name,"SCI_PHASEMODE_ZCOMMAND");
+    sprintf(sci->cmd,"zcmd");
+  }
+  //SCI_PHASEMODE_ACOMMAND
+  if(phasemode == SCI_PHASEMODE_ACOMMAND){
+    sprintf(sci->name,"SCI_PHASEMODE_ACOMMAND");
+    sprintf(sci->cmd,"acmd");
+  }
+}
+/**************************************************************/
 /* SCI_XY2INDEX                                               */
 /*  - Convert image (x,y) to image buffer index               */
 /**************************************************************/
@@ -797,7 +823,7 @@ void sci_process_image(uint16 *img_buffer, float img_exptime, sm_t *sm_p){
   }
 
   //Record phase flatting images
-  if(sm_p->sci_phase_run){
+  if(sm_p->sci_phasemode != SCI_PHASEMODE_NONE){
     if(scievent.iphase == 0) sprintf(filename,SCI_PHASE_IMAGE_B_FILE);
     if(scievent.iphase == 1) sprintf(filename,SCI_PHASE_IMAGE_C_FILE);
     if(scievent.iphase == 2) sprintf(filename,SCI_PHASE_IMAGE_A_FILE);

@@ -170,6 +170,9 @@ cmd: alp commander shk
 cmd: alp commander lyt
         change alp commader to lyt
 	
+cmd: alp commander sci
+        change alp commader to sci
+	
 cmd: alp commander wat
         change alp commader to wat (user)
 	
