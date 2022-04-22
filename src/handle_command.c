@@ -3270,6 +3270,10 @@ int handle_command(char *line, sm_t *sm_p){
   //SCI Origin Commands
   sprintf(cmd,"sci set origin");
   if(!strncasecmp(line,cmd,strlen(cmd))){
+    if(sm_p->sci_fastmode){
+      printf("CMD: %s disabled in SCI fast mode\n",cmd);
+      return(CMD_NORMAL);
+    }
     printf("CMD: Setting SCI origin\n");
     sm_p->sci_setorigin=1;
     return(CMD_NORMAL);
@@ -3277,6 +3281,10 @@ int handle_command(char *line, sm_t *sm_p){
 
   sprintf(cmd,"sci find origin");
   if(!strncasecmp(line,cmd,strlen(cmd))){
+    if(sm_p->sci_fastmode){
+      printf("CMD: %s disabled in SCI fast mode\n",cmd);
+      return(CMD_NORMAL);
+    }
     printf("CMD: Finding SCI origin\n");
     sm_p->sci_findorigin=1;
     return(CMD_NORMAL);
@@ -3284,6 +3292,10 @@ int handle_command(char *line, sm_t *sm_p){
 
   sprintf(cmd,"sci track origin on");
   if(!strncasecmp(line,cmd,strlen(cmd))){
+    if(sm_p->sci_fastmode){
+      printf("CMD: %s disabled in SCI fast mode\n",cmd);
+      return(CMD_NORMAL);
+    }
     printf("CMD: Turning SCI origin tracking ON\n");
     sm_p->sci_trackorigin=1;
     return(CMD_NORMAL);
@@ -3291,6 +3303,10 @@ int handle_command(char *line, sm_t *sm_p){
 
   sprintf(cmd,"sci track origin off");
   if(!strncasecmp(line,cmd,strlen(cmd))){
+    if(sm_p->sci_fastmode){
+      printf("CMD: %s disabled in SCI fast mode\n",cmd);
+      return(CMD_NORMAL);
+    }
     printf("CMD: Turning SCI origin tracking OFF\n");
     sm_p->sci_trackorigin=0;
     return(CMD_NORMAL);
@@ -3298,6 +3314,10 @@ int handle_command(char *line, sm_t *sm_p){
 
   sprintf(cmd,"sci revert origin");
   if(!strncasecmp(line,cmd,strlen(cmd))){
+    if(sm_p->sci_fastmode){
+      printf("CMD: %s disabled in SCI fast mode\n",cmd);
+      return(CMD_NORMAL);
+    }
     printf("CMD: Reverting SCI origin\n");
     sm_p->sci_revertorigin=1;
     return(CMD_NORMAL);
@@ -3305,6 +3325,10 @@ int handle_command(char *line, sm_t *sm_p){
 
   sprintf(cmd,"sci save origin");
   if(!strncasecmp(line,cmd,strlen(cmd))){
+    if(sm_p->sci_fastmode){
+      printf("CMD: %s disabled in SCI fast mode\n",cmd);
+      return(CMD_NORMAL);
+    }
     printf("CMD: Saving SCI origin\n");
     sm_p->sci_saveorigin=1;
     return(CMD_NORMAL);
@@ -3312,6 +3336,10 @@ int handle_command(char *line, sm_t *sm_p){
 
   sprintf(cmd,"sci load origin");
   if(!strncasecmp(line,cmd,strlen(cmd))){
+    if(sm_p->sci_fastmode){
+      printf("CMD: %s disabled in SCI fast mode\n",cmd);
+      return(CMD_NORMAL);
+    }
     printf("CMD: Loading SCI origin\n");
     sm_p->sci_loadorigin=1;
     return(CMD_NORMAL);
@@ -3349,6 +3377,7 @@ int handle_command(char *line, sm_t *sm_p){
       }
       sm_p->sci_xorigin[iband] = itemp;
       printf("CMD: SCI shifted X origin %d px to %d\n",npix,sm_p->sci_xorigin[iband]);
+      if(sm_p->sci_fastmode) sm_p->sci_camera_reset=1;
       return CMD_NORMAL;
     }
     if(!strncasecmp(dim,"y",1)){
@@ -3359,6 +3388,7 @@ int handle_command(char *line, sm_t *sm_p){
       }
       sm_p->sci_yorigin[iband] = itemp;
       printf("CMD: SCI shifted Y origin %d px to %d\n",npix,sm_p->sci_yorigin[iband]);
+      if(sm_p->sci_fastmode) sm_p->sci_camera_reset=1;
       return CMD_NORMAL;
     }
     printf("CMD: SCI origin bad format: BAND DIMENSION NPIX\n");
@@ -3366,7 +3396,6 @@ int handle_command(char *line, sm_t *sm_p){
   }
 
   //SCI Phase Flattening
-  
   sprintf(cmd,"sci phasemode");
   if(!strncasecmp(line,cmd,strlen(cmd))){
     cmdfound = 0;
@@ -3403,6 +3432,27 @@ int handle_command(char *line, sm_t *sm_p){
     sm_p->sci_setref=1;
     return(CMD_NORMAL);
   }
+
+  //SCI Fast Mode
+  sprintf(cmd,"sci fast mode on");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    if(SCI_NBANDS==1){
+      printf("CMD: Turning SCI fast mode ON\n");
+      sm_p->sci_fastmode=1;
+      sm_p->sci_reset_camera=1;
+    }else printf("CMD: SCI fast mode only possible when SCI_NBANDS==1\n");
+    return(CMD_NORMAL);
+  }
+  sprintf(cmd,"sci fast mode off");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    if(SCI_NBANDS==1){
+      printf("CMD: Turning SCI fast mode OFF\n");
+      sm_p->sci_fastmode=0;
+      sm_p->sci_reset_camera=1;
+    }else printf("CMD: SCI fast mode only possible when SCI_NBANDS==1\n");
+    return(CMD_NORMAL);
+  }
+
   
   //TEC control
   sprintf(cmd,"sci tec enable");

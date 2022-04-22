@@ -46,6 +46,12 @@ void scictrlC(int sig){
   }else{
     if(SCI_DEBUG) printf("SCI: FLI TEC Disabled\n");
   }
+  /* Turn off background flushing */
+  if((err = FLIControlBackgroundFlush(dev, FLI_BGFLUSH_STOP))){
+    fprintf(stderr, "SCI: Error FLIControlBackgroundFlush: %s\n", strerror((int)-err));
+  }else{
+    if(SCI_DEBUG) printf("SCI: FLI Background Flushing Stopped\n");
+  }
   /* Close FLI camera */
   if((err = FLIClose(dev))){
     fprintf(stderr, "SCI: Error FLIClose: %s\n", strerror((int)-err));
@@ -302,6 +308,7 @@ void sci_proc(void){
   int nvar=0;
   alp_t alp;
   int phasemode;
+  int ulx,uly,lrx,lry;
   
   //GSL Minimizer Setup
   int min_status;
@@ -412,7 +419,19 @@ void sci_proc(void){
     }
 
     /* Set ROI */
-    if((err = FLISetImageArea(dev, SCI_UL_X, SCI_UL_Y, SCI_LR_X, SCI_LR_Y))){
+    ulx = SCI_UL_X;
+    uly = SCI_UL_Y;
+    lrx = SCI_LR_X;
+    lry = SCI_LR_Y;
+    if((SCI_NBANDS==1) && (sm_p->sci_fastmode==1)){
+      ulx = sm_p->sci_xorigin - SCIXS/2;
+      uly = sm_p->sci_yorigin - SCIYS/2;
+      lrx = ulx + SCIXS;//should we add -1?
+      lry = uly + SCIYS;//should we add -1?
+      printf("SCI: Using ROI [%d, %d, %d, %d]\n", ulx, uly, lrx, lry);
+
+    }
+    if((err = FLISetImageArea(dev, ulx, uly, lrx, lry))){
       fprintf(stderr, "SCI: Error FLISetImageArea: %s\n", strerror((int)-err));
     }else{
       if(SCI_DEBUG) printf("SCI: FLI image area set\n");
@@ -437,6 +456,13 @@ void sci_proc(void){
       fprintf(stderr, "SCI: Error FLISetNFlushes: %s\n", strerror((int)-err));
     }else{
       if(SCI_DEBUG) printf("SCI: FLI NFlushes set\n");
+    }
+
+    /* Turn on background flushing */
+    if((err = FLIControlBackgroundFlush(dev, FLI_BGFLUSH_START))){
+      fprintf(stderr, "SCI: Error FLIControlBackgroundFlush: %s\n", strerror((int)-err));
+    }else{
+      if(SCI_DEBUG) printf("SCI: FLI Background Flushing Started\n");
     }
 
     /* Set camera mode */

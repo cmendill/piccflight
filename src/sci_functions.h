@@ -1,5 +1,6 @@
 void sci_function_reset(sm_t *sm_p);
-uint64_t sci_xy2index(int x,int y);
+uint64_t sci_xy2index_full(int x,int y,int lrx, int lry);
+uint64_t sci_xy2index_roi(int x,int y,int lrx, int lry);
 void sci_setorigin(sm_t *sm_p,uint16_t *img_buffer);
 void sci_findorigin(sm_t *sm_p,uint16_t *img_buffer);
 void sci_loadorigin(sm_t *sm_p);

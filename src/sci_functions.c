@@ -64,9 +64,19 @@ void sci_init_phasemode(int phasemode, phasemode_t *sci){
 /**************************************************************/
 /* SCI_XY2INDEX                                               */
 /*  - Convert image (x,y) to image buffer index               */
+/*  - Used for full image readout                             */
 /**************************************************************/
-uint64_t sci_xy2index(int x,int y){
-  return y*SCI_ROI_XSIZE + x;
+uint64_t sci_xy2index_full(int x,int y,int lrx, int lry){
+  return (lry+y)*SCI_ROI_XSIZE + (lrx+x);
+}
+/**************************************************************/
+/* SCI_XY2INDEX_ROI                                           */
+/*  - Convert image (x,y) to image buffer index               */
+/*  - Used for ROI fast readout mode                          */
+/**************************************************************/
+uint64_t sci_xy2index_roi(int x,int y,int lrx, int lry){
+  //NOTE: lrx,lry included to maintain same function form as sci_xy2index_full
+  return y*SCIXS + x;
 }
 
 /***************************************************************/
@@ -93,7 +103,7 @@ void sci_setorigin(sm_t *sm_p,uint16_t *img_buffer){
 	x = x >= SCI_ROI_XSIZE ? SCI_ROI_XSIZE-1 : x;
 	y = y < 0 ? 0 : y;
 	y = y >= SCI_ROI_YSIZE ? SCI_ROI_YSIZE-1 : y;
-	index = sci_xy2index(x,y);
+	index = sci_xy2index_full(x,y,0,0);
 	index = index < 0 ? 0 : index;
 	index = index > (SCI_ROI_XSIZE*SCI_ROI_YSIZE - 1) ? (SCI_ROI_XSIZE*SCI_ROI_YSIZE - 1) : index;
 	p = img_buffer[index];
@@ -139,14 +149,14 @@ void sci_findorigin(sm_t *sm_p,uint16_t *img_buffer){
   //Loop over entire image
   for(i=0;i<SCI_ROI_XSIZE;i++){
     for(j=0;j<SCI_ROI_YSIZE;j++){
-      if(!mask[i][j] && (img_buffer[sci_xy2index(i,j)] > thresh)){
+      if(!mask[i][j] && (img_buffer[sci_xy2index_full(i,j,0,0)] > thresh)){
 	//Spot found, find maximum pixel over boxsize search region
 	maxval = 0;
 	for(x=i-boxsize/2;x<i+boxsize/2;x++){
 	  for(y=j-boxsize/2;y<j+boxsize/2;y++){
 	    if(x >= 0 && y >= 0 && x < SCI_ROI_XSIZE && y < SCI_ROI_YSIZE){
-	      if(!mask[x][y] && (img_buffer[sci_xy2index(x,y)] > maxval)){
-		maxval = img_buffer[sci_xy2index(x,y)];
+	      if(!mask[x][y] && (img_buffer[sci_xy2index_full(x,y,0,0)] > maxval)){
+		maxval = img_buffer[sci_xy2index_full(x,y,0,0)];
 		xorigin[k] = x;
 		yorigin[k] = y;
 	      }
@@ -574,6 +584,7 @@ void sci_process_image(uint16 *img_buffer, float img_exptime, sm_t *sm_p){
   static double shk_zernike_flat[LOWFS_N_ZERNIKE];
   double shk_zernike_target[LOWFS_N_ZERNIKE];
   static double target[SCIXS][SCIYS];
+  uint64_t (*sci_xy2index)(int x, int y, int lrx, int lry);
  
   //Get time immidiately
   clock_gettime(CLOCK_REALTIME,&start);
@@ -646,43 +657,46 @@ void sci_process_image(uint16 *img_buffer, float img_exptime, sm_t *sm_p){
 
   //Save time 
   memcpy(&last,&start,sizeof(struct timespec));
-  
-  //Command: sci_setorigin 
-  if(sm_p->sci_setorigin){
-    sci_setorigin(sm_p,img_buffer);
-    sm_p->sci_setorigin=0;
-    print_origin=1;
-  }
-  //Command: sci_findorigin 
-  if(sm_p->sci_findorigin){
-    sci_findorigin(sm_p,img_buffer);
-    sm_p->sci_findorigin=0;
-    print_origin=1;
-  }
-  //Command: sci_trackorigin 
-  if(sm_p->sci_trackorigin){
-    //--set origin every time, user must disable
-    sci_setorigin(sm_p,img_buffer);
-  }
-  //Command: sci_saveorigin 
-  if(sm_p->sci_saveorigin){
-    sci_saveorigin(sm_p);
-    sm_p->sci_saveorigin=0;
-    print_origin=1;
-  }
-  //Command: sci_loadorigin 
-  if(sm_p->sci_loadorigin){
-    sci_loadorigin(sm_p);
-    sm_p->sci_loadorigin=0;
-    print_origin=1;
-  }
-  //Command: sci_revertorigin 
-  if(sm_p->sci_revertorigin){
-    sci_revertorigin(sm_p);
-    sm_p->sci_revertorigin=0;
-    print_origin=1;
-  }
 
+  //Origin commands
+  if(!sm_p->sci_fastmode){
+    //Command: sci_setorigin 
+    if(sm_p->sci_setorigin){
+      sci_setorigin(sm_p,img_buffer);
+      sm_p->sci_setorigin=0;
+      print_origin=1;
+    }
+    //Command: sci_findorigin 
+    if(sm_p->sci_findorigin){
+      sci_findorigin(sm_p,img_buffer);
+      sm_p->sci_findorigin=0;
+      print_origin=1;
+    }
+    //Command: sci_trackorigin 
+    if(sm_p->sci_trackorigin){
+      //--set origin every time, user must disable
+      sci_setorigin(sm_p,img_buffer);
+    }
+    //Command: sci_saveorigin 
+    if(sm_p->sci_saveorigin){
+      sci_saveorigin(sm_p);
+      sm_p->sci_saveorigin=0;
+      print_origin=1;
+    }
+    //Command: sci_loadorigin 
+    if(sm_p->sci_loadorigin){
+      sci_loadorigin(sm_p);
+      sm_p->sci_loadorigin=0;
+      print_origin=1;
+    }
+    //Command: sci_revertorigin 
+    if(sm_p->sci_revertorigin){
+      sci_revertorigin(sm_p);
+      sm_p->sci_revertorigin=0;
+      print_origin=1;
+    }
+  }
+  
   //Copy origin to packet
   memcpy(scievent.xorigin,(uint32 *)sm_p->sci_xorigin,sizeof(scievent.xorigin));
   memcpy(scievent.yorigin,(uint32 *)sm_p->sci_yorigin,sizeof(scievent.yorigin));
@@ -750,7 +764,11 @@ void sci_process_image(uint16 *img_buffer, float img_exptime, sm_t *sm_p){
   //Define HOWFS index
   scievent.ihowfs = (scievent.hed.frame_number - howfs_istart) % SCI_HOWFS_NSTEP;
   if(scievent.ihowfs == 0) wfs_frame_number = scievent.hed.frame_number;
-      
+
+  //Set image buffer indexing function
+  sci_xy2index = sci_xy2index_full;
+  if(sm_p->sci_fastmode) sci_xy2index = sci_xy2index_roi;
+
   //Fake data
   if(sm_p->w[SCIID].fakemode != FAKEMODE_NONE){
     if(sm_p->w[SCIID].fakemode == FAKEMODE_TEST_PATTERN){
@@ -765,7 +783,7 @@ void sci_process_image(uint16 *img_buffer, float img_exptime, sm_t *sm_p){
 	for(i=0;i<SCIXS;i++)
 	  for(j=0;j<SCIYS;j++)
 	    if(scimask[i][j])
-	      scievent.bands.band[k].data[i][j] = img_buffer[sci_xy2index(scievent.xorigin[k]-(SCIXS/2)+i,scievent.yorigin[k]-(SCIYS/2)+j)];
+	      scievent.bands.band[k].data[i][j] = img_buffer[sci_xy2index(i,j,scievent.xorigin[k]-(SCIXS/2),scievent.yorigin[k]-(SCIYS/2))];
 	    else
 	      scievent.bands.band[k].data[i][j] = 0;
     }
@@ -794,7 +812,7 @@ void sci_process_image(uint16 *img_buffer, float img_exptime, sm_t *sm_p){
     for(b=0;b<SCI_NBANDS;b++)
       for(i=0;i<SCIXS;i++)
 	for(j=0;j<SCIYS;j++)
-    	  scievent.bands.band[b].data[i][j] = img_buffer[sci_xy2index(scievent.xorigin[b]-(SCIXS/2)+i,scievent.yorigin[b]-(SCIYS/2)+j)];
+    	  scievent.bands.band[b].data[i][j] = img_buffer[sci_xy2index(i,j,scievent.xorigin[b]-(SCIXS/2),scievent.yorigin[b]-(SCIYS/2))];
   }
   
   //Command: sci_setref 
@@ -808,7 +826,7 @@ void sci_process_image(uint16 *img_buffer, float img_exptime, sm_t *sm_p){
       for(i=0;i<SCIXS;i++){
 	for(j=0;j<SCIYS;j++){
 	  dpx = (double)scievent.bands.band[b].data[i][j];
-	  bkg = sci_cal.bias[sci_xy2index(i+xbl,j+ybl)] + sci_cal.dark[sci_xy2index(i+xbl,j+ybl)]*scievent.hed.exptime;
+	  bkg = sci_cal.bias[sci_xy2index(i,j,xbl,ybl)] + sci_cal.dark[sci_xy2index(i,j,xbl,ybl)]*scievent.hed.exptime;
 	  dpx -= bkg;
 	  if(dpx > scievent.refmax[b])
 	    scievent.refmax[b] = dpx;

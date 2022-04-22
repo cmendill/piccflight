@@ -499,8 +499,8 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 #define SCI_VBIN                1 //do not change, will break code below
 #define SCI_UL_X                0
 #define SCI_UL_Y                0
-#define SCI_LR_X (SCI_UL_X+(SCI_ROI_XSIZE/SCI_HBIN))
-#define SCI_LR_Y (SCI_UL_Y+(SCI_ROI_YSIZE/SCI_VBIN))
+#define SCI_LR_X (SCI_UL_X+(SCI_ROI_XSIZE/SCI_HBIN)) //should we add -1?
+#define SCI_LR_Y (SCI_UL_Y+(SCI_ROI_YSIZE/SCI_VBIN)) //should we add -1?
 #define SCI_XORIGIN_MIN         (SCIXS/2)
 #define SCI_XORIGIN_MAX         (SCI_ROI_XSIZE-SCIXS/2)
 #define SCI_YORIGIN_MIN         (SCIYS/2)
@@ -1343,14 +1343,15 @@ typedef volatile struct {
   int    sci_phase_n_zernike;                              //Number of zernikes to use in phase flattening
   int    sci_iphase;                                       //Current phase flattening step [0,1,2]
   int    sci_phasemode;                                    //Phase flattening mode
-
-  //Camera Process Reset Commands
+  int    sci_fastmode;                                     //Run camera in fast ROI readout mode
+  
+  //Camera Process Reset Commands (these go to xxx_process_image)
   int shk_reset;
   int acq_reset;
   int sci_reset;
   int lyt_reset;
 
-  //Camera Exposure Reset Commands
+  //Camera Exposure Reset Commands (these go to xxx_proc)
   int shk_reset_camera;
   int acq_reset_camera;
   int sci_reset_camera;
