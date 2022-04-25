@@ -697,6 +697,12 @@ cmd: sci phase nzern [arg1]
 cmd: sci set ref
         set reference image for sci field normalization
 
+cmd: sci fastmode on
+        turn sci roi readout fast mode on
+
+cmd: sci fastmode off
+     	turn sci roi readout fast mode off
+
 cmd: sci tec enable
         enables the sci tec
 

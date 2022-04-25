@@ -366,4 +366,14 @@ void init_state(int state_number, state_t *state){
     return;
   }
 
+  //STATE_SCI_PHASE
+  if(state_number == STATE_SCI_PHASE){
+    //Set name
+    sprintf(state->name,"STATE_SCI_PHASE");
+    //Set cmd
+    sprintf(state->cmd,"sph");
+    //Set options
+    state->alp_commander = SCIID;
+    return;
+  }
 }

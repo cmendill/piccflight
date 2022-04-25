@@ -103,6 +103,7 @@ enum states { STATE_STANDBY,
 	      STATE_EFC,
 	      STATE_SHK_EFC,
 	      STATE_HYB_EFC,
+	      STATE_SCI_PHASE,
 	      NSTATES};
 
 /*************************************************
@@ -1007,7 +1008,7 @@ typedef struct phasemode_struct{
 /*************************************************
  * Packet Header
  *************************************************/
-#define PICC_PKT_VERSION     42  //packet version number
+#define PICC_PKT_VERSION     43  //packet version number
 typedef struct pkthed_struct{
   uint16  version;       //packet version number
   uint16  type;          //packet ID word
@@ -1159,8 +1160,10 @@ typedef struct scievent_struct{
   int16        tec_setpoint;
   uint8        tec_enable;
   uint8        ihowfs;
-  uint32       iphase;
-  uint32       padding;
+  uint8        iphase;
+  uint8        fastmode;
+  uint16       padding1;
+  uint32       padding2;
   uint32       xorigin[SCI_NBANDS];
   uint32       yorigin[SCI_NBANDS];
   double       refmax[SCI_NBANDS];       

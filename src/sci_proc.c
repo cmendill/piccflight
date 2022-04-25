@@ -139,18 +139,20 @@ double sci_phase_merit(const gsl_vector *v, void *params){
     var[j] = gsl_vector_get(v,j);
 
   //Print ZCOMMAND
-  if(phasemode == SCI_PHASEMODE_ZCOMMAND){
-    printf("SCI: ");
-    for(j=0;j<nvar;j++)
-      printf("%4.1f ",gsl_vector_get(v,j)*1000);
-    printf("\n");
+  if(SCI_DEBUG){
+    if(phasemode == SCI_PHASEMODE_ZCOMMAND){
+      printf("SCI: ");
+      for(j=0;j<nvar;j++)
+	printf("%4.1f ",gsl_vector_get(v,j)*1000);
+      printf("\n");
+    }
   }
   
   //Generate 3 images 0,1,2 | B,C,A | +0.2,-0.2,0
   for(i=0;i<3;i++){
     //Set iphase
     sm_p->sci_iphase = i;
-    printf("SCI: iphase = %d\n",sm_p->sci_iphase);
+    //printf("SCI: iphase = %d\n",sm_p->sci_iphase);
 
     //Get variable values
     for(j=0;j<nvar;j++)
@@ -308,7 +310,7 @@ void sci_proc(void){
   int nvar=0;
   alp_t alp;
   int phasemode;
-  int ulx,uly,lrx,lry;
+  long int ulx,uly,lrx,lry;
   
   //GSL Minimizer Setup
   int min_status;
@@ -424,18 +426,29 @@ void sci_proc(void){
     lrx = SCI_LR_X;
     lry = SCI_LR_Y;
     if((SCI_NBANDS==1) && (sm_p->sci_fastmode==1)){
-      ulx = sm_p->sci_xorigin - SCIXS/2;
-      uly = sm_p->sci_yorigin - SCIYS/2;
-      lrx = ulx + SCIXS;//should we add -1?
-      lry = uly + SCIYS;//should we add -1?
-      printf("SCI: Using ROI [%d, %d, %d, %d]\n", ulx, uly, lrx, lry);
-
+      ulx = sm_p->sci_xorigin[0] - SCIXS/2;
+      uly = sm_p->sci_yorigin[0] - SCIYS/2;
+      lrx = ulx + SCIXS;
+      lry = uly + SCIYS;
     }
+    printf("SCI: Setting ROI [%ld, %ld, %ld, %ld]\n", ulx, uly, lrx, lry);
     if((err = FLISetImageArea(dev, ulx, uly, lrx, lry))){
       fprintf(stderr, "SCI: Error FLISetImageArea: %s\n", strerror((int)-err));
     }else{
       if(SCI_DEBUG) printf("SCI: FLI image area set\n");
     }
+    /*
+    if((err = FLIGetArrayArea(dev, &ulx, &uly, &lrx, &lry))){
+      fprintf(stderr, "SCI: Error FLIGetArrayArea: %s\n", strerror((int)-err));
+    }else{
+      printf("SCI: Array Area [%ld, %ld, %ld, %ld]\n", ulx, uly, lrx, lry);
+    }
+    if((err = FLIGetVisibleArea(dev, &ulx, &uly, &lrx, &lry))){
+      fprintf(stderr, "SCI: Error FLIGetVisibleArea: %s\n", strerror((int)-err));
+    }else{
+      printf("SCI: Visible Area [%ld, %ld, %ld, %ld]\n", ulx, uly, lrx, lry);
+    }
+    */
       
     /* Set horizontal binning */
     if((err = FLISetHBin(dev, SCI_HBIN))){
@@ -587,8 +600,10 @@ void sci_proc(void){
 	printf("SCI: Phase iter=%d f=%10.5f size=%.3f\n", gsl_iter, s->fval, min_size);
 
  	//Check for convergence
-	if(min_status == GSL_SUCCESS)
+	if(min_status == GSL_SUCCESS){
 	  printf("SCI: Minimum found after %d iterations\n",gsl_iter);
+	  sm_p->sci_phasemode = SCI_PHASEMODE_NONE;
+	}
       }
       else{
 	/* Reset GSL */

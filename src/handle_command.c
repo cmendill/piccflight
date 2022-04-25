@@ -3377,7 +3377,7 @@ int handle_command(char *line, sm_t *sm_p){
       }
       sm_p->sci_xorigin[iband] = itemp;
       printf("CMD: SCI shifted X origin %d px to %d\n",npix,sm_p->sci_xorigin[iband]);
-      if(sm_p->sci_fastmode) sm_p->sci_camera_reset=1;
+      if(sm_p->sci_fastmode) sm_p->sci_reset_camera=1;
       return CMD_NORMAL;
     }
     if(!strncasecmp(dim,"y",1)){
@@ -3388,7 +3388,7 @@ int handle_command(char *line, sm_t *sm_p){
       }
       sm_p->sci_yorigin[iband] = itemp;
       printf("CMD: SCI shifted Y origin %d px to %d\n",npix,sm_p->sci_yorigin[iband]);
-      if(sm_p->sci_fastmode) sm_p->sci_camera_reset=1;
+      if(sm_p->sci_fastmode) sm_p->sci_reset_camera=1;
       return CMD_NORMAL;
     }
     printf("CMD: SCI origin bad format: BAND DIMENSION NPIX\n");
@@ -3434,7 +3434,7 @@ int handle_command(char *line, sm_t *sm_p){
   }
 
   //SCI Fast Mode
-  sprintf(cmd,"sci fast mode on");
+  sprintf(cmd,"sci fastmode on");
   if(!strncasecmp(line,cmd,strlen(cmd))){
     if(SCI_NBANDS==1){
       printf("CMD: Turning SCI fast mode ON\n");
@@ -3443,7 +3443,7 @@ int handle_command(char *line, sm_t *sm_p){
     }else printf("CMD: SCI fast mode only possible when SCI_NBANDS==1\n");
     return(CMD_NORMAL);
   }
-  sprintf(cmd,"sci fast mode off");
+  sprintf(cmd,"sci fastmode off");
   if(!strncasecmp(line,cmd,strlen(cmd))){
     if(SCI_NBANDS==1){
       printf("CMD: Turning SCI fast mode OFF\n");

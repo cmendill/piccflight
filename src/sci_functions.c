@@ -66,17 +66,18 @@ void sci_init_phasemode(int phasemode, phasemode_t *sci){
 /*  - Convert image (x,y) to image buffer index               */
 /*  - Used for full image readout                             */
 /**************************************************************/
-uint64_t sci_xy2index_full(int x,int y,int lrx, int lry){
+uint64_t sci_xy2index_full(int x,int y,int lrx,int lry){
   return (lry+y)*SCI_ROI_XSIZE + (lrx+x);
 }
+
 /**************************************************************/
 /* SCI_XY2INDEX_ROI                                           */
 /*  - Convert image (x,y) to image buffer index               */
 /*  - Used for ROI fast readout mode                          */
 /**************************************************************/
-uint64_t sci_xy2index_roi(int x,int y,int lrx, int lry){
+uint64_t sci_xy2index_roi(int x,int y,int lrx,int lry){
   //NOTE: lrx,lry included to maintain same function form as sci_xy2index_full
-  return y*SCIXS + x;
+  return y*SCI_ROI_XSIZE + x;
 }
 
 /***************************************************************/
@@ -324,8 +325,11 @@ int sci_expose(sm_t *sm_p, flidev_t dev, uint16 *img_buffer){
     /* Check in with the watchdog */
     checkin(sm_p,SCIID);
     
-    //Sleep 1 decisecond
-    usleep(100000);
+    //Sleep
+    if(sm_p->sci_fastmode)
+      usleep(10000);
+    else
+      usleep(100000);
     sleepcount++;
     
     //Get exposure status
@@ -738,7 +742,8 @@ void sci_process_image(uint16 *img_buffer, float img_exptime, sm_t *sm_p){
   scievent.tec_setpoint     = sm_p->sci_tec_setpoint;
   scievent.tec_enable       = sm_p->sci_tec_enable;
   scievent.iphase           = sm_p->sci_iphase;
-
+  scievent.fastmode         = sm_p->sci_fastmode;
+  
   //Save calmodes
   scievent.hed.hex_calmode = sm_p->hex_calmode;
   scievent.hed.alp_calmode = sm_p->alp_calmode;
