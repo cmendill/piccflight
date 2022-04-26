@@ -346,7 +346,7 @@ int handle_command(char *line, sm_t *sm_p){
   int    cmdfound=0;
   int    i=0,j=0,hex_axis=0;
   double hex_poke=0;
-  int    calmode=0;
+  int    calmode=0,phasemode=0;
   uint16_t led;
   static double trl_poke = HEX_TRL_POKE;
   static double rot_poke = HEX_ROT_POKE;
@@ -2276,6 +2276,50 @@ int handle_command(char *line, sm_t *sm_p){
     }
     else{
       printf("CMD: Failed: SCI not TGT commander\n");
+      return(CMD_NORMAL);
+    }
+  }
+
+  //SCI Phase Flattening
+  sprintf(cmd,"sci runphase");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    if(sm_p->state_array[sm_p->state].alp_commander == SCIID){
+      //Get phasemode
+      cmdfound = 0;
+      for(i=0;i<SCI_NPHASEMODES;i++){
+	if(!strncasecmp(line+strlen(cmd)+1,sciphasemodes[i].cmd,strlen(sciphasemodes[i].cmd))){
+	  phasemode  = i;
+	  cmdfound = 1;
+	}
+      }
+      if(!cmdfound){
+	printf("CMD: Could not find sci phasemode\n");
+	print_sci_phasemodes(sciphasemodes,sm_p->sci_phasemode);
+	return(CMD_NORMAL);
+      }
+      printf("CMD: Running SCI Phase Flattening\n");
+      //Change calibration output filename
+      timestamp(stemp);
+      sprintf((char *)sm_p->calfile,SCI_PHASE_CALFILE,sciphasemodes[phasemode].cmd,sm_p->state_array[sm_p->state].cmd,stemp);
+      //Start data recording
+      printf("  -- Starting SCI data recording\n");
+      printf("  -- File: %s\n",sm_p->calfile);
+      sm_p->w[DIAID].launch = getsci_proc;
+      sm_p->w[DIAID].run    = 1;
+      sleep(3);
+      //Start phase mode
+      sm_p->sci_phasemode = phasemode;
+      printf("  -- Changing SCI phasemode to %s\n",sciphasemodes[sm_p->sci_phasemode].name);
+      while(sm_p->sci_phasemode == phasemode)
+	sleep(1);
+      printf("  -- Stopping data recording\n");
+      //Stop data recording
+      sm_p->w[DIAID].run    = 0;
+      printf("  -- Done\n");
+      return(CMD_NORMAL);
+    }
+    else{
+      printf("CMD: Failed: SCI not ALP commander\n");
       return(CMD_NORMAL);
     }
   }

@@ -240,6 +240,7 @@ enum sciphasemodes {SCI_PHASEMODE_NONE,
 #define LYT_TGT_CALFILE        "output/data/calibration/lyt_tgt_%s_%s_%s_caldata.dat"
 #define SCI_BMC_CALFILE        "output/data/calibration/sci_bmc_%s_%s_%s_caldata.dat"
 #define SCI_TGT_CALFILE        "output/data/calibration/sci_tgt_%s_%s_%s_caldata.dat"
+#define SCI_PHASE_CALFILE      "output/data/calibration/sci_phase_%s_%s_%s_caldata.dat"
 #define SHKCEL2SHKZER_OUTFILE  "output/data/calibration/shkcel2shkzer_flight_output.dat"
 #define SHKZER2SHKCEL_OUTFILE  "output/data/calibration/shkzer2shkcel_flight_output.dat"
 #define SHK_OUTFILE            "output/data/calibration/shk_output_%s.dat"
@@ -1162,8 +1163,9 @@ typedef struct scievent_struct{
   uint8        ihowfs;
   uint8        iphase;
   uint8        fastmode;
-  uint16       padding1;
-  uint32       padding2;
+  uint8        phasemode;
+  uint8        padding;
+  float        phasemerit;
   uint32       xorigin[SCI_NBANDS];
   uint32       yorigin[SCI_NBANDS];
   double       refmax[SCI_NBANDS];       
@@ -1347,6 +1349,7 @@ typedef volatile struct {
   int    sci_iphase;                                       //Current phase flattening step [0,1,2]
   int    sci_phasemode;                                    //Phase flattening mode
   int    sci_fastmode;                                     //Run camera in fast ROI readout mode
+  double sci_phasemerit;                                   //Phase flattening merit function value
   
   //Camera Process Reset Commands (these go to xxx_process_image)
   int shk_reset;

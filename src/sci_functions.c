@@ -589,7 +589,7 @@ void sci_process_image(uint16 *img_buffer, float img_exptime, sm_t *sm_p){
   double shk_zernike_target[LOWFS_N_ZERNIKE];
   static double target[SCIXS][SCIYS];
   uint64_t (*sci_xy2index)(int x, int y, int lrx, int lry);
- 
+  
   //Get time immidiately
   clock_gettime(CLOCK_REALTIME,&start);
   
@@ -743,6 +743,8 @@ void sci_process_image(uint16 *img_buffer, float img_exptime, sm_t *sm_p){
   scievent.tec_enable       = sm_p->sci_tec_enable;
   scievent.iphase           = sm_p->sci_iphase;
   scievent.fastmode         = sm_p->sci_fastmode;
+  scievent.phasemode        = sm_p->sci_phasemode;
+  scievent.phasemerit       = sm_p->sci_phasemerit;
   
   //Save calmodes
   scievent.hed.hex_calmode = sm_p->hex_calmode;
@@ -809,7 +811,7 @@ void sci_process_image(uint16 *img_buffer, float img_exptime, sm_t *sm_p){
 	  printf("SCI: Read phase target A image failed\n");
       for(i=0;i<SCIXS;i++)
 	for(j=0;j<SCIYS;j++)
-    	  scievent.bands.band[0].data[i][j] = target[i][j]*40000;
+    	  scievent.bands.band[0].data[i][j] = target[i][j]*60000;
     }
   }
   else{
@@ -831,7 +833,7 @@ void sci_process_image(uint16 *img_buffer, float img_exptime, sm_t *sm_p){
       for(i=0;i<SCIXS;i++){
 	for(j=0;j<SCIYS;j++){
 	  dpx = (double)scievent.bands.band[b].data[i][j];
-	  bkg = sci_cal.bias[sci_xy2index(i,j,xbl,ybl)] + sci_cal.dark[sci_xy2index(i,j,xbl,ybl)]*scievent.hed.exptime;
+	  bkg = sci_cal.bias[sci_xy2index_full(i,j,xbl,ybl)] + sci_cal.dark[sci_xy2index_full(i,j,xbl,ybl)]*scievent.hed.exptime;
 	  dpx -= bkg;
 	  if(dpx > scievent.refmax[b])
 	    scievent.refmax[b] = dpx;
@@ -847,11 +849,25 @@ void sci_process_image(uint16 *img_buffer, float img_exptime, sm_t *sm_p){
 
   //Record phase flatting images
   if(sm_p->sci_phasemode != SCI_PHASEMODE_NONE){
+    //Set bottom left corner in full image
+    xbl = scievent.xorigin[0]-(SCIXS/2);
+    ybl = scievent.yorigin[0]-(SCIYS/2);
+    for(i=0;i<SCIXS;i++){
+      for(j=0;j<SCIYS;j++){
+	dpx = (double)scievent.bands.band[0].data[i][j];
+	bkg = sci_cal.bias[sci_xy2index_full(i,j,xbl,ybl)] + sci_cal.dark[sci_xy2index_full(i,j,xbl,ybl)]*scievent.hed.exptime;
+	dpx -= bkg;
+	target[i][j]=dpx/scievent.hed.exptime;
+	//If we are faking the data, don't do background subtraction
+	if(sm_p->w[SCIID].fakemode == FAKEMODE_PHASE)
+	  target[i][j]=(double)scievent.bands.band[0].data[i][j];
+      }
+    }
     if(scievent.iphase == 0) sprintf(filename,SCI_PHASE_IMAGE_B_FILE);
     if(scievent.iphase == 1) sprintf(filename,SCI_PHASE_IMAGE_C_FILE);
     if(scievent.iphase == 2) sprintf(filename,SCI_PHASE_IMAGE_A_FILE);
     //Save measured images
-    write_file(filename,&scievent.bands.band[0],sizeof(sci_t));
+    write_file(filename,&target[0][0],sizeof(target));
   }
 
   /*************************************************************/

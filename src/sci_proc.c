@@ -20,6 +20,7 @@
 #include "common_functions.h"
 #include "sci_functions.h"
 #include "alp_functions.h"
+#include "fakemodes.h"
 
 /* Process File Descriptor */
 int sci_shmfd;
@@ -79,7 +80,6 @@ double sci_phase_merit(const gsl_vector *v, void *params){
   double meritBA=0,meritBB=0,meritBC=0;
   double meritCA=0,meritCB=0,meritCC=0;
   double maxval=0;
-  sci_t  rawA,rawB,rawC;
   double imageA[SCIXS][SCIYS];
   double imageB[SCIXS][SCIYS];
   double imageC[SCIXS][SCIYS];
@@ -139,7 +139,7 @@ double sci_phase_merit(const gsl_vector *v, void *params){
     var[j] = gsl_vector_get(v,j);
 
   //Print ZCOMMAND
-  if(SCI_DEBUG){
+  if(0){
     if(phasemode == SCI_PHASEMODE_ZCOMMAND){
       printf("SCI: ");
       for(j=0;j<nvar;j++)
@@ -186,10 +186,12 @@ double sci_phase_merit(const gsl_vector *v, void *params){
       //Send command to ALP
       if(sm_p->state_array[sm_p->state].alp_commander == SCIID){
 	if(alp_send_command(sm_p,&alp,SCIID,n_dither)==0){
-	  //Command sent
+	  //Allow ALP to Settle
+	  usleep(100000);
 	}
       }
     }
+    
     //Send actuator command
     if(phasemode == SCI_PHASEMODE_ACOMMAND){
       //Copy command into full actuator array
@@ -203,7 +205,8 @@ double sci_phase_merit(const gsl_vector *v, void *params){
       //Send command to ALP
       if(sm_p->state_array[sm_p->state].alp_commander == SCIID){
 	if(alp_send_command(sm_p,&alp,SCIID,n_dither)==0){
-	  //Command sent
+	  //Allow ALP to Settle
+	  usleep(100000);
 	}
       }
     }
@@ -211,7 +214,8 @@ double sci_phase_merit(const gsl_vector *v, void *params){
     
     /* Set exposure time */
     exptime = sm_p->sci_exptime;
-    if(i<2) exptime = sm_p->sci_exptime*10;
+    if(sm_p->w[SCIID].fakemode == FAKEMODE_NONE)
+      if(i<2) exptime = sm_p->sci_exptime*50;
     if((err = FLISetExposureTime(dev, lround(exptime * 1000)))){
       fprintf(stderr, "SCI: Error FLISetExposureTime: %s\n", strerror((int)-err));
     }else{
@@ -233,25 +237,22 @@ double sci_phase_merit(const gsl_vector *v, void *params){
     }
   }
   
-  //Read in measured images
-  if(read_file(SCI_PHASE_IMAGE_A_FILE,&rawA,sizeof(sci_t)))
+  //Read in measured images -- already background subtracted and divided by exposure time
+  if(read_file(SCI_PHASE_IMAGE_A_FILE,&imageA[0][0],sizeof(imageA)))
     printf("SCI: Read phase frames failed\n");
-  if(read_file(SCI_PHASE_IMAGE_B_FILE,&rawB,sizeof(sci_t)))
+  if(read_file(SCI_PHASE_IMAGE_B_FILE,&imageB[0][0],sizeof(imageB)))
     printf("SCI: Read phase frames failed\n");
-  if(read_file(SCI_PHASE_IMAGE_C_FILE,&rawC,sizeof(sci_t)))
+  if(read_file(SCI_PHASE_IMAGE_C_FILE,&imageC[0][0],sizeof(imageC)))
     printf("SCI: Read phase frames failed\n");
-
-  //Copy measured images, normalize by exposure time
+  
+  //Find max pixel of imageA
   for(i=0;i<SCIXS;i++){
     for(j=0;j<SCIYS;j++){
-      imageA[i][j]=((double)rawA.data[i][j]) / sm_p->sci_exptime;
-      imageB[i][j]=((double)rawB.data[i][j]) / (10*sm_p->sci_exptime);
-      imageC[i][j]=((double)rawC.data[i][j]) / (10*sm_p->sci_exptime);
       if(imageA[i][j] > maxval) maxval = imageA[i][j];
     }
   }
   
-  //Scale measured images
+  //Scale measured images by max pixel
   for(i=0;i<SCIXS;i++){
     for(j=0;j<SCIYS;j++){
       imageA[i][j]/=maxval;
@@ -437,18 +438,6 @@ void sci_proc(void){
     }else{
       if(SCI_DEBUG) printf("SCI: FLI image area set\n");
     }
-    /*
-    if((err = FLIGetArrayArea(dev, &ulx, &uly, &lrx, &lry))){
-      fprintf(stderr, "SCI: Error FLIGetArrayArea: %s\n", strerror((int)-err));
-    }else{
-      printf("SCI: Array Area [%ld, %ld, %ld, %ld]\n", ulx, uly, lrx, lry);
-    }
-    if((err = FLIGetVisibleArea(dev, &ulx, &uly, &lrx, &lry))){
-      fprintf(stderr, "SCI: Error FLIGetVisibleArea: %s\n", strerror((int)-err));
-    }else{
-      printf("SCI: Visible Area [%ld, %ld, %ld, %ld]\n", ulx, uly, lrx, lry);
-    }
-    */
       
     /* Set horizontal binning */
     if((err = FLISetHBin(dev, SCI_HBIN))){
@@ -577,7 +566,7 @@ void sci_proc(void){
 	  ss = gsl_vector_alloc(nvar);
 	  if(phasemode == SCI_PHASEMODE_ZTARGET) gsl_vector_set_all(ss, 0.005);
 	  if(phasemode == SCI_PHASEMODE_ZCOMMAND) gsl_vector_set_all(ss, 0.005);
-	  if(phasemode == SCI_PHASEMODE_ACOMMAND) gsl_vector_set_all(ss, 0.01);
+	  if(phasemode == SCI_PHASEMODE_ACOMMAND) gsl_vector_set_all(ss, 0.005);
 	  
 	  //Set runtime parameters for the minimizer
 	  gsl_multimin_fminimizer_set(s, &my_func, x, ss);
@@ -598,7 +587,8 @@ void sci_proc(void){
 	
 	//Print status
 	printf("SCI: Phase iter=%d f=%10.5f size=%.3f\n", gsl_iter, s->fval, min_size);
-
+	sm_p->sci_phasemerit=s->fval;
+	
  	//Check for convergence
 	if(min_status == GSL_SUCCESS){
 	  printf("SCI: Minimum found after %d iterations\n",gsl_iter);
