@@ -566,7 +566,7 @@ void sci_proc(void){
 	  ss = gsl_vector_alloc(nvar);
 	  if(phasemode == SCI_PHASEMODE_ZTARGET) gsl_vector_set_all(ss, 0.005);
 	  if(phasemode == SCI_PHASEMODE_ZCOMMAND) gsl_vector_set_all(ss, 0.005);
-	  if(phasemode == SCI_PHASEMODE_ACOMMAND) gsl_vector_set_all(ss, 0.005);
+	  if(phasemode == SCI_PHASEMODE_ACOMMAND) gsl_vector_set_all(ss, 0.01);
 	  
 	  //Set runtime parameters for the minimizer
 	  gsl_multimin_fminimizer_set(s, &my_func, x, ss);
