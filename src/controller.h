@@ -283,6 +283,12 @@ enum sciphasemodes {SCI_PHASEMODE_NONE,
 #define SSR_NCHAN                16
 
 /*************************************************
+ * Optimizers
+ *************************************************/
+#define OPTIMIZER_GSL 0
+#define OPTIMIZER_TNC 1
+#define PHASE_OPTIMIZER OPTIMIZER_GSL
+/*************************************************
  * Circular Buffer Info
  *************************************************/
 enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
