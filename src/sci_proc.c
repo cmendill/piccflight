@@ -103,15 +103,15 @@ void sci_phase_merit_gradient(const gsl_vector *v, void *params, gsl_vector *df)
 #if PHASE_OPTIMIZER == OPTIMIZER_TNC
 void sci_phase_merit_gradient(double *var, double merit, double df[], opt_param_t *opt_param){
   int i;
-  opt_param_t gra_param;
   double dp,dm;
+  opt_param_t grad_param;
   
   //Create delta array
   double *del = malloc(sizeof(double) * opt_param->nvar);
-  
+
   //Copy parameters, zero out gradient switch
-  memcpy(&gra_param,opt_param,sizeof(opt_param_t));
-  gra_param.calc_gradient=0;
+  memcpy(&grad_param,opt_param,sizeof(opt_param_t));
+  grad_param.calc_gradient = 0;
   
   //Loop over variables
   for(i=0;i<opt_param->nvar;i++){
@@ -121,22 +121,24 @@ void sci_phase_merit_gradient(double *var, double merit, double df[], opt_param_
     //Run positive delta
     if(opt_param->calc_gradient >= 1){
       del[i] += opt_param->gstep;
-      sci_phase_merit(del, &dp, df, (void *)opt_param);	
+      sci_phase_merit(del, &dp, df, (void *)&grad_param);	
     }
 
     //Run negative delta
     if(opt_param->calc_gradient == 2){
       del[i] -= 2*opt_param->gstep;
-      sci_phase_merit(del, &dm, df, (void *)opt_param);	
+      sci_phase_merit(del, &dm, df, (void *)&grad_param);	
     }
 
     //Calculate derivative
     if(opt_param->calc_gradient == 1) df[i]=(dp - merit)/(opt_param->gstep);
     if(opt_param->calc_gradient == 2) df[i]=(dp - dm)/(2*opt_param->gstep);
+
+    printf("TNC: grad[%d]=%f\n",i,df[i]);
   }
   
   //Free malloc
-  free(del);
+  if(del) free(del);
   
 }
 #endif
@@ -159,7 +161,7 @@ int sci_phase_merit(double v[], double *fval, double df[], void *params){
   double meritAA=0,meritAB=0,meritAC=0;
   double meritBA=0,meritBB=0,meritBC=0;
   double meritCA=0,meritCB=0,meritCC=0;
-  double maxval=0;
+  double totval=0;
   double imageA[SCIXS][SCIYS];
   double imageB[SCIXS][SCIYS];
   double imageC[SCIXS][SCIYS];
@@ -172,7 +174,7 @@ int sci_phase_merit(double v[], double *fval, double df[], void *params){
   static double weightB[SCIXS][SCIYS];
   static double weightC[SCIXS][SCIYS];
   static int init=0;
-  opt_param_t *opt_param,dir_param;
+  opt_param_t *opt_param;
   double dZ[3]={0.2,-0.2,0};
   double zcmd[LOWFS_N_ZERNIKE]={0};
   double act[ALP_NACT];
@@ -204,6 +206,15 @@ int sci_phase_merit(double v[], double *fval, double df[], void *params){
   uint16_t *img_buffer = opt_param->img_buffer;
   int nvar = opt_param->nvar;
   int phasemode = opt_param->phasemode;
+
+  //Check phasemode
+#if PHASE_OPTIMIZER == OPTIMIZER_TNC
+  if(sm_p->sci_phasemode == SCI_PHASEMODE_NONE)
+    return 0;
+#endif
+  
+  //Check in with the watchdog
+  checkin(sm_p,SCIID);
   
   //Initialize variable array
   double *var = malloc(sizeof(double) * nvar);
@@ -217,6 +228,7 @@ int sci_phase_merit(double v[], double *fval, double df[], void *params){
   for(j=0;j<nvar;j++)
     var[j] = v[j];
 #endif
+
   
   //Print ZCOMMAND
   if(0){
@@ -320,22 +332,29 @@ int sci_phase_merit(double v[], double *fval, double df[], void *params){
     printf("SCI: Read phase frames failed\n");
   if(read_file(SCI_PHASE_IMAGE_C_FILE,&imageC[0][0],sizeof(imageC)))
     printf("SCI: Read phase frames failed\n");
-  
-  //Find max pixel of imageA
-  for(i=0;i<SCIXS;i++){
-    for(j=0;j<SCIYS;j++){
-      if(imageA[i][j] > maxval) maxval = imageA[i][j];
-    }
-  }
-  
-  //Scale measured images by max pixel
-  for(i=0;i<SCIXS;i++){
-    for(j=0;j<SCIYS;j++){
-      imageA[i][j]/=maxval;
-      imageB[i][j]/=maxval;
-      imageC[i][j]/=maxval;
-    }
-  }
+
+  //Normalize images
+  totval=0;
+  for(i=0;i<SCIXS;i++)
+    for(j=0;j<SCIYS;j++)
+      if(weightA[i][j]) totval += imageA[i][j];
+  for(i=0;i<SCIXS;i++)
+    for(j=0;j<SCIYS;j++)
+      imageA[i][j] /= totval;
+  totval=0;
+  for(i=0;i<SCIXS;i++)
+    for(j=0;j<SCIYS;j++)
+      if(weightB[i][j]) totval += imageB[i][j];
+  for(i=0;i<SCIXS;i++)
+    for(j=0;j<SCIYS;j++)
+      imageB[i][j] /= totval;
+  totval=0;
+  for(i=0;i<SCIXS;i++)
+    for(j=0;j<SCIYS;j++)
+      if(weightC[i][j]) totval += imageC[i][j];
+  for(i=0;i<SCIXS;i++)
+    for(j=0;j<SCIYS;j++)
+      imageC[i][j] /= totval;
   
   //Calculate individual merit functions
   for(i=0;i<SCIXS;i++){
@@ -359,16 +378,22 @@ int sci_phase_merit(double v[], double *fval, double df[], void *params){
 
   //Combine merit functions
   merit = 1.0 - (1.0/3.0)*(meritA + meritB + meritC);
-  //printf("SCI: Phase merit = %f\n",merit);
 
   
   //Calculate gradients
 #if PHASE_OPTIMIZER == OPTIMIZER_TNC
-  sci_phase_merit_gradient(var, merit, df, opt_param);
+  if(opt_param->calc_gradient > 0){
+    printf("SCI: %f: ",merit);
+    for(j=0;j<nvar;j++)
+      printf("%4.1f ",var[j]*1000);
+    printf("\n");
+    sci_phase_merit_gradient(var, merit, df, opt_param);
+ 
+  }
 #endif
 
   //Free malloc
-  free(var);
+  if(var) free(var);
   
   //Return single value of merit function
 #if PHASE_OPTIMIZER == OPTIMIZER_GSL
@@ -665,34 +690,41 @@ void sci_proc(void){
 	  double *x;               //Starting variable values
 	  double *llimit,*ulimit;  //Variable limits
 	  int maxCGit = -1;        //Max number of hessian*vector evaluation per main iteration
-	  int maxnfeval = 20;      //Max number of function evaluations
+	  int maxnfeval = 200;     //Max number of function evaluations
 	  double eta = -1.0;       //Severity of the line search
 	  double stepmx = -1.0;    //Maximum step for the line search
 	  double accuracy = -1.0;  //Relative precision for finite difference calculations
 	  double fmin = 0.0;       //Minimum function value estimate
-	  double ftol = 0.1;       //Precision goal for the value of f in the stoping criterion
-	  double rescale = -1.0;   //Scaling factor (in log10) used to trigger rescaling
+	  double ftol = 0.1;       //Stop if abs(f_n-f_n-1) < ftol
+	  double xtol = 0.1;       //Stop if abs(x_n-x_n-1) < xtol
+	  double pgtol = 0.1;      //Stop if abs(g_n-g_n-1) < pgtol
+	  double rescale = HUGE_VAL;   //Scaling factor (in log10) used to trigger rescaling
 	  int nfeval;              //On output, the number of function evaluations
 	  double fval;             //On output, the final function value
+	  double *gval;            //On output, gradient values
 	  int rc;                  //Return value
 	  
 	  //Malloc
-	  x = malloc(nvar*sizeof(double));
+	  x      = malloc(nvar*sizeof(double));
+	  gval   = malloc(nvar*sizeof(double));
 	  llimit = malloc(nvar*sizeof(double));
 	  ulimit = malloc(nvar*sizeof(double));
 	  
 	  //Define starting point and limits
+	  double limit=0;
 	  for(i=0;i<nvar;i++){
 	    if(phasemode == SCI_PHASEMODE_ZTARGET){
 	      x[i]=sm_p->shk_zernike_target[i];
-	      ulimit[i] = x[i] + 50;
-	      llimit[i] = x[i] - 50;
+	      if(i<3) limit = 0.1; else limit = 0.01;
+	      ulimit[i] = x[i] + limit;
+	      llimit[i] = x[i] - limit;
 	    }
 	  
 	    if(phasemode == SCI_PHASEMODE_ZCOMMAND){
 	      x[i]=0;
-	      ulimit[i] = x[i] + 50;
-	      llimit[i] = x[i] - 50;
+	      if(i<3) limit = 0.1; else limit = 0.01;
+	      ulimit[i] = x[i] + limit;
+	      llimit[i] = x[i] - limit;
 	    }
 	      
 	    if(phasemode == SCI_PHASEMODE_ACOMMAND){
@@ -703,20 +735,20 @@ void sci_proc(void){
 	  }
 	  
 	  //Define gradient parameters
-	  opt_param.gstep = 0.01;
+	  opt_param.gstep = 0.005;
 	  opt_param.calc_gradient = 2;
 
 	  //Run TNC Optimizer
-	  rc = tnc(nvar, x, &fval, NULL, sci_phase_merit, &opt_param, llimit, ulimit, NULL, TNC_MSG_ALL,
-		   maxCGit, maxnfeval, eta, stepmx, accuracy, fmin, ftol, rescale, &nfeval);
+	  rc = tnc(nvar, x, &fval, gval, sci_phase_merit, &opt_param, llimit, ulimit, NULL, NULL, TNC_MSG_ALL,
+		   maxCGit, maxnfeval, eta, stepmx, accuracy, fmin, ftol, xtol, pgtol, rescale, &nfeval);
 
 	  printf("SCI: After %d function evaluations, TNC returned:\n%s\n", nfeval,
 		 tnc_rc_string[rc - TNC_MINRC]);
 
 	  //Free malloc
-	  free(x);
-	  free(ulimit);
-	  free(llimit);
+	  if(x) free(x);
+	  if(ulimit) free(ulimit);
+	  if(llimit) free(llimit);
 
 	  //Stop phasemode
 	  sm_p->sci_phasemode = SCI_PHASEMODE_NONE;
@@ -744,13 +776,6 @@ void sci_proc(void){
 	  sm_p->sci_phasemode = SCI_PHASEMODE_NONE;
 	}
 #endif
-
-#if PHASE_OPTIMIZER == OPTIMIZER_TNC
-	
-
-
-#endif
-	
 	//Increment counter
 	opt_iter++;
       }
