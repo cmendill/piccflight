@@ -18,3 +18,4 @@ librtd-dm7820.a
 libbmc.a
 libbmp.a
 libhdc.a
+libtnc.a

@@ -287,7 +287,7 @@ enum sciphasemodes {SCI_PHASEMODE_NONE,
  *************************************************/
 #define OPTIMIZER_GSL 0
 #define OPTIMIZER_TNC 1
-#define PHASE_OPTIMIZER OPTIMIZER_GSL
+#define PHASE_OPTIMIZER OPTIMIZER_TNC
 
 /*************************************************
  * Circular Buffer Info
