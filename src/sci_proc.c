@@ -134,7 +134,7 @@ void sci_phase_merit_gradient(double *var, double merit, double df[], opt_param_
     if(opt_param->calc_gradient == 1) df[i]=(dp - merit)/(opt_param->gstep);
     if(opt_param->calc_gradient == 2) df[i]=(dp - dm)/(2*opt_param->gstep);
 
-    printf("TNC: grad[%d]=%f\n",i,df[i]);
+    //printf("TNC: grad[%d]=%f\n",i,df[i]);
   }
   
   //Free malloc
@@ -303,7 +303,7 @@ int sci_phase_merit(double v[], double *fval, double df[], void *params){
     /* Set exposure time */
     exptime = sm_p->sci_exptime;
     if(sm_p->w[SCIID].fakemode == FAKEMODE_NONE)
-      if(i<2) exptime = sm_p->sci_exptime*50;
+      if(i<2) exptime = sm_p->sci_exptime*10;
     if((err = FLISetExposureTime(dev, lround(exptime * 1000)))){
       fprintf(stderr, "SCI: Error FLISetExposureTime: %s\n", strerror((int)-err));
     }else{
@@ -355,7 +355,7 @@ int sci_phase_merit(double v[], double *fval, double df[], void *params){
   for(i=0;i<SCIXS;i++)
     for(j=0;j<SCIYS;j++)
       imageC[i][j] /= totval;
-  
+
   //Calculate individual merit functions
   for(i=0;i<SCIXS;i++){
     for(j=0;j<SCIYS;j++){
@@ -692,13 +692,13 @@ void sci_proc(void){
 	  int maxCGit = -1;        //Max number of hessian*vector evaluation per main iteration
 	  int maxnfeval = 200;     //Max number of function evaluations
 	  double eta = -1.0;       //Severity of the line search
-	  double stepmx = -1.0;    //Maximum step for the line search
+	  double stepmx = 10;      //Maximum step for the line search
 	  double accuracy = -1.0;  //Relative precision for finite difference calculations
 	  double fmin = 0.0;       //Minimum function value estimate
-	  double ftol = 0.1;       //Stop if abs(f_n-f_n-1) < ftol
-	  double xtol = 0.1;       //Stop if abs(x_n-x_n-1) < xtol
+	  double ftol = 0.01;      //Stop if abs(f_n-f_n-1) < ftol
+	  double xtol = 0.001;     //Stop if abs(x_n-x_n-1) < xtol
 	  double pgtol = 0.1;      //Stop if abs(g_n-g_n-1) < pgtol
-	  double rescale = HUGE_VAL;   //Scaling factor (in log10) used to trigger rescaling
+	  double rescale = -1;     //Scaling factor (in log10) used to trigger rescaling
 	  int nfeval;              //On output, the number of function evaluations
 	  double fval;             //On output, the final function value
 	  double *gval;            //On output, gradient values
@@ -715,14 +715,14 @@ void sci_proc(void){
 	  for(i=0;i<nvar;i++){
 	    if(phasemode == SCI_PHASEMODE_ZTARGET){
 	      x[i]=sm_p->shk_zernike_target[i];
-	      if(i<3) limit = 0.1; else limit = 0.01;
+	      if(i<3) limit = 0.1; else limit = 0.05;
 	      ulimit[i] = x[i] + limit;
 	      llimit[i] = x[i] - limit;
 	    }
 	  
 	    if(phasemode == SCI_PHASEMODE_ZCOMMAND){
 	      x[i]=0;
-	      if(i<3) limit = 0.1; else limit = 0.01;
+	      if(i<3) limit = 0.1; else limit = 0.05;
 	      ulimit[i] = x[i] + limit;
 	      llimit[i] = x[i] - limit;
 	    }
@@ -735,7 +735,7 @@ void sci_proc(void){
 	  }
 	  
 	  //Define gradient parameters
-	  opt_param.gstep = 0.005;
+	  opt_param.gstep = 0.010;
 	  opt_param.calc_gradient = 2;
 
 	  //Run TNC Optimizer
@@ -767,7 +767,11 @@ void sci_proc(void){
 	min_status = gsl_multimin_test_size(min_size, 0.001);
 	
 	//Print status
-	printf("SCI: Phase iter=%d f=%10.5f size=%.3f\n", opt_iter, s->fval, min_size);
+	printf("SCI: %5.3f,%5.3f: ",s->fval,min_size);
+	for(i=0;i<nvar;i++)
+	  printf("%4.1f ",gsl_vector_get(s->x,i)*1000);
+	printf("\n");
+	//printf("SCI: Phase iter=%d f=%10.5f size=%.3f\n", opt_iter, s->fval, min_size);
 	sm_p->sci_phasemerit=s->fval;
 	
  	//Check for convergence

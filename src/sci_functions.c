@@ -617,6 +617,8 @@ void sci_process_image(uint16 *img_buffer, float img_exptime, sm_t *sm_p){
     sci_function_reset(sm_p);
     howfs_init=0;
     tgt_calibrate(sm_p,0,NULL,NULL,SCIID,FUNCTION_RESET);
+    //Load origin
+    sci_loadorigin(sm_p);
     //Read SCI pixel selection
     if(read_file(SCI_MASK_FILE,&scimask[0][0],sizeof(scimask)))
       memset(&scimask[0][0],0,sizeof(scimask));    
@@ -879,6 +881,14 @@ void sci_process_image(uint16 *img_buffer, float img_exptime, sm_t *sm_p){
       sm_p->tgt_calmode = tgt_calibrate(sm_p,scievent.hed.tgt_calmode,(double *)sm_p->shk_zernike_target,&scievent.hed.tgt_calstep,SCIID,FUNCTION_NO_RESET);
   }
   
+  /*************************************************************/
+  /********************  ALP DM Control Code  ******************/
+  /*************************************************************/
+  if(sm_p->state_array[state].alp_commander == SCIID){
+    if(alp_get_command(sm_p,&scievent.alp))
+      memset(&scievent.alp,0,sizeof(alp_t));
+  }
+
   /*************************************************************/
   /********************  BMC DM Control Code  ******************/
   /*************************************************************/

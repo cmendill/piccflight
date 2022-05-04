@@ -104,7 +104,7 @@
 #define SCI_YORIGIN_DEFAULT        {1092} //band cutout y centers, must match SCI_NBANDS
 #define SCI_TEC_ENABLE_DEFAULT     1
 #define SCI_TEC_SETPOINT_DEFAULT   20
-#define SCI_PHASE_N_ZERNIKE_DEFAULT 7
+#define SCI_PHASE_N_ZERNIKE_DEFAULT 10
 
 //Shack-Hartmann Settings
 #define SHK_BOXSIZE_DEFAULT        7

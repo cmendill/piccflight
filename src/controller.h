@@ -287,7 +287,7 @@ enum sciphasemodes {SCI_PHASEMODE_NONE,
  *************************************************/
 #define OPTIMIZER_GSL 0
 #define OPTIMIZER_TNC 1
-#define PHASE_OPTIMIZER OPTIMIZER_TNC
+#define PHASE_OPTIMIZER OPTIMIZER_GSL
 
 /*************************************************
  * Circular Buffer Info
@@ -1016,7 +1016,7 @@ typedef struct phasemode_struct{
 /*************************************************
  * Packet Header
  *************************************************/
-#define PICC_PKT_VERSION     43  //packet version number
+#define PICC_PKT_VERSION     44  //packet version number
 typedef struct pkthed_struct{
   uint16  version;       //packet version number
   uint16  type;          //packet ID word
@@ -1179,6 +1179,7 @@ typedef struct scievent_struct{
   sci_bands_t  bands;
   bmc_t        bmc;
   bmc_status_t bmc_status;
+  alp_t        alp;
 } scievent_t;
 
 typedef struct acqevent_struct{
