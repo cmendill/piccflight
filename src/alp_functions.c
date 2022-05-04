@@ -352,7 +352,7 @@ int alp_set_random(sm_t *sm_p, int proc_id){
 
   //Add perturbation
   for(i=0;i<ALP_NACT;i++)
-    alp.acmd[i] += (2*(rand() / (double) RAND_MAX) - 1) * ALP_SHK_POKE;
+    alp.acmd[i] += (2*(rand() / (double) RAND_MAX) - 1) * ALP_SHK_POKE * sm_p->alp_cal_scale;
 
   //Send command
   return(alp_send_command(sm_p,&alp,proc_id,1));
@@ -378,7 +378,7 @@ int alp_set_zrandom(sm_t *sm_p, int proc_id){
 
   //Calculate zernike perturbation 
   for(i=0;i<LOWFS_N_ZERNIKE;i++)
-    dz[i] = (2*(rand() / (double) RAND_MAX) - 1) * ALP_SHK_ZPOKE;
+    dz[i] = (2*(rand() / (double) RAND_MAX) - 1) * ALP_SHK_ZPOKE * sm_p->alp_cal_scale;
 
   //Convert to actuators deltas
   alp_zern2alp(dz,da,FUNCTION_NO_RESET);

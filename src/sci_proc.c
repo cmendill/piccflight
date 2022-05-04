@@ -173,6 +173,9 @@ int sci_phase_merit(double v[], double *fval, double df[], void *params){
   static double weightA[SCIXS][SCIYS];
   static double weightB[SCIXS][SCIYS];
   static double weightC[SCIXS][SCIYS];
+  static uint16 normA[SCIXS][SCIYS];
+  static uint16 normB[SCIXS][SCIYS];
+  static uint16 normC[SCIXS][SCIYS];
   static int init=0;
   opt_param_t *opt_param;
   double dZ[3]={0.2,-0.2,0};
@@ -182,7 +185,7 @@ int sci_phase_merit(double v[], double *fval, double df[], void *params){
   int n_dither=1;
   double focus=0;
   
-  //Read in 3 target & weight images
+  //Read in 3 target, weight, normalization images
   if(!init){
     if(read_file(SCI_PHASE_TARGET_A_FILE,&targetA[0][0],sizeof(targetA)))
       printf("SCI: Read phase target A image failed\n");
@@ -196,6 +199,12 @@ int sci_phase_merit(double v[], double *fval, double df[], void *params){
       printf("SCI: Read phase weight B image failed\n");
     if(read_file(SCI_PHASE_WEIGHT_C_FILE,&weightC[0][0],sizeof(weightC)))
       printf("SCI: Read phase weight C image failed\n");
+    if(read_file(SCI_PHASE_NORM_A_FILE,&normA[0][0],sizeof(normA)))
+      printf("SCI: Read phase norm A image failed\n");
+    if(read_file(SCI_PHASE_NORM_B_FILE,&normB[0][0],sizeof(normB)))
+      printf("SCI: Read phase norm B image failed\n");
+    if(read_file(SCI_PHASE_NORM_C_FILE,&normC[0][0],sizeof(normC)))
+      printf("SCI: Read phase norm C image failed\n");
     printf("SCI: sci_phase_zernike_merit initialized\n");
     init=1;
   }
@@ -303,7 +312,7 @@ int sci_phase_merit(double v[], double *fval, double df[], void *params){
     /* Set exposure time */
     exptime = sm_p->sci_exptime;
     if(sm_p->w[SCIID].fakemode == FAKEMODE_NONE)
-      if(i<2) exptime = sm_p->sci_exptime*10;
+      if(i<2) exptime = sm_p->sci_exptime*50;
     if((err = FLISetExposureTime(dev, lround(exptime * 1000)))){
       fprintf(stderr, "SCI: Error FLISetExposureTime: %s\n", strerror((int)-err));
     }else{
@@ -337,21 +346,21 @@ int sci_phase_merit(double v[], double *fval, double df[], void *params){
   totval=0;
   for(i=0;i<SCIXS;i++)
     for(j=0;j<SCIYS;j++)
-      if(weightA[i][j]) totval += imageA[i][j];
+      if(normA[i][j]) totval += imageA[i][j];
   for(i=0;i<SCIXS;i++)
     for(j=0;j<SCIYS;j++)
       imageA[i][j] /= totval;
   totval=0;
   for(i=0;i<SCIXS;i++)
     for(j=0;j<SCIYS;j++)
-      if(weightB[i][j]) totval += imageB[i][j];
+      if(normB[i][j]) totval += imageB[i][j];
   for(i=0;i<SCIXS;i++)
     for(j=0;j<SCIYS;j++)
       imageB[i][j] /= totval;
   totval=0;
   for(i=0;i<SCIXS;i++)
     for(j=0;j<SCIYS;j++)
-      if(weightC[i][j]) totval += imageC[i][j];
+      if(normC[i][j]) totval += imageC[i][j];
   for(i=0;i<SCIXS;i++)
     for(j=0;j<SCIYS;j++)
       imageC[i][j] /= totval;

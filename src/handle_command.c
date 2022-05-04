@@ -1283,7 +1283,7 @@ int handle_command(char *line, sm_t *sm_p){
 	printf("CMD: Setting ALP bias = %f\n",ftemp);
 	if(sm_p->alp_ready)
 	  if(alp_set_bias(sm_p,ftemp,WATID))
-	    printf("CMD: ERROR: alp_set_random failed!\n");
+	    printf("CMD: ERROR: alp_set_bias failed!\n");
       }
       else
 	printf("CMD: ALP bias must be between %f and %f \n",ALP_MIN_BIAS,ALP_MAX_BIAS);
