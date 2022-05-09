@@ -61,6 +61,55 @@ void sci_init_phasemode(int phasemode, phasemode_t *sci){
     sprintf(sci->cmd,"acmd");
   }
 }
+
+/**************************************************************/
+/* SCI_INIT_OPTMODE                                           */
+/*  - Initialize SCI optmode structure                        */
+/**************************************************************/
+void sci_init_optmode(int optmode, optmode_t *sci){
+  //SCI_OPTMODE_STEEPEST_DESCENT
+  if(optmode == SCI_OPTMODE_STEEPEST_DESCENT){
+    sprintf(sci->name,"SCI_OPTMODE_STEEPEST_DESCENT");
+    sprintf(sci->cmd,"sd");
+  }
+  //SCI_OPTMODE_CONJUGATE_PR
+  if(optmode == SCI_OPTMODE_CONJUGATE_PR){
+    sprintf(sci->name,"SCI_OPTMODE_CONJUGATE_PR");
+    sprintf(sci->cmd,"cpr");
+  }
+  //SCI_OPTMODE_CONJUGATE_FR
+  if(optmode == SCI_OPTMODE_CONJUGATE_FR){
+    sprintf(sci->name,"SCI_OPTMODE_CONJUGATE_FR");
+    sprintf(sci->cmd,"cfr");
+  }
+  //SCI_OPTMODE_VECTOR_BFGS
+  if(optmode == SCI_OPTMODE_VECTOR_BFGS){
+    sprintf(sci->name,"SCI_OPTMODE_VECTOR_BFGS");
+    sprintf(sci->cmd,"vbfgs");
+  }
+  //SCI_OPTMODE_VECTOR_BFGS2
+  if(optmode == SCI_OPTMODE_VECTOR_BFGS2){
+    sprintf(sci->name,"SCI_OPTMODE_VECTOR_BFGS2");
+    sprintf(sci->cmd,"vbfgs2");
+  }
+  //SCI_OPTMODE_NMSIMPLEX
+  if(optmode == SCI_OPTMODE_NMSIMPLEX){
+    sprintf(sci->name,"SCI_OPTMODE_NMSIMPLEX");
+    sprintf(sci->cmd,"nmsim");
+  }
+  //SCI_OPTMODE_NMSIMPLEX2
+  if(optmode == SCI_OPTMODE_NMSIMPLEX2){
+    sprintf(sci->name,"SCI_OPTMODE_NMSIMPLEX2");
+    sprintf(sci->cmd,"nmsim2");
+  }
+  //SCI_OPTMODE_NMSIMPLEX2RAND
+  if(optmode == SCI_OPTMODE_NMSIMPLEX2RAND){
+    sprintf(sci->name,"SCI_OPTMODE_NMSIMPLEX2RAND");
+    sprintf(sci->cmd,"nmsim2r");
+  }
+  
+}
+
 /**************************************************************/
 /* SCI_XY2INDEX                                               */
 /*  - Convert image (x,y) to image buffer index               */
@@ -746,6 +795,7 @@ void sci_process_image(uint16 *img_buffer, float img_exptime, sm_t *sm_p){
   scievent.iphase           = sm_p->sci_iphase;
   scievent.fastmode         = sm_p->sci_fastmode;
   scievent.phasemode        = sm_p->sci_phasemode;
+  scievent.optmode          = sm_p->sci_optmode;
   scievent.phasemerit       = sm_p->sci_phasemerit;
   
   //Save calmodes

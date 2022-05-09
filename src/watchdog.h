@@ -105,6 +105,7 @@
 #define SCI_TEC_ENABLE_DEFAULT     1
 #define SCI_TEC_SETPOINT_DEFAULT   20
 #define SCI_PHASE_N_ZERNIKE_DEFAULT 10
+#define SCI_PHASE_EXPSCALE_DEFAULT  50
 
 //Shack-Hartmann Settings
 #define SHK_BOXSIZE_DEFAULT        7

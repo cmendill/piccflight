@@ -28,6 +28,7 @@ void getsci_proc(void); //get scievents
 void init_fakemode(int fakemode, calmode_t *fake);
 void change_state(sm_t *sm_p, int state);
 void sci_init_phasemode(int phasemode, phasemode_t *sci);
+void sci_init_optmode(int optmode, optmode_t *sci);
 
 /**************************************************************/
 /* PRINT_PROC_STATUS                                          */
@@ -150,6 +151,23 @@ void print_sci_phasemodes(phasemode_t *sci, int current){
   printf("************ Available SCI Phasemodes  ************\n");
   printf("#    Command    Name\n");
   for(i=0;i<SCI_NPHASEMODES;i++){
+    if(current == i)
+      printf("%02d   %-7s   *%s\n",i,sci[i].cmd,sci[i].name);
+    else
+      printf("%02d   %-7s    %s\n",i,sci[i].cmd,sci[i].name);
+  }
+  printf("*************************************************\n");
+}
+
+/**************************************************************/
+/* PRINT_SCI_OPTMODES                                         */
+/*  - Print available SCI optmodes                          */
+/**************************************************************/
+void print_sci_optmodes(optmode_t *sci, int current){
+  int i;
+  printf("************ Available SCI Optmodes  ************\n");
+  printf("#    Command    Name\n");
+  for(i=0;i<SCI_NOPTMODES;i++){
     if(current == i)
       printf("%02d   %-7s   *%s\n",i,sci[i].cmd,sci[i].name);
     else
@@ -346,7 +364,7 @@ int handle_command(char *line, sm_t *sm_p){
   int    cmdfound=0;
   int    i=0,j=0,hex_axis=0;
   double hex_poke=0;
-  int    calmode=0,phasemode=0;
+  int    calmode=0,phasemode=0,optmode=0;
   uint16_t led;
   static double trl_poke = HEX_TRL_POKE;
   static double rot_poke = HEX_ROT_POKE;
@@ -356,6 +374,7 @@ int handle_command(char *line, sm_t *sm_p){
   static calmode_t tgtcalmodes[TGT_NCALMODES];
   static calmode_t fakemodes[NFAKEMODES];
   static phasemode_t sciphasemodes[SCI_NPHASEMODES];
+  static optmode_t scioptmodes[SCI_NOPTMODES];
   static int init=0;
   const char hex_str_axes[HEX_NAXES][5] = {"X","Y","Z","U","V","W"};
   const char hex_str_unit[HEX_NAXES][5] = {"mm","mm","mm","deg","deg","deg"};
@@ -398,6 +417,9 @@ int handle_command(char *line, sm_t *sm_p){
     //Init SCI phasemodes
     for(i=0;i<SCI_NPHASEMODES;i++)
       sci_init_phasemode(i,&sciphasemodes[i]);
+    //Init SCI optmodes
+    for(i=0;i<SCI_NOPTMODES;i++)
+      sci_init_optmode(i,&scioptmodes[i]);
     //Set init flag
     init=1;
   }
@@ -3466,6 +3488,32 @@ int handle_command(char *line, sm_t *sm_p){
     }else{
       printf("CMD: SCI phase N zernike out of bounds [%d,%d]\n",0,LOWFS_N_ZERNIKE);
     }
+    return(CMD_NORMAL);
+  }
+  sprintf(cmd,"sci phase expscale");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    ftemp = atof(line+strlen(cmd)+1);
+    if(ftemp > 0){
+      sm_p->sci_phase_expscale = ftemp;
+      printf("CMD: Changed SCI phase expscale to %f\n",sm_p->sci_phase_expscale);
+    }else{
+      printf("CMD: SCI phase expscale must be greater than 0\n");
+    }
+    return(CMD_NORMAL);
+  }
+  sprintf(cmd,"sci optmode");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    cmdfound = 0;
+    for(i=0;i<SCI_NOPTMODES;i++){
+      if(!strncasecmp(line+strlen(cmd)+1,scioptmodes[i].cmd,strlen(scioptmodes[i].cmd))){
+	sm_p->sci_optmode=i;
+	printf("CMD: Changed SCI opt mode to %s\n",scioptmodes[i].name);
+	cmdfound = 1;
+      }
+    }
+    if(!cmdfound)
+      print_sci_optmodes(scioptmodes,sm_p->sci_optmode);
+    
     return(CMD_NORMAL);
   }
 

@@ -694,6 +694,10 @@ cmd: sci phase nzern [arg1]
         set the number of controlled zernikes for sci phase flattening
 	arg1 = 0,1,2,3,LOWFS_N_ZERNIKE
 	
+cmd: sci phase expscale [arg1]
+        set the exposure time scaling for the defocus phase images
+	arg1 = value greater than 0
+
 cmd: sci set ref
         set reference image for sci field normalization
 

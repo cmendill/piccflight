@@ -12,7 +12,6 @@
 #include <ctype.h>
 #include <libfli.h>
 #include <libgen.h>
-#include <libtnc.h>
 #include <sys/stat.h>
 #include <gsl_multimin.h>
 
@@ -35,19 +34,8 @@ typedef struct opt_param{
   int nvar;
   alp_t alp;
   int phasemode;
-  int calc_gradient;
-  double gstep;
+  double gradstep;
 } opt_param_t;
-
-//Optimizer Prototypes
-#if PHASE_OPTIMIZER == OPTIMIZER_GSL
-double sci_phase_merit(const gsl_vector *v, void *params);
-void sci_phase_merit_gradient(const gsl_vector *v, void *params, gsl_vector *df);
-#endif
-#if PHASE_OPTIMIZER == OPTIMIZER_TNC
-int sci_phase_merit(double v[], double *fval, double df[], void *params);
-void sci_phase_merit_gradient(double *var, double merit, double df[], opt_param_t *opt_param);
-#endif
 
 /**************************************************************/
 /* SCICTRLC                                                   */
@@ -90,72 +78,12 @@ void scictrlC(int sig){
   exit(sig);
 }
 
-/**************************************************************/
-/* SCI_PHASE_MERIT_GRADIENT                                   */
-/*  - Phase flattening merit function gradient                */
-/**************************************************************/
-#if PHASE_OPTIMIZER == OPTIMIZER_GSL
-void sci_phase_merit_gradient(const gsl_vector *v, void *params, gsl_vector *df){
-
-}
-#endif
-
-#if PHASE_OPTIMIZER == OPTIMIZER_TNC
-void sci_phase_merit_gradient(double *var, double merit, double df[], opt_param_t *opt_param){
-  int i;
-  double dp,dm;
-  opt_param_t grad_param;
-  
-  //Create delta array
-  double *del = malloc(sizeof(double) * opt_param->nvar);
-
-  //Copy parameters, zero out gradient switch
-  memcpy(&grad_param,opt_param,sizeof(opt_param_t));
-  grad_param.calc_gradient = 0;
-  
-  //Loop over variables
-  for(i=0;i<opt_param->nvar;i++){
-    //Copy variables
-    memcpy(del,var,sizeof(double) * opt_param->nvar);
-    
-    //Run positive delta
-    if(opt_param->calc_gradient >= 1){
-      del[i] += opt_param->gstep;
-      sci_phase_merit(del, &dp, df, (void *)&grad_param);	
-    }
-
-    //Run negative delta
-    if(opt_param->calc_gradient == 2){
-      del[i] -= 2*opt_param->gstep;
-      sci_phase_merit(del, &dm, df, (void *)&grad_param);	
-    }
-
-    //Calculate derivative
-    if(opt_param->calc_gradient == 1) df[i]=(dp - merit)/(opt_param->gstep);
-    if(opt_param->calc_gradient == 2) df[i]=(dp - dm)/(2*opt_param->gstep);
-
-    //printf("TNC: grad[%d]=%f\n",i,df[i]);
-  }
-  
-  //Free malloc
-  if(del) free(del);
-  
-}
-#endif
 
 /**************************************************************/
-/* SCI_PHASE_MERIT                                            */
+/* SCI_PHASE_F                                                */
 /*  - Phase flattening merit function                         */
 /**************************************************************/
-#if PHASE_OPTIMIZER == OPTIMIZER_GSL
-double sci_phase_merit(const gsl_vector *v, void *params){
-#endif
-
-#if PHASE_OPTIMIZER == OPTIMIZER_TNC
-tnc_function sci_phase_merit;
-int sci_phase_merit(double v[], double *fval, double df[], void *params){
-#endif
-  
+double sci_phase_f(const gsl_vector *v, void *params){
   int i,j,rc;
   double merit,meritA,meritB,meritC,dp,dm;
   double meritAA=0,meritAB=0,meritAC=0;
@@ -177,7 +105,6 @@ int sci_phase_merit(double v[], double *fval, double df[], void *params){
   static uint16 normB[SCIXS][SCIYS];
   static uint16 normC[SCIXS][SCIYS];
   static int init=0;
-  opt_param_t *opt_param;
   double dZ[3]={0.2,-0.2,0};
   double zcmd[LOWFS_N_ZERNIKE]={0};
   double act[ALP_NACT];
@@ -210,41 +137,25 @@ int sci_phase_merit(double v[], double *fval, double df[], void *params){
   }
 
   //Get parameters
-  opt_param = params;
+  opt_param_t *opt_param = params;
   sm_t *sm_p = opt_param->sm_p;
   uint16_t *img_buffer = opt_param->img_buffer;
   int nvar = opt_param->nvar;
   int phasemode = opt_param->phasemode;
-
-  //Check phasemode
-#if PHASE_OPTIMIZER == OPTIMIZER_TNC
-  if(sm_p->sci_phasemode == SCI_PHASEMODE_NONE)
-    return 0;
-#endif
-  
-  //Check in with the watchdog
-  checkin(sm_p,SCIID);
   
   //Initialize variable array
   double *var = malloc(sizeof(double) * nvar);
 
   //Get variable values
-#if PHASE_OPTIMIZER == OPTIMIZER_GSL
-  for(j=0;j<nvar;j++)
-    var[j] = gsl_vector_get(v,j);
-#endif
-#if PHASE_OPTIMIZER == OPTIMIZER_TNC
-  for(j=0;j<nvar;j++)
-    var[j] = v[j];
-#endif
+  for(i=0;i<nvar;i++)
+    var[i] = gsl_vector_get(v,i);
 
-  
   //Print ZCOMMAND
   if(0){
     if(phasemode == SCI_PHASEMODE_ZCOMMAND){
       printf("SCI: ");
-      for(j=0;j<nvar;j++)
-	printf("%4.1f ",var[j]*1000);
+      for(i=0;i<nvar;i++)
+	printf("%4.1f ",var[i]*1000);
       printf("\n");
     }
   }
@@ -253,7 +164,6 @@ int sci_phase_merit(double v[], double *fval, double df[], void *params){
   for(i=0;i<3;i++){
     //Set iphase
     sm_p->sci_iphase = i;
-    //printf("SCI: iphase = %d\n",sm_p->sci_iphase);
     
     //Send target command
     if(phasemode == SCI_PHASEMODE_ZTARGET){
@@ -312,7 +222,7 @@ int sci_phase_merit(double v[], double *fval, double df[], void *params){
     /* Set exposure time */
     exptime = sm_p->sci_exptime;
     if(sm_p->w[SCIID].fakemode == FAKEMODE_NONE)
-      if(i<2) exptime = sm_p->sci_exptime*50;
+      if(i<2) exptime = sm_p->sci_exptime*sm_p->sci_phase_expscale;
     if((err = FLISetExposureTime(dev, lround(exptime * 1000)))){
       fprintf(stderr, "SCI: Error FLISetExposureTime: %s\n", strerror((int)-err));
     }else{
@@ -388,31 +298,65 @@ int sci_phase_merit(double v[], double *fval, double df[], void *params){
   //Combine merit functions
   merit = 1.0 - (1.0/3.0)*(meritA + meritB + meritC);
 
-  
-  //Calculate gradients
-#if PHASE_OPTIMIZER == OPTIMIZER_TNC
-  if(opt_param->calc_gradient > 0){
-    printf("SCI: %f: ",merit);
-    for(j=0;j<nvar;j++)
-      printf("%4.1f ",var[j]*1000);
-    printf("\n");
-    sci_phase_merit_gradient(var, merit, df, opt_param);
- 
-  }
-#endif
-
   //Free malloc
   if(var) free(var);
-  
-  //Return single value of merit function
-#if PHASE_OPTIMIZER == OPTIMIZER_GSL
+
   return merit;
-#endif
-#if PHASE_OPTIMIZER == OPTIMIZER_TNC
-  *fval = merit;
-  return 0;
-#endif
- 
+}
+
+/**************************************************************/
+/* SCI_PHASE_DF                                               */
+/*  - Phase flattening merit function gradient                */
+/**************************************************************/
+void sci_phase_df(const gsl_vector *v, void *params, gsl_vector *df){
+  int i,j;
+  double dp=0,dm=0,dir=0;
+
+  //Get parameters
+  opt_param_t *opt_param = params;
+  
+  //Create variable & delta array
+  double *var = malloc(sizeof(double) * opt_param->nvar);
+  gsl_vector *vp = gsl_vector_alloc(opt_param->nvar);
+    
+  //Loop over variables
+  for(i=0;i<opt_param->nvar;i++){
+
+    //Get variable values
+    for(j=0;j<opt_param->nvar;j++)
+      var[j] = gsl_vector_get(v,j);
+    
+    //Run positive delta
+    var[i] += opt_param->gradstep;
+    for(j=0;j<opt_param->nvar;j++)
+      gsl_vector_set(vp,j,var[j]);
+    dp = sci_phase_f(vp, params);
+        
+    //Run negative delta
+    var[i] -= 2*opt_param->gradstep;
+    for(j=0;j<opt_param->nvar;j++)
+      gsl_vector_set(vp,j,var[j]);
+    dm = sci_phase_f(vp, params);
+        
+    //Calculate derivative
+    dir = (dp - dm)/(2*opt_param->gradstep);
+    gsl_vector_set(df,i,dir);
+  }
+  
+  //Free malloc
+  if(var) free(var);
+  gsl_vector_free(vp);
+  
+}
+
+/**************************************************************/
+/* SCI_PHASE_FDF                                              */
+/*  - Calculate F & DF together                               */
+/**************************************************************/
+void sci_phase_fdf (const gsl_vector *v, void *params, double *f, gsl_vector *df)
+{
+  *f = sci_phase_f(v, params);
+  sci_phase_df(v, params, df);
 }
 
 /**************************************************************/
@@ -439,13 +383,24 @@ void sci_proc(void){
   //GSL Minimizer Setup
   int min_status;
   double min_size;
-  const gsl_multimin_fminimizer_type *T;
-  gsl_multimin_fminimizer *s;
-  gsl_vector *ss,*x;
-  gsl_multimin_function my_func;
+  const char *min_name;
+  gsl_vector *ss=NULL,*x=NULL;
   int opt_iter=0;
   opt_param_t opt_param;
-  
+  int usedir=0;
+  double step_size  = 0.01;
+  double tolerance  = 1e-4;
+  double gradthresh = 0.001;
+  double sizethresh = 0.001;
+  int    itermax    = 100;
+
+  const gsl_multimin_fdfminimizer_type *Td;
+  gsl_multimin_fdfminimizer *sd=NULL;
+  gsl_multimin_function_fdf my_funcd;
+  const gsl_multimin_fminimizer_type *T;
+  gsl_multimin_fminimizer *s=NULL;
+  gsl_multimin_function my_func;
+ 
   /* Open Shared Memory */
   sm_t *sm_p;
   if((sm_p = openshm(&sci_shmfd)) == NULL){
@@ -647,27 +602,74 @@ void sci_proc(void){
 	  }
 
 	  //Setup optimizer parameters
-	  if(phasemode == SCI_PHASEMODE_ZTARGET) nvar = sm_p->sci_phase_n_zernike;
+	  if(phasemode == SCI_PHASEMODE_ZTARGET)  nvar = sm_p->sci_phase_n_zernike;
 	  if(phasemode == SCI_PHASEMODE_ZCOMMAND) nvar = sm_p->sci_phase_n_zernike;
 	  if(phasemode == SCI_PHASEMODE_ACOMMAND) nvar = ALP_NACT;
-	  opt_param.sm_p = sm_p;
+	  opt_param.sm_p       = sm_p;
 	  opt_param.img_buffer = img_buffer;
-	  opt_param.nvar = nvar;
-	  opt_param.phasemode = phasemode;
-	  opt_param.calc_gradient = 0;
+	  opt_param.nvar       = nvar;
+	  opt_param.phasemode  = phasemode;
 	  
-#if PHASE_OPTIMIZER == OPTIMIZER_GSL
 	  printf("SCI: Starting GSL initialization...\n");
+
 	  //Setup user function
-	  my_func.n = nvar;
-	  my_func.f = sci_phase_merit;
-	  my_func.params = &opt_param;
+	  my_func.n       = nvar;
+	  my_func.f       = sci_phase_f;
+	  my_func.params  = &opt_param;
+	  my_funcd.n      = nvar;
+	  my_funcd.f      = sci_phase_f;
+	  my_funcd.params = &opt_param;
+	  my_funcd.df     = sci_phase_df;
+	  my_funcd.fdf    = sci_phase_fdf;
 	  
 	  //Define algorithm
-	  T = gsl_multimin_fminimizer_nmsimplex2;
-    
+	  switch(sm_p->sci_optmode){
+	  case SCI_OPTMODE_STEEPEST_DESCENT :
+	    Td = gsl_multimin_fdfminimizer_steepest_descent;
+	    usedir = 1;
+	    break;
+	  case SCI_OPTMODE_CONJUGATE_PR :
+	    Td = gsl_multimin_fdfminimizer_conjugate_pr;
+	    usedir = 1;
+	    break;
+	  case SCI_OPTMODE_CONJUGATE_FR :
+	    Td = gsl_multimin_fdfminimizer_conjugate_fr;
+	    usedir = 1;
+	    break;
+	  case SCI_OPTMODE_VECTOR_BFGS :
+	    Td = gsl_multimin_fdfminimizer_vector_bfgs;
+	    usedir = 1;
+	    break;
+	  case SCI_OPTMODE_VECTOR_BFGS2 :
+	    Td = gsl_multimin_fdfminimizer_vector_bfgs2;
+	    usedir = 1;
+	    break;
+	  case SCI_OPTMODE_NMSIMPLEX :
+	    T = gsl_multimin_fminimizer_nmsimplex;
+	    usedir = 0;
+	    break;
+	  case SCI_OPTMODE_NMSIMPLEX2 :
+	    T = gsl_multimin_fminimizer_nmsimplex2;
+	    usedir = 0;
+	    break;
+	  case SCI_OPTMODE_NMSIMPLEX2RAND :
+	    T = gsl_multimin_fminimizer_nmsimplex2rand;
+	    usedir = 0;
+	    break;
+	  }
+	  
 	  //Init algorithm
-	  s = gsl_multimin_fminimizer_alloc(T,nvar);
+	  if(usedir)
+	    sd = gsl_multimin_fdfminimizer_alloc(Td,nvar);
+	  else
+	    s = gsl_multimin_fminimizer_alloc(T,nvar);
+
+	  //Print algorithm name
+	  if(usedir)
+	    min_name = gsl_multimin_fdfminimizer_name(sd);
+	  else
+	    min_name = gsl_multimin_fminimizer_name(s);
+	  printf("SCI: Using %s minimizer\n",min_name);
     
 	  //Define starting point (initial guess)
 	  x = gsl_vector_alloc(nvar);
@@ -683,112 +685,75 @@ void sci_proc(void){
 	    for(i=0;i<nvar;i++)
 	      gsl_vector_set(x,i,alp.acmd[i]);
 	  
-	  //Set inital step sizes
+	  //Set runtime parameters for the minimizer
+	  if(phasemode == SCI_PHASEMODE_ZTARGET) step_size = 0.005;
+	  if(phasemode == SCI_PHASEMODE_ZCOMMAND) step_size = 0.005;
+	  if(phasemode == SCI_PHASEMODE_ACOMMAND) step_size = 0.01;
 	  ss = gsl_vector_alloc(nvar);
-	  if(phasemode == SCI_PHASEMODE_ZTARGET) gsl_vector_set_all(ss, 0.005);
-	  if(phasemode == SCI_PHASEMODE_ZCOMMAND) gsl_vector_set_all(ss, 0.005);
-	  if(phasemode == SCI_PHASEMODE_ACOMMAND) gsl_vector_set_all(ss, 0.01);
+	  gsl_vector_set_all(ss,step_size);
+	  tolerance  = 1e-4;
+	  gradthresh = 0.001;
+	  sizethresh = 0.001;
+	  itermax    = 100;
+	  opt_param.gradstep = step_size;
 	  
 	  //Set runtime parameters for the minimizer
-	  gsl_multimin_fminimizer_set(s, &my_func, x, ss);
+	  if(usedir)
+	    gsl_multimin_fdfminimizer_set(sd, &my_funcd, x, step_size, tolerance);
+	  else
+	    gsl_multimin_fminimizer_set(s, &my_func, x, ss);
 	  printf("SCI: GSL initialization done\n");
-#endif
-	  
-#if PHASE_OPTIMIZER == OPTIMIZER_TNC
-	  //Define TNC parameters
-	  double *x;               //Starting variable values
-	  double *llimit,*ulimit;  //Variable limits
-	  int maxCGit = -1;        //Max number of hessian*vector evaluation per main iteration
-	  int maxnfeval = 200;     //Max number of function evaluations
-	  double eta = -1.0;       //Severity of the line search
-	  double stepmx = 10;      //Maximum step for the line search
-	  double accuracy = -1.0;  //Relative precision for finite difference calculations
-	  double fmin = 0.0;       //Minimum function value estimate
-	  double ftol = 0.01;      //Stop if abs(f_n-f_n-1) < ftol
-	  double xtol = 0.001;     //Stop if abs(x_n-x_n-1) < xtol
-	  double pgtol = 0.1;      //Stop if abs(g_n-g_n-1) < pgtol
-	  double rescale = -1;     //Scaling factor (in log10) used to trigger rescaling
-	  int nfeval;              //On output, the number of function evaluations
-	  double fval;             //On output, the final function value
-	  double *gval;            //On output, gradient values
-	  int rc;                  //Return value
-	  
-	  //Malloc
-	  x      = malloc(nvar*sizeof(double));
-	  gval   = malloc(nvar*sizeof(double));
-	  llimit = malloc(nvar*sizeof(double));
-	  ulimit = malloc(nvar*sizeof(double));
-	  
-	  //Define starting point and limits
-	  double limit=0;
-	  for(i=0;i<nvar;i++){
-	    if(phasemode == SCI_PHASEMODE_ZTARGET){
-	      x[i]=sm_p->shk_zernike_target[i];
-	      if(i<3) limit = 0.1; else limit = 0.05;
-	      ulimit[i] = x[i] + limit;
-	      llimit[i] = x[i] - limit;
-	    }
-	  
-	    if(phasemode == SCI_PHASEMODE_ZCOMMAND){
-	      x[i]=0;
-	      if(i<3) limit = 0.1; else limit = 0.05;
-	      ulimit[i] = x[i] + limit;
-	      llimit[i] = x[i] - limit;
-	    }
-	      
-	    if(phasemode == SCI_PHASEMODE_ACOMMAND){
-	      x[i]=alp.acmd[i];
-	      ulimit[i] = x[i] + 0.1;
-	      llimit[i] = x[i] - 0.1;
-	    }
-	  }
-	  
-	  //Define gradient parameters
-	  opt_param.gstep = 0.010;
-	  opt_param.calc_gradient = 2;
-
-	  //Run TNC Optimizer
-	  rc = tnc(nvar, x, &fval, gval, sci_phase_merit, &opt_param, llimit, ulimit, NULL, NULL, TNC_MSG_ALL,
-		   maxCGit, maxnfeval, eta, stepmx, accuracy, fmin, ftol, xtol, pgtol, rescale, &nfeval);
-
-	  printf("SCI: After %d function evaluations, TNC returned:\n%s\n", nfeval,
-		 tnc_rc_string[rc - TNC_MINRC]);
-
-	  //Free malloc
-	  if(x) free(x);
-	  if(ulimit) free(ulimit);
-	  if(llimit) free(llimit);
-
-	  //Stop phasemode
-	  sm_p->sci_phasemode = SCI_PHASEMODE_NONE;
-	  
-#endif
 	}
-
-#if PHASE_OPTIMIZER == OPTIMIZER_GSL
-	//Iterate minimizer
-	min_status = gsl_multimin_fminimizer_iterate(s);
-	if(min_status)
-	  printf("SCI: gsl_multimin_fminimizer_iterate error\n");
 	
-	//Get size
-	min_size = gsl_multimin_fminimizer_size(s);
-	min_status = gsl_multimin_test_size(min_size, 0.001);
+	//Iterate minimizer
+	if(usedir)
+	  min_status = gsl_multimin_fdfminimizer_iterate(sd);
+	else
+	  min_status = gsl_multimin_fminimizer_iterate(s);
+
+	if(min_status){
+	  printf ("GSL Error: %s\n", gsl_strerror(min_status));
+	  sm_p->sci_phasemode = SCI_PHASEMODE_NONE;
+	}
+	
+	//Check for convergence
+	if(usedir){
+	  min_status = gsl_multimin_test_gradient(sd->gradient, gradthresh);
+	}else{
+	  min_size = gsl_multimin_fminimizer_size(s);
+	  min_status = gsl_multimin_test_size(min_size, sizethresh);
+	}
 	
 	//Print status
-	printf("SCI: %5.3f,%5.3f: ",s->fval,min_size);
-	for(i=0;i<nvar;i++)
-	  printf("%4.1f ",gsl_vector_get(s->x,i)*1000);
-	printf("\n");
-	//printf("SCI: Phase iter=%d f=%10.5f size=%.3f\n", opt_iter, s->fval, min_size);
-	sm_p->sci_phasemerit=s->fval;
-	
- 	//Check for convergence
+	if(usedir){
+	  printf("SCI: %5.3f: ",sd->f);
+	  for(i=0;i<nvar;i++)
+	    printf("%4.1f ",gsl_vector_get(sd->x,i)*1000);
+	  printf("\n");
+	  sm_p->sci_phasemerit=sd->f;
+	}else{
+	  printf("SCI: %5.3f,%5.3f: ",s->fval,min_size);
+	  for(i=0;i<nvar;i++)
+	    printf("%4.1f ",gsl_vector_get(s->x,i)*1000);
+	  printf("\n");
+	  sm_p->sci_phasemerit=s->fval;
+	}
+
+	//Check for convergence
 	if(min_status == GSL_SUCCESS){
 	  printf("SCI: Minimum found after %d iterations\n",opt_iter);
 	  sm_p->sci_phasemode = SCI_PHASEMODE_NONE;
+
+	  //Cleanup
+	  if(usedir)
+	    gsl_multimin_fdfminimizer_free(sd);
+	  else
+	    gsl_multimin_fminimizer_free(s);
+	  gsl_vector_free(x);
+	  gsl_vector_free(ss);
+	  opt_iter=0;
 	}
-#endif
+	
 	//Increment counter
 	opt_iter++;
       }

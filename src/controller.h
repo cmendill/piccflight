@@ -152,6 +152,19 @@ enum sciphasemodes {SCI_PHASEMODE_NONE,
 		    SCI_NPHASEMODES};
 
 /*************************************************
+ * SCI Phase Optimization Modes
+ *************************************************/
+enum scioptmodes {SCI_OPTMODE_STEEPEST_DESCENT,
+		  SCI_OPTMODE_CONJUGATE_PR,
+		  SCI_OPTMODE_CONJUGATE_FR,
+		  SCI_OPTMODE_VECTOR_BFGS,
+		  SCI_OPTMODE_VECTOR_BFGS2,
+		  SCI_OPTMODE_NMSIMPLEX,
+		  SCI_OPTMODE_NMSIMPLEX2,
+		  SCI_OPTMODE_NMSIMPLEX2RAND,
+		  SCI_NOPTMODES};
+
+/*************************************************
  * Commands
  *************************************************/
 #define CMD_SENDDATA  0x0ABACABB
@@ -284,13 +297,6 @@ enum sciphasemodes {SCI_PHASEMODE_NONE,
 #define REL_IOPORT_LENGTH        4
 #define SSR_IOPORT_LENGTH        8
 #define SSR_NCHAN                16
-
-/*************************************************
- * Optimizers
- *************************************************/
-#define OPTIMIZER_GSL 0
-#define OPTIMIZER_TNC 1
-#define PHASE_OPTIMIZER OPTIMIZER_GSL
 
 /*************************************************
  * Circular Buffer Info
@@ -1017,9 +1023,17 @@ typedef struct phasemode_struct{
 } phasemode_t;
 
 /*************************************************
+ * Optmode Structures
+ *************************************************/
+typedef struct optmode_struct{
+  char   name[MAX_COMMAND];
+  char   cmd[MAX_COMMAND];
+} optmode_t;
+
+/*************************************************
  * Packet Header
  *************************************************/
-#define PICC_PKT_VERSION     44  //packet version number
+#define PICC_PKT_VERSION     45  //packet version number
 typedef struct pkthed_struct{
   uint16  version;       //packet version number
   uint16  type;          //packet ID word
@@ -1174,7 +1188,7 @@ typedef struct scievent_struct{
   uint8        iphase;
   uint8        fastmode;
   uint8        phasemode;
-  uint8        padding;
+  uint8        optmode;
   float        phasemerit;
   uint32       xorigin[SCI_NBANDS];
   uint32       yorigin[SCI_NBANDS];
@@ -1359,8 +1373,10 @@ typedef volatile struct {
   int    sci_phase_n_zernike;                              //Number of zernikes to use in phase flattening
   int    sci_iphase;                                       //Current phase flattening step [0,1,2]
   int    sci_phasemode;                                    //Phase flattening mode
+  int    sci_optmode;                                      //Phase flattening optimization mode
   int    sci_fastmode;                                     //Run camera in fast ROI readout mode
   double sci_phasemerit;                                   //Phase flattening merit function value
+  double sci_phase_expscale;                               //Scale factor for phase flattening defocus images
   
   //Camera Process Reset Commands (these go to xxx_process_image)
   int shk_reset;

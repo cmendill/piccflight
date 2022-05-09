@@ -337,6 +337,8 @@ int main(int argc,char **argv){
   sm_p->sci_tec_enable      = SCI_TEC_ENABLE_DEFAULT;
   sm_p->sci_tec_setpoint    = SCI_TEC_SETPOINT_DEFAULT;
   sm_p->sci_phase_n_zernike = SCI_PHASE_N_ZERNIKE_DEFAULT;
+  sm_p->sci_phase_expscale  = SCI_PHASE_EXPSCALE_DEFAULT;
+  sm_p->sci_optmode         = SCI_OPTMODE_NMSIMPLEX2;
   sm_p->acq_thresh          = ACQ_THRESH_DEFAULT;
   sm_p->thm_enable_vref     = THM_ENABLE_VREF_DEFAULT;
   sm_p->hex_spiral_autostop = HEX_SPIRAL_AUTOSTOP_DEFAULT;
