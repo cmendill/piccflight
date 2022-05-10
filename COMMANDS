@@ -684,11 +684,11 @@ cmd: sci shift origin [arg1] [arg2] [arg3]
 	arg2 = x,y
 	arg3 = number of pixels (+/-)
 
-cmd: sci phase on
-        turn on sci phase flattening
+cmd: sci phase testgrad on
+        turn on sci phase gradient test
 
-cmd: sci phase off
-        turn off sci phase flattening
+cmd: sci phase testgrad off
+        turn off sci phase gradient test
 
 cmd: sci phase nzern [arg1]
         set the number of controlled zernikes for sci phase flattening
@@ -697,6 +697,16 @@ cmd: sci phase nzern [arg1]
 cmd: sci phase expscale [arg1]
         set the exposure time scaling for the defocus phase images
 	arg1 = value greater than 0
+
+cmd: sci phasemode [arg1]
+        set the phase flattening mode
+	arg1 = mode command
+	give command "sci phasemode" for list of options
+
+cmd: sci optmode [arg1]
+        set the phase flattening optimization mode
+	arg1 = mode command	 
+	give command "sci optmode" for list of options
 
 cmd: sci set ref
         set reference image for sci field normalization

@@ -1375,6 +1375,7 @@ typedef volatile struct {
   int    sci_phasemode;                                    //Phase flattening mode
   int    sci_optmode;                                      //Phase flattening optimization mode
   int    sci_fastmode;                                     //Run camera in fast ROI readout mode
+  int    sci_phase_testgrad;                               //Test gradient calculation
   double sci_phasemerit;                                   //Phase flattening merit function value
   double sci_phase_expscale;                               //Scale factor for phase flattening defocus images
   

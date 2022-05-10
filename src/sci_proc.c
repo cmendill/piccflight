@@ -320,6 +320,7 @@ void sci_phase_df(const gsl_vector *v, void *params, gsl_vector *df){
   gsl_vector *vp = gsl_vector_alloc(opt_param->nvar);
     
   //Loop over variables
+  if(opt_param->sm_p->sci_phase_testgrad) printf("SCI: DIR: ");
   for(i=0;i<opt_param->nvar;i++){
 
     //Get variable values
@@ -340,8 +341,10 @@ void sci_phase_df(const gsl_vector *v, void *params, gsl_vector *df){
         
     //Calculate derivative
     dir = (dp - dm)/(2*opt_param->gradstep);
+    if(opt_param->sm_p->sci_phase_testgrad) printf("%5.2f ",dir);
     gsl_vector_set(df,i,dir);
   }
+  if(opt_param->sm_p->sci_phase_testgrad) printf("\n");
   
   //Free malloc
   if(var) free(var);
@@ -384,12 +387,12 @@ void sci_proc(void){
   int min_status;
   double min_size;
   const char *min_name;
-  gsl_vector *ss=NULL,*x=NULL;
+  gsl_vector *ss=NULL,*x=NULL, *df=NULL;
   int opt_iter=0;
   opt_param_t opt_param;
   int usedir=0;
   double step_size  = 0.01;
-  double tolerance  = 1e-4;
+  double tolerance  = 0.001;
   double gradthresh = 0.001;
   double sizethresh = 0.001;
   int    itermax    = 100;
@@ -671,9 +674,11 @@ void sci_proc(void){
 	    min_name = gsl_multimin_fminimizer_name(s);
 	  printf("SCI: Using %s minimizer\n",min_name);
     
-	  //Define starting point (initial guess)
-	  x = gsl_vector_alloc(nvar);
-	  
+	  //Allocate vectors
+	  x  = gsl_vector_alloc(nvar);
+	  ss = gsl_vector_alloc(nvar);
+	  df = gsl_vector_alloc(nvar);
+
 	  if(phasemode == SCI_PHASEMODE_ZTARGET)
 	    for(i=0;i<nvar;i++)
 	      gsl_vector_set(x,i,sm_p->shk_zernike_target[i]);
@@ -689,9 +694,8 @@ void sci_proc(void){
 	  if(phasemode == SCI_PHASEMODE_ZTARGET) step_size = 0.005;
 	  if(phasemode == SCI_PHASEMODE_ZCOMMAND) step_size = 0.005;
 	  if(phasemode == SCI_PHASEMODE_ACOMMAND) step_size = 0.01;
-	  ss = gsl_vector_alloc(nvar);
 	  gsl_vector_set_all(ss,step_size);
-	  tolerance  = 1e-4;
+	  tolerance  = 0.001;
 	  gradthresh = 0.001;
 	  sizethresh = 0.001;
 	  itermax    = 100;
@@ -703,6 +707,15 @@ void sci_proc(void){
 	  else
 	    gsl_multimin_fminimizer_set(s, &my_func, x, ss);
 	  printf("SCI: GSL initialization done\n");
+	}
+
+	//Increment counter
+	opt_iter++;
+
+	//Test gradient calculations
+	if(sm_p->sci_phase_testgrad){
+	  sci_phase_df(x, (void *)&opt_param, df);
+	  continue;
 	}
 	
 	//Iterate minimizer
@@ -751,11 +764,10 @@ void sci_proc(void){
 	    gsl_multimin_fminimizer_free(s);
 	  gsl_vector_free(x);
 	  gsl_vector_free(ss);
+	  gsl_vector_free(df);
 	  opt_iter=0;
 	}
 	
-	//Increment counter
-	opt_iter++;
       }
       else{
 	/* Reset Optimizer */

@@ -3516,6 +3516,18 @@ int handle_command(char *line, sm_t *sm_p){
     
     return(CMD_NORMAL);
   }
+  sprintf(cmd,"sci phase testgrad on");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    sm_p->sci_phase_testgrad = 1;
+    printf("CMD: Turned SCI testgrad on\n");
+    return(CMD_NORMAL);
+  }
+  sprintf(cmd,"sci phase testgrad off");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    sm_p->sci_phase_testgrad = 0;
+    printf("CMD: Turned SCI testgrad on\n");
+    return(CMD_NORMAL);
+  }
 
   //SCI Reference Image
   sprintf(cmd,"sci set ref");
