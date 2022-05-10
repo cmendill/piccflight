@@ -377,9 +377,13 @@ int alp_set_zrandom(sm_t *sm_p, int proc_id){
     return 1;
 
   //Calculate zernike perturbation 
-  for(i=0;i<LOWFS_N_ZERNIKE;i++)
+  printf("ALP: ZRAND: ");
+  for(i=0;i<LOWFS_N_ZERNIKE;i++){
     dz[i] = (2*(rand() / (double) RAND_MAX) - 1) * ALP_SHK_ZPOKE * sm_p->alp_cal_scale;
-
+    printf("%4.1f ",dz[i]*1000);
+  }
+  printf("\n");
+  
   //Convert to actuators deltas
   alp_zern2alp(dz,da,FUNCTION_NO_RESET);
 
