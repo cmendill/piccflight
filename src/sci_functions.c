@@ -666,8 +666,6 @@ void sci_process_image(uint16 *img_buffer, float img_exptime, sm_t *sm_p){
     sci_function_reset(sm_p);
     howfs_init=0;
     tgt_calibrate(sm_p,0,NULL,NULL,SCIID,FUNCTION_RESET);
-    //Load origin
-    sci_loadorigin(sm_p);
     //Read SCI pixel selection
     if(read_file(SCI_MASK_FILE,&scimask[0][0],sizeof(scimask)))
       memset(&scimask[0][0],0,sizeof(scimask));    
