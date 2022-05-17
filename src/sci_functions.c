@@ -351,7 +351,7 @@ int sci_expose(sm_t *sm_p, flidev_t dev, uint16 *img_buffer){
   int row,sleepcount=0;
   uint32 err;
   long int timeleft=0;
-  
+  int nmod;
   
   /* Start exposure */
   if((err = FLIExposeFrame(dev))){
@@ -391,8 +391,12 @@ int sci_expose(sm_t *sm_p, flidev_t dev, uint16 *img_buffer){
       break;
     }
     //Print exposure countdown
+    nmod = 10;
+    if(sm_p->sci_fastmode)
+      nmod = 100;
+    
     if(sm_p->sci_exptime >= 5){
-      if(sleepcount % 10 == 1){
+      if(sleepcount % nmod == 1){
 	printf("\rSCI: %d seconds remaining",(int)lround((double)timeleft / 1000));
 	fflush(stdout);
       }
@@ -1019,6 +1023,14 @@ void sci_process_image(uint16 *img_buffer, float img_exptime, sm_t *sm_p){
 	
 	//Allow BMC calibration to advance
 	bmc_calibrate_advance = 1;
+
+	//Check sci_next_exptime
+	if(sm_p->sci_next_exptime > 0){
+	  sm_p->sci_exptime = sm_p->sci_next_exptime;
+	  sm_p->sci_next_exptime = 0;
+	  sm_p->sci_reset_camera = 1;
+	}
+	    
       }
 
       //Set BMC Probe: try = flat + probe (NOTE: when ihowfs == 4, nothing is added to the flat)

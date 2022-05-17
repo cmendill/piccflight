@@ -416,6 +416,10 @@ cmd: sci exptime [arg]
         set the sci camera exposure time
 	arg = exposure time in seconds
 
+cmd: sci next exptime [arg]
+        set the sci camera exposure time for the next EFC iteration
+	arg = exposure time in seconds
+
 cmd: sci frmtime [arg]
         set the sci camera frame time
 	arg = frame time in seconds

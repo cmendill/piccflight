@@ -2364,6 +2364,18 @@ int handle_command(char *line, sm_t *sm_p){
     return(CMD_NORMAL);
   }
   
+  sprintf(cmd,"sci next exptime");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    ftemp = atof(line+strlen(cmd)+1);
+    if(ftemp >= SCI_EXPTIME_MIN && ftemp <= SCI_EXPTIME_MAX){
+      sm_p->sci_next_exptime = ftemp;
+      printf("CMD: Setting next SCI exptime to %f seconds\n",sm_p->sci_next_exptime);
+    }
+    else
+      printf("CMD: SCI exptime must be between %f and %f seconds\n",SCI_EXPTIME_MIN,SCI_EXPTIME_MAX);
+    return(CMD_NORMAL);
+  }
+
   sprintf(cmd,"sci frmtime"); //NOTE this command has no function. frmtime is measured, not set.
   if(!strncasecmp(line,cmd,strlen(cmd))){
     ftemp = atof(line+strlen(cmd)+1);

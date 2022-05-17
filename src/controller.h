@@ -1298,6 +1298,7 @@ typedef volatile struct {
 
   //Camera exposure & frame times
   float sci_exptime;
+  float sci_next_exptime;
   float sci_frmtime;
   float shk_exptime;
   float shk_frmtime;
