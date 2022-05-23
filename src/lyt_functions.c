@@ -129,11 +129,13 @@ void lyt_alp_zernpid(lytevent_t *lytevent, double *zernike_delta, int *zernike_s
 
   //Centroid settings
   static int usezern=0;
-  const double minthresh = 1.0;  //Switch to zernikes when centroid crosses minthresh going in
-  const double maxthresh = 3.0;  //Switch to centroid when centroid crosses maxthresh going out
-  const double dCYdZ0 =  32.5; //pixels/micron  
-  const double dCXdZ1 = -48.0; //pixels/micron
-  const double cgain  = -0.5;  //centroid control gain
+  const double minthresh = 2.0;  //Switch to zernikes when centroid crosses minthresh going in (both centroids must be < minthresh)
+  const double maxthresh = 5.0;  //Switch to centroid when centroid crosses maxthresh going out (either centroid > max thresh)
+  const double dCXdZ1 =  40;   //pixels/micron  
+  const double dCYdZ0 =  40;   //pixels/micron
+  const double cgain  =  -0.5; //centroid control gain
+  //NOTE: X&Y are transposed relative to Z0 and Z1 because of image distortion that happens near the VVC.
+  //We should import an influence matrix from the calibration data to account for this automatically instead of hard coding it. 
   
   //Initialize
   if(!init || reset){
@@ -181,9 +183,9 @@ void lyt_alp_zernpid(lytevent_t *lytevent, double *zernike_delta, int *zernike_s
   else{
     //Run centroid controller
     if(zernike_switch[0])
-      zernike_delta[0] = cgain * lytevent->ycentroid/dCYdZ0;
-    if(zernike_switch[1])
       zernike_delta[1] = cgain * lytevent->xcentroid/dCXdZ1;
+    if(zernike_switch[1])
+      zernike_delta[0] = cgain * lytevent->ycentroid/dCYdZ0;
     *cen_used = 1;
     //Reset integrator
     memset(zint,0,sizeof(zint));
