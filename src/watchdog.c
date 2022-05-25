@@ -508,9 +508,6 @@ int main(int argc,char **argv){
   sm_p->circbuf[BUFFER_ACQFULL].save    = SAVE_ACQFULL_DEFAULT;
   sprintf((char *)sm_p->circbuf[BUFFER_ACQFULL].name,"acqfull");
 
-  /* Initialize ALP Calibration Structure */
-  alp_init_calibration(sm_p);
-
   /* Initialize Heater Settings */
   for(i=0;i<SSR_NCHAN;i++)
     thm_init_heater(i,(htr_t *)&sm_p->htr[i]);

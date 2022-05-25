@@ -654,8 +654,10 @@ int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
       
       //Set base command
       // - double integrator: update base with current position every time
-      if(sm_p->lyt_alp_pid_type == PID_DOUBLE_INTEGRATOR)
+      if(sm_p->lyt_alp_pid_type == PID_DOUBLE_INTEGRATOR){
 	memcpy(&alp_base,&alp,sizeof(alp_t));
+	pid_single_init=0;
+      }
       // - single integrator: update base with current position on the first time only, or in centroid mode
       if(sm_p->lyt_alp_pid_type == PID_SINGLE_INTEGRATOR){
 	if(!pid_single_init || cen_used){
@@ -667,7 +669,7 @@ int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
       if(sm_p->state_array[state].shk.shk2lyt)
 	if(alp_get_shk2lyt(sm_p,&alp_shk2lyt) == 0)
 	  memcpy(&alp_base,&alp_shk2lyt,sizeof(alp_t));
-      
+            
       //Apply Zernike commands
       for(i=0;i<LOWFS_N_ZERNIKE;i++)
 	alp_try.zcmd[i] = alp_base.zcmd[i] + alp_delta.zcmd[i];

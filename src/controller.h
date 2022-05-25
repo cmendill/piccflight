@@ -496,7 +496,7 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 #define LYT_XORIGIN_MAX       (LYTREADXS-LYTXS)
 #define LYT_YORIGIN_MIN       0
 #define LYT_YORIGIN_MAX       (LYTREADYS-LYTYS)
-#define LYT_PIXEL_THRESH      200 //ADU
+#define LYT_PIXEL_THRESH      200 //Maximum pixel threshold for control [ADU]
 #define LYT_MAG_MIN           0.1
 #define LYT_MAG_MAX           10.0
 #define LYT_ROI_MIN           0

@@ -502,13 +502,12 @@ int alp_calibrate(sm_t *sm_p, int calmode, alp_t *alp, uint32_t *step, double *z
 
   /* Reset & Quick Init*/
   if(reset || !init){
-    //Reset counters
-    memset((void *)sm_p->alpcal.countA,0,sizeof(sm_p->alpcal.countA));
-    memset((void *)sm_p->alpcal.countB,0,sizeof(sm_p->alpcal.countB));
     //Reset random numbers
     srand((unsigned) time(&trand));
     for(i=0;i<LOWFS_N_ZERNIKE;i++) zrand[i] = (2*(rand() / (double) RAND_MAX) - 1);
     for(i=0;i<ALP_NACT;i++) arand[i] = (2*(rand() / (double) RAND_MAX) - 1);
+    //Init calibration
+    alp_init_calibration(sm_p);
     //Init ALP calmodes
     for(i=0;i<ALP_NCALMODES;i++)
       alp_init_calmode(i,&alpcalmodes[i]);
@@ -853,8 +852,8 @@ int alp_calibrate(sm_t *sm_p, int calmode, alp_t *alp, uint32_t *step, double *z
       for(i=0;i<LOWFS_N_ZERNIKE;i++){
 	this_zernike[i] = 0.5*((1-step_fraction)*sm_p->alpcal.zernike_errors[i][index] + step_fraction*sm_p->alpcal.zernike_errors[i][index+1]);
 	this_zernike[i] *= sm_p->alp_cal_scale;
-	if(sm_p->alp_zernike_control[i])
-	  dz[i] = this_zernike[i] - sm_p->alpcal.last_zernike[i];
+	dz[i] = (this_zernike[i] - sm_p->alpcal.last_zernike[i]) * sm_p->alp_zernike_control[i];
+	zoutput[i] = this_zernike[i] * sm_p->alp_zernike_control[i];
       }
       
       //Wait for the 2nd iteration to move the mirror to prevent large deltas
@@ -870,8 +869,6 @@ int alp_calibrate(sm_t *sm_p, int calmode, alp_t *alp, uint32_t *step, double *z
       }
       //Save zernikes
       memcpy((double *)sm_p->alpcal.last_zernike,this_zernike,sizeof(sm_p->alpcal.last_zernike));
-      //Return current zernikes to user
-      memcpy(zoutput, this_zernike, sizeof(this_zernike));
     }else{
       //Don't set alp back to starting position since we are probably in closed loop
       //Turn off calibration
