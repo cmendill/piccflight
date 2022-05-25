@@ -144,6 +144,9 @@ void lyt_alp_zernpid(lytevent_t *lytevent, double *zernike_delta, int *zernike_s
     if(reset) return;
   }
 
+  //Clear cen_used
+  *cen_used = 0;
+
   //Check centroid
   if(!usezern && ((fabs(lytevent->xcentroid) < minthresh) && (fabs(lytevent->ycentroid) < minthresh)))
     usezern=1;
@@ -178,7 +181,6 @@ void lyt_alp_zernpid(lytevent_t *lytevent, double *zernike_delta, int *zernike_s
 	lytevent->locked = 1;
       }
     }
-    *cen_used = 0;
   }
   else{
     //Run centroid controller
