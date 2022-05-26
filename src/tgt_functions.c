@@ -97,7 +97,7 @@ int tgt_calibrate(sm_t *sm_p, int calmode, double *zernikes, uint32_t *step, int
     for(i=0;i<LOWFS_N_ZERNIKE;i++) zrand[i] = (2*(rand() / (double) RAND_MAX) - 1);
     init=1;
     //Return if reset
-    if(reset) return calmode;
+    if(reset == FUNCTION_RESET_RETURN) return calmode;
   }
 
   /* Set calibration parameters */

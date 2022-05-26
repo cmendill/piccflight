@@ -31,8 +31,8 @@
 /*  - Resets all SCI functions                                */
 /**************************************************************/
 void sci_function_reset(sm_t *sm_p){
-  sci_howfs_construct_field(sm_p,NULL,NULL,NULL,FUNCTION_RESET);
-  sci_howfs_efc(sm_p,NULL, NULL, FUNCTION_RESET);
+  sci_howfs_construct_field(sm_p,NULL,NULL,NULL,FUNCTION_RESET_RETURN);
+  sci_howfs_efc(sm_p,NULL, NULL, FUNCTION_RESET_RETURN);
 }
 
 /**************************************************************/
@@ -473,7 +473,7 @@ void sci_howfs_construct_field(sm_t *sm_p,sci_howfs_t *frames,scievent_t *scieve
       }
     }
     init=1;
-    if(reset) return;
+    if(reset == FUNCTION_RESET_RETURN) return;
   }
   //Print threshold
   printf("SCI: EFC pixel threshold = %f\n",sm_p->efc_sci_thresh);
@@ -551,7 +551,7 @@ void sci_howfs_efc(sm_t *sm_p, sci_field_t *field, double *delta_length, int res
       memset(active2full,0,sizeof(active2full));
     printf("SCI: Read EFC matrix\n");
     init=1;
-    if(reset) return;
+    if(reset == FUNCTION_RESET_RETURN) return;
   }
 
   //NOTE: We don't have a reference field here (fine if its zero)
@@ -669,7 +669,7 @@ void sci_process_image(uint16 *img_buffer, float img_exptime, sm_t *sm_p){
     bmc_function_reset(sm_p);
     sci_function_reset(sm_p);
     howfs_init=0;
-    tgt_calibrate(sm_p,0,NULL,NULL,SCIID,FUNCTION_RESET);
+    tgt_calibrate(sm_p,0,NULL,NULL,SCIID,FUNCTION_RESET_RETURN);
     //Read SCI pixel selection
     if(read_file(SCI_MASK_FILE,&scimask[0][0],sizeof(scimask)))
       memset(&scimask[0][0],0,sizeof(scimask));    

@@ -26,9 +26,9 @@
 /*  - Reset all ALP functions                                */
 /**************************************************************/
 void alp_function_reset(sm_t *sm_p){
-  alp_zern2alp(NULL,NULL,FUNCTION_RESET);
-  alp_alp2zern(NULL,NULL,FUNCTION_RESET);
-  alp_calibrate(sm_p, 0, NULL, NULL, NULL, 0, FUNCTION_RESET);
+  alp_zern2alp(NULL,NULL,FUNCTION_RESET_RETURN);
+  alp_alp2zern(NULL,NULL,FUNCTION_RESET_RETURN);
+  alp_calibrate(sm_p, 0, NULL, NULL, NULL, 0, FUNCTION_RESET_RETURN);
 }
 
   
@@ -140,7 +140,7 @@ int alp_zern2alp(double *zernikes,double *actuators,int reset){
     init=1;
     
     //Return if reset
-    if(reset) return 0;
+    if(reset == FUNCTION_RESET_RETURN) return 0;
   }
 
   //Do Matrix Multiply
@@ -169,7 +169,7 @@ int alp_alp2zern(double *actuators, double *zernikes,int reset){
     init=1;
     
     //Return if reset
-    if(reset) return 0;
+    if(reset == FUNCTION_RESET_RETURN) return 0;
   }
 
   //Do Matrix Multiply
@@ -513,7 +513,7 @@ int alp_calibrate(sm_t *sm_p, int calmode, alp_t *alp, uint32_t *step, double *z
       alp_init_calmode(i,&alpcalmodes[i]);
     init = 1;
     printf("ALP: Calibration initialized\n");
-    if(reset) return calmode;
+    if(reset == FUNCTION_RESET_RETURN) return calmode;
   }
   
   /* Set calibration parameters */

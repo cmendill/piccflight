@@ -331,8 +331,9 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 /*************************************************
  * Function Reset Commands
  *************************************************/
-#define FUNCTION_RESET    1
-#define FUNCTION_NO_RESET 0
+#define FUNCTION_RESET_RETURN    2
+#define FUNCTION_RESET           1
+#define FUNCTION_NO_RESET        0
 
 /*************************************************
  * Zernike Errors

@@ -129,7 +129,7 @@ void acq_process_image(uvc_frame_t *frame, sm_t *sm_p) {
     memset(&acqevent,0,sizeof(acqevent));
     memcpy(&last,&start,sizeof(struct timespec));
     memcpy(&full_last,&start,sizeof(struct timespec));
-    hex_calibrate(0,NULL,NULL,ACQID,FUNCTION_RESET);
+    hex_calibrate(0,NULL,NULL,ACQID,FUNCTION_RESET_RETURN);
     init=1;
     if(ACQ_DEBUG) printf("ACQ: Initialized\n");
   }
@@ -201,7 +201,7 @@ void acq_process_image(uvc_frame_t *frame, sm_t *sm_p) {
       //Star found. Stop search
       sm_p->hex_calmode = HEX_CALMODE_NONE;
       acqevent.hed.hex_calmode = HEX_CALMODE_NONE;
-      hex_calibrate(0,NULL,NULL,ACQID,FUNCTION_RESET);
+      hex_calibrate(0,NULL,NULL,ACQID,FUNCTION_RESET_RETURN);
       printf("ACQ: Star found. Stopping search.\n");
     }
   }

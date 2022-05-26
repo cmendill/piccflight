@@ -141,7 +141,7 @@ void lyt_alp_zernpid(lytevent_t *lytevent, double *zernike_delta, int *zernike_s
   if(!init || reset){
     memset(zint,0,sizeof(zint));
     init=1;
-    if(reset) return;
+    if(reset == FUNCTION_RESET_RETURN) return;
   }
 
   //Clear cen_used
@@ -234,7 +234,7 @@ int lyt_zernike_fit(lyt_t *image, lytref_t *lytref, double *zernikes, double *xc
     //Set init flag
     init=1;
     //Return if reset
-    if(reset) return 0;
+    if(reset == FUNCTION_RESET_RETURN) return 0;
   }
 
   //Get image totals for normalization & histograms for centroid
@@ -377,18 +377,18 @@ int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
     frame_number=0;
     sample=0;
     //Reset zern2alp mapping
-    alp_zern2alp(NULL,NULL,FUNCTION_RESET);
+    alp_zern2alp(NULL,NULL,FUNCTION_RESET_RETURN);
     //Reset calibration routines
-    alp_calibrate(sm_p,0,NULL,NULL,NULL,LYTID,FUNCTION_RESET);
-    tgt_calibrate(sm_p,0,NULL,NULL,LYTID,FUNCTION_RESET);
+    alp_calibrate(sm_p,0,NULL,NULL,NULL,LYTID,FUNCTION_RESET_RETURN);
+    tgt_calibrate(sm_p,0,NULL,NULL,LYTID,FUNCTION_RESET_RETURN);
     //Reset PID controllers
-    lyt_alp_zernpid(NULL,NULL,NULL,0,NULL,0,FUNCTION_RESET);
+    lyt_alp_zernpid(NULL,NULL,NULL,0,NULL,0,FUNCTION_RESET_RETURN);
     //Init reference image structure
     lyt_initref(&lytref);
     //Load dark image
     lyt_loaddark(&darkimage);
     //Reset zernike fitter
-    lyt_zernike_fit(NULL,&lytref,NULL,NULL,NULL,FUNCTION_RESET);
+    lyt_zernike_fit(NULL,&lytref,NULL,NULL,NULL,FUNCTION_RESET_RETURN);
     //Init ALP calmodes
     for(i=0;i<ALP_NCALMODES;i++)
       alp_init_calmode(i,&alpcalmodes[i]);
@@ -637,7 +637,7 @@ int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
     //Check if we have a valid measurement
     if(zfit_error){
       zernike_control=0;
-      pid_reset=FUNCTION_RESET;
+      pid_reset=FUNCTION_RESET_RETURN;
     }
     
     //Run Zernike control

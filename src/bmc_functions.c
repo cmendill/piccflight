@@ -23,9 +23,9 @@
 /* - Reset all BMC functions                                  */
 /**************************************************************/
 void bmc_function_reset(sm_t *sm_p){
-  bmc_rotate_command(NULL, FUNCTION_RESET);
-  bmc_add_length(NULL, NULL, NULL, FUNCTION_RESET);
-  bmc_calibrate(sm_p, 0, NULL, NULL, 0, 0, 0, FUNCTION_RESET);
+  bmc_rotate_command(NULL, FUNCTION_RESET_RETURN);
+  bmc_add_length(NULL, NULL, NULL, FUNCTION_RESET_RETURN);
+  bmc_calibrate(sm_p, 0, NULL, NULL, 0, 0, 0, FUNCTION_RESET_RETURN);
 }
 
 /**************************************************************/
@@ -113,7 +113,7 @@ void bmc_rotate_command(bmc_t *cmd, int reset){
       memset(bmcrot,0,sizeof(bmcrot));
     init=1;
     printf("BMC: Loaded rotation file\n");
-    if(reset) return;
+    if(reset == FUNCTION_RESET_RETURN) return;
   }
   
   for(i=0;i<BMC_NACT;i++)
@@ -383,7 +383,7 @@ void bmc_add_length(float *input, float *output, double *dl, int reset){
     init=1;
     printf("BMC: Loaded calibration file\n");
     printf("BMC: Polarity is %f\n",polarity);
-    if(reset) return;
+    if(reset == FUNCTION_RESET_RETURN) return;
   }
   for(i=0;i<BMC_NACT;i++){
     l    = a[i]*(double)input[i]*(double)input[i] + b[i]*(double)input[i];
@@ -494,7 +494,7 @@ int bmc_calibrate(sm_t *sm_p, int calmode, bmc_t *bmc, uint32_t *step, int advan
       bmc_init_calmode(i,&bmccalmodes[i]);
     init = 1;
     printf("BMC: Calibration initialized\n");
-    if(reset) return calmode;
+    if(reset == FUNCTION_RESET_RETURN) return calmode;
   }
   
   /* Set calibration parameters */

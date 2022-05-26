@@ -618,7 +618,7 @@ int hex_calibrate(int calmode, hex_t *hex, uint32_t *step, int procid, int reset
     memset(mode_init,0,sizeof(mode_init));
     memset(hex_start,0,sizeof(hex_start));
     init=0;
-    return calmode;
+    if(reset == FUNCTION_RESET_RETURN) return calmode;
   }
   
   /* Initialize */

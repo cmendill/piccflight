@@ -591,7 +591,7 @@ void shk_zernike_ops(shkevent_t *shkevent, int fit_zernikes, int set_targets, in
     //Set init flag
     init = 1;
     //Return if reset
-    if(reset) return;
+    if(reset == FUNCTION_RESET_RETURN) return;
   }
 
   /* Zernike Fitting */
@@ -649,7 +649,7 @@ void shk_cells2alp(shkcell_t *cells, double *actuators, int reset){
     //Set init flag
     init=1;
     //Return if reset
-    if(reset) return;
+    if(reset == FUNCTION_RESET_RETURN) return;
   }
 
   //Format displacement array
@@ -677,7 +677,7 @@ void shk_alp_cellpid(shkevent_t *shkevent, int pid_type, int reset){
     memset(xint,0,sizeof(xint));
     memset(yint,0,sizeof(yint));
     init=1;
-    if(reset) return;
+    if(reset == FUNCTION_RESET_RETURN) return;
   }
   
   //Run PID
@@ -719,7 +719,7 @@ void shk_alp_zernpid(shkevent_t *shkevent, double *zernike_delta, int *zernike_s
   if(!init || reset){
     memset(zint,0,sizeof(zint));
     init=1;
-    if(reset) return;
+    if(reset == FUNCTION_RESET_RETURN) return;
   }
    
   //Run PID
@@ -762,7 +762,7 @@ void shk_hex_zernpid(shkevent_t *shkevent, double *zernike_delta, int *zernike_s
   if(!init || reset){
     memset(zint,0,sizeof(zint));
     init=1;
-    if(reset) return;
+    if(reset == FUNCTION_RESET_RETURN) return;
   }
   
   //Run PID
@@ -839,20 +839,20 @@ int shk_process_image(stImageBuff *buffer,sm_t *sm_p){
     //Load cell origins
     shk_loadorigin(&shkevent);
     //Reset zernike matrix
-    shk_zernike_ops(&shkevent,0,0,FUNCTION_RESET);
+    shk_zernike_ops(&shkevent,0,0,FUNCTION_RESET_RETURN);
     //Reset cells2alp mapping
-    shk_cells2alp(shkevent.cells,NULL,FUNCTION_RESET);
+    shk_cells2alp(shkevent.cells,NULL,FUNCTION_RESET_RETURN);
     //Reset zern2alp mapping
-    alp_zern2alp(NULL,NULL,FUNCTION_RESET);
-    alp_alp2zern(NULL,NULL,FUNCTION_RESET);
+    alp_zern2alp(NULL,NULL,FUNCTION_RESET_RETURN);
+    alp_alp2zern(NULL,NULL,FUNCTION_RESET_RETURN);
     //Reset calibration routines
-    alp_calibrate(sm_p,0,NULL,NULL,NULL,SHKID,FUNCTION_RESET);
-    hex_calibrate(0,NULL,NULL,SHKID,FUNCTION_RESET);
-    tgt_calibrate(sm_p,0,NULL,NULL,SHKID,FUNCTION_RESET);
+    alp_calibrate(sm_p,0,NULL,NULL,NULL,SHKID,FUNCTION_RESET_RETURN);
+    hex_calibrate(0,NULL,NULL,SHKID,FUNCTION_RESET_RETURN);
+    tgt_calibrate(sm_p,0,NULL,NULL,SHKID,FUNCTION_RESET_RETURN);
     //Reset PID controllers
-    shk_alp_cellpid(NULL,0,FUNCTION_RESET);
-    shk_alp_zernpid(NULL,NULL,NULL,0,FUNCTION_RESET);
-    shk_hex_zernpid(NULL,NULL,NULL,NULL,FUNCTION_RESET);
+    shk_alp_cellpid(NULL,0,FUNCTION_RESET_RETURN);
+    shk_alp_zernpid(NULL,NULL,NULL,0,FUNCTION_RESET_RETURN);
+    shk_hex_zernpid(NULL,NULL,NULL,NULL,FUNCTION_RESET_RETURN);
     //Init ALP calmodes
     for(i=0;i<ALP_NCALMODES;i++)
       alp_init_calmode(i,&alpcalmodes[i]);
