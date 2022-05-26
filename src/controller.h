@@ -729,12 +729,6 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 #define HUM3_ADDR        0x43
 
 /*************************************************
- * Control System Parameters
- *************************************************/
-#define PID_DOUBLE_INTEGRATOR 0
-#define PID_SINGLE_INTEGRATOR 1
-
-/*************************************************
  * Other Parameters
  *************************************************/
 #define CALMODE_TIMER_SEC       30 //default length of calmode_timer
@@ -1355,7 +1349,6 @@ typedef volatile struct {
   double shk_gain_alp_cell[LOWFS_N_PID];                   //SHK ALP cell gains
   double shk_gain_alp_zern[LOWFS_N_ZERNIKE][LOWFS_N_PID];  //SHK ALP zern gains
   double shk_gain_hex_zern[LOWFS_N_PID];                   //SHK HEX zern gains
-  int    shk_alp_pid_type;                                 //Double or single integrator
 
   //Lyot LOWFS Settings
   double lyt_gain_alp_zern[LOWFS_N_ZERNIKE][LOWFS_N_PID];  //LYT ALP zernike PID gains
@@ -1367,7 +1360,6 @@ typedef volatile struct {
   double lyt_mag_yoff;                                     //LYT Magnification Y offset
   int    lyt_roi[4];                                       //LYT ROI
   int    lyt_cen_enable;                                   //LYT Enable centroid control
-  int    lyt_alp_pid_type;                                 //Double or single integrator
 
   //SCI Settings
   uint32 sci_xorigin[SCI_NBANDS];                          //SCI ROI center X

@@ -119,7 +119,7 @@ void lyt_savedark(lytdark_t *lytdark){
 /* LYT_ALP_ZERNPID                                            */
 /*  - Run PID controller on measured Zernikes for ALP         */
 /**************************************************************/
-void lyt_alp_zernpid(lytevent_t *lytevent, double *zernike_delta, int *zernike_switch, int cen_enable, int *cen_used, int pid_type, int reset){
+void lyt_alp_zernpid(lytevent_t *lytevent, double *zernike_delta, int *zernike_switch, int cen_enable, int *cen_used, int reset){
   static int init = 0;
   static double zint[LOWFS_N_ZERNIKE] = {0};
   double zerr;
@@ -166,17 +166,13 @@ void lyt_alp_zernpid(lytevent_t *lytevent, double *zernike_delta, int *zernike_s
 	//Calculate integral
 	zint[i] += zerr;
 	//Limit integral
-	if(pid_type == PID_DOUBLE_INTEGRATOR){
-	  if(zint[i] > LYT_ALP_ZERN_INT_MAX) zint[i]=LYT_ALP_ZERN_INT_MAX;
-	  if(zint[i] < LYT_ALP_ZERN_INT_MIN) zint[i]=LYT_ALP_ZERN_INT_MIN;
-	}
+	if(zint[i] > LYT_ALP_ZERN_INT_MAX) zint[i]=LYT_ALP_ZERN_INT_MAX;
+	if(zint[i] < LYT_ALP_ZERN_INT_MIN) zint[i]=LYT_ALP_ZERN_INT_MIN;
 	//Calculate command delta
 	zernike_delta[i] = lytevent->gain_alp_zern[i][0] * zerr + lytevent->gain_alp_zern[i][1] * zint[i];
 	//Limit delta
-	if(pid_type == PID_DOUBLE_INTEGRATOR){
-	  if(zernike_delta[i] > zdelta_max) zernike_delta[i] = zdelta_max;
-	  if(zernike_delta[i] < zdelta_min) zernike_delta[i] = zdelta_min;
-	}
+	if(zernike_delta[i] > zdelta_max) zernike_delta[i] = zdelta_max;
+	if(zernike_delta[i] < zdelta_min) zernike_delta[i] = zdelta_min;
 	//Set locked flag
 	lytevent->locked = 1;
       }
@@ -382,7 +378,7 @@ int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
     alp_calibrate(sm_p,0,NULL,NULL,NULL,LYTID,FUNCTION_RESET_RETURN);
     tgt_calibrate(sm_p,0,NULL,NULL,LYTID,FUNCTION_RESET_RETURN);
     //Reset PID controllers
-    lyt_alp_zernpid(NULL,NULL,NULL,0,NULL,0,FUNCTION_RESET_RETURN);
+    lyt_alp_zernpid(NULL,NULL,NULL,0,NULL,FUNCTION_RESET_RETURN);
     //Init reference image structure
     lyt_initref(&lytref);
     //Load dark image
@@ -404,8 +400,6 @@ int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
     //Reset last times
     memcpy(&last,&start,sizeof(struct timespec));
     memcpy(&pkt_last,&start,sizeof(struct timespec));
-    //Reset PID single integrator
-    pid_single_init=0;
     //Set init flag
     init=1;
     //Debugging
@@ -643,7 +637,7 @@ int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
     //Run Zernike control
     if(zernike_control){
       //Run Zernike PID
-      lyt_alp_zernpid(&lytevent, alp_delta.zcmd, zernike_switch, sm_p->lyt_cen_enable,&cen_used,sm_p->lyt_alp_pid_type, pid_reset);
+      lyt_alp_zernpid(&lytevent, alp_delta.zcmd, zernike_switch, sm_p->lyt_cen_enable,&cen_used, pid_reset);
       pid_reset = FUNCTION_NO_RESET;
       
       //Zero out uncontrolled Zernikes
@@ -655,23 +649,13 @@ int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
       alp_zern2alp(alp_delta.zcmd,alp_delta.acmd,FUNCTION_NO_RESET);
       
       //Set base command
-      // - double integrator: update base with current position every time
-      if(sm_p->lyt_alp_pid_type == PID_DOUBLE_INTEGRATOR){
-	memcpy(&alp_base,&alp,sizeof(alp_t));
-	pid_single_init=0;
-      }
-      // - single integrator: update base with current position on the first time only, or in centroid mode
-      if(sm_p->lyt_alp_pid_type == PID_SINGLE_INTEGRATOR){
-	if(!pid_single_init || cen_used){
-	  memcpy(&alp_base,&alp,sizeof(alp_t));
-	  pid_single_init=1;
-	}
-      }
-      // - shk2lyt: update base with SHK command everytime a new one is ready
+      memcpy(&alp_base,&alp,sizeof(alp_t));
+
+      //Update shk2lyt base with SHK command everytime a new one is ready
       if(sm_p->state_array[state].shk.shk2lyt)
 	if(alp_get_shk2lyt(sm_p,&alp_shk2lyt) == 0)
 	  memcpy(&alp_base,&alp_shk2lyt,sizeof(alp_t));
-            
+      
       //Apply Zernike commands
       for(i=0;i<LOWFS_N_ZERNIKE;i++)
 	alp_try.zcmd[i] = alp_base.zcmd[i] + alp_delta.zcmd[i];

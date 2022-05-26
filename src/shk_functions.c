@@ -666,7 +666,7 @@ void shk_cells2alp(shkcell_t *cells, double *actuators, int reset){
 /* SHK_ALP_CELLPID                                            */
 /*  - Run PID controller on centroid deviations for ALP       */
 /**************************************************************/
-void shk_alp_cellpid(shkevent_t *shkevent, int pid_type, int reset){
+void shk_alp_cellpid(shkevent_t *shkevent, int reset){
   static int init = 0;
   static double xint[SHK_BEAM_NCELLS] = {0};
   static double yint[SHK_BEAM_NCELLS] = {0};
@@ -685,13 +685,11 @@ void shk_alp_cellpid(shkevent_t *shkevent, int pid_type, int reset){
     //Calculate integrals
     xint[i] += shkevent->cells[i].xtarget_deviation;
     yint[i] += shkevent->cells[i].ytarget_deviation;
-    //Fix windup
-    if(pid_type == PID_DOUBLE_INTEGRATOR){
-      if(xint[i] > SHK_ALP_CELL_INT_MAX) xint[i]=SHK_ALP_CELL_INT_MAX;
-      if(xint[i] < SHK_ALP_CELL_INT_MIN) xint[i]=SHK_ALP_CELL_INT_MIN;
-      if(yint[i] > SHK_ALP_CELL_INT_MAX) yint[i]=SHK_ALP_CELL_INT_MAX;
-      if(yint[i] < SHK_ALP_CELL_INT_MIN) yint[i]=SHK_ALP_CELL_INT_MIN;
-    }
+    //Limit integrator
+    if(xint[i] > SHK_ALP_CELL_INT_MAX) xint[i]=SHK_ALP_CELL_INT_MAX;
+    if(xint[i] < SHK_ALP_CELL_INT_MIN) xint[i]=SHK_ALP_CELL_INT_MIN;
+    if(yint[i] > SHK_ALP_CELL_INT_MAX) yint[i]=SHK_ALP_CELL_INT_MAX;
+    if(yint[i] < SHK_ALP_CELL_INT_MIN) yint[i]=SHK_ALP_CELL_INT_MIN;
     //Calculate command delta
     shkevent->cells[i].xcommand = shkevent->gain_alp_cell[0] * shkevent->cells[i].xtarget_deviation + shkevent->gain_alp_cell[1] * xint[i];
     shkevent->cells[i].ycommand = shkevent->gain_alp_cell[0] * shkevent->cells[i].ytarget_deviation + shkevent->gain_alp_cell[1] * yint[i];
@@ -709,7 +707,7 @@ void shk_alp_cellpid(shkevent_t *shkevent, int pid_type, int reset){
 /* SHK_ALP_ZERNPID                                            */
 /*  - Run PID controller on measured Zernikes for ALP         */
 /**************************************************************/
-void shk_alp_zernpid(shkevent_t *shkevent, double *zernike_delta, int *zernike_switch, int pid_type, int reset){
+void shk_alp_zernpid(shkevent_t *shkevent, double *zernike_delta, int *zernike_switch, int reset){
   static int init = 0;
   static double zint[LOWFS_N_ZERNIKE] = {0};
   double zerr;
@@ -730,11 +728,9 @@ void shk_alp_zernpid(shkevent_t *shkevent, double *zernike_delta, int *zernike_s
 	zerr = shkevent->zernike_measured[i] - shkevent->zernike_target[i];
 	//Calculate integral
 	zint[i] += zerr;
-	//Fix windup
-	if(pid_type == PID_DOUBLE_INTEGRATOR){
-	  if(zint[i] > SHK_ALP_ZERN_INT_MAX) zint[i]=SHK_ALP_ZERN_INT_MAX;
-	  if(zint[i] < SHK_ALP_ZERN_INT_MIN) zint[i]=SHK_ALP_ZERN_INT_MIN;
-	}
+	//Limit integrator
+	if(zint[i] > SHK_ALP_ZERN_INT_MAX) zint[i]=SHK_ALP_ZERN_INT_MAX;
+	if(zint[i] < SHK_ALP_ZERN_INT_MIN) zint[i]=SHK_ALP_ZERN_INT_MIN;
 	//Calculate command delta
 	zernike_delta[i] = shkevent->gain_alp_zern[i][0] * zerr + shkevent->gain_alp_zern[i][1] * zint[i];
       }
@@ -850,8 +846,8 @@ int shk_process_image(stImageBuff *buffer,sm_t *sm_p){
     hex_calibrate(0,NULL,NULL,SHKID,FUNCTION_RESET_RETURN);
     tgt_calibrate(sm_p,0,NULL,NULL,SHKID,FUNCTION_RESET_RETURN);
     //Reset PID controllers
-    shk_alp_cellpid(NULL,0,FUNCTION_RESET_RETURN);
-    shk_alp_zernpid(NULL,NULL,NULL,0,FUNCTION_RESET_RETURN);
+    shk_alp_cellpid(NULL,FUNCTION_RESET_RETURN);
+    shk_alp_zernpid(NULL,NULL,NULL,FUNCTION_RESET_RETURN);
     shk_hex_zernpid(NULL,NULL,NULL,NULL,FUNCTION_RESET_RETURN);
     //Init ALP calmodes
     for(i=0;i<ALP_NCALMODES;i++)
@@ -870,8 +866,6 @@ int shk_process_image(stImageBuff *buffer,sm_t *sm_p){
     memcpy(&hex_last,&start,sizeof(struct timespec));
     memcpy(&pkt_last,&start,sizeof(struct timespec));
     memcpy(&last,&start,sizeof(struct timespec));
-    //Init single integrator PID
-    pid_single_init=0;
     //Set init flag
     init=1;
     //Debugging
@@ -1126,7 +1120,7 @@ int shk_process_image(stImageBuff *buffer,sm_t *sm_p){
     //Run Zernike control
     if(zernike_control){
       // - run Zernike PID
-      shk_alp_zernpid(&shkevent, alp_delta.zcmd, zernike_switch, sm_p->shk_alp_pid_type, FUNCTION_NO_RESET);
+      shk_alp_zernpid(&shkevent, alp_delta.zcmd, zernike_switch, FUNCTION_NO_RESET);
 
       // - zero out uncontrolled Zernikes
       for(i=0;i<LOWFS_N_ZERNIKE;i++)
@@ -1140,7 +1134,7 @@ int shk_process_image(stImageBuff *buffer,sm_t *sm_p){
     //Check if ALP is controlling SHK cells
     if(sm_p->state_array[state].shk.cell_control == ACTUATOR_ALP){
       // - run cell PID
-      shk_alp_cellpid(&shkevent, sm_p->shk_alp_pid_type,FUNCTION_NO_RESET);
+      shk_alp_cellpid(&shkevent, FUNCTION_NO_RESET);
 
       // - convert cell commands to actuator deltas
       shk_cells2alp(shkevent.cells,alp_delta.acmd,FUNCTION_NO_RESET);
@@ -1151,35 +1145,15 @@ int shk_process_image(stImageBuff *buffer,sm_t *sm_p){
 
     //Check if SHK is actually sending a command
     if(sm_p->state_array[state].alp_commander == SHKID){
-      
-      //Apply command according to PID type
-      if(sm_p->shk_alp_pid_type == PID_SINGLE_INTEGRATOR){
-	// - Initialize command
-	if(!pid_single_init){
-	  memcpy(&alp_first,&alp,sizeof(alp_t));
-	  pid_single_init=1;
-	  printf("SHK: PID Single Init\n");
-	}
-	// - SET Zernike PID output deltas to ALP command
-	for(i=0;i<LOWFS_N_ZERNIKE;i++)
-	  if(zernike_switch[i])
-	    alp_try.zcmd[i] = alp_first.zcmd[i] + alp_delta.zcmd[i];
-      
-	// - SET actuator deltas to ALP command
-	for(i=0;i<ALP_NACT;i++)
-	  alp_try.acmd[i] = alp_first.acmd[i] + alp_delta.acmd[i];
-      }
-      if(sm_p->shk_alp_pid_type == PID_DOUBLE_INTEGRATOR){
-	// - ADD Zernike PID output deltas to ALP command
-	for(i=0;i<LOWFS_N_ZERNIKE;i++)
-	  if(zernike_switch[i])
-	    alp_try.zcmd[i] += alp_delta.zcmd[i];
+      //Add Zernike PID output deltas to ALP command
+      for(i=0;i<LOWFS_N_ZERNIKE;i++)
+	if(zernike_switch[i])
+	  alp_try.zcmd[i] += alp_delta.zcmd[i];
 	
-	// - ADD actuator deltas to ALP command
-	for(i=0;i<ALP_NACT;i++)
-	  alp_try.acmd[i] += alp_delta.acmd[i];
-      }
-
+      //Add actuator deltas to ALP command
+      for(i=0;i<ALP_NACT;i++)
+	alp_try.acmd[i] += alp_delta.acmd[i];
+      
       //Calibrate ALP
       if(shkevent.hed.alp_calmode != ALP_CALMODE_NONE)
 	sm_p->alp_calmode = alp_calibrate(sm_p,shkevent.hed.alp_calmode,&alp_try,&shkevent.hed.alp_calstep,shkevent.zernike_calibrate,SHKID,FUNCTION_NO_RESET);

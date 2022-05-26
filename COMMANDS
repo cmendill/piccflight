@@ -644,19 +644,6 @@ cmd: lyt alp zgain [arg1] [arg2] [arg3] [arg4]
         arg2 = P gain
 	arg3 = I gain
 	arg4 = D gain
-	
-------------- PID CONTROLLER TYPE -------------
-cmd: shk alp pid single
-        use single integrator PID for shk alp control
-
-cmd: shk alp pid double
-        use double integrator PID for shk alp control
-
-cmd: lyt alp pid single
-        use single integrator PID for lyt alp control
-
-cmd: lyt alp pid double
-        use double integrator PID for lyt alp control
 
 ------------- SCI CAMERA SETTINGS -------------
 

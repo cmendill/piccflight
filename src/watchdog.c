@@ -348,8 +348,6 @@ int main(int argc,char **argv){
   sm_p->efc_sci_thresh      = EFC_SCI_THRESH_DEFAULT;
   sm_p->efc_gain            = EFC_GAIN_DEFAULT;
   sm_p->efc_probe_amp       = EFC_PROBE_AMP_DEFAULT;
-  sm_p->shk_alp_pid_type    = SHK_ALP_PID_TYPE_DEFAULT;
-  sm_p->lyt_alp_pid_type    = LYT_ALP_PID_TYPE_DEFAULT;
   sm_p->alp_cal_scale       = ALP_CAL_SCALE_DEFAULT;
   sm_p->bmc_cal_scale       = BMC_CAL_SCALE_DEFAULT;
 
@@ -365,24 +363,17 @@ int main(int argc,char **argv){
     sm_p->alp_zernike_control[i] = 1;
 
   //SHK PID Gains
-  double shk_gain_alp_zern_si[LOWFS_N_ZERNIKE][LOWFS_N_PID] = SHK_GAIN_ALP_ZERN_SI_DEFAULT;
-  double shk_gain_alp_zern_di[LOWFS_N_ZERNIKE][LOWFS_N_PID] = SHK_GAIN_ALP_ZERN_DI_DEFAULT;
-  if(sm_p->shk_alp_pid_type == PID_SINGLE_INTEGRATOR) memcpy((double *)&sm_p->shk_gain_alp_zern[0][0],&shk_gain_alp_zern_si[0][0],sizeof(shk_gain_alp_zern_si));
-  if(sm_p->shk_alp_pid_type == PID_DOUBLE_INTEGRATOR) memcpy((double *)&sm_p->shk_gain_alp_zern[0][0],&shk_gain_alp_zern_di[0][0],sizeof(shk_gain_alp_zern_di));
-  double shk_gain_alp_cell_si[LOWFS_N_PID] = SHK_GAIN_ALP_CELL_SI_DEFAULT;
-  double shk_gain_alp_cell_di[LOWFS_N_PID] = SHK_GAIN_ALP_CELL_DI_DEFAULT;
-  if(sm_p->shk_alp_pid_type == PID_SINGLE_INTEGRATOR) memcpy((double *)sm_p->shk_gain_alp_cell,shk_gain_alp_cell_si,sizeof(shk_gain_alp_cell_si));
-  if(sm_p->shk_alp_pid_type == PID_DOUBLE_INTEGRATOR) memcpy((double *)sm_p->shk_gain_alp_cell,shk_gain_alp_cell_di,sizeof(shk_gain_alp_cell_di));
+  double shk_gain_alp_zern[LOWFS_N_ZERNIKE][LOWFS_N_PID] = SHK_GAIN_ALP_ZERN_DEFAULT;
+  memcpy((double *)&sm_p->shk_gain_alp_zern[0][0],&shk_gain_alp_zern[0][0],sizeof(shk_gain_alp_zern));
+  double shk_gain_alp_cell[LOWFS_N_PID] = SHK_GAIN_ALP_CELL_DEFAULT;
+  memcpy((double *)sm_p->shk_gain_alp_cell,shk_gain_alp_cell,sizeof(shk_gain_alp_cell));
   double shk_gain_hex_zern[LOWFS_N_PID] = SHK_GAIN_HEX_ZERN_DEFAULT;
   memcpy((double *)sm_p->shk_gain_hex_zern,shk_gain_hex_zern,sizeof(shk_gain_hex_zern));
-
+  
   //LYT PID Gains
-  double lyt_gain_alp_zern_si[LOWFS_N_ZERNIKE][LOWFS_N_PID] = LYT_GAIN_ALP_ZERN_SI_DEFAULT;
-  double lyt_gain_alp_zern_di[LOWFS_N_ZERNIKE][LOWFS_N_PID] = LYT_GAIN_ALP_ZERN_DI_DEFAULT;
-  if(sm_p->lyt_alp_pid_type == PID_SINGLE_INTEGRATOR) memcpy((double *)&sm_p->lyt_gain_alp_zern[0][0],&lyt_gain_alp_zern_si[0][0],sizeof(lyt_gain_alp_zern_si));
-  if(sm_p->lyt_alp_pid_type == PID_DOUBLE_INTEGRATOR) memcpy((double *)&sm_p->lyt_gain_alp_zern[0][0],&lyt_gain_alp_zern_di[0][0],sizeof(lyt_gain_alp_zern_di));
-
-
+  double lyt_gain_alp_zern[LOWFS_N_ZERNIKE][LOWFS_N_PID] = LYT_GAIN_ALP_ZERN_DEFAULT;
+  memcpy((double *)&sm_p->lyt_gain_alp_zern[0][0],&lyt_gain_alp_zern[0][0],sizeof(lyt_gain_alp_zern));
+  
   //LYT ROI
   sm_p->lyt_roi[0] = LYT_ROI_X_DEFAULT;
   sm_p->lyt_roi[1] = LYT_ROI_Y_DEFAULT;

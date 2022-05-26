@@ -380,12 +380,9 @@ int handle_command(char *line, sm_t *sm_p){
   const char hex_str_unit[HEX_NAXES][5] = {"mm","mm","mm","deg","deg","deg"};
   const double hexhome[HEX_NAXES] = HEX_POS_HOME;
   const double hexdef[HEX_NAXES]  = HEX_POS_DEFAULT;
-  const double shk_gain_alp_zern_si[LOWFS_N_ZERNIKE][LOWFS_N_PID] = SHK_GAIN_ALP_ZERN_SI_DEFAULT;
-  const double shk_gain_alp_zern_di[LOWFS_N_ZERNIKE][LOWFS_N_PID] = SHK_GAIN_ALP_ZERN_DI_DEFAULT;
-  const double shk_gain_alp_cell_si[LOWFS_N_PID]                  = SHK_GAIN_ALP_CELL_SI_DEFAULT;
-  const double shk_gain_alp_cell_di[LOWFS_N_PID]                  = SHK_GAIN_ALP_CELL_DI_DEFAULT;
-  const double lyt_gain_alp_zern_si[LOWFS_N_ZERNIKE][LOWFS_N_PID] = LYT_GAIN_ALP_ZERN_SI_DEFAULT;
-  const double lyt_gain_alp_zern_di[LOWFS_N_ZERNIKE][LOWFS_N_PID] = LYT_GAIN_ALP_ZERN_DI_DEFAULT;
+  const double shk_gain_alp_zern[LOWFS_N_ZERNIKE][LOWFS_N_PID] = SHK_GAIN_ALP_ZERN_DEFAULT;
+  const double shk_gain_alp_cell[LOWFS_N_PID]                  = SHK_GAIN_ALP_CELL_DEFAULT;
+  const double lyt_gain_alp_zern[LOWFS_N_ZERNIKE][LOWFS_N_PID] = LYT_GAIN_ALP_ZERN_DEFAULT;
   hex_t hexcmd;
   memset(&hexcmd,0,sizeof(hex_t));
   char *pch;
@@ -3112,8 +3109,7 @@ int handle_command(char *line, sm_t *sm_p){
     ftemp = atof(line+strlen(cmd)+1);
     if(ftemp >= 0){
       for(i=0;i<LOWFS_N_PID;i++){
-	if(sm_p->shk_alp_pid_type == PID_SINGLE_INTEGRATOR) sm_p->shk_gain_alp_cell[i] = shk_gain_alp_cell_si[i]*ftemp;
-	if(sm_p->shk_alp_pid_type == PID_DOUBLE_INTEGRATOR) sm_p->shk_gain_alp_cell[i] = shk_gain_alp_cell_di[i]*ftemp;
+	sm_p->shk_gain_alp_cell[i] = shk_gain_alp_cell[i]*ftemp;
       }
       printf("CMD: Changing SHK-->ALP cell gain multiplier to %f\n",ftemp);
       printf("CMD: SHK-->ALP Cell Gain: %10.6f | %10.6f | %10.6f\n", sm_p->shk_gain_alp_cell[0],sm_p->shk_gain_alp_cell[1],sm_p->shk_gain_alp_cell[2]);
@@ -3158,8 +3154,7 @@ int handle_command(char *line, sm_t *sm_p){
     if(ftemp >= 0){
       for(i=0;i<LOWFS_N_ZERNIKE;i++){ 
 	for(j=0;j<LOWFS_N_PID;j++){
-	  if(sm_p->shk_alp_pid_type == PID_SINGLE_INTEGRATOR) sm_p->shk_gain_alp_zern[i][j] = shk_gain_alp_zern_si[i][j]*ftemp;
-	  if(sm_p->shk_alp_pid_type == PID_DOUBLE_INTEGRATOR) sm_p->shk_gain_alp_zern[i][j] = shk_gain_alp_zern_di[i][j]*ftemp;
+	  sm_p->shk_gain_alp_zern[i][j] = shk_gain_alp_zern[i][j]*ftemp;
 	}
       }
       printf("CMD: Changing SHK-->ALP Zernike gain multiplier to %f\n",ftemp);
@@ -3258,8 +3253,7 @@ int handle_command(char *line, sm_t *sm_p){
       // -- zernike gain
       for(i=0;i<LOWFS_N_ZERNIKE;i++){ 
 	for(j=0;j<LOWFS_N_PID;j++){
-	  if(sm_p->lyt_alp_pid_type == PID_SINGLE_INTEGRATOR) sm_p->lyt_gain_alp_zern[i][j] = lyt_gain_alp_zern_si[i][j]*ftemp;
-	  if(sm_p->lyt_alp_pid_type == PID_DOUBLE_INTEGRATOR) sm_p->lyt_gain_alp_zern[i][j] = lyt_gain_alp_zern_di[i][j]*ftemp;
+	  sm_p->lyt_gain_alp_zern[i][j] = lyt_gain_alp_zern[i][j]*ftemp;
 	}
       }
       printf("CMD: Changing LYT-->ALP gain multiplier to %f\n",ftemp);
@@ -3305,41 +3299,6 @@ int handle_command(char *line, sm_t *sm_p){
     }else printf("CMD: Bad Zernike index [0,%d] or gain [-1,0]\n",LOWFS_N_ZERNIKE-1);
     return CMD_NORMAL;
   }
-
-  /****************************************
-   * PID CONTROLLER TYPE
-   **************************************/
-  sprintf(cmd,"shk alp pid single");
-  if(!strncasecmp(line,cmd,strlen(cmd))){
-    printf("CMD: Setting SHK PID to single integrator\n");
-    sm_p->shk_alp_pid_type=PID_SINGLE_INTEGRATOR;
-    memcpy((double *)&sm_p->shk_gain_alp_zern[0][0],&shk_gain_alp_zern_si[0][0],sizeof(shk_gain_alp_zern_si));
-    memcpy((double *)sm_p->shk_gain_alp_cell,shk_gain_alp_cell_si,sizeof(shk_gain_alp_cell_si));
-    return(CMD_NORMAL);
-  }
-  sprintf(cmd,"shk alp pid double");
-  if(!strncasecmp(line,cmd,strlen(cmd))){
-    printf("CMD: Setting SHK PID to double integrator\n");
-    sm_p->shk_alp_pid_type=PID_DOUBLE_INTEGRATOR;
-    memcpy((double *)&sm_p->shk_gain_alp_zern[0][0],&shk_gain_alp_zern_di[0][0],sizeof(shk_gain_alp_zern_di));
-    memcpy((double *)sm_p->shk_gain_alp_cell,shk_gain_alp_cell_di,sizeof(shk_gain_alp_cell_di));
-    return(CMD_NORMAL);
-  }
-  sprintf(cmd,"lyt alp pid single");
-  if(!strncasecmp(line,cmd,strlen(cmd))){
-    printf("CMD: Setting LYT PID to single integrator\n");
-    sm_p->lyt_alp_pid_type=PID_SINGLE_INTEGRATOR;
-    memcpy((double *)&sm_p->lyt_gain_alp_zern[0][0],&lyt_gain_alp_zern_si[0][0],sizeof(lyt_gain_alp_zern_si));
-    return(CMD_NORMAL);
-  }
-  sprintf(cmd,"lyt alp pid double");
-  if(!strncasecmp(line,cmd,strlen(cmd))){
-    printf("CMD: Setting LYT PID to double integrator\n");
-    sm_p->lyt_alp_pid_type=PID_DOUBLE_INTEGRATOR;
-    memcpy((double *)&sm_p->lyt_gain_alp_zern[0][0],&lyt_gain_alp_zern_di[0][0],sizeof(lyt_gain_alp_zern_di));
-    return(CMD_NORMAL);
-  }
- 
 
   /****************************************
    * SCI CAMERA SETTINGS
