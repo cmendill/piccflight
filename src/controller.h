@@ -731,7 +731,6 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 /*************************************************
  * Other Parameters
  *************************************************/
-#define CALMODE_TIMER_SEC       30 //default length of calmode_timer
 #define ALP_CAL_SCALE_MAX      100 //max ALP calbration command scale
 #define ALP_CAL_TIMER_MAX      400 //max ALP calbration timer length
 #define BMC_CAL_SCALE_MAX      100 //max BMC calbration command scale
@@ -990,7 +989,6 @@ typedef struct alpcal_struct{
   struct timespec start[ALP_NCALMODES];
   double last_zernike[LOWFS_N_ZERNIKE];
   double zernike_errors[LOWFS_N_ZERNIKE][ZERNIKE_ERRORS_NUMBER];
-  double timer_length;
 } alpcal_t;
 
 typedef struct bmccal_struct{
@@ -998,7 +996,6 @@ typedef struct bmccal_struct{
   uint64 countB[BMC_NCALMODES];
   bmc_t  bmc_start[BMC_NCALMODES];
   struct timespec start[BMC_NCALMODES];
-  double timer_length;
 } bmccal_t;
 
 typedef struct tgtcal_struct{
@@ -1006,7 +1003,6 @@ typedef struct tgtcal_struct{
   uint64 countB[TGT_NCALMODES];
   tgt_t  tgt_start[TGT_NCALMODES];
   struct timespec start[TGT_NCALMODES];
-  double timer_length;
 } tgtcal_t;
 
 /*************************************************
@@ -1328,14 +1324,14 @@ typedef volatile struct {
   int bmc_calmode;
   int tgt_calmode;
 
-  //ALP Calibration Structure
+  //Calibration Structures
   alpcal_t alpcal;
-
-  //BMC Calibration Structure
   bmccal_t bmccal;
-
-  //TGT Calibration Structure
   tgtcal_t tgtcal;
+
+  //Timer lengths
+  double alp_cal_timer_length;
+  double bmc_cal_timer_length;
 
   //DM Calibration Command Scale
   double alp_cal_scale;

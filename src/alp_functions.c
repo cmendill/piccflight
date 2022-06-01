@@ -473,10 +473,7 @@ void alp_init_calibration(sm_t *sm_p){
   //Read Zernike errors file
   if(read_file(ZERNIKE_ERRORS_FILE,sm_p->alpcal.zernike_errors,sizeof(sm_p->alpcal.zernike_errors)))
     memset(sm_p->alpcal.zernike_errors,0,sizeof(sm_p->alpcal.zernike_errors));
-  
-  /* Initialize other elements */
-  sm_p->alpcal.timer_length = CALMODE_TIMER_SEC;
-  
+    
   return; 
 }
 
@@ -556,7 +553,7 @@ int alp_calibrate(sm_t *sm_p, int calmode, alp_t *alp, uint32_t *step, double *z
       printf("ALP: alp_calibrate --> timespec_subtract error!\n");
     ts2double(&delta,&dt);
     
-    if(dt > sm_p->alpcal.timer_length){
+    if(dt > sm_p->alp_cal_timer_length){
       //Turn off calibration
       printf("ALP: Stopping ALP calmode ALP_CALMODE_TIMER\n");
       calmode = ALP_CALMODE_NONE;
@@ -846,7 +843,7 @@ int alp_calibrate(sm_t *sm_p, int calmode, alp_t *alp, uint32_t *step, double *z
     ts2double(&delta,&dt);
     //Set data index
     index = (uint64_t)(dt/zernike_timestep);
-    if((index < ZERNIKE_ERRORS_NUMBER-1) && (dt <= sm_p->alpcal.timer_length)){
+    if((index < ZERNIKE_ERRORS_NUMBER-1) && (dt <= sm_p->alp_cal_timer_length)){
       //Interpolate between steps, convert from [Microns RMS Wavefront] to [Microns RMS Surface], calc zernike deltas
       step_fraction = fmod(dt,zernike_timestep)/zernike_timestep;
       for(i=0;i<LOWFS_N_ZERNIKE;i++){

@@ -352,9 +352,6 @@ void bmc_init_calibration(sm_t *sm_p){
   
   //Zero out calibration struct
   memset((void *)&sm_p->bmccal,0,sizeof(bmccal_t));
-
-  /* Initialize other elements */
-  sm_p->bmccal.timer_length = CALMODE_TIMER_SEC;  
   
 }
 
@@ -532,8 +529,8 @@ int bmc_calibrate(sm_t *sm_p, int calmode, bmc_t *bmc, uint32_t *step, int advan
       printf("BMC: bmc_calibrate --> timespec_subtract error!\n");
     ts2double(&delta,&dt);
     //Print status
-    printf("BMC: %f/%f seconds\n",dt,sm_p->bmccal.timer_length);
-    if(dt > sm_p->bmccal.timer_length){
+    printf("BMC: %f/%f seconds\n",dt,sm_p->bmc_cal_timer_length);
+    if(dt > sm_p->bmc_cal_timer_length){
       //Turn off calibration
       printf("BMC: Stopping BMC calmode BMC_CALMODE_TIMER\n");
       calmode = BMC_CALMODE_NONE;

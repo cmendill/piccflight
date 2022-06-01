@@ -320,36 +320,38 @@ int main(int argc,char **argv){
 
   /* Set Runtime Defaults */
   /* All shmem numbers are ZERO unless defined here */
-  sm_p->die                 = 0;
-  sm_p->sci_exptime         = SCI_EXPTIME_DEFAULT;
-  sm_p->sci_frmtime         = SCI_FRMTIME_DEFAULT;
-  sm_p->shk_exptime         = SHK_EXPTIME_DEFAULT;
-  sm_p->shk_frmtime         = SHK_FRMTIME_DEFAULT;
-  sm_p->lyt_exptime         = LYT_EXPTIME_DEFAULT;
-  sm_p->lyt_frmtime         = LYT_FRMTIME_DEFAULT;
-  sm_p->acq_exptime         = ACQ_EXPTIME_DEFAULT;
-  sm_p->acq_frmtime         = ACQ_FRMTIME_DEFAULT;
-  sm_p->shk_boxsize         = SHK_BOXSIZE_DEFAULT;
-  sm_p->alp_n_dither        = -1;
-  sm_p->alp_proc_id         = -1;
-  sm_p->lyt_xorigin         = LYT_XORIGIN_DEFAULT;
-  sm_p->lyt_yorigin         = LYT_YORIGIN_DEFAULT;
-  sm_p->sci_tec_enable      = SCI_TEC_ENABLE_DEFAULT;
-  sm_p->sci_tec_setpoint    = SCI_TEC_SETPOINT_DEFAULT;
-  sm_p->sci_phase_n_zernike = SCI_PHASE_N_ZERNIKE_DEFAULT;
-  sm_p->sci_phase_expscale  = SCI_PHASE_EXPSCALE_DEFAULT;
-  sm_p->sci_optmode         = SCI_OPTMODE_NMSIMPLEX2;
-  sm_p->acq_thresh          = ACQ_THRESH_DEFAULT;
-  sm_p->thm_enable_vref     = THM_ENABLE_VREF_DEFAULT;
-  sm_p->hex_spiral_autostop = HEX_SPIRAL_AUTOSTOP_DEFAULT;
-  sm_p->lyt_mag_enable      = 0;
-  sm_p->lyt_mag             = 1;
-  sm_p->efc_bmc_max         = EFC_BMC_MAX_DEFAULT;
-  sm_p->efc_sci_thresh      = EFC_SCI_THRESH_DEFAULT;
-  sm_p->efc_gain            = EFC_GAIN_DEFAULT;
-  sm_p->efc_probe_amp       = EFC_PROBE_AMP_DEFAULT;
-  sm_p->alp_cal_scale       = ALP_CAL_SCALE_DEFAULT;
-  sm_p->bmc_cal_scale       = BMC_CAL_SCALE_DEFAULT;
+  sm_p->die                  = 0;
+  sm_p->sci_exptime          = SCI_EXPTIME_DEFAULT;
+  sm_p->sci_frmtime          = SCI_FRMTIME_DEFAULT;
+  sm_p->shk_exptime          = SHK_EXPTIME_DEFAULT;
+  sm_p->shk_frmtime          = SHK_FRMTIME_DEFAULT;
+  sm_p->lyt_exptime          = LYT_EXPTIME_DEFAULT;
+  sm_p->lyt_frmtime          = LYT_FRMTIME_DEFAULT;
+  sm_p->acq_exptime          = ACQ_EXPTIME_DEFAULT;
+  sm_p->acq_frmtime          = ACQ_FRMTIME_DEFAULT;
+  sm_p->shk_boxsize          = SHK_BOXSIZE_DEFAULT;
+  sm_p->alp_n_dither         = -1;
+  sm_p->alp_proc_id          = -1;
+  sm_p->lyt_xorigin          = LYT_XORIGIN_DEFAULT;
+  sm_p->lyt_yorigin          = LYT_YORIGIN_DEFAULT;
+  sm_p->sci_tec_enable       = SCI_TEC_ENABLE_DEFAULT;
+  sm_p->sci_tec_setpoint     = SCI_TEC_SETPOINT_DEFAULT;
+  sm_p->sci_phase_n_zernike  = SCI_PHASE_N_ZERNIKE_DEFAULT;
+  sm_p->sci_phase_expscale   = SCI_PHASE_EXPSCALE_DEFAULT;
+  sm_p->sci_optmode          = SCI_OPTMODE_NMSIMPLEX2;
+  sm_p->acq_thresh           = ACQ_THRESH_DEFAULT;
+  sm_p->thm_enable_vref      = THM_ENABLE_VREF_DEFAULT;
+  sm_p->hex_spiral_autostop  = HEX_SPIRAL_AUTOSTOP_DEFAULT;
+  sm_p->lyt_mag_enable       = 0;
+  sm_p->lyt_mag              = 1;
+  sm_p->efc_bmc_max          = EFC_BMC_MAX_DEFAULT;
+  sm_p->efc_sci_thresh       = EFC_SCI_THRESH_DEFAULT;
+  sm_p->efc_gain             = EFC_GAIN_DEFAULT;
+  sm_p->efc_probe_amp        = EFC_PROBE_AMP_DEFAULT;
+  sm_p->alp_cal_scale        = ALP_CAL_SCALE_DEFAULT;
+  sm_p->bmc_cal_scale        = BMC_CAL_SCALE_DEFAULT;
+  sm_p->alp_cal_timer_length = ALP_CAL_TIMER_LENGTH_DEFAULT;
+  sm_p->bmc_cal_timer_length = BMC_CAL_TIMER_LENGTH_DEFAULT;
 
   //Zernike control defaults
   //--SHK
