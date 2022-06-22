@@ -1085,6 +1085,23 @@ int handle_command(char *line, sm_t *sm_p){
 	hex_printpos(sm_p->hexfd);
 	return(CMD_NORMAL);
       }
+      //Set 6-axis position
+      sprintf(cmd,"hex gopos");
+      if(!strncasecmp(line,cmd,strlen(cmd)) && strlen(line) > strlen(cmd)){
+	pch = strtok(line+strlen(cmd),",");
+	i=0;
+	while(pch != NULL){
+	  ftemp  = atof(pch);
+	  hexcmd.acmd[i++] = ftemp;
+	  pch = strtok(NULL,",");
+	}
+	if(i==6){
+	  printf("CMD: Moving HEX to: %f,%f,%f,%f,%f,%f\n",hexcmd.acmd[0],hexcmd.acmd[1],hexcmd.acmd[2],hexcmd.acmd[3],hexcmd.acmd[4],hexcmd.acmd[5]);
+	  if(hex_send_command(sm_p,&hexcmd,WATID))
+	    printf("CMD: hex_send_command failed\n");
+	}
+	return CMD_NORMAL;
+      }
       //Go to HOME position
       sprintf(cmd,"hex gohome");
       if(!strncasecmp(line,cmd,strlen(cmd))){

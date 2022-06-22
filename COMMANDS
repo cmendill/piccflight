@@ -231,6 +231,9 @@ cmd: hex rst step
 cmd: hex getpos
 	query the hexapod for its current position and print to screen
 
+cmd: hex gopos x,y,z,u,v,w
+	go to hexapod position
+
 cmd: hex gohome
 	move hexapod to #defined home position
 
