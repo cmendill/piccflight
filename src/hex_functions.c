@@ -556,8 +556,8 @@ void hex_zern2hex_alt(double *zernikes, double *axes){
   //Calibration
   double dVdZ0 = 0.00097870;    //+V --> +Z0
   double dUdZ1 = 0.00095131;    //+U --> +Z1
-  double dXdZ4 = 2*(-0.64/0.3); //+X --> -Z4 (after correct with -V)
-  double dYdZ3 = 2*(-0.64/0.2); //+Y --> -Z3 (after correct with +U)
+  double dXdZ3 = 2*(-0.64/0.3); //+X --> -Z3 (after correct with -V)
+  double dYdZ4 = 2*(-0.64/0.2); //+Y --> -Z4 (after correct with +U)
   double dZdZ2 = 0.19390708;    //+Z --> +Z2 hexapod Z --> focus (Z2)
   double dZdZ1 = 0.05027623;    //+Z --> +Z1 hexapod Z --> Y tilt (Z1)
   double dVdX  = -0.1; //+X == +V, Move V opposite X to fix
@@ -565,8 +565,8 @@ void hex_zern2hex_alt(double *zernikes, double *axes){
   double dUdZ  = -dUdZ1 / dZdZ1;
   
   //Convert astig to HEX dX & dY
-  dX = dXdZ4 * zernikes[4];
-  dY = dYdZ3 * zernikes[3];
+  dX = dXdZ3 * zernikes[3];
+  dY = dYdZ4 * zernikes[4];
   //--correct tilt for dX & dY
   dV = dVdX * dX;
   dU = dUdY * dY;
