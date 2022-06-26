@@ -14,11 +14,11 @@ GRUB_RECORDFAIL_TIMEOUT=0
 #Define kernel command
 #   mem=1024M --> for phx driver image buffers
 #   console=tty1 --> send kernel boot messages to tty1 == video monitor
-#   console=ttyS0,115200 --> send kernel boot messages to serial port
+#   console=ttyS0,38400 --> send kernel boot messages to serial port
 #   NOTE: piccflight will start on whichever console is listed last
 #         So, we want that to always be the serial console (ttyS0)
 ########################################################################
-GRUB_CMDLINE_LINUX="mem=1024M console=tty1 console=ttyS0,115200"
+GRUB_CMDLINE_LINUX="mem=1024M console=tty1 console=ttyS0,38400"
 
 
 
