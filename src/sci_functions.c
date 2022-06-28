@@ -600,6 +600,77 @@ void sci_howfs_efc(sm_t *sm_p, sci_field_t *field, double *delta_length, int res
   return;
 }
 
+/**************************************************************/
+/* SCI_SPECKLE_MEASURE                                        */
+/*  - Finds and measures the brightest speckle                */
+/**************************************************************/
+double sci_speckle_measure(scievent_t *scievent, sci_cal_t *sci_cal){
+  static int init=0;
+  static int xind[SCI_NPIX], yind[SCI_NPIX];
+  char filename[MAX_FILENAME];
+  uint8_t scimask[SCIXS][SCIYS];
+  int i,j,c,blx,bly;
+  double maxval,val;
+  
+  //Initialize
+  if(!init){
+    //Read SCI pixel selection
+    if(read_file(SCI_MASK_FILE,&scimask[0][0],sizeof(scimask)))
+      memset(&scimask[0][0],0,sizeof(scimask));
+    
+    //Build index arrays
+    c=0;
+    for(j=0;j<SCIYS;j++){
+      for(i=0;i<SCIXS;i++){
+	if(scimask[i][j]){
+	  xind[c]=i;
+	  yind[c]=j;
+	  c++;
+	}
+      }
+    }
+    init=1;
+  }
+
+  //Set bottom left corner in full image
+  xbl = scievent->xorigin[0]-(SCIXS/2);
+  ybl = scievent->yorigin[0]-(SCIYS/2);
+  
+  //First iteration: find brightest speckle
+  if(scievent->ispeckle == 0){
+    maxval=0;
+    for(c=0;c<SCI_NPIX;c++){
+      i    = xind[c];
+      j    = yind[c];
+      val  = scievent->bands.band[0].data[i][j];
+      bkg  = sci_cal.bias[sci_xy2index_full(i,j,xbl,ybl)] + sci_cal.dark[sci_xy2index_full(i,j,xbl,ybl)]*scievent->hed.exptime;
+      val -= bkg;
+      if(val > maxval)
+	scievent->speckle_pixel = c;
+    }
+  }
+
+  //Record speckle brightness
+  c    = scievent->speckle_pixel;
+  i    = xind[c];
+  j    = yind[c];
+  val  = scievent->bands.band[0].data[i][j];
+  bkg  = sci_cal.bias[sci_xy2index_full(i,j,xbl,ybl)] + sci_cal.dark[sci_xy2index_full(i,j,xbl,ybl)]*scievent->hed.exptime;
+  val -= bkg;
+  scievent->speckle_brightness = val;
+
+  return val;
+}
+
+/**************************************************************/
+/* SCI_SPECKLE_FIT_SINE                                      */
+/*  - Fit sine curve to speckle modulation data               */
+/**************************************************************/
+double sci_speckle_fit_sine(double *data, double *phi, double *amp){
+
+  *phi=0;
+  *amp=0;
+}
 
 
 
@@ -612,19 +683,23 @@ void sci_process_image(uint16 *img_buffer, float img_exptime, sm_t *sm_p){
   static wfsevent_t wfsevent={};
   static struct timespec start,end,delta,last;
   static int init = 0,sci_cal_init=0;
-  static int howfs_init = 0;
+  static int howfs_init = 0,speckle_init=0;
   static sci_howfs_t howfs_frames;
   static int ccd_temp_init=0;
   static sci_cal_t sci_cal;
+  static double speckle_brightness[SCI_SPECKLE_NSTEP];
   const double sci_sim_max[SCI_NBANDS] = SCI_SIM_MAX;
   const size_t sci_cal_size = sizeof(double) * SCI_ROI_YSIZE * SCI_ROI_XSIZE;
+  double speckle_phase[SCI_SPECKLE_NPHASE];
+  double speckle_amp[SCI_SPECKLE_NAMP];
+  double speckle_phi,speckle_amp;
   double dt;
   double delta_length[BMC_NACT]={0};
   uint16 fakepx=0;
   uint32 i,j,k,b;
   int xbl,ybl;
   double dpx,bkg;
-  static long unsigned int frame_number=0,wfs_frame_number=0,howfs_istart=0,howfs_ilast=0,iefc=0;
+  static long unsigned int frame_number=0,wfs_frame_number=0,howfs_istart=0,howfs_ilast=0,iefc=0,speckle_istart=0,speckle_ilast=0;
   int print_origin=0;
   int state;
   int bmc_calibrate_advance=1;
@@ -811,7 +886,10 @@ void sci_process_image(uint16 *img_buffer, float img_exptime, sm_t *sm_p){
 
   //Reinitialize HOWFS if there has been a break in the data
   if(scievent.hed.frame_number != howfs_ilast+1) howfs_init=0;
-  
+
+  //Reinitialize SPECKLE if there has been a break in the data
+  if(scievent.hed.frame_number != speckle_ilast+1) specke_init=0;
+
   //Init HOWFS
   if(!howfs_init){
     //Set starting frame number
@@ -821,10 +899,23 @@ void sci_process_image(uint16 *img_buffer, float img_exptime, sm_t *sm_p){
     //Set init
     howfs_init = 1;
   }
-    
+
+  //Init SPECKLE
+  if(!speckle_init){
+    //Set starting frame number
+    speckle_istart = scievent.hed.frame_number;
+    //Clear measured speckles
+    memset(speckle_brightness,0,sizeof(speckle_brightness));
+    //Set init
+    speckle_init = 1;
+  }
+
   //Define HOWFS index
   scievent.ihowfs = (scievent.hed.frame_number - howfs_istart) % SCI_HOWFS_NSTEP;
   if(scievent.ihowfs == 0) wfs_frame_number = scievent.hed.frame_number;
+
+  //Define SPECKLE index
+  scievent.ispeckle = (scievent.hed.frame_number - speckle_istart) % SCI_SPECKLE_NSTEP;
 
   //Set image buffer indexing function
   sci_xy2index = sci_xy2index_full;
@@ -1039,6 +1130,29 @@ void sci_process_image(uint16 *img_buffer, float img_exptime, sm_t *sm_p){
       else
 	memcpy(bmc_try.acmd,bmc_flat.acmd,sizeof(bmc_try.acmd));
     }
+
+    //Run Speckle Nulling
+    if(sm_p->state_array[state].sci.run_speckle){
+      //Save last frame number during speckle nulling
+      speckle_ilast = scievent.hed.frame_number;
+
+      //********** SPECKLE Indexing ************
+      //ispeckle: 0     1   2   3   4   5   6
+      //image:    flat  p0  p1  p2  p3  a0  a1
+      //pktcmd:   flat  p0  p1  p2  p3  a0  a1
+      //dmcmd:    p0    p1  p2  p3  a0  a1  new_flat
+
+      //Measure speckle
+      speckle_brightness[scievent.ispeckle] = sci_speckle_measure(&scievent,&sci_cal);
+
+      //Fit sine function to phase data
+      if(scievent.ispeckle == SCI_SPECKLE_NPHASE){
+	memcpy(speckle_phase,&speckle_brightness[1],sizeof(speckle_phase));
+	sci_speckle_fit_phase(speckle_phase,&phi,&amp);
+      }
+
+    }
+
 
     
     //Calibrate BMC

@@ -366,6 +366,63 @@ void init_state(int state_number, state_t *state){
     return;
   }
 
+  //STATE_SPECKLE
+  if(state_number == STATE_SPECKLE){
+    //Set name
+    sprintf(state->name,"STATE_SPECKLE");
+    //Set cmd
+    sprintf(state->cmd,"spk");
+    //Set options
+    state->bmc_commander = SCIID;
+    state->sci.run_speckle   = 1;
+    //Set LYTID as alp commander
+    state->alp_commander = LYTID;
+    //LYT Settings
+    for(i=0;i<LOWFS_N_ZERNIKE;i++)
+      state->lyt.zernike_control[i] = ACTUATOR_ALP;
+    return;
+  }
+
+  //STATE_SHK_SPECKLE
+  if(state_number == STATE_SHK_SPECKLE){
+    //Set name
+    sprintf(state->name,"STATE_SHK_SPECKLE");
+    //Set cmd
+    sprintf(state->cmd,"ssk");
+    //Set SCIID as bmc commander
+    state->bmc_commander = SCIID;
+    state->sci.run_speckle   = 1;
+    //Set SHKID as alp commander
+    state->alp_commander = SHKID;
+    //SHK Settings
+    state->shk.cell_control = ACTUATOR_ALP;
+    return;
+  }
+
+
+  //STATE_HYB_SPECKLE
+  if(state_number == STATE_HYB_SPECKLE){
+    //Set name
+    sprintf(state->name,"STATE_HYB_SPECKLE");
+    //Set cmd
+    sprintf(state->cmd,"hsk");
+    //Set SCIID as bmc commander
+    state->bmc_commander = SCIID;
+    state->sci.run_speckle   = 1;
+    //Set LYTID as alp commander
+    state->alp_commander = LYTID;
+    //LYT Settings
+    state->lyt.zernike_control[0] = ACTUATOR_ALP;
+    state->lyt.zernike_control[1] = ACTUATOR_ALP;
+    //SHK Settings
+    for(i=2;i<LOWFS_N_ZERNIKE;i++)
+      state->shk.zernike_control[i] = ACTUATOR_ALP;
+    //Set SHK2LYT
+    state->shk.shk2lyt=1;
+    return;
+  }
+
+
   //STATE_SCI_PHASE
   if(state_number == STATE_SCI_PHASE){
     //Set name

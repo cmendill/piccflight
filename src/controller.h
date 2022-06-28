@@ -103,6 +103,9 @@ enum states { STATE_STANDBY,
 	      STATE_EFC,
 	      STATE_SHK_EFC,
 	      STATE_HYB_EFC,
+	      STATE_SPECKLE,
+	      STATE_SHK_SPECKLE,
+	      STATE_HYB_SPECKLE,
 	      STATE_SCI_PHASE,
 	      NSTATES};
 
@@ -512,6 +515,9 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 #define SCI_NPIX              728 //number of pixels in dark zone
 #define SCI_HOWFS_NPROBE        4 //number of HOWFS DM probe steps
 #define SCI_HOWFS_NSTEP         5 //number of HOWFS steps
+#define SCI_SPECKLE_NPHASE      4 //number of speckle nulling phase steps
+#define SCI_SPECKLE_NAMP        2 //number of speckle nulling amplitude steps
+#define SCI_SPECKLE_NSTEP       (SCI_SPECKLE_NPHASE+SCI_SPECKLE_NAMP+1) //number of speckle nulling steps
 #define SCI_ROI_XSIZE        2840
 #define SCI_ROI_YSIZE        2224
 #define SCI_HBIN                1 //do not change, will break code below
@@ -785,6 +791,7 @@ typedef struct lytctrl_struct{
 typedef struct scictrl_struct{
   int run_howfs;
   int run_efc;
+  int run_speckle;
 } scictrl_t;
 
 // Acquisition Camera Control (acq_proc.c)
@@ -1024,7 +1031,7 @@ typedef struct optmode_struct{
 /*************************************************
  * Packet Header
  *************************************************/
-#define PICC_PKT_VERSION     45  //packet version number
+#define PICC_PKT_VERSION     46  //packet version number
 typedef struct pkthed_struct{
   uint16  version;       //packet version number
   uint16  type;          //packet ID word
@@ -1176,10 +1183,14 @@ typedef struct scievent_struct{
   int16        tec_setpoint;
   uint8        tec_enable;
   uint8        ihowfs;
+  uint8        ispeckle;
   uint8        iphase;
   uint8        fastmode;
   uint8        phasemode;
   uint8        optmode;
+  uint8        pad1;
+  uint16       speckle_pixel;
+  float        speckle_brightness;
   float        phasemerit;
   uint32       xorigin[SCI_NBANDS];
   uint32       yorigin[SCI_NBANDS];
