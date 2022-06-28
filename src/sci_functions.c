@@ -22,7 +22,9 @@
 #include "fakemodes.h"
 #include "bmc_functions.h"
 #include "tgt_functions.h"
+#include "alp_functions.h"
 #include "numeric.h"
+#include "sinefit.h"
 #include "sci_functions.h"
 
 
@@ -609,8 +611,8 @@ double sci_speckle_measure(scievent_t *scievent, sci_cal_t *sci_cal){
   static int xind[SCI_NPIX], yind[SCI_NPIX];
   char filename[MAX_FILENAME];
   uint8_t scimask[SCIXS][SCIYS];
-  int i,j,c,blx,bly;
-  double maxval,val;
+  int i,j,k,l,c,xbl,ybl;
+  double maxval,val,bkg;
   
   //Initialize
   if(!init){
@@ -643,20 +645,25 @@ double sci_speckle_measure(scievent_t *scievent, sci_cal_t *sci_cal){
       i    = xind[c];
       j    = yind[c];
       val  = scievent->bands.band[0].data[i][j];
-      bkg  = sci_cal.bias[sci_xy2index_full(i,j,xbl,ybl)] + sci_cal.dark[sci_xy2index_full(i,j,xbl,ybl)]*scievent->hed.exptime;
+      bkg  = sci_cal->bias[sci_xy2index_full(i,j,xbl,ybl)] + sci_cal->dark[sci_xy2index_full(i,j,xbl,ybl)]*scievent->hed.exptime;
       val -= bkg;
       if(val > maxval)
 	scievent->speckle_pixel = c;
     }
   }
 
-  //Record speckle brightness
-  c    = scievent->speckle_pixel;
-  i    = xind[c];
-  j    = yind[c];
-  val  = scievent->bands.band[0].data[i][j];
-  bkg  = sci_cal.bias[sci_xy2index_full(i,j,xbl,ybl)] + sci_cal.dark[sci_xy2index_full(i,j,xbl,ybl)]*scievent->hed.exptime;
-  val -= bkg;
+  //Measure speckle brightness
+  c = scievent->speckle_pixel;
+  val=0;
+  for(k=-1;k<=1;k++){
+    for(l=-1;l<=1;l++){
+      i = xind[c] + k;
+      j = yind[c] + l;
+      bkg  = sci_cal->bias[sci_xy2index_full(i,j,xbl,ybl)] + sci_cal->dark[sci_xy2index_full(i,j,xbl,ybl)]*scievent->hed.exptime;
+      val += scievent->bands.band[0].data[i][j] - bkg;
+    }
+  }
+  val /= 9;
   scievent->speckle_brightness = val;
 
   return val;
@@ -666,10 +673,25 @@ double sci_speckle_measure(scievent_t *scievent, sci_cal_t *sci_cal){
 /* SCI_SPECKLE_FIT_SINE                                      */
 /*  - Fit sine curve to speckle modulation data               */
 /**************************************************************/
-double sci_speckle_fit_sine(double *data, double *phi, double *amp){
+void sci_speckle_fit_sine(double *data, double *phi, double *amp){
+  sinefit_data_t d;
+  sinefit_fit_t f;
+  double t[SCI_SPECKLE_NPHASE];
+  int i;
 
-  *phi=0;
-  *amp=0;
+  for(i=0;i<SCI_SPECKLE_NPHASE;i++)
+    t[i] = 2*M_PI*(double)i / (double)SCI_SPECKLE_NPHASE;
+  
+  d.n=SCI_SPECKLE_NPHASE;
+  d.t = t;
+  d.y = data;
+
+  sinefit(&d,&f);
+
+  *amp = f.a;
+  *phi = f.p;
+
+  return;
 }
 
 
@@ -690,9 +712,9 @@ void sci_process_image(uint16 *img_buffer, float img_exptime, sm_t *sm_p){
   static double speckle_brightness[SCI_SPECKLE_NSTEP];
   const double sci_sim_max[SCI_NBANDS] = SCI_SIM_MAX;
   const size_t sci_cal_size = sizeof(double) * SCI_ROI_YSIZE * SCI_ROI_XSIZE;
-  double speckle_phase[SCI_SPECKLE_NPHASE];
-  double speckle_amp[SCI_SPECKLE_NAMP];
-  double speckle_phi,speckle_amp;
+  double speckle_phase_data[SCI_SPECKLE_NPHASE];
+  double speckle_amp_data[SCI_SPECKLE_NAMP];
+  double speckle_phi,speckle_amp,dm_phi,dm_amp,dm_angle;
   double dt;
   double delta_length[BMC_NACT]={0};
   uint16 fakepx=0;
@@ -888,7 +910,7 @@ void sci_process_image(uint16 *img_buffer, float img_exptime, sm_t *sm_p){
   if(scievent.hed.frame_number != howfs_ilast+1) howfs_init=0;
 
   //Reinitialize SPECKLE if there has been a break in the data
-  if(scievent.hed.frame_number != speckle_ilast+1) specke_init=0;
+  if(scievent.hed.frame_number != speckle_ilast+1) speckle_init=0;
 
   //Init HOWFS
   if(!howfs_init){
@@ -1147,10 +1169,11 @@ void sci_process_image(uint16 *img_buffer, float img_exptime, sm_t *sm_p){
 
       //Fit sine function to phase data
       if(scievent.ispeckle == SCI_SPECKLE_NPHASE){
-	memcpy(speckle_phase,&speckle_brightness[1],sizeof(speckle_phase));
-	sci_speckle_fit_phase(speckle_phase,&phi,&amp);
+	memcpy(speckle_phase_data,&speckle_brightness[1],sizeof(speckle_phase_data));
+	sci_speckle_fit_sine(speckle_phase_data,&speckle_phi,&speckle_amp);
+	//Set DM phase
+	dm_phi = 1.5*M_PI - speckle_phi; //sine is minimum at 1.5pi (3pi/2)
       }
-
     }
 
 

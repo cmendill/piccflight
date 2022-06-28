@@ -515,8 +515,8 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 #define SCI_NPIX              728 //number of pixels in dark zone
 #define SCI_HOWFS_NPROBE        4 //number of HOWFS DM probe steps
 #define SCI_HOWFS_NSTEP         5 //number of HOWFS steps
-#define SCI_SPECKLE_NPHASE      4 //number of speckle nulling phase steps
-#define SCI_SPECKLE_NAMP        2 //number of speckle nulling amplitude steps
+#define SCI_SPECKLE_NPHASE      6 //number of speckle nulling phase steps
+#define SCI_SPECKLE_NAMP        3 //number of speckle nulling amplitude steps
 #define SCI_SPECKLE_NSTEP       (SCI_SPECKLE_NPHASE+SCI_SPECKLE_NAMP+1) //number of speckle nulling steps
 #define SCI_ROI_XSIZE        2840
 #define SCI_ROI_YSIZE        2224
