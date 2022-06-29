@@ -21,5 +21,6 @@ void bmc_add_length(float *input, float *output, double *dl, int reset);
 void bmc_add_probe(float *input, float *output, int istep, int amp);
 void bmc_add_test(float *input, float *output, int istep, double scale);
 void bmc_add_sine(float *input, float *output, int istep, double scale);
+void bmc_add_speckle(float *input, float *output, double amp, double phi, double ang, double freq);
 int bmc_calibrate(sm_t *sm_p, int calmode, bmc_t *bmc, uint32_t *step, int advance, int delta_only, int procid, int reset);
 #endif

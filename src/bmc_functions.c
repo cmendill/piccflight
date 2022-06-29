@@ -461,6 +461,42 @@ void bmc_add_sine(float *input, float *output,int istep, double scale){
 }
 
 /**************************************************************/
+/* BMC_ADD_SPECKLE                                            */
+/* - Add SINE pattern to BMC command for speckle nulling     */
+/* - Output can be same pointer as input                      */
+/**************************************************************/
+void bmc_add_speckle(float *input, float *output, double amp, double phi, double ang, double freq){
+  static int init=0;
+  static double bmcx[BMC_NACT];
+  static double bmcy[BMC_NACT];
+  char filename[MAX_FILENAME];
+  double dl[BMC_NACT]={0};
+  double xrot;
+  int i;
+  
+  //Initialize
+  if(!init){
+    sprintf(filename,BMC_X_FILE);
+    if(read_file(filename,bmcx,sizeof(bmcx)))
+      memset(bmcx,0,sizeof(bmcx));
+    sprintf(filename,BMC_Y_FILE);
+    if(read_file(filename,bmcy,sizeof(bmcy)))
+      memset(bmcy,0,sizeof(bmcy));
+    init=1;
+  }
+
+  //Calculate sine wave for input speckle
+  for(i=0;i<BMC_NACT;i++){
+    xrot  = bmcx[i]*cos(ang) + bmcy[i]*sin(ang); //rotation matrix (coordinate transform)
+    dl[i] = amp * sin(2 * M_PI * freq * xrot);
+  }
+  
+  //Add to flat
+  bmc_add_length(input,output,dl,FUNCTION_NO_RESET);
+  return;
+}
+
+/**************************************************************/
 /* BMC_CALIBRATE                                              */
 /* - Run calibration routines for BMC DM                      */
 /**************************************************************/

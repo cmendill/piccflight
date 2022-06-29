@@ -221,6 +221,8 @@ enum scioptmodes {SCI_OPTMODE_STEEPEST_DESCENT,
 #define LYT_CONFIG_FILE        "config/lyt.cfg"
 #define SCI_MASK_FILE          "config/howfs_scimask.dat"
 #define BMC_PROBE_FILE         "config/howfs_bmcprobe%d_probe_%dnm.dat"
+#define BMC_X_FILE             "config/bmc_x.dat"
+#define BMC_Y_FILE             "config/bmc_y.dat"
 #define BMC_CAL_A_FILE         "config/bmc_cal_a.dat"
 #define BMC_CAL_B_FILE         "config/bmc_cal_b.dat"
 #define BMC_DEFAULT_FILE       "config/bmc_default.dat"
@@ -543,6 +545,7 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 #define SCI_SATURATION      65535 //SCI saturation
 #define SCI_SIM_MAX         {0.0766} //[SCI_NBANDS] Maximum pixel value of unocculted image simulation (for field normalization)
 #define SCI_SCALE_DEFAULT {6.37e-9}//[SCI_NBANDS] Default image normalization for field calculation
+#define SCI_LODPX     0.380885080 //LOD/pixel in the science image
 	       
 /*************************************************
  * ACQ Camera Parameters
@@ -575,6 +578,8 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 #define BMC_NOSET_FLAT 0
 #define BMC_NFLAT      10
 #define BMC_NSINE      108
+#define BMC_SPECKLE_AMP  10 //nm
+#define BMC_SPECKLE_DAMP 2 //nm
 
 /*************************************************
  * ALPAO DM Parameters

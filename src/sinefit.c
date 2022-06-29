@@ -68,7 +68,7 @@ void callback(const size_t iter, void *params,const gsl_multifit_nlinear_workspa
   }
 }
 
-void sinefit(sinefit_data_t *data,sinefit_fit_t *fit ){
+int sinefit(sinefit_data_t *data,sinefit_fit_t *fit ){
   const gsl_multifit_nlinear_type *T = gsl_multifit_nlinear_trust;
   gsl_multifit_nlinear_workspace *w;
   gsl_multifit_nlinear_fdf fdf;
@@ -163,5 +163,5 @@ void sinefit(sinefit_data_t *data,sinefit_fit_t *fit ){
   gsl_matrix_free (covar);
   gsl_rng_free (r);
 
-  return 0;
+  return status;
 }

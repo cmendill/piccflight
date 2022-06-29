@@ -9,4 +9,4 @@ typedef struct sinefit_fit {
   double p;
 } sinefit_fit_t;
 
-void sinefit(sinefit_data_t *data,sinefit_fit_t *fit );
+int sinefit(sinefit_data_t *data,sinefit_fit_t *fit );
