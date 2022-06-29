@@ -2004,6 +2004,19 @@ int handle_command(char *line, sm_t *sm_p){
     return CMD_NORMAL;
   }
 
+  //Set Speckle nulling scale factor
+  sprintf(cmd,"speckle scale");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    pch = strtok(line+strlen(cmd)," ");
+    if(pch == NULL){
+      printf("CMD: Bad command format\n");
+      return CMD_NORMAL;
+    }
+    ftemp  = atof(pch);
+    sm_p->speckle_scale = ftemp;
+    printf("CMD: Speckle scale set to %f\n",sm_p->speckle_scale);
+    return CMD_NORMAL;
+  }
   /****************************************
    * SENSOR CALIBRATION
    **************************************/

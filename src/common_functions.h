@@ -36,6 +36,7 @@ int ditherfill(int *index, int length);
 int read_uplink(char *cmd, int max, int fd);
 int read_file(char *filename, void *dst, size_t nbytes);
 int write_file(char *filename, void *src, size_t nbytes);
+void parabola_vertex(double *x, double *y, double *v);
 
 #endif
 

@@ -488,7 +488,7 @@ void bmc_add_speckle(float *input, float *output, double amp, double phi, double
   //Calculate sine wave for input speckle
   for(i=0;i<BMC_NACT;i++){
     xrot  = bmcx[i]*cos(ang) + bmcy[i]*sin(ang); //rotation matrix (coordinate transform)
-    dl[i] = amp * sin(2 * M_PI * freq * xrot);
+    dl[i] = amp * sin(2 * M_PI * freq * xrot + phi);
   }
   
   //Add to flat

@@ -7,6 +7,7 @@ typedef struct sinefit_data {
 typedef struct sinefit_fit {
   double a;
   double p;
+  double b;
 } sinefit_fit_t;
 
-int sinefit(sinefit_data_t *data,sinefit_fit_t *fit );
+int sinefit(sinefit_data_t *data,sinefit_fit_t *fit, double *guess);

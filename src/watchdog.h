@@ -91,6 +91,9 @@
 #define EFC_GAIN_DEFAULT          -0.5
 #define EFC_PROBE_AMP_DEFAULT      30   //nm
 
+//Speckle Nulling Settings
+#define SPECKLE_SCALE_DEFAULT      1
+
 //LYT Settings
 #define LYT_XORIGIN_DEFAULT        (LYTREADXS - LYTXS)/2
 #define LYT_YORIGIN_DEFAULT        (LYTREADYS - LYTYS)/2
@@ -99,8 +102,8 @@
 #define LYT_CEN_ENABLE_DEFAULT     1
 
 //SCI Setting
-#define SCI_XORIGIN_DEFAULT        {1338} //band cutout x centers, must match SCI_NBANDS
-#define SCI_YORIGIN_DEFAULT        {1092} //band cutout y centers, must match SCI_NBANDS
+#define SCI_XORIGIN_DEFAULT        {1293} //band cutout x centers, must match SCI_NBANDS
+#define SCI_YORIGIN_DEFAULT        {1111} //band cutout y centers, must match SCI_NBANDS
 #define SCI_TEC_ENABLE_DEFAULT     1
 #define SCI_TEC_SETPOINT_DEFAULT   20
 #define SCI_PHASE_N_ZERNIKE_DEFAULT 10

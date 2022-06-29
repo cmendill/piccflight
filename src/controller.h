@@ -519,7 +519,6 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 #define SCI_HOWFS_NSTEP         5 //number of HOWFS steps
 #define SCI_SPECKLE_NPHASE      6 //number of speckle nulling phase steps
 #define SCI_SPECKLE_NAMP        3 //number of speckle nulling amplitude steps
-#define SCI_SPECKLE_NSTEP       (SCI_SPECKLE_NPHASE+SCI_SPECKLE_NAMP+1) //number of speckle nulling steps
 #define SCI_ROI_XSIZE        2840
 #define SCI_ROI_YSIZE        2224
 #define SCI_HBIN                1 //do not change, will break code below
@@ -578,8 +577,8 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 #define BMC_NOSET_FLAT 0
 #define BMC_NFLAT      10
 #define BMC_NSINE      108
-#define BMC_SPECKLE_AMP  10 //nm
-#define BMC_SPECKLE_DAMP 2 //nm
+#define BMC_SPECKLE_AMP  5 //nm
+#define BMC_SPECKLE_DAMP 1 //nm
 
 /*************************************************
  * ALPAO DM Parameters
@@ -1449,6 +1448,9 @@ typedef volatile struct {
   double efc_bmc_max;
   double efc_gain;
   int    efc_probe_amp;
+
+  //Speckle Nulling Parameters
+  double speckle_scale;
 
   //Door Commands
   int open_door[MTR_NDOORS];

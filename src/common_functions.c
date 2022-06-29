@@ -871,3 +871,20 @@ int write_file(char *filename, void *src, size_t nbytes){
   fclose(fd);
   return 0;    
 }
+
+
+/**************************************************************/
+/* PARABOLA_VERTEX                                            */
+/* - Calculate the vertex of a parabola from 3 points         */ 
+/**************************************************************/
+void parabola_vertex(double *x, double *y, double *v){
+  //x&y should be 3 element arrays, v should be 2 elements
+  double denom = (x[0] - x[1]) * (x[0] - x[2]) * (x[1] - x[2]);
+  double A     = (x[2] * (y[1] - y[0]) + x[1] * (y[0] - y[2]) + x[0] * (y[2] - y[1])) / denom;
+  double B     = (x[2]*x[2] * (y[0] - y[1]) + x[1]*x[1] * (y[2] - y[0]) + x[0]*x[0] * (y[1] - y[2])) / denom;
+  double C     = (x[1] * x[2] * (x[1] - x[2]) * y[0] + x[2] * x[0] * (x[2] - x[0]) * y[1] + x[0] * x[1] * (x[0] - x[1]) * y[2]) / denom;
+  
+  v[0] = -B / (2*A);
+  v[1] = C - B*B / (4*A);
+  
+}

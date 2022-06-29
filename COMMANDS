@@ -386,6 +386,10 @@ cmd: efc gain [arg]
 cmd: efc probe amp [arg]
         set efc howfs probe amplitude
 	arg = amplitude in nm [10,20,30]
+
+cmd: speckle scale [arg]
+        set speckle nulling scale factor
+	arg = [0,1]
 	
 ------------- SENSOR CALIBRATION -------------
 

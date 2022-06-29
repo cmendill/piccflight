@@ -648,8 +648,10 @@ double sci_speckle_measure(scievent_t *scievent, sci_cal_t *sci_cal, double *spe
       val  = scievent->bands.band[0].data[i][j];
       bkg  = sci_cal->bias[sci_xy2index_full(i,j,xbl,ybl)] + sci_cal->dark[sci_xy2index_full(i,j,xbl,ybl)]*scievent->hed.exptime;
       val -= bkg;
-      if(val > maxval)
+      if(val > maxval){
 	scievent->speckle_pixel = c;
+	maxval = val;
+      }
     }
   }
 
@@ -673,7 +675,8 @@ double sci_speckle_measure(scievent_t *scievent, sci_cal_t *sci_cal, double *spe
   y = (double)(yind[c] - SCIYS/2);
   *speckle_angle = atan2(y,x);                //radians
   *speckle_freq  = sqrt(x*x + y*y)*SCI_LODPX; // LOD = cycles/aperture
-
+  printf("SCI: speckle x,y,a,f,v: %f %f %f %f %f\n",x,y,*speckle_angle,*speckle_freq,val);
+  
   return val;
 }
 
@@ -681,27 +684,55 @@ double sci_speckle_measure(scievent_t *scievent, sci_cal_t *sci_cal, double *spe
 /* SCI_SPECKLE_FIT_SINE                                      */
 /*  - Fit sine curve to speckle modulation data               */
 /**************************************************************/
-int sci_speckle_fit_sine(double *data, double *phi, double *amp){
+int sci_speckle_fit_sine(double *data, double *amp, double *phi, double *off){
   sinefit_data_t d;
   sinefit_fit_t f;
   double t[SCI_SPECKLE_NPHASE];
   int i,ret;
-
-  for(i=0;i<SCI_SPECKLE_NPHASE;i++)
-    t[i] = 2*M_PI*(double)i / (double)SCI_SPECKLE_NPHASE;
+  double avg=0,max=0;
+  double guess[3];
   
-  d.n=SCI_SPECKLE_NPHASE;
+  //fill out x-axis, calculate speckle average and max
+  for(i=0;i<SCI_SPECKLE_NPHASE;i++){
+    t[i] = 2*M_PI*(double)i / (double)SCI_SPECKLE_NPHASE;
+    avg += data[i];
+    if(data[i] > max) max = data[i];
+  }
+  avg /= SCI_SPECKLE_NPHASE;
+  
+  //fill out data structure
+  d.n = SCI_SPECKLE_NPHASE;
   d.t = t;
   d.y = data;
 
-  ret=sinefit(&d,&f);
+  //fill out guess
+  guess[0] = max - avg;
+  guess[1] = avg;
+  guess[2] = 0;
+  printf("SCI: guess: %f, %f, %f\n",guess[0],guess[1],guess[2]);
+  
+  ret=sinefit(&d,&f,guess);
   if(ret){
     printf("SCI: sinefit error\n");
     return 1;
   }
+
+  printf("SCI: ");
+  for(i=0;i<SCI_SPECKLE_NPHASE;i++)
+    printf("%.2f ",data[i]);
+  printf("\n");
+
+  //fix up fit
+  if(f.a < 0){
+    f.a *= -1;
+    f.p += M_PI;
+  }
+  f.p = fmod(f.p,2*M_PI);
   
   *amp = f.a;
   *phi = f.p;
+  *off = f.b;
+  printf("SCI: speckle amp, phi, off: %f %f %f\n",f.a,f.p,f.b);
 
   return 0;
 }
@@ -726,8 +757,10 @@ void sci_process_image(uint16 *img_buffer, float img_exptime, sm_t *sm_p){
   static double speckle_phase_data[SCI_SPECKLE_NPHASE];
   static double speckle_amp_data[SCI_SPECKLE_NAMP];
   static double speckle_bmc_damp[3]={0, -1 * BMC_SPECKLE_DAMP, BMC_SPECKLE_DAMP};
-  static double speckle_phi,speckle_amp,speckle_bmc_phi,speckle_bmc_amp,speckle_bmc_angle;
-  double speckle_brightness;
+  static double speckle_bmc_phi=0,speckle_bmc_amp=BMC_SPECKLE_AMP;
+  double speckle_brightness,speckle_fit_phi,speckle_fit_amp,speckle_fit_off,speckle_angle,speckle_freq,bmc_amp_delta;
+  double px[3],py[3],pv[2];
+  int    speckle_bmc_reset=0;
   const  double sci_sim_max[SCI_NBANDS] = SCI_SIM_MAX;
   const  size_t sci_cal_size = sizeof(double) * SCI_ROI_YSIZE * SCI_ROI_XSIZE;
   double dt;
@@ -941,6 +974,12 @@ void sci_process_image(uint16 *img_buffer, float img_exptime, sm_t *sm_p){
   if(!speckle_init){
     //Set starting frame number
     speckle_istart = scievent.hed.frame_number;
+
+    //Reset DM amplitude
+    speckle_bmc_amp = BMC_SPECKLE_AMP*sm_p->speckle_scale;
+    speckle_bmc_damp[0]=0;
+    speckle_bmc_damp[1]=-1 * BMC_SPECKLE_DAMP * sm_p->speckle_scale;
+    speckle_bmc_damp[2]=BMC_SPECKLE_DAMP * sm_p->speckle_scale;
     //Set init
     speckle_init = 1;
   }
@@ -1170,7 +1209,8 @@ void sci_process_image(uint16 *img_buffer, float img_exptime, sm_t *sm_p){
     if(sm_p->state_array[state].sci.run_speckle){
       //Save last frame number during speckle nulling
       speckle_ilast = scievent.hed.frame_number;
-
+      printf("SCI: ispeckle = %d\n",scievent.ispeckle);
+      
       //********** SPECKLE Indexing ************
       //ispeckle: 0     1   2   3   4   5   6   7   8   9
       //image:    flat  p0  p1  p2  p3  p4  p5  a0  a1  a2
@@ -1178,7 +1218,7 @@ void sci_process_image(uint16 *img_buffer, float img_exptime, sm_t *sm_p){
       //dmcmd:    p0    p1  p2  p3  p4  p5  a0  a1  a2  new_flat
       //NOTE:     amplitude steps (a0,a1,a2) will repeat until minimum is found
       
-      //Measure speckle and store in the appropriate array
+      //Measure speckle everytime and store in the appropriate array
       speckle_brightness = sci_speckle_measure(&scievent,&sci_cal,&speckle_angle,&speckle_freq);
       iphase = 0;
       iamp   = 0;
@@ -1191,53 +1231,70 @@ void sci_process_image(uint16 *img_buffer, float img_exptime, sm_t *sm_p){
 	  speckle_amp_brightness[iamp] = speckle_brightness;
 	}
       }
-
+      printf("SCI: iphase, iamp: %d %d\n",iphase,iamp);
+      
       //Fit sine function to phase data
       if(iphase == SCI_SPECKLE_NPHASE-1){
-	memcpy(speckle_phase_data,&speckle_brightness[1],sizeof(speckle_phase_data));
-	if(sci_speckle_fit_sine(speckle_phase_data,&speckle_phi,&speckle_amp)){
+	speckle_bmc_phi = 0;//init
+	if(sci_speckle_fit_sine(speckle_phase_brightness,&speckle_fit_amp,&speckle_fit_phi,&speckle_fit_off)){
 	  //error
+	  speckle_init = 0;
+	  speckle_bmc_reset = 1;
 	}else{
 	  //Set BMC phase
-	  speckle_bmc_phi = 1.5*M_PI - speckle_phi; //sine is minimum at 1.5pi (3pi/2)
+	  speckle_bmc_phi = (1.5*M_PI - speckle_fit_phi); //sine is minimized at 3pi/2 = 1.5pi
+	                                                    //positive speckle phase implies the minimum is to the left of 1.5pi, so we subtract 
+	                                                    //speckle modulation is 2x DM modulation, so divide by 2
 	}
       }
 
       //Find minimum amplitude
       if(iamp == SCI_SPECKLE_NAMP-1){
+	printf("SCI: speckle amp: %f %f %f\n",speckle_amp_brightness[1],speckle_amp_brightness[0],speckle_amp_brightness[2]);
 	if((speckle_amp_brightness[1] > speckle_amp_brightness[0]) && (speckle_amp_brightness[2] > speckle_amp_brightness[0])){
-	  //minimum found -- take linear centroid
-	  speckle_bmc_amp +=  ((speckle_amp_brightness[1]-speckle_amp_brightness[0])*speckle_bmc_damp[1] + 
-			       (speckle_amp_brightness[2]-speckle_amp_brightness[0])*speckle_bmc_damp[2]) /
-	    ((speckle_amp_brightness[1]-speckle_amp_brightness[0]) + (speckle_amp_brightness[2]-speckle_amp_brightness[0]));
-	  //reset speckle nulling
+	  //minimum found -- find vertex of parabola
+	  px[0] = speckle_bmc_amp + speckle_bmc_damp[1];
+	  px[1] = speckle_bmc_amp + speckle_bmc_damp[0];
+	  px[2] = speckle_bmc_amp + speckle_bmc_damp[2];
+	  py[0] = speckle_amp_brightness[1];
+	  py[1] = speckle_amp_brightness[0];
+	  py[2] = speckle_amp_brightness[2];
+	  parabola_vertex(px,py,pv);
+	  speckle_bmc_amp = pv[0];
+	  printf("SCI: min amp: %f\n",speckle_bmc_amp);
 	  speckle_init = 0;
+	  bmc_set_flat=BMC_SET_FLAT;
 	}else{
 	  //minimum not found -- set amplitude to minimum and repeat
+	  printf("SCI: amp loop will repeat\n");
 	  if(speckle_amp_brightness[1] < speckle_amp_brightness[2])
 	    speckle_bmc_amp += speckle_bmc_damp[1];
 	  if(speckle_amp_brightness[2] < speckle_amp_brightness[1])
 	    speckle_bmc_amp += speckle_bmc_damp[2];
 	}
       }
-      
+            
       //Set BMC Command
       if(scievent.ispeckle < SCI_SPECKLE_NPHASE){
 	//Sine phase commands
 	iphase = scievent.ispeckle;
-	speckle_bmc_amp = BMC_SPECKLE_AMP;
-	speckle_bmc_phi = 2*M_PI*((double)iphase / (double)SCI_SPECKLE_NPHASE);
+	speckle_bmc_phi = 2*M_PI*((double)iphase / (double)SCI_SPECKLE_NPHASE); //DM phase 0-PI modulates speckle over full wave
+	printf("SCI: bmc cmd phase: %d %f %f %f %f\n",iphase,speckle_bmc_amp,speckle_bmc_phi,speckle_angle,speckle_freq);
 	bmc_add_speckle(bmc_flat.acmd,bmc_try.acmd,speckle_bmc_amp,speckle_bmc_phi,speckle_angle,speckle_freq);
       }else{
 	//Sine amplitude commands
 	iamp = (scievent.ispeckle - SCI_SPECKLE_NPHASE) % SCI_SPECKLE_NAMP;
+	printf("SCI: bmc cmd amp: %d %f %f %f %f\n",iamp,speckle_bmc_amp + speckle_bmc_damp[iamp],speckle_bmc_phi,speckle_angle,speckle_freq);
 	bmc_add_speckle(bmc_flat.acmd,bmc_try.acmd,speckle_bmc_amp + speckle_bmc_damp[iamp],speckle_bmc_phi,speckle_angle,speckle_freq);
 	//NOTE: since damp[0] == 0, when minimum is found above, this command will be the final command to null the speckle
       }
-
-
+      //If there was an error, go back to the flat
+      if(speckle_bmc_reset){
+	printf("SCI: resetting bmc flat\n");
+	memcpy(bmc_try.acmd,bmc_flat.acmd,sizeof(bmc_try.acmd));
+	bmc_set_flat=BMC_SET_FLAT;
+      }
     }
-
 
     
     //Calibrate BMC
@@ -1245,8 +1302,10 @@ void sci_process_image(uint16 *img_buffer, float img_exptime, sm_t *sm_p){
       sm_p->bmc_calmode = bmc_calibrate(sm_p,scievent.hed.bmc_calmode,&bmc_try,&scievent.hed.bmc_calstep,bmc_calibrate_advance,bmc_calibrate_delta,SCIID,FUNCTION_NO_RESET);
     
     //Send command to BMC
+    printf("SCI: bmc_set_flat %d\n",bmc_set_flat);
     if(bmc_send_command(sm_p,&bmc_try,SCIID,bmc_set_flat))
       printf("SCI: BMC_SEND_COMMAND failed\n");
+    printf("\n");
     
   }
   

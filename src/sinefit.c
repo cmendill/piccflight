@@ -19,12 +19,13 @@ int sine_f (const gsl_vector * x, void *data, gsl_vector * f){
   
   double a  = gsl_vector_get (x, 0);
   double p  = gsl_vector_get (x, 1);
+  double b  = gsl_vector_get (x, 2);
   
   size_t i;
   
   for (i = 0; i < n; i++){
-    /* Model Yi = a * sin(t + p) */
-    double Yi = a * sin(t[i] + p);
+    /* Model Yi = a * sin(t + p) + b*/
+    double Yi = a * sin(t[i] + p) + b;
     gsl_vector_set (f, i, Yi - y[i]);
   }
   
@@ -45,6 +46,8 @@ int sine_df (const gsl_vector * x, void *data, gsl_matrix * J){
     gsl_matrix_set(J, i, 0, sin(t[i]+p));
     /* J[i][1] = dy/dp = a * cos(t[i]+p); */
     gsl_matrix_set (J, i, 1, a * cos(t[i]+p));
+    /* J[i][2] = dy/db = 1 */
+    gsl_matrix_set (J, i, 2, 1);
   }
   
   return GSL_SUCCESS;
@@ -59,25 +62,24 @@ void callback(const size_t iter, void *params,const gsl_multifit_nlinear_workspa
   gsl_multifit_nlinear_rcond(&rcond, w);
 
   if(DEBUG){
-    fprintf(stderr, "iter %2zu: a = %.4f, p = %.4f, cond(J) = %8.4f, |f(x)| = %.4f\n",
+    fprintf(stderr, "iter %2zu: a = %.4f, p = %.4f, b = %.4f, cond(J) = %8.4f, |f(x)| = %.4f\n",
 	    iter,
 	    gsl_vector_get(x, 0),
 	    gsl_vector_get(x, 1),
+	    gsl_vector_get(x, 2),
 	    1.0 / rcond,
 	    gsl_blas_dnrm2(f));
   }
 }
 
-int sinefit(sinefit_data_t *data,sinefit_fit_t *fit ){
+int sinefit(sinefit_data_t *data, sinefit_fit_t *fit, double *guess){
+  //guess should be inital values for [amp,phi,offset]
   const gsl_multifit_nlinear_type *T = gsl_multifit_nlinear_trust;
   gsl_multifit_nlinear_workspace *w;
   gsl_multifit_nlinear_fdf fdf;
   gsl_multifit_nlinear_parameters fdf_params = gsl_multifit_nlinear_default_parameters();
   gsl_vector *f;
   gsl_matrix *J;
-  gsl_matrix *covar = gsl_matrix_alloc (p, p);
-  gsl_vector_view x = gsl_vector_view_array (x_init, p);
-  gsl_vector_view wts = gsl_vector_view_array(weights, n);
   gsl_rng * r;
   double chisq, chisq0;
   int status, info;
@@ -85,16 +87,26 @@ int sinefit(sinefit_data_t *data,sinefit_fit_t *fit ){
   const double xtol = 1e-8;
   const double gtol = 1e-8;
   const double ftol = 0.0;
-  const size_t n = data->n;
-  const size_t p = 3;
+  const size_t n = data->n; //number of data points
+  const size_t p = 3; //number of parameters
+  double *weights;
 
   /* setup */
   gsl_rng_env_setup();
   r = gsl_rng_alloc(gsl_rng_default);
 
+  /* set fitting weights */
+  if((weights=(double *)malloc(n*sizeof(double))) == NULL){
+    printf("ERROR: sinefit malloc failed\n");
+    return 1;
+  }
+  for(i=0;i<n;i++)
+    weights[i]=1;
 
-  /* starting values */
-  double x_init[2] = { 1.0, 0.0};
+  /* array & matrix setup */
+  gsl_matrix *covar = gsl_matrix_alloc (p, p);
+  gsl_vector_view x = gsl_vector_view_array (guess, p);
+  gsl_vector_view wts = gsl_vector_view_array(weights, n);
 
   /* define the function to be minimized */
   fdf.f = sine_f;
@@ -124,12 +136,10 @@ int sinefit(sinefit_data_t *data,sinefit_fit_t *fit ){
   /* compute final cost */
   gsl_blas_ddot(f, f, &chisq);
 
-#define FIT(i) gsl_vector_get(w->x, i)
-#define ERR(i) sqrt(gsl_matrix_get(covar,i,i))
-
   /* set outputs */
-  fit->a = FIT[0];
-  fit->p = FIT[1];
+  fit->a = gsl_vector_get(w->x, 0);
+  fit->p = gsl_vector_get(w->x, 1);
+  fit->b = gsl_vector_get(w->x, 2);
   
   if(DEBUG){
     fprintf(stderr, "summary from method '%s/%s'\n",
@@ -148,20 +158,16 @@ int sinefit(sinefit_data_t *data,sinefit_fit_t *fit ){
     double c = GSL_MAX_DBL(1, sqrt(chisq / dof));
 
     fprintf(stderr, "chisq/dof = %g\n", chisq / dof);
-    fprintf(stderr, "True:\n");
-    fprintf (stderr, "a = %.5f\n", mya);
-    fprintf (stderr, "p = %.5f\n", myp);
-    fprintf(stderr, "Fit:\n");
-    fprintf (stderr, "a = %.5f +/- %.5f\n", FIT(0), c*ERR(0));
-    fprintf (stderr, "p = %.5f +/- %.5f\n", FIT(1), c*ERR(1));
-  
-  
+    fprintf(stderr, "a = %.5f +/- %.5f\n", gsl_vector_get(w->x, 0), c*sqrt(gsl_matrix_get(covar,0,0)));
+    fprintf(stderr, "p = %.5f +/- %.5f\n", gsl_vector_get(w->x, 1), c*sqrt(gsl_matrix_get(covar,1,1)));
+    fprintf(stderr, "b = %.5f +/- %.5f\n", gsl_vector_get(w->x, 2), c*sqrt(gsl_matrix_get(covar,2,2)));
     fprintf (stderr, "status = %s\n", gsl_strerror (status));
   }
 
   gsl_multifit_nlinear_free (w);
   gsl_matrix_free (covar);
   gsl_rng_free (r);
+  if(weights) free(weights);
 
   return status;
 }
