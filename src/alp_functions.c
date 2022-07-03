@@ -97,6 +97,7 @@ void alp_init_calmode(int calmode, calmode_t *alp){
       alp->shk_zpoke[i]  = shk_zramp[i];
       alp->lyt_zpoke[i]  = lyt_zramp[i];
     }
+    alp->lyt_ncalim = 400;
     alp->shk_ncalim = 100;
   }
   //ALP_CALMODE_RAND

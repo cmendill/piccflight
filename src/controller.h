@@ -494,8 +494,8 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 #define LYT_CONTROL_NPIX      709 //number of controlled pixels on LLOWFS
 #define LYT_NSAMPLES          400 //number of samples per lytpkt
 #define LYT_LYTPKT_TIME       1.1 //Maximum amount of time between writing lytpkt
-#define LYT_ALP_ZERN_INT_MAX  0.1
-#define LYT_ALP_ZERN_INT_MIN -0.1
+#define LYT_ALP_ZERN_INT_MAX  0.1 //integrator maximum [microns]
+#define LYT_ALP_ZERN_INT_MIN -0.1 //integrator minimum [microns]
 #define LYT_ZERNIKE_MIN      -0.05 //min limit for measured zernikes [microns]
 #define LYT_ZERNIKE_MAX       0.05 //max limit for measured zernikes [microns]
 #define LYT_XORIGIN_MIN       0
@@ -621,7 +621,7 @@ enum bufids {BUFFER_SCIEVENT, BUFFER_SHKEVENT,
 #define ALP_SHK_NCALIM        40    //shk number of calibration images per alp step
 #define ALP_LYT_POKE          0.01  //lyt alp actuator calibration poke
 #define ALP_LYT_ZPOKE         0.02  //lyt zernike microns RMS
-#define ALP_LYT_NCALIM        400   //lyt number of calibration images per alp step
+#define ALP_LYT_NCALIM        10    //lyt number of calibration images per alp step
 
 /*************************************************
  * HEXAPOD Parameters
