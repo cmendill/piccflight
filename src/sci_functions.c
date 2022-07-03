@@ -1264,6 +1264,12 @@ void sci_process_image(uint16 *img_buffer, float img_exptime, sm_t *sm_p){
 	  printf("SCI: min amp: %f\n",speckle_bmc_amp);
 	  speckle_init = 0;
 	  bmc_set_flat=BMC_SET_FLAT;
+	  //Check sci_next_exptime
+	  if(sm_p->sci_next_exptime > 0){
+	    sm_p->sci_exptime = sm_p->sci_next_exptime;
+	    sm_p->sci_next_exptime = 0;
+	    sm_p->sci_reset_camera = 1;
+	  }
 	}else{
 	  //minimum not found -- set amplitude to minimum and repeat
 	  printf("SCI: amp loop will repeat\n");
