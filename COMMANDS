@@ -387,6 +387,10 @@ cmd: efc probe amp [arg]
         set efc howfs probe amplitude
 	arg = amplitude in nm [10,20,30]
 
+cmd: efc matrix [arg]
+        set efc matrix index
+	arg = index [0,1,2,3,4,5,6,7]
+
 cmd: speckle scale [arg]
         set speckle nulling scale factor
 	arg = [0,1]
@@ -708,6 +712,9 @@ cmd: sci optmode [arg1]
 
 cmd: sci set ref
         set reference image for sci field normalization
+
+cmd: sci ref scale
+        scale reference image maximum for field normalization
 
 cmd: sci fastmode on
         turn sci roi readout fast mode on

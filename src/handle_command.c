@@ -2004,6 +2004,22 @@ int handle_command(char *line, sm_t *sm_p){
     return CMD_NORMAL;
   }
 
+  //Set EFC matrix index
+  sprintf(cmd,"efc matrix");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    pch = strtok(line+strlen(cmd)," ");
+    if(pch == NULL){
+      printf("CMD: Bad command format\n");
+      return CMD_NORMAL;
+    }
+    itemp  = atoi(pch);
+    sm_p->efc_matrix = itemp;
+    printf("CMD: EFC matrix index set to %d\n",sm_p->efc_matrix);
+    //Reset SCI to load new matrix
+    sm_p->sci_reset=1;
+    return CMD_NORMAL;
+  }
+
   //Set Speckle nulling scale factor
   sprintf(cmd,"speckle scale");
   if(!strncasecmp(line,cmd,strlen(cmd))){
@@ -3535,6 +3551,14 @@ int handle_command(char *line, sm_t *sm_p){
   if(!strncasecmp(line,cmd,strlen(cmd))){
     printf("CMD: Setting SCI reference image\n");
     sm_p->sci_setref=1;
+    return(CMD_NORMAL);
+  }
+
+  sprintf(cmd,"sci ref scale");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    ftemp = atof(line+strlen(cmd)+1);
+    sm_p->sci_refscale = ftemp;
+    printf("CMD: Changed SCI ref scale to %f\n",sm_p->sci_refscale);
     return(CMD_NORMAL);
   }
 

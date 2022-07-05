@@ -236,7 +236,7 @@ enum scioptmodes {SCI_OPTMODE_STEEPEST_DESCENT,
 #define HOWFS_RMATRIX1_FILE    "config/howfs_rmatrix1_probe_%dnm.dat"
 #define HOWFS_IMATRIX0_FILE    "config/howfs_imatrix0_probe_%dnm.dat"
 #define HOWFS_IMATRIX1_FILE    "config/howfs_imatrix1_probe_%dnm.dat"
-#define EFC_MATRIX_FILE        "config/efc_matrix.dat"
+#define EFC_MATRIX_FILE        "config/efc_matrix_%d.dat"
 #define SCI_FAKE_PROBE_FILE    "config/sci_fakedata_probe_%d.dat"
 #define SCI_DARK_FILE          "config/sci_dark_%d.dat"
 #define SCI_BIAS_FILE          "config/sci_bias_%d.dat"
@@ -1406,6 +1406,7 @@ typedef volatile struct {
   int sci_xshiftorigin;
   int sci_yshiftorigin;
   int sci_setref;
+  double sci_refscale;
 
   //SHK Commands
   int shk_setorigin;
@@ -1448,6 +1449,7 @@ typedef volatile struct {
   double efc_bmc_max;
   double efc_gain;
   int    efc_probe_amp;
+  int    efc_matrix;
 
   //Speckle Nulling Parameters
   double speckle_scale;
