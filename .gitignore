@@ -3,4 +3,5 @@
 *.ko
 *#*
 .DS_Store
-
+bin/config/sci_dark*.dat
+bin/config/sci_bias*.dat
