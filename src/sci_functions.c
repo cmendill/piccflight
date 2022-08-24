@@ -1307,11 +1307,14 @@ void sci_process_image(uint16 *img_buffer, float img_exptime, sm_t *sm_p){
       }
     }
 
-    
     //Calibrate BMC
     if(scievent.hed.bmc_calmode != BMC_CALMODE_NONE)
       sm_p->bmc_calmode = bmc_calibrate(sm_p,scievent.hed.bmc_calmode,&bmc_try,&scievent.hed.bmc_calstep,bmc_calibrate_advance,bmc_calibrate_delta,SCIID,FUNCTION_NO_RESET);
-    
+
+    //Set BMC test points
+    for(i=0;i<BMC_NTEST;i++)
+      bmc_try.tcmd[i] = 100 + i;
+
     //Send command to BMC
     if(bmc_send_command(sm_p,&bmc_try,SCIID,bmc_set_flat))
       printf("SCI: BMC_SEND_COMMAND failed\n");
