@@ -713,8 +713,13 @@ cmd: sci optmode [arg1]
 cmd: sci set ref
         set reference image for sci field normalization
 
-cmd: sci ref scale
+cmd: sci man ref [arg1]
+        set reference max for sci field normalization
+	arg1 = psf max in ADU
+
+cmd: sci ref scale [arg1]
         scale reference image maximum for field normalization
+	arg1 = scale (>= 1)
 
 cmd: sci fastmode on
         turn sci roi readout fast mode on

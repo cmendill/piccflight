@@ -1076,6 +1076,20 @@ void sci_process_image(uint16 *img_buffer, float img_exptime, sm_t *sm_p){
     for(b=0;b<SCI_NBANDS;b++) printf("SCI: refmax[%d] = %lu\n",b,(unsigned long)scievent.refmax[b]);
     sm_p->sci_setref=0;
   }
+  
+  //Command: sci_manref 
+  if(sm_p->sci_manref > 0){
+    for(b=0;b<SCI_NBANDS;b++){
+      //Divide by exposure time
+      scievent.refmax[b] = sm_p->sci_manref / scievent.hed.exptime; //ADU/second
+      //Multiply by ref scale
+      scievent.refmax[b] *= sm_p->sci_refscale;
+    }
+    printf("SCI: Reference image updated\n");
+    printf("SCI: Reference scale: %f\n",sm_p->sci_refscale);
+    for(b=0;b<SCI_NBANDS;b++) printf("SCI: refmax[%d] = %lu\n",b,(unsigned long)scievent.refmax[b]);
+    sm_p->sci_manref=0;
+  }
 
   //Record phase flatting images
   if(sm_p->sci_phasemode != SCI_PHASEMODE_NONE){

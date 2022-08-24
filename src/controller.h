@@ -1410,6 +1410,7 @@ typedef volatile struct {
   int sci_xshiftorigin;
   int sci_yshiftorigin;
   int sci_setref;
+  double sci_manref;
   double sci_refscale;
 
   //SHK Commands

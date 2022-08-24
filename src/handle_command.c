@@ -3554,6 +3554,14 @@ int handle_command(char *line, sm_t *sm_p){
     return(CMD_NORMAL);
   }
 
+  sprintf(cmd,"sci man ref");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    ftemp = atof(line+strlen(cmd)+1);
+    sm_p->sci_manref = ftemp;
+    printf("CMD: Changed SCI manref to %f\n",sm_p->sci_manref);
+    return(CMD_NORMAL);
+  }
+
   sprintf(cmd,"sci ref scale");
   if(!strncasecmp(line,cmd,strlen(cmd))){
     ftemp = atof(line+strlen(cmd)+1);
