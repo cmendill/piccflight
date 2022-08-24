@@ -1035,7 +1035,7 @@ typedef struct optmode_struct{
 /*************************************************
  * Packet Header
  *************************************************/
-#define PICC_PKT_VERSION     46  //packet version number
+#define PICC_PKT_VERSION     47  //packet version number
 typedef struct pkthed_struct{
   uint16  version;       //packet version number
   uint16  type;          //packet ID word
@@ -1148,7 +1148,9 @@ typedef struct lytevent_struct{
   uint16    yorigin;
   double    xcentroid;
   double    ycentroid;
-  uint32    locked;
+  uint8     status_valid;
+  uint8     status_locked;
+  uint16    padding;
   uint32    background;
   double    gain_alp_zern[LOWFS_N_ZERNIKE][LOWFS_N_PID];
   double    zernike_measured[LOWFS_N_ZERNIKE];
@@ -1166,7 +1168,9 @@ typedef struct lytpkt_struct{
   uint16    yorigin;
   float     xcentroid[LYT_NSAMPLES];
   float     ycentroid[LYT_NSAMPLES];
-  uint32    locked;
+  uint8     status_valid;
+  uint8     status_locked;
+  uint16    padding;
   uint32    background;
   float     gain_alp_zern[LOWFS_N_ZERNIKE][LOWFS_N_PID];
   float     zernike_target[LOWFS_N_ZERNIKE];

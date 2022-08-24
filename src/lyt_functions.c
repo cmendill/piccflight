@@ -174,7 +174,7 @@ void lyt_alp_zernpid(lytevent_t *lytevent, double *zernike_delta, int *zernike_s
 	if(zernike_delta[i] > zdelta_max) zernike_delta[i] = zdelta_max;
 	if(zernike_delta[i] < zdelta_min) zernike_delta[i] = zdelta_min;
 	//Set locked flag
-	lytevent->locked = 1;
+	lytevent->status_locked = 1;
       }
     }
   }
@@ -194,7 +194,7 @@ void lyt_alp_zernpid(lytevent_t *lytevent, double *zernike_delta, int *zernike_s
 /* LYT_ZERNIKE_FIT                                            */
 /*  - Fit Zernikes to LYT pixels                              */
 /*  - Measure image centroid                                  */
-/*  - Return 0 on success, 1 on error                         */
+/*  - Return 1 on success, 0 on error                         */
 /**************************************************************/
 int lyt_zernike_fit(lyt_t *image, lytref_t *lytref, double *zernikes, double *xcentroid, double *ycentroid, int reset){
   static lytevent_t lytevent;
@@ -307,9 +307,9 @@ int lyt_zernike_fit(lyt_t *image, lytref_t *lytref, double *zernikes, double *xc
     *xcentroid = 0;
     *ycentroid = 0;
     //Return error
-    return 1;
+    return 0;
   }
-  return 0;
+  return 1;
 }
 
 /**************************************************************/
@@ -342,7 +342,6 @@ int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
   int zernike_switch[LOWFS_N_ZERNIKE] = {0};
   int cen_used=0;
   uint32_t n_dither=1;
-  int zfit_error=0;
   double background=0;
   const long nbkg = LYTREADXS*LYTREADYS - LYTXS*LYTYS;
   uint16 *image = (uint16 *)buffer->pvAddress;
@@ -442,9 +441,10 @@ int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
   lytevent.xorigin           = sm_p->lyt_xorigin;
   lytevent.yorigin           = sm_p->lyt_yorigin;
 
-  //Init locked flag
-  lytevent.locked            = 0;
-  
+  //Init status flags
+  lytevent.status_valid      = 0;
+  lytevent.status_locked     = 0;
+ 
   //Save gains
   for(i=0;i<LOWFS_N_ZERNIKE;i++)
     for(j=0;j<LOWFS_N_PID;j++)
@@ -607,7 +607,7 @@ int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
   
   //Fit Zernikes
   if(sm_p->state_array[state].lyt.fit_zernikes)
-    zfit_error = lyt_zernike_fit(&lytevent.image,&lytref,lytevent.zernike_measured, &lytevent.xcentroid, &lytevent.ycentroid, FUNCTION_NO_RESET);
+    lytevent.status_valid = lyt_zernike_fit(&lytevent.image,&lytref,lytevent.zernike_measured, &lytevent.xcentroid, &lytevent.ycentroid, FUNCTION_NO_RESET);
   
 
   /*************************************************************/
@@ -633,7 +633,7 @@ int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
     }
 
     //Check if we have a valid measurement
-    if(zfit_error){
+    if(!lytevent.status_valid){
       zernike_control=0;
       pid_reset=FUNCTION_RESET_RETURN;
     }
@@ -702,9 +702,13 @@ int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
     lytpkt.xcentroid[sample] = lytevent.xcentroid;
     lytpkt.ycentroid[sample] = lytevent.ycentroid;
 
-    //Init & set locked flag
-    if(sample == 0) lytpkt.locked=1;
-    lytpkt.locked &= lytevent.locked;
+    //Init & set status flag
+    if(sample == 0){
+      lytpkt.status_valid=1;
+      lytpkt.status_locked=1;
+    }
+    lytpkt.status_valid  &= lytevent.status_valid;
+    lytpkt.status_locked &= lytevent.status_locked;
       
     //Increment sample counter
     sample++;
