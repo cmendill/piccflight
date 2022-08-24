@@ -459,13 +459,135 @@ int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
       sm_p->tgt_calmode = tgt_calibrate(sm_p,lytevent.hed.tgt_calmode,lytevent.zernike_target,&lytevent.hed.tgt_calstep,LYTID,FUNCTION_NO_RESET);
 
   //Copy full readout image to event
-  //memcpy(&readimage.data[0][0],buffer->pvAddress,sizeof(lytread_t));
   for(i=0;i<LYTREADXS;i++)
     for(j=0;j<LYTREADYS;j++)
       readimage.data[i][j]=image[lyt_xy2index(i,j)];
  
   //Init background
   lytevent.background = 0;
+  
+  //Copy ROI pixels
+  if(sm_p->lyt_mag_enable){
+    //Run image magnification
+    for(i=0;i<LYTXS;i++){
+      for(j=0;j<LYTYS;j++){
+	//Define location of interpolated pixel
+	x = (i - LYTXS/2)/sm_p->lyt_mag + (LYTREADXS/2) + lytevent.xorigin + sm_p->lyt_mag_xoff - (LYTREADXS-LYTXS)/2;
+	y = (j - LYTYS/2)/sm_p->lyt_mag + (LYTREADYS/2) + lytevent.yorigin + sm_p->lyt_mag_yoff - (LYTREADYS-LYTYS)/2;
+	  
+	//Pick 4 pixels for interpolation
+	x1 = (int)x;
+	x2 = x1 + 1;
+	y1 = (int)y;
+	y2 = y1 + 1;
+
+	//Calculate interpolated value
+	if(x1 >= 0 && x1 < LYTREADXS && x2 >= 0 && x2 < LYTREADXS && y1 >= 0 && y1 < LYTREADYS && y2 >= 0 && y2 < LYTREADYS){
+	  f_x_y1  = (x2 - x) * readimage.data[x1][y1] / (x2 - x1) + (x - x1) * readimage.data[x2][y1] / (x2 - x1);
+	  f_x_y2  = (x2 - x) * readimage.data[x1][y2] / (x2 - x1) + (x - x1) * readimage.data[x2][y2] / (x2 - x1);
+	  lytevent.image.data[i][j] = (y2 - y) * f_x_y1 / (y2 - y1) + (y - y1) * f_x_y2 / (y2-y1);
+	}else{
+	  //1 of 4 pixels is out of bounds --> use closest value
+	  x = x < 0 ? 0 : x;
+	  y = y < 0 ? 0 : y;
+	  x = x >= LYTREADXS ? LYTREADXS-1 : x;
+	  y = y >= LYTREADYS ? LYTREADYS-1 : y;
+	  lytevent.image.data[i][j] = readimage.data[(int)x][(int)y];
+	}
+      }
+    }
+  }
+  else{
+    //Cut out ROI & measure background
+    for(i=0;i<LYTREADXS;i++){
+      for(j=0;j<LYTREADYS;j++){
+	if((i >= lytevent.xorigin) && (i < lytevent.xorigin+LYTXS) && (j >= lytevent.yorigin) && (j < lytevent.yorigin+LYTYS)){
+	  lytevent.image.data[i-lytevent.xorigin][j-lytevent.yorigin]=(double)readimage.data[i][j];
+	  if(sm_p->lyt_subdark) lytevent.image.data[i-lytevent.xorigin][j-lytevent.yorigin] -= darkimage.data[i][j]; //dark subtraction
+	}
+	else{
+	  background += readimage.data[i][j];
+	}
+      }
+    }
+    //Take average
+    lytevent.background = background / nbkg;
+  }
+
+  
+  //Command: lyt_setref 
+  if(sm_p->lyt_setref){
+    //Copy current image to reference image
+    for(i=0;i<LYTXS;i++)
+      for(j=0;j<LYTYS;j++)
+	lytref.refimg[i][j] = lytevent.image.data[i][j];
+    sm_p->lyt_setref=0;
+  }
+  
+  //Command: lyt_defref 
+  if(sm_p->lyt_defref){
+    //Switch to default reference image
+    memcpy(&lytref.refimg[0][0],&lytref.refdef[0][0],sizeof(lytref.refimg));
+    sm_p->lyt_defref=0;
+  }
+  
+  //Command: lyt_modref 
+  if(sm_p->lyt_modref){
+    //Switch to model reference image
+    memcpy(&lytref.refimg[0][0],&lytref.refmod[0][0],sizeof(lytref.refimg));
+    sm_p->lyt_modref=0;
+  }
+  
+  //Command: lyt_saveref 
+  if(sm_p->lyt_saveref){
+    //Save current reference image to disk
+    lyt_saveref(&lytref);
+    sm_p->lyt_saveref=0;
+  }
+  
+  //Command: lyt_loadref 
+  if(sm_p->lyt_loadref){
+    //Load saved reference image from disk
+    lyt_loadref(&lytref);
+    sm_p->lyt_loadref=0;
+  }
+  
+  //Command: lyt_setdark 
+  if(sm_p->lyt_setdark){
+    //Clear current dark image
+    if(darkcount==0) memset(&darkimage,0,sizeof(darkimage));
+    //Add current full image to dark image average
+    for(i=0;i<LYTREADXS;i++)
+      for(j=0;j<LYTREADYS;j++)
+	darkimage.data[i][j] += (double)readimage.data[i][j] / LYT_NDARK;
+    if(++darkcount == LYT_NDARK){
+      sm_p->lyt_setdark=0;
+      darkcount=0;
+      printf("LYT: %d frames averaged into dark image\n",LYT_NDARK);
+    }
+  }
+  
+  //Command: lyt_zerodark 
+  if(sm_p->lyt_zerodark){
+    //Clear current dark image
+    memset(&darkimage,0,sizeof(darkimage));
+    sm_p->lyt_zerodark=0;
+    printf("LYT: dark image set to zero\n");
+  }
+  
+  //Command: lyt_savedark 
+  if(sm_p->lyt_savedark){
+    //Save current dark image to disk
+    lyt_savedark(&darkimage);
+    sm_p->lyt_savedark=0;
+  }
+  
+  //Command: lyt_loaddark 
+  if(sm_p->lyt_loaddark){
+    //Load saved dark image from disk
+    lyt_loaddark(&darkimage);
+    sm_p->lyt_loaddark=0;
+  }
   
   //Fake data
   if(sm_p->w[LYTID].fakemode != FAKEMODE_NONE){
@@ -482,125 +604,7 @@ int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
       lytevent.image.data[CAM_IMREG_X][CAM_IMREG_Y] = 1;
     }
   }
-  else{
-    //Real data
-    if(sm_p->lyt_mag_enable){
-      //Run image magnification
-      for(i=0;i<LYTXS;i++){
-	for(j=0;j<LYTYS;j++){
-	  //Define location of interpolated pixel
-	  x = (i - LYTXS/2)/sm_p->lyt_mag + (LYTREADXS/2) + lytevent.xorigin + sm_p->lyt_mag_xoff - (LYTREADXS-LYTXS)/2;
-	  y = (j - LYTYS/2)/sm_p->lyt_mag + (LYTREADYS/2) + lytevent.yorigin + sm_p->lyt_mag_yoff - (LYTREADYS-LYTYS)/2;
-	  
-	  //Pick 4 pixels for interpolation
-	  x1 = (int)x;
-	  x2 = x1 + 1;
-	  y1 = (int)y;
-	  y2 = y1 + 1;
-
-	  //Calculate interpolated value
-	  if(x1 >= 0 && x1 < LYTREADXS && x2 >= 0 && x2 < LYTREADXS && y1 >= 0 && y1 < LYTREADYS && y2 >= 0 && y2 < LYTREADYS){
-	    f_x_y1  = (x2 - x) * readimage.data[x1][y1] / (x2 - x1) + (x - x1) * readimage.data[x2][y1] / (x2 - x1);
-	    f_x_y2  = (x2 - x) * readimage.data[x1][y2] / (x2 - x1) + (x - x1) * readimage.data[x2][y2] / (x2 - x1);
-	    lytevent.image.data[i][j] = (y2 - y) * f_x_y1 / (y2 - y1) + (y - y1) * f_x_y2 / (y2-y1);
-	  }else{
-	    //1 of 4 pixels is out of bounds --> use closest value
-	    x = x < 0 ? 0 : x;
-	    y = y < 0 ? 0 : y;
-	    x = x >= LYTREADXS ? LYTREADXS-1 : x;
-	    y = y >= LYTREADYS ? LYTREADYS-1 : y;
-	    lytevent.image.data[i][j] = readimage.data[(int)x][(int)y];
-	  }
-	}
-      }
-    }
-    else{
-      //Cut out ROI & measure background
-      for(i=0;i<LYTREADXS;i++){
-	for(j=0;j<LYTREADYS;j++){
-	  if((i >= lytevent.xorigin) && (i < lytevent.xorigin+LYTXS) && (j >= lytevent.yorigin) && (j < lytevent.yorigin+LYTYS)){
-	    lytevent.image.data[i-lytevent.xorigin][j-lytevent.yorigin]=(double)readimage.data[i][j];
-	    if(sm_p->lyt_subdark) lytevent.image.data[i-lytevent.xorigin][j-lytevent.yorigin] -= darkimage.data[i][j]; //dark subtraction
-	  }
-	  else{
-	    background += readimage.data[i][j];
-	  }
-	}
-      }
-      //Take average
-      lytevent.background = background / nbkg;
-    }
-  }
   
-  //Command: lyt_setref 
-  if(sm_p->lyt_setref){
-    //Copy current image to reference image
-    for(i=0;i<LYTXS;i++)
-      for(j=0;j<LYTYS;j++)
-	lytref.refimg[i][j] = lytevent.image.data[i][j];
-    sm_p->lyt_setref=0;
-  }
-  //Command: lyt_defref 
-  if(sm_p->lyt_defref){
-    //Switch to default reference image
-    memcpy(&lytref.refimg[0][0],&lytref.refdef[0][0],sizeof(lytref.refimg));
-    sm_p->lyt_defref=0;
-  }
-  //Command: lyt_modref 
-  if(sm_p->lyt_modref){
-    //Switch to model reference image
-    memcpy(&lytref.refimg[0][0],&lytref.refmod[0][0],sizeof(lytref.refimg));
-    sm_p->lyt_modref=0;
-  }
-  //Command: lyt_saveref 
-  if(sm_p->lyt_saveref){
-    //Save current reference image to disk
-    lyt_saveref(&lytref);
-    sm_p->lyt_saveref=0;
-  }
-  //Command: lyt_loadref 
-  if(sm_p->lyt_loadref){
-    //Load saved reference image from disk
-    lyt_loadref(&lytref);
-    sm_p->lyt_loadref=0;
-  }
-
-  
-  //Command: lyt_setdark 
-  if(sm_p->lyt_setdark){
-    //Clear current dark image
-    if(darkcount==0) memset(&darkimage,0,sizeof(darkimage));
-    //Add current full image to dark image average
-    for(i=0;i<LYTREADXS;i++)
-      for(j=0;j<LYTREADYS;j++)
-	darkimage.data[i][j] += (double)readimage.data[i][j] / LYT_NDARK;
-    if(++darkcount == LYT_NDARK){
-      sm_p->lyt_setdark=0;
-      darkcount=0;
-      printf("LYT: %d frames averaged into dark image\n",LYT_NDARK);
-    }
-  }
-  //Command: lyt_zerodark 
-  if(sm_p->lyt_zerodark){
-    //Clear current dark image
-    memset(&darkimage,0,sizeof(darkimage));
-    sm_p->lyt_zerodark=0;
-    printf("LYT: dark image set to zero\n");
-  }
-  //Command: lyt_savedark 
-  if(sm_p->lyt_savedark){
-    //Save current dark image to disk
-    lyt_savedark(&darkimage);
-    sm_p->lyt_savedark=0;
-  }
-  //Command: lyt_loaddark 
-  if(sm_p->lyt_loaddark){
-    //Load saved dark image from disk
-    lyt_loaddark(&darkimage);
-    sm_p->lyt_loaddark=0;
-  }
-  
-
   //Fit Zernikes
   if(sm_p->state_array[state].lyt.fit_zernikes)
     zfit_error = lyt_zernike_fit(&lytevent.image,&lytref,lytevent.zernike_measured, &lytevent.xcentroid, &lytevent.ycentroid, FUNCTION_NO_RESET);
