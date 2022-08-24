@@ -101,6 +101,7 @@
 #define LYT_ROI_X_DEFAULT          0
 #define LYT_ROI_Y_DEFAULT          30
 #define LYT_CEN_ENABLE_DEFAULT     1
+#define LYT_SUBDARK_DEFAULT        0
 
 //SCI Setting
 #define SCI_XORIGIN_DEFAULT        {1293} //band cutout x centers, must match SCI_NBANDS

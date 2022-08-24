@@ -332,8 +332,6 @@ int main(int argc,char **argv){
   sm_p->shk_boxsize          = SHK_BOXSIZE_DEFAULT;
   sm_p->alp_n_dither         = -1;
   sm_p->alp_proc_id          = -1;
-  sm_p->lyt_xorigin          = LYT_XORIGIN_DEFAULT;
-  sm_p->lyt_yorigin          = LYT_YORIGIN_DEFAULT;
   sm_p->sci_tec_enable       = SCI_TEC_ENABLE_DEFAULT;
   sm_p->sci_tec_setpoint     = SCI_TEC_SETPOINT_DEFAULT;
   sm_p->sci_phase_n_zernike  = SCI_PHASE_N_ZERNIKE_DEFAULT;
@@ -343,8 +341,12 @@ int main(int argc,char **argv){
   sm_p->acq_thresh           = ACQ_THRESH_DEFAULT;
   sm_p->thm_enable_vref      = THM_ENABLE_VREF_DEFAULT;
   sm_p->hex_spiral_autostop  = HEX_SPIRAL_AUTOSTOP_DEFAULT;
+  sm_p->lyt_xorigin          = LYT_XORIGIN_DEFAULT;
+  sm_p->lyt_yorigin          = LYT_YORIGIN_DEFAULT;
   sm_p->lyt_mag_enable       = 0;
   sm_p->lyt_mag              = 1;
+  sm_p->lyt_subdark          = LYT_SUBDARK_DEFAULT;
+  sm_p->lyt_cen_enable       = LYT_CEN_ENABLE_DEFAULT;
   sm_p->efc_bmc_max          = EFC_BMC_MAX_DEFAULT;
   sm_p->efc_sci_thresh       = EFC_SCI_THRESH_DEFAULT;
   sm_p->efc_gain             = EFC_GAIN_DEFAULT;
@@ -384,9 +386,6 @@ int main(int argc,char **argv){
   sm_p->lyt_roi[1] = LYT_ROI_Y_DEFAULT;
   sm_p->lyt_roi[2] = LYTREADXS;
   sm_p->lyt_roi[3] = LYTREADYS;
-
-  //LYT Centroid Control
-  sm_p->lyt_cen_enable = LYT_CEN_ENABLE_DEFAULT;
 
   //SCI ROI Origin
   uint32 sci_xorigin[SCI_NBANDS] = SCI_XORIGIN_DEFAULT;
