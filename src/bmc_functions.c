@@ -118,6 +118,8 @@ void bmc_rotate_command(bmc_t *cmd, int reset){
   
   for(i=0;i<BMC_NACT;i++)
     rot.acmd[bmcrot[i]] = cmd->acmd[i];
+  for(i=0;i<BMC_NTEST;i++)
+    rot.tcmd[i] = cmd->tcmd[i];
 
   memcpy(cmd,&rot,sizeof(bmc_t));
 }
