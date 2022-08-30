@@ -1035,7 +1035,7 @@ typedef struct optmode_struct{
 /*************************************************
  * Packet Header
  *************************************************/
-#define PICC_PKT_VERSION     47  //packet version number
+#define PICC_PKT_VERSION     48  //packet version number
 typedef struct pkthed_struct{
   uint16  version;       //packet version number
   uint16  type;          //packet ID word
