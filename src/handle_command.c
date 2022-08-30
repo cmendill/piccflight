@@ -2020,6 +2020,25 @@ int handle_command(char *line, sm_t *sm_p){
     return CMD_NORMAL;
   }
 
+  //Set EFC Relative
+  sprintf(cmd,"efc relative");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    pch = strtok(line+strlen(cmd)," ");
+    if(pch == NULL){
+      printf("CMD: Bad command format\n");
+      return CMD_NORMAL;
+    }
+    ftemp  = atof(pch);
+    if(ftemp >= 0 && ftemp <= 1){
+      sm_p->efc_relative = ftemp;
+      printf("CMD: EFC relative scale factor set to %f\n",sm_p->efc_relative);
+    }
+    else{
+      printf("CMD: EFC relative scale factor %f out of bounds [0,1]\n",ftemp);
+    }
+    return CMD_NORMAL;
+  }
+
   //Set Speckle nulling scale factor
   sprintf(cmd,"speckle scale");
   if(!strncasecmp(line,cmd,strlen(cmd))){

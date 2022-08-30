@@ -383,6 +383,12 @@ cmd: efc gain [arg]
         set EFC gain
 	arg = [-1,0]
 
+cmd: efc relative [arg]
+        set relative scale factor for EFC reference field
+	arg = [0,1]
+	reference field = measure field * arg
+	default is arg=0
+
 cmd: efc probe amp [arg]
         set efc howfs probe amplitude
 	arg = amplitude in nm [10,20,30]

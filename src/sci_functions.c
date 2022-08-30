@@ -539,6 +539,8 @@ void sci_howfs_efc(sm_t *sm_p, sci_field_t *field, double *delta_length, int res
   static double matrix[2*SCI_NPIX*SCI_NBANDS*BMC_NACTIVE]={0};
   static uint16 active2full[BMC_NACTIVE]={0};
   double field_pixels[2*SCI_NPIX];
+  double refim_pixels[2*SCI_NPIX];
+  double delta_pixels[2*SCI_NPIX];
   double dl[BMC_NACTIVE]={0};
   double maxdl,mindl,max,scale;
   int i;
@@ -558,12 +560,20 @@ void sci_howfs_efc(sm_t *sm_p, sci_field_t *field, double *delta_length, int res
     if(reset == FUNCTION_RESET_RETURN) return;
   }
 
-  //NOTE: We don't have a reference field here (fine if its zero)
+  //Fill out field pixels array
   memcpy(&field_pixels[0],field->r,sizeof(field->r));
   memcpy(&field_pixels[SCI_NPIX],field->i,sizeof(field->i));
+
+  //Fill out reference field array (default is 0)
+  for(i=0;i<2*SCI_NPIX;i++)
+    refim_pixels[i] = field_pixels[i]*sm_p->efc_relative;
   
+  //Fill out delta field array
+  for(i=0;i<2*SCI_NPIX;i++)
+    delta_pixels[i] = field_pixels[i] - refim_pixels[i];
+
   //Perform matrix multiply
-  num_dgemv(matrix, field_pixels, dl, BMC_NACTIVE, 2*SCI_NPIX*SCI_NBANDS);
+  num_dgemv(matrix, delta_pixels, dl, BMC_NACTIVE, 2*SCI_NPIX*SCI_NBANDS);
 
   //Find max & min deltas
   maxdl = dl[0];

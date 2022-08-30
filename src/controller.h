@@ -1455,6 +1455,7 @@ typedef volatile struct {
   double efc_gain;
   int    efc_probe_amp;
   int    efc_matrix;
+  int    efc_relative;
 
   //Speckle Nulling Parameters
   double speckle_scale;

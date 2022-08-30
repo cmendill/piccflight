@@ -91,6 +91,7 @@
 #define EFC_GAIN_DEFAULT          -0.5
 #define EFC_PROBE_AMP_DEFAULT      30   //nm
 #define EFC_MATRIX_DEFAULT         0
+#define EFC_RELATIVE_DEFAULT       0
 
 //Speckle Nulling Settings
 #define SPECKLE_SCALE_DEFAULT      1
