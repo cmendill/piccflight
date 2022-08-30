@@ -427,7 +427,7 @@ int sci_expose(sm_t *sm_p, flidev_t dev, uint16 *img_buffer){
 /**************************************************************/
 void sci_howfs_construct_field(sm_t *sm_p,sci_howfs_t *frames,scievent_t *scievent,sci_field_t *field,int reset){
   //NOTE: *field is a pointer to a SCI_NBANDS array of fields
-  static int init=0;
+  static int init=0, int dhrot=0;
   static int xind[SCI_NPIX], yind[SCI_NPIX];
   static double rmatrix0[SCI_NPIX][SCI_NBANDS];
   static double imatrix0[SCI_NPIX][SCI_NBANDS];
@@ -443,25 +443,32 @@ void sci_howfs_construct_field(sm_t *sm_p,sci_howfs_t *frames,scievent_t *scieve
   const double sci_scale_default[SCI_NBANDS] = SCI_SCALE_DEFAULT;
   double scale;
   
+  //Check if darkhole rotation has changed
+  if(scievent->dhrot != dhrot)
+    init=0;
+
   //Initialize
   if(!init || reset){
+    //Set dhrot
+    dhrot = scievent->dhrot;
     //Read HOWFS matrix from file
-    sprintf(filename,HOWFS_RMATRIX0_FILE,sm_p->efc_probe_amp);
+    sprintf(filename,HOWFS_RMATRIX0_FILE,dhrot,sm_p->efc_probe_amp);
     if(read_file(filename,rmatrix0,sizeof(rmatrix0)))
       memset(rmatrix0,0,sizeof(rmatrix0));
-    sprintf(filename,HOWFS_RMATRIX1_FILE,sm_p->efc_probe_amp);
+    sprintf(filename,HOWFS_RMATRIX1_FILE,dhrot,sm_p->efc_probe_amp);
     if(read_file(filename,rmatrix1,sizeof(rmatrix1)))
       memset(rmatrix1,0,sizeof(rmatrix1));
-    sprintf(filename,HOWFS_IMATRIX0_FILE,sm_p->efc_probe_amp);
+    sprintf(filename,HOWFS_IMATRIX0_FILE,dhrot,sm_p->efc_probe_amp);
     if(read_file(filename,imatrix0,sizeof(imatrix0)))
       memset(imatrix0,0,sizeof(imatrix0));
-    sprintf(filename,HOWFS_IMATRIX1_FILE,sm_p->efc_probe_amp);
+    sprintf(filename,HOWFS_IMATRIX1_FILE,dhrot,sm_p->efc_probe_amp);
     if(read_file(filename,imatrix1,sizeof(imatrix1)))
       memset(imatrix1,0,sizeof(imatrix1));
     //Read SCI pixel selection
-    if(read_file(SCI_MASK_FILE,&scimask[0][0],sizeof(scimask)))
+    sprintf(filename,SCI_MASK_FILE,dhrot);
+    if(read_file(filename,&scimask[0][0],sizeof(scimask)))
       memset(&scimask[0][0],0,sizeof(scimask));
-    printf("SCI: Read HOWFS matrix for probe amp = %d nm\n",sm_p->efc_probe_amp);
+    printf("SCI: Read HOWFS matrix for rot = %d, probe amp = %d nm\n",dhrot, sm_p->efc_probe_amp);
     
     //Build index arrays
     c=0;
@@ -549,13 +556,13 @@ void sci_howfs_efc(sm_t *sm_p, sci_field_t *field, double *delta_length, int res
   //Initialize
   if(!init || reset){
     //Read EFC matrix from file
-    sprintf(filename,EFC_MATRIX_FILE,sm_p->efc_matrix);
+    sprintf(filename,EFC_MATRIX_FILE,sm_p->efc_dhrot,sm_p->efc_matrix);
     if(read_file(filename,matrix,sizeof(matrix)))
       memset(matrix,0,sizeof(matrix));
     //Read BMC active2full mapping
     if(read_file(BMC_ACTIVE2FULL_FILE,active2full,sizeof(active2full)))
       memset(active2full,0,sizeof(active2full));
-    printf("SCI: Read EFC matrix %d\n",sm_p->efc_matrix);
+    printf("SCI: Read EFC matrix rot%d_%d\n",sm_p->efc_dhrot,sm_p->efc_matrix);
     init=1;
     if(reset == FUNCTION_RESET_RETURN) return;
   }
@@ -619,17 +626,25 @@ void sci_howfs_efc(sm_t *sm_p, sci_field_t *field, double *delta_length, int res
 /*  - Finds and measures the brightest speckle                */
 /**************************************************************/
 double sci_speckle_measure(scievent_t *scievent, sci_cal_t *sci_cal, double *speckle_angle, double *speckle_freq, int *speckle_count){
-  static int init=0;
+  static int init=0,dhrot=0;
   static int xind[SCI_NPIX], yind[SCI_NPIX];
   uint8_t scimask[SCIXS][SCIYS];
   int i,j,k,l,c,xbl,ybl;
   double maxval,val,bkg;
   double x,y;
+  char filename[MAX_FILENAME];
+
+  //Check if darkhole rotation has changed
+  if(scievent->dhrot != dhrot)
+    init=0;
   
   //Initialize
   if(!init){
+    //Set dhrot
+    dhrot = scievent->dhrot;
     //Read SCI pixel selection
-    if(read_file(SCI_MASK_FILE,&scimask[0][0],sizeof(scimask)))
+    sprintf(filename,SCI_MASK_FILE,dhrot);
+    if(read_file(filename,&scimask[0][0],sizeof(scimask)))
       memset(&scimask[0][0],0,sizeof(scimask));
     
     //Build index arrays
@@ -760,7 +775,7 @@ void sci_process_image(uint16 *img_buffer, float img_exptime, sm_t *sm_p){
   static scievent_t scievent={};
   static wfsevent_t wfsevent={};
   static struct timespec start,end,delta,last;
-  static int init = 0,sci_cal_init=0;
+  static int init = 0,sci_cal_init=0,dhrot=0;
   static int howfs_init = 0,speckle_init=0;
   static sci_howfs_t howfs_frames;
   static int ccd_temp_init=0;
@@ -808,6 +823,13 @@ void sci_process_image(uint16 *img_buffer, float img_exptime, sm_t *sm_p){
   //Get state
   state = sm_p->state;
 
+  //Set darkhole rotation
+  scievent.dhrot = sm_p->efc_dhrot;
+
+  //Check if darkhole rotation has changed
+  if(scievent.dhrot != dhrot)
+    init=0;
+
   //Debugging
   if(SCI_DEBUG) printf("SCI: Got frame\n"); 
   
@@ -830,7 +852,9 @@ void sci_process_image(uint16 *img_buffer, float img_exptime, sm_t *sm_p){
     howfs_init=0;
     tgt_calibrate(sm_p,0,NULL,NULL,SCIID,FUNCTION_RESET_RETURN);
     //Read SCI pixel selection
-    if(read_file(SCI_MASK_FILE,&scimask[0][0],sizeof(scimask)))
+    dhrot = scievent.dhrot;
+    sprintf(filename,SCI_MASK_FILE,dhrot);
+    if(read_file(filename,&scimask[0][0],sizeof(scimask)))
       memset(&scimask[0][0],0,sizeof(scimask));    
     init=1;
     if(SCI_DEBUG) printf("SCI: Initialized\n");
@@ -1235,7 +1259,7 @@ void sci_process_image(uint16 *img_buffer, float img_exptime, sm_t *sm_p){
 
       //Set BMC Probe: try = flat + probe (NOTE: when ihowfs == 4, nothing is added to the flat)
       if(scievent.ihowfs < SCI_HOWFS_NPROBE)
-	bmc_add_probe(bmc_flat.acmd,bmc_try.acmd,scievent.ihowfs,sm_p->efc_probe_amp);
+	bmc_add_probe(bmc_flat.acmd,bmc_try.acmd,scievent.dhrot,scievent.ihowfs,sm_p->efc_probe_amp);
       else
 	memcpy(bmc_try.acmd,bmc_flat.acmd,sizeof(bmc_try.acmd));
     }

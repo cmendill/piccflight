@@ -219,8 +219,8 @@ enum scioptmodes {SCI_OPTMODE_STEEPEST_DESCENT,
 #define LYTPIX2ALPZER_PXMASK_FILE "config/lytpix2alpzer_pxmask.dat"
 #define SHK_CONFIG_FILE        "config/shk_2bin_2tap_8bit.cfg"
 #define LYT_CONFIG_FILE        "config/lyt.cfg"
-#define SCI_MASK_FILE          "config/howfs_scimask.dat"
-#define BMC_PROBE_FILE         "config/howfs_bmcprobe%d_probe_%dnm.dat"
+#define SCI_MASK_FILE          "config/howfs_scimask_rot%d.dat"
+#define BMC_PROBE_FILE         "config/howfs_bmcprobe%d_rot%d_probe_%dnm.dat"
 #define BMC_X_FILE             "config/bmc_x.dat"
 #define BMC_Y_FILE             "config/bmc_y.dat"
 #define BMC_CAL_A_FILE         "config/bmc_cal_a.dat"
@@ -232,11 +232,11 @@ enum scioptmodes {SCI_OPTMODE_STEEPEST_DESCENT,
 #define BMC_TEST_FILE          "config/bmc_test_%3.3d.dat"
 #define BMC_SINE_FILE          "config/bmc_sine_%3.3d.dat"
 #define BMC_FLAT_FILE          "output/settings/bmc_flat.dat"
-#define HOWFS_RMATRIX0_FILE    "config/howfs_rmatrix0_probe_%dnm.dat"
-#define HOWFS_RMATRIX1_FILE    "config/howfs_rmatrix1_probe_%dnm.dat"
-#define HOWFS_IMATRIX0_FILE    "config/howfs_imatrix0_probe_%dnm.dat"
-#define HOWFS_IMATRIX1_FILE    "config/howfs_imatrix1_probe_%dnm.dat"
-#define EFC_MATRIX_FILE        "config/efc_matrix_%d.dat"
+#define HOWFS_RMATRIX0_FILE    "config/howfs_rmatrix0_rot%d_probe_%dnm.dat"
+#define HOWFS_RMATRIX1_FILE    "config/howfs_rmatrix1_rot%d_probe_%dnm.dat"
+#define HOWFS_IMATRIX0_FILE    "config/howfs_imatrix0_rot%d_probe_%dnm.dat"
+#define HOWFS_IMATRIX1_FILE    "config/howfs_imatrix1_rot%d_probe_%dnm.dat"
+#define EFC_MATRIX_FILE        "config/efc_matrix_rot%d_%d.dat"
 #define SCI_FAKE_PROBE_FILE    "config/sci_fakedata_probe_%d.dat"
 #define SCI_DARK_FILE          "config/sci_dark_%d.dat"
 #define SCI_BIAS_FILE          "config/sci_bias_%d.dat"
@@ -1196,7 +1196,7 @@ typedef struct scievent_struct{
   uint8        fastmode;
   uint8        phasemode;
   uint8        optmode;
-  uint8        pad1;
+  uint8        dhrot;
   uint16       speckle_pixel;
   float        speckle_brightness;
   float        phasemerit;
@@ -1456,6 +1456,7 @@ typedef volatile struct {
   int    efc_probe_amp;
   int    efc_matrix;
   int    efc_relative;
+  int    efc_dhrot;
 
   //Speckle Nulling Parameters
   double speckle_scale;

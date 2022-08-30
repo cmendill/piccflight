@@ -402,13 +402,13 @@ void bmc_add_length(float *input, float *output, double *dl, int reset){
 /* - Add PROBE pattern to BMC command                         */
 /* - Output can be same pointer as input                      */
 /**************************************************************/
-void bmc_add_probe(float *input, float *output,int istep, int amp){
+void bmc_add_probe(float *input, float *output, int dhrot, int istep, int amp){
   double dl[BMC_NACT]={0};
   char filename[MAX_FILENAME];
   int i;
 
   //Read command file
-  sprintf(filename,BMC_PROBE_FILE,istep,amp);
+  sprintf(filename,BMC_PROBE_FILE,istep,dhrot,amp);
   if(read_file(filename,dl,sizeof(dl)))
     memset(dl,0,sizeof(dl));
 
@@ -712,7 +712,7 @@ int bmc_calibrate(sm_t *sm_p, int calmode, bmc_t *bmc, uint32_t *step, int advan
       //Set all BMC actuators to starting position
       if(!delta_only) memcpy(bmc,(bmc_t *)&sm_p->bmccal.bmc_start[calmode],sizeof(bmc_t));
       //Add probe pattern
-      bmc_add_probe(bmc->acmd,bmc->acmd,sm_p->bmccal.countA[calmode]/ncalim,sm_p->efc_probe_amp);
+      bmc_add_probe(bmc->acmd,bmc->acmd,sm_p->efc_dhrot,sm_p->bmccal.countA[calmode]/ncalim,sm_p->efc_probe_amp);
       //Print status
       printf("BMC: %lu/%d steps\n",sm_p->bmccal.countA[calmode]/ncalim + 1,SCI_HOWFS_NPROBE);
      }else{

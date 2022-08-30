@@ -1848,7 +1848,7 @@ int handle_command(char *line, sm_t *sm_p){
 	}
 
 	//Add probe pattern
-	bmc_add_probe(bmc.acmd,bmc.acmd,itemp,sm_p->bmc_cal_scale);
+	bmc_add_probe(bmc.acmd,bmc.acmd,sm_p->efc_dhrot,itemp,sm_p->efc_probe_amp);
       
 	//Send command
 	if(bmc_send_command(sm_p,&bmc,WATID,BMC_NOSET_FLAT)){
@@ -2020,6 +2020,22 @@ int handle_command(char *line, sm_t *sm_p){
     return CMD_NORMAL;
   }
 
+  //Set EFC darkhole rotation
+  sprintf(cmd,"efc dhrot");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    pch = strtok(line+strlen(cmd)," ");
+    if(pch == NULL){
+      printf("CMD: Bad command format\n");
+      return CMD_NORMAL;
+    }
+    itemp  = atoi(pch);
+    sm_p->efc_dhrot = itemp;
+    printf("CMD: EFC darkhole rotation set to %d\n",sm_p->efc_dhrot);
+    //Reset SCI to load new matrix
+    sm_p->sci_reset=1;
+    return CMD_NORMAL;
+  }
+  
   //Set EFC Relative
   sprintf(cmd,"efc relative");
   if(!strncasecmp(line,cmd,strlen(cmd))){

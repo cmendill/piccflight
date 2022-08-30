@@ -353,6 +353,7 @@ int main(int argc,char **argv){
   sm_p->efc_probe_amp        = EFC_PROBE_AMP_DEFAULT;
   sm_p->efc_matrix           = EFC_MATRIX_DEFAULT;
   sm_p->efc_relative         = EFC_RELATIVE_DEFAULT;
+  sm_p->efc_dhrot            = EFC_DHROT_DEFAULT;
   sm_p->speckle_scale        = SPECKLE_SCALE_DEFAULT;
   sm_p->alp_cal_scale        = ALP_CAL_SCALE_DEFAULT;
   sm_p->bmc_cal_scale        = BMC_CAL_SCALE_DEFAULT;

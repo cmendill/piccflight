@@ -397,6 +397,10 @@ cmd: efc matrix [arg]
         set efc matrix index
 	arg = index [0,1,2,3,4,5,6,7]
 
+cmd: efc dhrot [arg]
+        set efc darkhole rotation index
+	arg = 90deg increment index [0,1,2,3]
+
 cmd: speckle scale [arg]
         set speckle nulling scale factor
 	arg = [0,1]
