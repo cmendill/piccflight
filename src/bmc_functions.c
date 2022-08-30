@@ -188,7 +188,12 @@ int bmc_get_flat(sm_t *sm_p, bmc_t *cmd, int iflat){
 /**************************************************************/
 int bmc_send_command(sm_t *sm_p, bmc_t *cmd, int proc_id, int set_flat){
   int retval = 1;
+  int i;
   bmc_t bmc_rotate;
+
+  //Set test points -- preserved in command
+  for(i=0;i<BMC_NTEST;i++)
+    cmd->tcmd[i] = 100 + i;
   
   //Apply command limits -- preserved in command
   bmc_limit_command(cmd);
