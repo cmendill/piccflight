@@ -595,6 +595,10 @@ void thm_proc(void){
 	  if(thmevent.htr[i].kI == 0) tint[i] = 0; //reset integrator if gain is zero
 	  tdir = delta - delta_last[i];
 	  power[i] = delta * thmevent.htr[i].kP + tint[i] * thmevent.htr[i].kI + tdir * thmevent.htr[i].kD;
+	  //Save controller values
+	  thmevent.htr[i].Pval = delta;
+	  thmevent.htr[i].Ival = tint[i];
+	  thmevent.htr[i].Dval = tdir;
 	}
 	else{
 	  //Run simple integral controller
@@ -610,7 +614,7 @@ void thm_proc(void){
       }
     }
     
-    /* Check Heater Enable */
+    /* Check heater enable */
     for(i=0;i<SSR_NCHAN;i++){
       if(!thmevent.htr[i].enable){
 	power[i] = 0;
@@ -619,7 +623,7 @@ void thm_proc(void){
       }
     }
 
-    /* Limit Heater Power & Set Integer Power */
+    /* Limit heater power and round to integer */
     for(i=0;i<SSR_NCHAN;i++){
       power[i] = power[i] > thmevent.htr[i].maxpower ? thmevent.htr[i].maxpower : power[i];
       power[i] = power[i] < 0 ? 0 : power[i];
@@ -627,13 +631,13 @@ void thm_proc(void){
       thmevent.htr[i].power = lround(power[i]);
     }
     
-    /* Fill out Heater Pulses */
+    /* Fill out heater pulses */
     memset(htr_pulse,0,sizeof(htr_pulse));
     for(i=0;i<SSR_NCHAN;i++)
       for(j=0;j<thmevent.htr[i].power;j++)
 	htr_pulse[i][pulse_index[j]] = 1;
 	
-    /* Command Heaters */
+    /* Command heaters */
     if(HTR_ENABLE){
       for(i=0;i<HTR_NCYCLES;i++){
 	for(j=0;j<HTR_NSTEPS;j++){
@@ -663,7 +667,10 @@ void thm_proc(void){
     for(i=0;i<SSR_NCHAN;i++){
       sm_p->htr[i].temp  = thmevent.htr[i].temp;
       sm_p->htr[i].power = thmevent.htr[i].power;
-    }
+      sm_p->htr[i].Pval  = thmevent.htr[i].Pval;
+      sm_p->htr[i].Ival  = thmevent.htr[i].Ival;
+      sm_p->htr[i].Dval  = thmevent.htr[i].Dval;
+   }
     
     /* Get end timestamp */
     clock_gettime(CLOCK_REALTIME,&end);

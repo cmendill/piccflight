@@ -903,23 +903,27 @@ typedef struct tgt_struct{
 } tgt_t;
 
 typedef struct htr_struct{
-  char   name[MAX_COMMAND]; //Heater name
-  uint8  adc;       //ADC number {1,2,3}
-  uint8  ch;        //ADC channel index
-  uint8  power;     //Heater power [0-100%]
-  uint8  maxpower;  //Heater max power [0-100%]
-  uint8  override;  //User override flag
-  uint8  overpower; //User override power
-  uint8  enable;    //Heater enable flag
-  uint8  usepid;    //Use PID flag
-  float  gain;      //Control gain (simple controller)
-  float  kP;        //P gain
-  float  kI;        //I gain
-  float  kD;        //D gain
-  float  intmax;    //integrator maximum
-  float  temp;      //Sensor temperature [C]
-  float  setpoint;  //Sensor setpoint [C]
-  float  deadband;  //Control deadband [C]
+  char  name[MAX_COMMAND]; //Heater name
+  uint8 adc;       //ADC number {1,2,3}
+  uint8 ch;        //ADC channel index
+  uint8 power;     //Heater power [0-100%]
+  uint8 maxpower;  //Heater max power [0-100%]
+  uint8 override;  //User override flag
+  uint8 overpower; //User override power
+  uint8 enable;    //Heater enable flag
+  uint8 usepid;    //Use PID flag
+  float gain;      //Control gain (simple controller)
+  float kP;        //P gain
+  float kI;        //I gain
+  float kD;        //D gain
+  float Pval;      //P gain
+  float Ival;      //I gain
+  float Dval;      //D gain
+  float intmax;    //integrator maximum
+  float temp;      //Sensor temperature [C]
+  float setpoint;  //Sensor setpoint [C]
+  float deadband;  //Control deadband [C]
+  float padding;
 } htr_t;
 
 typedef struct hum_struct{
@@ -1039,7 +1043,7 @@ typedef struct optmode_struct{
 /*************************************************
  * Packet Header
  *************************************************/
-#define PICC_PKT_VERSION     48  //packet version number
+#define PICC_PKT_VERSION     49  //packet version number
 typedef struct pkthed_struct{
   uint16  version;       //packet version number
   uint16  type;          //packet ID word

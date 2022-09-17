@@ -345,9 +345,9 @@ void print_htr_status(sm_t *sm_p){
   int i;
 
   printf("******************************** Heater Status *********************************\n");
-  printf("%3s%7s%7s%7s%7s%7s%7s%7s%7s%7s%7s%7s\n","#","Name","Enable","Over","Power","Max","ADC","CH","Temp","SetP","DeadB","PID?");
+  printf("%2s%5s%5s%5s%5s%5s%5s%5s%6s%6s%6s%6s%6s%6s\n","#","Name","Ena","Over","Pow","Max","ADC","CH","Temp","SetP","kP","kI","kD","Imax");
   for(i=0;i<SSR_NCHAN;i++)
-    printf("%3d%7s%7d%7d%7d%7d%7d%7d%7.2f%7.2f%7.2f%7d\n",i,sm_p->htr[i].name,sm_p->htr[i].enable,sm_p->htr[i].override,sm_p->htr[i].power,sm_p->htr[i].maxpower,sm_p->htr[i].adc,sm_p->htr[i].ch,sm_p->htr[i].temp,sm_p->htr[i].setpoint,sm_p->htr[i].deadband,sm_p->htr[i].usepid);
+    printf("%2d%5s%5d%5d%5d%5d%5d%5d%6.1f%6.1f%6.1f%6.1f%6.1f%6ld\n",i,sm_p->htr[i].name,sm_p->htr[i].enable,sm_p->htr[i].override,sm_p->htr[i].power,sm_p->htr[i].maxpower,sm_p->htr[i].adc,sm_p->htr[i].ch,sm_p->htr[i].temp,sm_p->htr[i].setpoint,sm_p->htr[i].kP,sm_p->htr[i].kI,sm_p->htr[i].kD,(long)sm_p->htr[i].intmax);
   printf("********************************************************************************\n");
 
 }
