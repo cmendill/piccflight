@@ -34,10 +34,10 @@ void thm_init_heater(int h, htr_t *htr){
     htr->deadband = 0;
     htr->gain     = 10;
     htr->usepid   = 0;
-    htr->kP       = 10;
-    htr->kI       = 0.1;
+    htr->kP       = 20;
+    htr->kI       = 0.2;
     htr->kD       = 0;
-    htr->intmax   = 1000;
+    htr->intmax   = 100;
     htr->override = 0;
     htr->enable   = 0;
   }
@@ -52,10 +52,10 @@ void thm_init_heater(int h, htr_t *htr){
     htr->deadband = 0;
     htr->gain     = 10;
     htr->usepid   = 0;
-    htr->kP       = 10;
-    htr->kI       = 0.1;
+    htr->kP       = 20;
+    htr->kI       = 0.2;
     htr->kD       = 0;
-    htr->intmax   = 1000;
+    htr->intmax   = 100;
     htr->override = 0;
     htr->enable   = 0;
   }
@@ -70,10 +70,10 @@ void thm_init_heater(int h, htr_t *htr){
     htr->deadband = 0;
     htr->gain     = 10;
     htr->usepid   = 0;
-    htr->kP       = 10;
-    htr->kI       = 0.1;
+    htr->kP       = 20;
+    htr->kI       = 0.2;
     htr->kD       = 0;
-    htr->intmax   = 1000;
+    htr->intmax   = 100;
     htr->override = 0;
     htr->enable   = 0;
   }
@@ -88,10 +88,10 @@ void thm_init_heater(int h, htr_t *htr){
     htr->deadband = 0;
     htr->gain     = 10;
     htr->usepid   = 0;
-    htr->kP       = 10;
-    htr->kI       = 0.1;
+    htr->kP       = 20;
+    htr->kI       = 0.2;
     htr->kD       = 0;
-    htr->intmax   = 1000;
+    htr->intmax   = 100;
     htr->override = 0;
     htr->enable   = 0;
   }
@@ -106,10 +106,10 @@ void thm_init_heater(int h, htr_t *htr){
     htr->deadband = 0;
     htr->gain     = 10;
     htr->usepid   = 0;
-    htr->kP       = 10;
-    htr->kI       = 0.1;
+    htr->kP       = 20;
+    htr->kI       = 0.2;
     htr->kD       = 0;
-    htr->intmax   = 1000;
+    htr->intmax   = 100;
     htr->override = 0;
     htr->enable   = 0;
   }
@@ -124,10 +124,10 @@ void thm_init_heater(int h, htr_t *htr){
     htr->deadband = 0;
     htr->gain     = 10;
     htr->usepid   = 0;
-    htr->kP       = 10;
-    htr->kI       = 0.1;
+    htr->kP       = 20;
+    htr->kI       = 0.2;
     htr->kD       = 0;
-    htr->intmax   = 1000;
+    htr->intmax   = 100;
     htr->override = 0;
     htr->enable   = 0;
   }
@@ -142,10 +142,10 @@ void thm_init_heater(int h, htr_t *htr){
     htr->deadband = 0;
     htr->gain     = 10;
     htr->usepid   = 0;
-    htr->kP       = 10;
-    htr->kI       = 0.1;
+    htr->kP       = 20;
+    htr->kI       = 0.2;
     htr->kD       = 0;
-    htr->intmax   = 1000;
+    htr->intmax   = 100;
     htr->override = 0;
     htr->enable   = 0;
   }
@@ -160,10 +160,10 @@ void thm_init_heater(int h, htr_t *htr){
     htr->deadband = 0;
     htr->gain     = 10;
     htr->usepid   = 0;
-    htr->kP       = 10;
-    htr->kI       = 0.1;
+    htr->kP       = 20;
+    htr->kI       = 0.2;
     htr->kD       = 0;
-    htr->intmax   = 1000;
+    htr->intmax   = 100;
     htr->override = 0;
     htr->enable   = 0;
   }
@@ -178,10 +178,10 @@ void thm_init_heater(int h, htr_t *htr){
     htr->deadband = 0;
     htr->gain     = 10;
     htr->usepid   = 0;
-    htr->kP       = 10;
-    htr->kI       = 0.1;
+    htr->kP       = 20;
+    htr->kI       = 0.2;
     htr->kD       = 0;
-    htr->intmax   = 1000;
+    htr->intmax   = 100;
     htr->override = 0;
     htr->enable   = 0;
   }
@@ -196,10 +196,10 @@ void thm_init_heater(int h, htr_t *htr){
     htr->deadband = 0;
     htr->gain     = 10;
     htr->usepid   = 0;
-    htr->kP       = 10;
-    htr->kI       = 0.1;
+    htr->kP       = 20;
+    htr->kI       = 0.2;
     htr->kD       = 0;
-    htr->intmax   = 1000;
+    htr->intmax   = 100;
     htr->override = 0;
     htr->enable   = 0;
   }
@@ -214,10 +214,10 @@ void thm_init_heater(int h, htr_t *htr){
     htr->deadband = 0;
     htr->gain     = 10;
     htr->usepid   = 0;
-    htr->kP       = 10;
-    htr->kI       = 0.1;
+    htr->kP       = 20;
+    htr->kI       = 0.2;
     htr->kD       = 0;
-    htr->intmax   = 1000;
+    htr->intmax   = 100;
     htr->override = 0;
     htr->enable   = 0;
   }
@@ -233,10 +233,10 @@ void thm_init_heater(int h, htr_t *htr){
     htr->deadband = 0;
     htr->gain     = 10;
     htr->usepid   = 0;
-    htr->kP       = 10;
-    htr->kI       = 0.1;
+    htr->kP       = 20;
+    htr->kI       = 0.2;
     htr->kD       = 0;
-    htr->intmax   = 1000;
+    htr->intmax   = 100;
     htr->override = 0;
     htr->enable   = 0;
   }
@@ -251,10 +251,10 @@ void thm_init_heater(int h, htr_t *htr){
     htr->deadband = 0;
     htr->gain     = 10;
     htr->usepid   = 0;
-    htr->kP       = 10;
-    htr->kI       = 0.1;
+    htr->kP       = 20;
+    htr->kI       = 0.2;
     htr->kD       = 0;
-    htr->intmax   = 1000;
+    htr->intmax   = 100;
     htr->override = 0;
     htr->enable   = 0;
   }
@@ -269,10 +269,10 @@ void thm_init_heater(int h, htr_t *htr){
     htr->deadband = 0;
     htr->gain     = 10;
     htr->usepid   = 0;
-    htr->kP       = 10;
-    htr->kI       = 0.1;
+    htr->kP       = 20;
+    htr->kI       = 0.2;
     htr->kD       = 0;
-    htr->intmax   = 1000;
+    htr->intmax   = 100;
     htr->override = 0;
     htr->enable   = 0;
   }
@@ -287,10 +287,10 @@ void thm_init_heater(int h, htr_t *htr){
     htr->deadband = 0;
     htr->gain     = 10;
     htr->usepid   = 0;
-    htr->kP       = 10;
-    htr->kI       = 0.1;
+    htr->kP       = 20;
+    htr->kI       = 0.2;
     htr->kD       = 0;
-    htr->intmax   = 1000;
+    htr->intmax   = 100;
     htr->override = 0;
     htr->enable   = 0;
   }
@@ -305,10 +305,10 @@ void thm_init_heater(int h, htr_t *htr){
     htr->deadband = 0;
     htr->gain     = 10;
     htr->usepid   = 0;
-    htr->kP       = 10;
-    htr->kI       = 0.1;
+    htr->kP       = 20;
+    htr->kI       = 0.2;
     htr->kD       = 0;
-    htr->intmax   = 1000;
+    htr->intmax   = 100;
     htr->override = 0;
     htr->enable   = 0;
   }

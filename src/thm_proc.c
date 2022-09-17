@@ -592,6 +592,7 @@ void thm_proc(void){
 	  tint[i] += delta;
 	  if(tint[i] > thmevent.htr[i].intmax) tint[i] = thmevent.htr[i].intmax;
 	  if(tint[i] < -1*thmevent.htr[i].intmax) tint[i] = -1*thmevent.htr[i].intmax;
+	  if(thmevent.htr[i].kI == 0) tint[i] = 0; //reset integrator if gain is zero
 	  tdir = delta - delta_last[i];
 	  power[i] = delta * thmevent.htr[i].kP + tint[i] * thmevent.htr[i].kI + tdir * thmevent.htr[i].kD;
 	}
