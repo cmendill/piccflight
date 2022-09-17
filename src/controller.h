@@ -911,11 +911,15 @@ typedef struct htr_struct{
   uint8  override;  //User override flag
   uint8  overpower; //User override power
   uint8  enable;    //Heater enable flag
-  uint8  pad1;   
-  float  gain;     //Control gain
-  float  temp;     //Sensor temperature [C]
-  float  setpoint; //Sensor setpoint [C]
-  float  deadband; //Control deadband [C]
+  uint8  usepid;    //Use PID flag
+  float  gain;      //Control gain (simple controller)
+  float  kP;        //P gain
+  float  kI;        //I gain
+  float  kD;        //D gain
+  float  intmax;    //integrator maximum
+  float  temp;      //Sensor temperature [C]
+  float  setpoint;  //Sensor setpoint [C]
+  float  deadband;  //Control deadband [C]
 } htr_t;
 
 typedef struct hum_struct{

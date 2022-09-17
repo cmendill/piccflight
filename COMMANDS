@@ -781,6 +781,14 @@ cmd: htr [arg] disable
 	disable heater [arg]
 	arg = 0-15 OR "all"
 
+cmd: htr [arg] pid enable
+	enable heater PID control [arg]
+	arg = 0-15 OR "all"
+
+cmd: htr [arg] pid disable
+	disable heater PID control [arg]
+	arg = 0-15 OR "all"
+
 cmd: htr [arg] override
 	put heater [arg] into user override
 	arg = 0-15 OR "all"
@@ -814,7 +822,17 @@ cmd: htr [arg1] gain [arg2]
 	set heater [arg1] control gain to [arg2]
 	arg1 = 0-15
 	arg2 = 0-100 [%/deg C]
+
+cmd: htr [arg1] pid gain [arg2] [arg3] [arg4]
+	set heater [arg1] PID control gain to kP=[arg2], kI=[arg3], kD=[arg4] 
+	arg1 = 0-15
+	arg2-4 = 0-100 [%/deg C]
 	
+cmd: htr [arg1] intmax [arg2]
+	manually set heater [arg1] integrator maximum to [arg2]
+	arg1 = 0-15
+	arg2 = integrator maximum, unbounded
+
 cmd: htr [arg1] sensor [arg2] [arg3]
 	set heater [arg1] sensor routing to adc [arg2] channel [arg3]
 	arg1 = 0-15

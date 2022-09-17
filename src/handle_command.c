@@ -345,9 +345,9 @@ void print_htr_status(sm_t *sm_p){
   int i;
 
   printf("******************************** Heater Status *********************************\n");
-  printf("%3s%7s%7s%7s%7s%7s%7s%7s%7s%7s%7s%7s\n","#","Name","Enable","Over","Power","Max","ADC","CH","Temp","SetP","DeadB","Gain");
+  printf("%3s%7s%7s%7s%7s%7s%7s%7s%7s%7s%7s%7s\n","#","Name","Enable","Over","Power","Max","ADC","CH","Temp","SetP","DeadB","PID?");
   for(i=0;i<SSR_NCHAN;i++)
-    printf("%3d%7s%7d%7d%7d%7d%7d%7d%7.2f%7.2f%7.2f%7.2f\n",i,sm_p->htr[i].name,sm_p->htr[i].enable,sm_p->htr[i].override,sm_p->htr[i].power,sm_p->htr[i].maxpower,sm_p->htr[i].adc,sm_p->htr[i].ch,sm_p->htr[i].temp,sm_p->htr[i].setpoint,sm_p->htr[i].deadband,sm_p->htr[i].gain);
+    printf("%3d%7s%7d%7d%7d%7d%7d%7d%7.2f%7.2f%7.2f%7d\n",i,sm_p->htr[i].name,sm_p->htr[i].enable,sm_p->htr[i].override,sm_p->htr[i].power,sm_p->htr[i].maxpower,sm_p->htr[i].adc,sm_p->htr[i].ch,sm_p->htr[i].temp,sm_p->htr[i].setpoint,sm_p->htr[i].deadband,sm_p->htr[i].usepid);
   printf("********************************************************************************\n");
 
 }
@@ -3769,6 +3769,20 @@ int handle_command(char *line, sm_t *sm_p){
       print_htr_status(sm_p);
       return CMD_NORMAL;
     }
+    sprintf(cmd,"htr all pid enable");
+    if(!strncasecmp(line,cmd,strlen(cmd))){
+      printf("CMD: Enabling PID control for ALL heaters\n");
+      for(i=0;i<SSR_NCHAN;i++) sm_p->htr[i].usepid = 1;
+      print_htr_status(sm_p);
+      return CMD_NORMAL;
+    }
+    sprintf(cmd,"htr all pid disable");
+    if(!strncasecmp(line,cmd,strlen(cmd))){
+      printf("CMD: Disabling PID control for ALL heaters\n");
+      for(i=0;i<SSR_NCHAN;i++) sm_p->htr[i].usepid = 0;
+      print_htr_status(sm_p);
+      return CMD_NORMAL;
+    }
     //Commands for individual heaters
     for(i=0;i<SSR_NCHAN;i++){
       sprintf(cmd,"htr %d override",i);
@@ -3800,6 +3814,20 @@ int handle_command(char *line, sm_t *sm_p){
       if(!strncasecmp(line,cmd,strlen(cmd))){
         printf("CMD: Disabling heater %d\n",i);
 	sm_p->htr[i].enable = 0;
+	print_htr_status(sm_p);
+	return CMD_NORMAL;
+      }
+      sprintf(cmd,"htr %d pid enable",i);
+      if(!strncasecmp(line,cmd,strlen(cmd))){
+        printf("CMD: Enabling PID control for heater %d\n",i);
+	sm_p->htr[i].usepid = 1;
+	print_htr_status(sm_p);
+	return CMD_NORMAL;
+      }
+      sprintf(cmd,"htr %d pid disable",i);
+      if(!strncasecmp(line,cmd,strlen(cmd))){
+        printf("CMD: Disabling PID control for heater %d\n",i);
+	sm_p->htr[i].usepid = 0;
 	print_htr_status(sm_p);
 	return CMD_NORMAL;
       }
@@ -3879,12 +3907,53 @@ int handle_command(char *line, sm_t *sm_p){
 	ftemp = atof(line+strlen(cmd)+1);
 	if(ftemp >= HTR_GAIN_MIN && ftemp <= HTR_GAIN_MAX){
 	  sm_p->htr[i].gain = ftemp;
-	  printf("CMD: Setting heater %d gain to %fC\n",i,sm_p->htr[i].gain);
+	  printf("CMD: Setting heater %d gain to %f\n",i,sm_p->htr[i].gain);
 	  print_htr_status(sm_p);
 	  return CMD_NORMAL;
 	}
 	else{
 	  printf("CMD: Heater gain out of bounds [%d-%d]\n",HTR_GAIN_MIN,HTR_GAIN_MAX);
+	  return CMD_NORMAL;
+	}
+      }
+      sprintf(cmd,"htr %d intmax",i);
+      if(!strncasecmp(line,cmd,strlen(cmd))){
+	ftemp = atof(line+strlen(cmd)+1);
+	sm_p->htr[i].intmax = ftemp;
+	printf("CMD: Setting heater %d intmax to %f\n",i,sm_p->htr[i].intmax);
+	print_htr_status(sm_p);
+	return CMD_NORMAL;
+      }
+      sprintf(cmd,"htr %d pid gain",i);
+      if(!strncasecmp(line,cmd,strlen(cmd)) && strlen(line) > strlen(cmd)){
+	pch  = strtok(line+strlen(cmd)," ");
+	if(pch == NULL){
+	  printf("CMD: HTR gain bad format: P.P I.I D.D\n");
+	  return CMD_NORMAL;
+	}
+	pgain = atof(pch);
+	pch  = strtok(NULL," ");
+	if(pch == NULL){
+	  printf("CMD: HTR gain bad format: P.P I.I D.D\n");
+	  return CMD_NORMAL;
+	}
+	igain = atof(pch);
+	pch  = strtok(NULL," ");
+	if(pch == NULL){
+	  printf("CMD: HTR gain bad format: P.P I.I D.D\n");
+	  return CMD_NORMAL;
+	}
+	dgain = atof(pch);
+	if(pgain <= HTR_GAIN_MAX && pgain >= HTR_GAIN_MIN && igain <= HTR_GAIN_MAX && igain >= HTR_GAIN_MIN && dgain <= HTR_GAIN_MAX && dgain >= HTR_GAIN_MIN){
+	  sm_p->htr[i].kP = pgain;
+	  sm_p->htr[i].kI = igain;
+	  sm_p->htr[i].kD = dgain;
+	  printf("CMD: Setting heater %d PID gain to %f %f %f\n",i,sm_p->htr[i].kP,sm_p->htr[i].kI,sm_p->htr[i].kD);
+	  print_htr_status(sm_p);
+	  return CMD_NORMAL;
+	}
+	else{
+	  printf("CMD: Heater PID gain out of bounds [%d-%d]\n",HTR_GAIN_MIN,HTR_GAIN_MAX);
 	  return CMD_NORMAL;
 	}
       }
