@@ -124,8 +124,14 @@ void lyt_alp_zernpid(lytevent_t *lytevent, double *zernike_delta, int *zernike_s
   static double zint[LOWFS_N_ZERNIKE] = {0};
   double zerr;
   int i;
-  const double zdelta_max =  0.020;
-  const double zdelta_min = -0.020;
+  
+  //Delta limits                                 0      1      2      3      4      5      6      7      8      9     10     11     12     13     14     15     16     17     18     19     20     21     22
+  const double zdelta_max[LOWFS_N_ZERNIKE]={ 0.020, 0.020, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001};
+  const double zdelta_min[LOWFS_N_ZERNIKE]={-0.020,-0.020,-0.001,-0.001,-0.001,-0.001,-0.001,-0.001,-0.001,-0.001,-0.001,-0.001,-0.001,-0.001,-0.001,-0.001,-0.001,-0.001,-0.001,-0.001,-0.001,-0.001,-0.001};
+
+  //Integrator limits                        0    1     2      3      4      5      6      7      8      9     10     11     12     13     14     15     16     17     18     19     20     21     22
+  const double zint_max[LOWFS_N_ZERNIKE]={ 0.1, 0.1, 0.01, 0.005, 0.005, 0.005, 0.005, 0.005, 0.005, 0.005, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001};
+  const double zint_min[LOWFS_N_ZERNIKE]={-0.1,-0.1,-0.01,-0.005,-0.005,-0.005,-0.005,-0.005,-0.005,-0.005,-0.001,-0.001,-0.001,-0.001,-0.001,-0.001,-0.001,-0.001,-0.001,-0.001,-0.001,-0.001,-0.001};
 
   //Centroid settings
   static int usezern=0;
@@ -166,13 +172,13 @@ void lyt_alp_zernpid(lytevent_t *lytevent, double *zernike_delta, int *zernike_s
 	//Calculate integral
 	zint[i] += zerr;
 	//Limit integral
-	if(zint[i] > LYT_ALP_ZERN_INT_MAX) zint[i]=LYT_ALP_ZERN_INT_MAX;
-	if(zint[i] < LYT_ALP_ZERN_INT_MIN) zint[i]=LYT_ALP_ZERN_INT_MIN;
+	if(zint[i] > zint_max[i]) zint[i]=zint_max[i];
+	if(zint[i] < zint_min[i]) zint[i]=zint_min[i];
 	//Calculate command delta
 	zernike_delta[i] = lytevent->gain_alp_zern[i][0] * zerr + lytevent->gain_alp_zern[i][1] * zint[i];
 	//Limit delta
-	if(zernike_delta[i] > zdelta_max) zernike_delta[i] = zdelta_max;
-	if(zernike_delta[i] < zdelta_min) zernike_delta[i] = zdelta_min;
+	if(zernike_delta[i] > zdelta_max[i]) zernike_delta[i] = zdelta_max[i];
+	if(zernike_delta[i] < zdelta_min[i]) zernike_delta[i] = zdelta_min[i];
 	//Set locked flag
 	lytevent->status_locked = 1;
       }
@@ -187,6 +193,21 @@ void lyt_alp_zernpid(lytevent_t *lytevent, double *zernike_delta, int *zernike_s
     *cen_used = 1;
     //Reset integrator
     memset(zint,0,sizeof(zint));
+  }
+}
+
+/**************************************************************/
+/* LYT_LIMIT_ZCMD                                             */
+/*  - Limit zernike commands                                  */
+/**************************************************************/
+void lyt_limit_zcmd(sm_t *sm_p, double *zbase, double *zdelta){
+  double zcmd_max,zcmd_min;
+  int i;
+  for(i=0;i<LOWFS_N_ZERNIKE;i++){
+    zcmd_max =      sm_p->lyt_zcmd_limit[i];
+    zcmd_min = -1 * sm_p->lyt_zcmd_limit[i];
+    if(zbase[i]+zdelta[i] > zcmd_max) zdelta[i] = zcmd_max - zbase[i];
+    if(zbase[i]+zdelta[i] < zcmd_min) zdelta[i] = zcmd_min - zbase[i];
   }
 }
 
@@ -645,21 +666,33 @@ int lyt_process_image(stImageBuff *buffer,sm_t *sm_p){
       pid_reset = FUNCTION_NO_RESET;
       
       //Zero out uncontrolled Zernikes
-      for(i=0;i<LOWFS_N_ZERNIKE;i++)
-	if(!zernike_switch[i])
+      for(i=0;i<LOWFS_N_ZERNIKE;i++){
+	if(!zernike_switch[i]){
 	  alp_delta.zcmd[i] = 0;
+	  alp_try.zcmd[i] = 0;
+	}
+      }
+      
+      //Reset zernike commands
+      if(sm_p->lyt_zcmd_reset){
+	memset(alp_try.zcmd,0,sizeof(alp_try.zcmd));
+	sm_p->lyt_zcmd_reset=0;
+      }
+
+      //Limit zernike commands
+      lyt_limit_zcmd(sm_p,alp_try.zcmd,alp_delta.zcmd);
       
       //Convert zernike deltas to actuator deltas
       alp_zern2alp(alp_delta.zcmd,alp_delta.acmd,FUNCTION_NO_RESET);
       
       //Set base command
-      memcpy(&alp_base,&alp,sizeof(alp_t));
+      memcpy(&alp_base,&alp_try,sizeof(alp_t));
 
       //Update shk2lyt base with SHK command everytime a new one is ready
       if(sm_p->state_array[state].shk.shk2lyt)
 	if(alp_get_shk2lyt(sm_p,&alp_shk2lyt) == 0)
 	  memcpy(&alp_base,&alp_shk2lyt,sizeof(alp_t));
-      
+                  
       //Apply Zernike commands
       for(i=0;i<LOWFS_N_ZERNIKE;i++)
 	alp_try.zcmd[i] = alp_base.zcmd[i] + alp_delta.zcmd[i];

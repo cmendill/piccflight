@@ -321,8 +321,8 @@ void print_lyt_zernikes(sm_t *sm_p){
 }
 
 /**************************************************************/
-/* PRINT_ALP_ZERNIKES                                             */
-/*  - Print out ALP zernike control status                        */
+/* PRINT_ALP_ZERNIKES                                         */
+/*  - Print out ALP zernike control status                    */
 /**************************************************************/
 void print_alp_zernikes(sm_t *sm_p){
   int i;
@@ -334,6 +334,20 @@ void print_alp_zernikes(sm_t *sm_p){
    if(sm_p->alp_zernike_control[i] == 0) printf("%02d        NO\n",i);
   }
   printf("******************************************\n");
+
+}
+
+/**************************************************************/
+/* PRINT_LYT_ZLIMIT                                           */
+/*  - Print out LYT zernike command limits                    */
+/**************************************************************/
+void print_lyt_zlimit(sm_t *sm_p){
+  int i;
+  printf("************ LYT Zernike Command Limits ************\n");
+  printf("%10s %10s\n","Zernike","Limit");
+  for(i=0;i<LOWFS_N_ZERNIKE;i++)
+    printf("%10d %10.3f\n",i,sm_p->lyt_zcmd_limit[i]);
+  printf("****************************************************\n");
 
 }
 
@@ -2766,6 +2780,42 @@ int handle_command(char *line, sm_t *sm_p){
     return(CMD_NORMAL);
   }
 
+  //LYT Reset Zernike Commands
+  sprintf(cmd,"lyt zcmd reset");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    printf("CMD: Resetting LYT Zernike commands\n");
+    sm_p->lyt_zcmd_reset=1;
+    return(CMD_NORMAL);
+  }
+
+  //Zernike command limits
+  sprintf(cmd,"lyt zcmd limit");
+  if(!strncasecmp(line,cmd,strlen(cmd))){
+    pch = strtok(line+strlen(cmd)," ");
+    if(pch == NULL){
+      print_lyt_zlimit(sm_p);
+      return CMD_NORMAL;
+    }
+    itemp  = atoi(pch);
+    pch = strtok(NULL," ");
+    if(pch == NULL){
+      printf("CMD: Bad command format\n");
+      return CMD_NORMAL;
+    }
+    ftemp  = atof(pch);
+    if(itemp >= 0 && itemp < LOWFS_N_ZERNIKE && ftemp >= 0){
+	sm_p->lyt_zcmd_limit[itemp] = ftemp;
+	printf("CMD: Setting LYT Z[%d] limit = %f microns\n",itemp,sm_p->lyt_zcmd_limit[itemp]);
+	print_lyt_zlimit(sm_p);
+    }
+    else{
+      printf("CMD: Zernike limit out of bounds #[%d,%d] limit >= 0\n",0,LOWFS_N_ZERNIKE);
+      return CMD_NORMAL;
+    }
+    return CMD_NORMAL;
+  }
+  
+  
   //LYT Centroid Control
   sprintf(cmd,"lyt enable cen");
   if(!strncasecmp(line,cmd,strlen(cmd))){

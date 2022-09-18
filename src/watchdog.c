@@ -389,6 +389,10 @@ int main(int argc,char **argv){
   sm_p->lyt_roi[2] = LYTREADXS;
   sm_p->lyt_roi[3] = LYTREADYS;
 
+  //LYT ZCMD Limits
+  double lyt_zcmd_limit[LOWFS_N_ZERNIKE] = LYT_ZCMD_LIMIT_DEFAULT;
+  memcpy((double *)sm_p->lyt_zcmd_limit,lyt_zcmd_limit,sizeof(lyt_zcmd_limit));
+
   //SCI ROI Origin
   uint32 sci_xorigin[SCI_NBANDS] = SCI_XORIGIN_DEFAULT;
   uint32 sci_yorigin[SCI_NBANDS] = SCI_YORIGIN_DEFAULT;

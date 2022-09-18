@@ -1383,7 +1383,8 @@ typedef volatile struct {
   double lyt_mag_yoff;                                     //LYT Magnification Y offset
   int    lyt_roi[4];                                       //LYT ROI
   int    lyt_cen_enable;                                   //LYT Enable centroid control
-
+  double lyt_zcmd_limit[LOWFS_N_ZERNIKE];                  //LYT Zernike command limits
+  
   //SCI Settings
   uint32 sci_xorigin[SCI_NBANDS];                          //SCI ROI center X
   uint32 sci_yorigin[SCI_NBANDS];                          //SCI ROI center Y
@@ -1440,6 +1441,7 @@ typedef volatile struct {
   int lyt_savedark;
   int lyt_loaddark;
   int lyt_subdark;
+  int lyt_zcmd_reset;
   
   //Camera Telemetry
   float shk_ccd_temp;

@@ -536,6 +536,14 @@ cmd: lyt yoff [arg]
         set lyt image magnification xoffset
 	arg = sub-pixel shift
 
+cmd: lyt zcmd reset
+        reset (zero out) lyt zernike commands
+	
+cmd: lyt zcmd limit [arg1] [arg2]
+        set lyt zernike command limit
+	arg1 = zernike index
+	arg2 = limit
+	
 cmd: lyt enable cen
         enable lyt centroid control
 	
