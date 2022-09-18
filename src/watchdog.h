@@ -89,8 +89,8 @@
 #define EFC_BMC_MAX_DEFAULT        50   //nm
 #define EFC_SCI_THRESH_DEFAULT     0    //ADU
 #define EFC_GAIN_DEFAULT          -0.5
-#define EFC_PROBE_AMP_DEFAULT      30   //nm
-#define EFC_MATRIX_DEFAULT         0
+#define EFC_PROBE_AMP_DEFAULT      10   //nm
+#define EFC_MATRIX_DEFAULT         6
 #define EFC_RELATIVE_DEFAULT       0
 #define EFC_DHROT_DEFAULT          0
 
